@@ -22,3 +22,4 @@ export * from "./evaluation-report.js";
 export * from "./report-verification.js";
 export * from "./spendgym-event.js";
 export * from "./interfaces.js";
+export * from "./api-views.js";

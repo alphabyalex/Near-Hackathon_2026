@@ -1,0 +1,37 @@
+/* Placeholder branding. Rebrand by editing this file only. */
+:root {
+  color-scheme: light;
+
+  --color-bg: #f4f4f4;
+  --color-surface: #ffffff;
+  --color-surface-muted: #ececec;
+  --color-text: #1a1a1a;
+  --color-text-muted: #595959;
+  --color-border: #cfcfcf;
+  --color-border-strong: #1a1a1a;
+  --color-accent: #1a1a1a;
+  --color-accent-text: #ffffff;
+  --color-warning-surface: #e2e2e2;
+
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --border-width: 1px;
+  --border-width-strong: 2px;
+  --content-width: 1120px;
+}
