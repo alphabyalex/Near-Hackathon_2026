@@ -1,4 +1,4 @@
-import type { EvaluationReport, EvidenceGateway, ReportVerification } from "@spendgym/schemas";
+import type { EvaluationReport, EvidenceGateway, ReportVerification } from "@redline/schemas";
 
 /** Serves example reports. It does not check anything on chain, so on_chain_digest is always null. */
 export class MockEvidenceGateway implements EvidenceGateway {

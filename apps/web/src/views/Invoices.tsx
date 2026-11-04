@@ -1,4 +1,4 @@
-import type { InvoiceDetail, InvoiceSummary, ReviewQueueEntry } from "@spendgym/schemas";
+import type { InvoiceDetail, InvoiceSummary, ReviewQueueEntry } from "@redline/schemas";
 import { useApi } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { Facts } from "../components/Facts";

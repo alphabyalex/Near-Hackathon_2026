@@ -1,4 +1,4 @@
-import { AccountIdSchema } from "@spendgym/schemas";
+import { AccountIdSchema } from "@redline/schemas";
 import { Hono } from "hono";
 import { z } from "zod";
 import { VAULT_A } from "./mock/seed.js";

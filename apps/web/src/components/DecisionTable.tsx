@@ -1,4 +1,4 @@
-import type { InvoiceSummary } from "@spendgym/schemas";
+import type { InvoiceSummary } from "@redline/schemas";
 import { nowNs, REVIEW_STATUS_LABEL, timeOfDay } from "../format";
 import { Money } from "./Money";
 import { Status } from "./Status";

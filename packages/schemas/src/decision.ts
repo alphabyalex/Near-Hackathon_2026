@@ -6,7 +6,7 @@ export type DecisionKind = z.infer<typeof DecisionKindSchema>;
 
 export const DecisionSchema = z
   .object({
-    schema: z.literal("spendgym-decision-v1"),
+    schema: z.literal("redline-decision-v1"),
     intake_ref: z.string().min(1),
     decision: DecisionKindSchema,
     matched_payable_ref: z.string().min(1).nullable(),

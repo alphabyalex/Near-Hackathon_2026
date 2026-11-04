@@ -8,7 +8,7 @@ import type {
   Intake,
   PaymentStatus,
   ReviewItem,
-} from "@spendgym/schemas";
+} from "@redline/schemas";
 
 export interface InvoiceRow {
   intake: Intake;

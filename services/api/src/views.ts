@@ -6,7 +6,7 @@ import type {
   OverviewView,
   ReviewQueueEntry,
   UnresolvedPayment,
-} from "@spendgym/schemas";
+} from "@redline/schemas";
 import { OUTCOME_UNCERTAIN_REASON, type Deps } from "./service.js";
 import { NS_PER_HOUR } from "./time.js";
 import type { InvoiceRow } from "./store.js";

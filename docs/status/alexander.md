@@ -7,11 +7,11 @@
 - packages/schemas: all shared zod schemas and types, one example per concept, and a test that validates every example.
 - services/api: Hono + better-sqlite3 skeleton with all endpoints, mock gateways, and the full POST /intake flow.
 - apps/web: rebuilt as Redline, matching apps/web/design/redline-reference.html. Site pages #/, #/vault, #/scoring, #/about, and the dashboard at #/app/overview, invoices, evaluation, controls. Rules in docs/BRAND.md. Still on mock data.
-- Product renamed to Redline. Package names, folders, and schema ids (`spendgym-*-v1`) keep the spendgym name. Mock account ids are now `*.redline.testnet`.
+- Product renamed to Redline everywhere in the repo, including package names (`@redline/*`), schema ids (`redline-*-v1`), and the event standard (`redline`). The token symbol stays sgUSD.
 
 ## Interfaces I expose
 
-- `@spendgym/schemas`: every schema as `XSchema` with type `X`, plus the `AgentRunner`, `DecisionAdapter`, `VaultGateway`, and `EvidenceGateway` interfaces.
+- `@redline/schemas`: every schema as `XSchema` with type `X`, plus the `AgentRunner`, `DecisionAdapter`, `VaultGateway`, and `EvidenceGateway` interfaces.
 - API on http://127.0.0.1:8787. See services/api/README.md for the routes.
 - Real gateways plug in at one place: `services/api/src/gateways/index.ts`.
 
@@ -19,6 +19,8 @@
 
 ## Requests
 
+- Everyone: main is renamed to Redline. After merging main, run `pnpm install`, and move your imports to `@redline/schemas` and your schema ids to `redline-*-v1`.
+- Tharun: contract events should use the standard `redline`, matching `RedlineEventSchema`.
 - Tharun: please confirm these additions to the vault contract surface, which came out of building the API:
   - `VaultGateway.getBinding`, needed for `expected_binding_revision` and the active agent version.
   - Every `VaultGateway` method takes `vaultId` first, since there is one vault per business.
@@ -40,4 +42,3 @@
 - Add a vault switcher so the UI can show business B. The API already takes `vault_id`.
 - Add unpause to the dashboard if the contract gets one. Today the button locks after pausing and a mock restart clears it.
 - Decide how the dashboard labels mock data before submission. The old mock banner is gone, and `data_source` is still in GET /overview.
-- Rename Spend Gym in the root README.md and LICENSE, which were outside this task's edit list.

@@ -1,4 +1,4 @@
-import { DecisionSchema, ReasonCodeSchema } from "@spendgym/schemas";
+import { DecisionSchema, ReasonCodeSchema } from "@redline/schemas";
 import type {
   AgentContext,
   Decision,
@@ -8,7 +8,7 @@ import type {
   ReasonCode,
   ReviewItem,
   VaultRejection,
-} from "@spendgym/schemas";
+} from "@redline/schemas";
 import { randomUUID } from "node:crypto";
 import type { Gateways } from "./gateways/index.js";
 import type { MockWorld } from "./mock/seed.js";

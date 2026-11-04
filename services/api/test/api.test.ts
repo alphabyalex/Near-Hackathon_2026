@@ -1,4 +1,4 @@
-import type { AgentRunner, InvoiceDetail, OverviewView, ReviewQueueEntry, VaultGateway } from "@spendgym/schemas";
+import type { AgentRunner, InvoiceDetail, OverviewView, ReviewQueueEntry, VaultGateway } from "@redline/schemas";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { bootstrap } from "../src/bootstrap.js";
@@ -82,7 +82,7 @@ describe("POST /intake", () => {
     const pay = vi.spyOn(deps.gateways.vault, "requestPayment");
     deps.gateways.agent = {
       decide: async (intake) => ({
-        schema: "spendgym-decision-v1",
+        schema: "redline-decision-v1",
         intake_ref: intake.intake_ref,
         decision: "PAY",
         matched_payable_ref: "pay_not_in_this_vault",

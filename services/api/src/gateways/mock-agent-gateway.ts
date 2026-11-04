@@ -8,7 +8,7 @@ import type {
   Intake,
   PaymentRequest,
   ReasonCode,
-} from "@spendgym/schemas";
+} from "@redline/schemas";
 
 const INJECTION = /ignore (all |any )?(prior|previous)|system (note|prompt)|disregard (all |any )?(prior|previous)/i;
 const DESTINATION_CHANGE = /(changed|new|updated)\s+(our\s+)?(bank|wallet|payment|destination)/i;
@@ -27,7 +27,7 @@ export class MockAgentGateway implements AgentRunner, DecisionAdapter {
       matched: string | null = null,
       evidence: string[] = [],
     ): Decision => ({
-      schema: "spendgym-decision-v1",
+      schema: "redline-decision-v1",
       intake_ref: intake.intake_ref,
       decision,
       matched_payable_ref: matched,

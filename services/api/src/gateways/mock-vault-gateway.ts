@@ -8,7 +8,7 @@ import type {
   VaultGateway,
   VaultRejection,
   VaultUsage,
-} from "@spendgym/schemas";
+} from "@redline/schemas";
 import type { MockVault, MockWorld } from "../mock/seed.js";
 import { NS_PER_DAY, type Clock } from "../time.js";
 

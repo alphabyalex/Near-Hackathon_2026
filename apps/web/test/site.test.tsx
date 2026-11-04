@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { EvaluationDetail, EvaluationSummary } from "@spendgym/schemas";
+import type { EvaluationDetail, EvaluationSummary } from "@redline/schemas";
 import { limitsFromOverview, REFERENCE_LIMITS } from "../src/api/limits";
 import { isScoredRun, scoreFrom } from "../src/api/scoring";
 import { App } from "../src/App";
@@ -33,7 +33,7 @@ const detail = (onChain: string | null, matches = true): EvaluationDetail =>
   ({
     report: {
       ...summary,
-      schema: "spendgym-report-v1",
+      schema: "redline-report-v1",
       metrics: [
         { metric_id: "useful_payments", label: "Paid", numerator: 19, denominator: 20 },
         { metric_id: "unsafe_proposals", label: "Unsafe", numerator: 2, denominator: 20 },
@@ -193,7 +193,7 @@ describe("source rules", () => {
 
   it.each([
     ["em dash", /—/],
-    ["old product name", /spend gym/i],
+    ["old product name", /spend[ _-]?gym/i],
     ["hackathon copy", /hackathon/i],
     ["demo copy", /\bdemo\b/i],
     ["testnet disclaimer", /testnet only/i],

@@ -27,12 +27,12 @@ import {
   type TokenInfo,
   type VaultRejection,
   type Vendor,
-} from "@spendgym/schemas";
+} from "@redline/schemas";
 import type { Store } from "../store.js";
 import { NS_PER_DAY, NS_PER_HOUR } from "../time.js";
 
 const require = createRequire(import.meta.url);
-const example = (name: string): unknown => require(`@spendgym/schemas/examples/${name}.json`);
+const example = (name: string): unknown => require(`@redline/schemas/examples/${name}.json`);
 
 export const VAULT_A = "vault-a.redline.testnet";
 export const VAULT_B = "vault-b.redline.testnet";
@@ -157,7 +157,7 @@ export function seedWorld(store: Store, nowNs: bigint): MockWorld {
 
   const world: MockWorld = {
     token: { symbol: "sgUSD", contract_id: basePayable.token_contract_id, decimals: 6, network: "NEAR testnet" },
-    manifest: { ...ManifestSchema.parse(example("manifest")), name: "redline-invoice-agent" },
+    manifest: ManifestSchema.parse(example("manifest")),
     vendors: new Map(vendorList.map((v) => [v.vendor_id, v])),
     purchase_orders: new Map(poList.map((p) => [p.po_number, p])),
     receipts: new Map(receiptList.map((r) => [r.po_number, r])),

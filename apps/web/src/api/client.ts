@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ApiError } from "@spendgym/schemas";
+import type { ApiError } from "@redline/schemas";
 
 export class ApiRequestError extends Error {}
 

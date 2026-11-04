@@ -1,6 +1,6 @@
 {
-  "schema": "spendgym-manifest-v1",
-  "name": "spendgym-invoice-agent",
+  "schema": "redline-manifest-v1",
+  "name": "redline-invoice-agent",
   "version": "0.0.0-example",
   "model_provider": "near-ai-cloud",
   "model_id": "example-model",

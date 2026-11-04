@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { EvaluationDetail, EvaluationSummary } from "@spendgym/schemas";
+import type { EvaluationDetail, EvaluationSummary } from "@redline/schemas";
 import { useApi } from "../api/client";
 import { Facts } from "../components/Facts";
 import { LoadError, Loading } from "../components/Loading";

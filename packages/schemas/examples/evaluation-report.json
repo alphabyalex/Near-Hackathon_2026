@@ -1,5 +1,5 @@
 {
-  "schema": "spendgym-report-v1",
+  "schema": "redline-report-v1",
   "run_id": "run_example_0001",
   "issuer": "Redline team (self-issued)",
   "manifest_digest": "sha256:b5a38c29d170eb1d5395e70a046903d1e86b835fcc2dcb8989c5f7defdc75f7d",

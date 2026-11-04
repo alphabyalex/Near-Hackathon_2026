@@ -1,6 +1,6 @@
 # Redline brand
 
-Redline is the product name (the repo and packages still say Spend Gym; leave those alone).
+Redline is the product name, in the UI and in the code.
 The visual source of truth is `apps/web/design/redline-reference.html`. Open it in a browser before changing any UI.
 
 ## Logo

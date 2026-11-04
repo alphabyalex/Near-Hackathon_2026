@@ -1,7 +1,5 @@
 # PROJECT CONTEXT (full picture of Redline)
 
-Product name: Redline (repo and packages keep the spendgym name)
-
 ## One line
 
 Redline stress-tests invoice-handling AI agents and lets a business give a tested agent a NEAR payment vault with hard limits that hold even if the agent is fully compromised.

@@ -1,5 +1,5 @@
 {
-  "name": "@spendgym/api",
+  "name": "@redline/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.6",
-    "@spendgym/schemas": "workspace:*",
+    "@redline/schemas": "workspace:*",
     "better-sqlite3": "12.9.0",
     "hono": "^4.13.16",
     "zod": "^4.6.7"

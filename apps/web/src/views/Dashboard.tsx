@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { OverviewView } from "@spendgym/schemas";
+import type { OverviewView } from "@redline/schemas";
 import { apiPost, useApi } from "../api/client";
 import { LoadError, Loading } from "../components/Loading";
 import { Logo } from "../components/Logo";

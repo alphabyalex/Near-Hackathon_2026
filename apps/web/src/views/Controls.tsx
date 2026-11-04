@@ -1,4 +1,4 @@
-import type { HistoryEntry, HistoryView, OverviewView } from "@spendgym/schemas";
+import type { HistoryEntry, HistoryView, OverviewView } from "@redline/schemas";
 import { useApi } from "../api/client";
 import { Facts } from "../components/Facts";
 import { LoadError, Loading } from "../components/Loading";

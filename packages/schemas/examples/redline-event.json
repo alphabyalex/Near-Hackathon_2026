@@ -1,5 +1,5 @@
 {
-  "standard": "spendgym",
+  "standard": "redline",
   "version": "1.0.0",
   "event": "payment_settled",
   "data": [{ "operation_id": "op_1001", "payable_ref": "pay_1001", "amount_atomic": "1250000000" }]

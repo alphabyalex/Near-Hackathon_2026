@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ReviewQueueEntry } from "@spendgym/schemas";
+import type { ReviewQueueEntry } from "@redline/schemas";
 import { apiPost, type Loaded } from "../api/client";
 import { dueIn, nowNs } from "../format";
 import { LoadError, Loading } from "./Loading";

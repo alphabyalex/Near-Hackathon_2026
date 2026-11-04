@@ -1,5 +1,5 @@
 {
-  "name": "spend-gym",
+  "name": "redline",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -9,8 +9,8 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --filter @spendgym/schemas build && concurrently -n api,web \"pnpm --filter @spendgym/api dev\" \"pnpm --filter @spendgym/web dev\"",
-    "test": "pnpm --filter @spendgym/schemas build && pnpm -r test"
+    "dev": "pnpm --filter @redline/schemas build && concurrently -n api,web \"pnpm --filter @redline/api dev\" \"pnpm --filter @redline/web dev\"",
+    "test": "pnpm --filter @redline/schemas build && pnpm -r test"
   },
   "devDependencies": {
     "concurrently": "^9.2.5"

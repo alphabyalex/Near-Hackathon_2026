@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@spendgym/schemas";
+import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@redline/schemas";
 import { DotBar } from "../src/components/DotBar";
 import { Mark } from "../src/components/Logo";
 import { Money, TokenContext } from "../src/components/Money";

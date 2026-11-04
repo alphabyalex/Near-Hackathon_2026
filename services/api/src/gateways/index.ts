@@ -1,4 +1,4 @@
-import type { AgentRunner, DecisionAdapter, EvidenceGateway, VaultGateway } from "@spendgym/schemas";
+import type { AgentRunner, DecisionAdapter, EvidenceGateway, VaultGateway } from "@redline/schemas";
 import type { MockWorld } from "../mock/seed.js";
 import type { Clock } from "../time.js";
 import { MockAgentGateway } from "./mock-agent-gateway.js";

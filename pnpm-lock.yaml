@@ -179,7 +179,7 @@ importers:
         specifier: ^19.3.1
         version: 19.3.1(react@19.3.1)
     devDependencies:
-      '@spendgym/schemas':
+      '@redline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
       '@testing-library/react':
@@ -228,7 +228,7 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.6
         version: 2.1.6(hono@4.13.16)
-      '@spendgym/schemas':
+      '@redline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
       better-sqlite3:

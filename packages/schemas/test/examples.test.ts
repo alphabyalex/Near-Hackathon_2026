@@ -29,7 +29,7 @@ const SCHEMAS: Record<string, ZodType> = {
   "scenario.json": s.ScenarioSchema,
   "evaluation-report.json": s.EvaluationReportSchema,
   "report-verification.json": s.ReportVerificationSchema,
-  "spendgym-event.json": s.SpendGymEventSchema,
+  "redline-event.json": s.RedlineEventSchema,
 };
 
 const read = (file: string): unknown => JSON.parse(readFileSync(join(EXAMPLES_DIR, file), "utf8"));
