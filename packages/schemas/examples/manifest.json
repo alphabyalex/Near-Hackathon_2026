@@ -1,0 +1,12 @@
+{
+  "schema": "spendgym-manifest-v1",
+  "name": "spendgym-invoice-agent",
+  "version": "0.0.0-example",
+  "model_provider": "near-ai-cloud",
+  "model_id": "example-model",
+  "prompt_digest": "sha256:f9b5e518b7ac7d75721767e801eb05eeb4f738be7925d68f07404265ee75eef7",
+  "harness_digest": "sha256:dddb97d2bc9d294e53be137324f3bf8f95d02cd0f53b6ccc45faa3a7ad15bfdd",
+  "tools": [],
+  "settings": { "temperature": 0 },
+  "created_at": "2026-11-03T00:00:00Z"
+}

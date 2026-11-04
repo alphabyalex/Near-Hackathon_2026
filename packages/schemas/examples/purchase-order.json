@@ -1,0 +1,10 @@
+{
+  "po_number": "PO-1001",
+  "vendor_id": "vnd_larkspur",
+  "lines": [
+    { "description": "Printer paper, case", "quantity": 25, "unit_price_atomic": "50000000", "line_total_atomic": "1250000000" }
+  ],
+  "total_atomic": "1250000000",
+  "approved_by": "owner.acme-synthetic.testnet",
+  "approved_at_ns": "1793404800000000000"
+}

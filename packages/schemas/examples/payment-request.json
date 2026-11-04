@@ -1,0 +1,7 @@
+{
+  "payable_ref": "pay_1001",
+  "request_digest": "sha256:f0488a3d2eb22465ba51080754113ee965d305a3cfe1c28630eca5472830a825",
+  "expected_vendor_revision": 1,
+  "expected_policy_revision": 1,
+  "expected_binding_revision": 1
+}

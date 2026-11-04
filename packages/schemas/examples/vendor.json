@@ -1,0 +1,8 @@
+{
+  "vendor_id": "vnd_larkspur",
+  "display_name": "Larkspur Office Supply",
+  "account_id": "larkspur.vendors.spendgym.testnet",
+  "revision": 1,
+  "per_payment_cap_atomic": "5000000000",
+  "active": true
+}

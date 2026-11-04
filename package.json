@@ -1,0 +1,14 @@
+{
+  "name": "spend-gym",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm --filter @spendgym/schemas build && pnpm -r test"
+  }
+}

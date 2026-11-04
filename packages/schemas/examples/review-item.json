@@ -1,0 +1,10 @@
+{
+  "review_id": "rev_1002",
+  "intake_ref": "int_1002",
+  "payable_ref": "pay_1002",
+  "source": "VAULT",
+  "reason_codes": ["OVER_VENDOR_CAP"],
+  "vault_rejection": "OVER_VENDOR_CAP",
+  "due_at_ns": "1794873600000000000",
+  "status": "OPEN"
+}

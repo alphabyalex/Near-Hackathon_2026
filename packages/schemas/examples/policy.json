@@ -1,0 +1,7 @@
+{
+  "revision": 1,
+  "weekly_cap_atomic": "20000000000",
+  "lifetime_cap_atomic": "100000000000",
+  "expires_at_ns": "1798848000000000000",
+  "paused": false
+}

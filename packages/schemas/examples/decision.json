@@ -1,0 +1,9 @@
+{
+  "schema": "spendgym-decision-v1",
+  "intake_ref": "int_1001",
+  "decision": "PAY",
+  "matched_payable_ref": "pay_1001",
+  "reason_codes": ["MATCHED_APPROVED_PAYABLE"],
+  "evidence_refs": ["PO-1001", "GR-1001"],
+  "summary": "Invoice INV-1001 matches approved payable pay_1001 at the exact amount."
+}

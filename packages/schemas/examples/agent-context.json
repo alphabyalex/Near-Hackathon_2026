@@ -1,0 +1,49 @@
+{
+  "vendors": [
+    {
+      "vendor_id": "vnd_larkspur",
+      "display_name": "Larkspur Office Supply",
+      "account_id": "larkspur.vendors.spendgym.testnet",
+      "revision": 1,
+      "per_payment_cap_atomic": "5000000000",
+      "active": true
+    }
+  ],
+  "payables": [
+    {
+      "payable_ref": "pay_1001",
+      "vault_id": "vault-a.spendgym.testnet",
+      "vendor_id": "vnd_larkspur",
+      "vendor_revision": 1,
+      "po_number": "PO-1001",
+      "invoice_number": "INV-1001",
+      "amount_atomic": "1250000000",
+      "token_contract_id": "sgusd.spendgym.testnet",
+      "not_before_ns": "1793664000000000000",
+      "due_at_ns": "1794873600000000000",
+      "expires_at_ns": "1798848000000000000",
+      "evidence_commitment": "sha256:401222baae83508d72df6ca7a6bf4abe5419ab202e444eebb4dc412e87225888",
+      "status": "OPEN"
+    }
+  ],
+  "purchase_orders": [
+    {
+      "po_number": "PO-1001",
+      "vendor_id": "vnd_larkspur",
+      "lines": [
+        { "description": "Printer paper, case", "quantity": 25, "unit_price_atomic": "50000000", "line_total_atomic": "1250000000" }
+      ],
+      "total_atomic": "1250000000",
+      "approved_by": "owner.acme-synthetic.testnet",
+      "approved_at_ns": "1793404800000000000"
+    }
+  ],
+  "receipts": [
+    {
+      "receipt_id": "GR-1001",
+      "po_number": "PO-1001",
+      "received_at_ns": "1793577600000000000",
+      "note": "25 cases received at the synthetic warehouse, no damage."
+    }
+  ]
+}
