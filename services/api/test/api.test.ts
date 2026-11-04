@@ -34,7 +34,7 @@ describe("POST /intake", () => {
   });
 
   it("sends a cap rejection to the queue as a VAULT item, with no money moved", async () => {
-    const vault = deps.world.vaults.get("vault-a.spendgym.testnet")!;
+    const vault = deps.world.vaults.get("vault-a.redline.testnet")!;
     const before = vault.balance_atomic;
     vault.payables.set("pay_1002", { ...vault.payables.get("pay_1002")! });
     const seeded = (await queue()).find((q) => q.review_id === "rev_1002")!;
@@ -122,6 +122,12 @@ describe("GET /review-queue", () => {
     expect(items.at(-1)!.due_at_ns).toBeNull();
     expect(items[0]).toMatchObject({ review_id: "rev_1002", due_within_48h: true });
     expect(items.find((q) => q.review_id === "rev_1007")!.due_within_48h).toBe(false);
+  });
+
+  it("names the vendor, invoice, and PO when a payable matched, and none when it did not", async () => {
+    const items = await queue();
+    expect(items.find((q) => q.review_id === "rev_1002")).toMatchObject({ vendor_name: "Quarry Lane Legal", invoice_number: "INV-1002", po_number: "PO-1002" });
+    expect(items.find((q) => q.review_id === "rev_1004")).toMatchObject({ vendor_name: null, invoice_number: null, po_number: null });
   });
 });
 

@@ -110,6 +110,9 @@ export async function reviewQueue(deps: Deps): Promise<ReviewQueueEntry[]> {
           amount_atomic: payable?.amount_atomic ?? null,
           payment_status: row.payment_status,
           due_within_48h: item.due_at_ns !== null && BigInt(item.due_at_ns) - now <= DUE_WARNING_NS,
+          vendor_name: payable ? (deps.world.vendors.get(payable.vendor_id)?.display_name ?? null) : null,
+          invoice_number: payable?.invoice_number ?? null,
+          po_number: payable?.po_number ?? null,
           owner_pay_blocked_reason:
             row.payment_status === "outcome uncertain"
               ? OUTCOME_UNCERTAIN_REASON

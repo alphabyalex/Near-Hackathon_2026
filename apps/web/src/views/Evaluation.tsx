@@ -3,13 +3,17 @@ import type { EvaluationDetail, EvaluationSummary } from "@spendgym/schemas";
 import { useApi } from "../api/client";
 import { Facts } from "../components/Facts";
 import { LoadError, Loading } from "../components/Loading";
+import { Panel } from "../components/Panel";
 
-const AI_LABEL = { PASS: "\u2713 Pass", FAIL: "\u2717 Fail" } as const;
+const AI_LABEL = {
+  PASS: <span className="ok">{"✓ Pass"}</span>,
+  FAIL: <span className="bad">{"✗ Fail"}</span>,
+} as const;
 const VAULT_LABEL = {
   NOT_REACHED: "Not reached",
-  PAID_CORRECTLY: "\u2713 Paid correctly",
-  CONTAINED: "\u2298 Blocked by vault",
-  BREACHED: "\u2717 Unsafe payment went through",
+  PAID_CORRECTLY: <span className="ok">{"✓ Paid correctly"}</span>,
+  CONTAINED: <span className="warn-text">{"⊘ Blocked by vault"}</span>,
+  BREACHED: <span className="bad">{"✗ Unsafe payment went through"}</span>,
 } as const;
 
 function Report({ runId }: { runId: string }) {
@@ -19,57 +23,55 @@ function Report({ runId }: { runId: string }) {
   const { report, verification } = detail.data;
   return (
     <div className="stack">
-      <section className="card">
-        <h2>Run identity</h2>
-        <Facts
-          rows={[
-            ["Run", <span className="mono">{report.run_id}</span>],
-            ["Issuer", report.issuer],
-            ["Agent manifest", <span className="mono">{report.manifest_digest}</span>],
-            ["Suite commitment", <span className="mono">{report.suite_commitment}</span>],
-            ["Execution", report.execution_status],
-            ["Assessment outcome", report.assessment_outcome],
-            [
-              "On-chain check",
-              verification.on_chain_digest === null
-                ? "? Not checked: no on-chain record for this run"
-                : verification.matches
-                  ? "\u2713 Report matches the on-chain record"
-                  : "\u2717 Report does not match the on-chain record",
-            ],
-          ]}
-        />
-      </section>
-      <section className="card">
-        <h2>Metrics</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th className="num">Numerator</th>
-                <th className="num">Denominator</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.metrics.map((m) => (
-                <tr key={m.metric_id}>
-                  <td>{m.label}</td>
-                  <td className="num">{m.numerator}</td>
-                  <td className="num">{m.denominator}</td>
+      <div className="pair">
+        <Panel title="Run identity" padded>
+          <Facts
+            rows={[
+              ["Run", <span className="mono">{report.run_id}</span>],
+              ["Issuer", report.issuer],
+              ["Agent manifest", <span className="mono">{report.manifest_digest}</span>],
+              ["Suite commitment", <span className="mono">{report.suite_commitment}</span>],
+              ["Execution", <span className="code">{report.execution_status}</span>],
+              ["Assessment outcome", <span className="code">{report.assessment_outcome}</span>],
+              [
+                "On-chain check",
+                verification.on_chain_digest === null ? (
+                  <span className="warn-text">? Not checked: no on-chain record for this run</span>
+                ) : verification.matches ? (
+                  <span className="ok">{"✓ Report matches the on-chain record"}</span>
+                ) : (
+                  <span className="bad">{"✗ Report does not match the on-chain record"}</span>
+                ),
+              ],
+            ]}
+          />
+        </Panel>
+        <Panel title="Metrics">
+          <div className="scrollx">
+            <table className="rows" style={{ minWidth: 0 }}>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Result</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section className="card">
-        <h2>Per-case results</h2>
-        <p className="muted small" style={{ marginBottom: "var(--space-3)" }}>
-          The AI and the vault are scored separately. An unsafe AI proposal the vault blocks is one AI failure and one vault containment success.
-        </p>
-        <div className="table-wrap">
-          <table>
+              </thead>
+              <tbody>
+                {report.metrics.map((m) => (
+                  <tr key={m.metric_id}>
+                    <td>{m.label}</td>
+                    <td className="mono num" style={{ whiteSpace: "nowrap" }}>
+                      {m.numerator} of {m.denominator}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      </div>
+      <Panel title="Per-case results" note="AI and vault scored separately">
+        <div className="scrollx">
+          <table className="rows">
             <thead>
               <tr>
                 <th>Case</th>
@@ -83,39 +85,37 @@ function Report({ runId }: { runId: string }) {
             <tbody>
               {report.cases.map((c) => (
                 <tr key={c.scenario_id}>
-                  <td className="mono">{c.scenario_id}</td>
+                  <td className="code">{c.scenario_id}</td>
                   <td>{c.family}</td>
-                  <td>{c.decision ?? "None"}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>{AI_LABEL[c.ai_result]}</td>
-                  <td>{VAULT_LABEL[c.vault_result]}</td>
+                  <td className={c.decision === "FLAG" ? "code danger" : "code"}>{c.decision ?? "None"}</td>
+                  <td className="nowrap">{AI_LABEL[c.ai_result]}</td>
+                  <td className="nowrap">{VAULT_LABEL[c.vault_result]}</td>
                   <td>{c.note}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
-      <section className="grid">
-        <div className="card">
-          <h2>Limitations</h2>
-          <ul>
+      </Panel>
+      <div className="pair">
+        <Panel title="Limitations" padded>
+          <ul className="limit-list">
             {report.limitations.map((l) => (
               <li key={l}>{l}</li>
             ))}
           </ul>
-        </div>
-        <div className="card">
-          <h2>Costs</h2>
+        </Panel>
+        <Panel title="Costs" padded>
           <Facts
             rows={[
-              ["LLM input tokens", report.costs.llm_input_tokens],
-              ["LLM output tokens", report.costs.llm_output_tokens],
-              ["Wall clock", `${report.costs.wall_clock_ms} ms`],
+              ["LLM input tokens", <span className="mono">{report.costs.llm_input_tokens}</span>],
+              ["LLM output tokens", <span className="mono">{report.costs.llm_output_tokens}</span>],
+              ["Wall clock", <span className="mono">{report.costs.wall_clock_ms} ms</span>],
               ["Estimated USD", report.costs.estimated_usd ?? "Not estimated"],
             ]}
           />
-        </div>
-      </section>
+        </Panel>
+      </div>
     </div>
   );
 }
@@ -125,13 +125,14 @@ export function Evaluation() {
   const [chosen, setChosen] = useState<string | null>(null);
   if (runs.error) return <LoadError message={runs.error} />;
   if (!runs.data) return <Loading />;
-  if (runs.data.length === 0) return <p className="muted">No evaluation runs yet.</p>;
-  const runId = chosen ?? (runs.data[0] as EvaluationSummary).run_id;
+  const [latest] = runs.data;
+  if (!latest) return <p className="loading">No evaluation runs yet.</p>;
+  const runId = chosen ?? latest.run_id;
   return (
     <div className="stack">
       {runs.data.length > 1 && (
-        <label>
-          Run{" "}
+        <label className="runpick">
+          Run
           <select value={runId} onChange={(e) => setChosen(e.target.value)}>
             {runs.data.map((r) => (
               <option key={r.run_id} value={r.run_id}>

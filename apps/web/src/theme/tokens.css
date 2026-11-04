@@ -1,37 +1,62 @@
-/* Placeholder branding. Rebrand by editing this file only. */
+/* Redline tokens. See docs/BRAND.md. All colors and fonts live here. */
+
+@font-face {
+  font-family: "Redline Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/redline-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Redline Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url("/fonts/redline-mono-500.woff2") format("woff2");
+}
+
 :root {
-  color-scheme: light;
+  --paper: #f2f0eb;
+  --paper-2: #e9e6df;
+  --paper-veil: rgba(242, 240, 235, 0.92);
+  --panel: #fbfaf7;
+  --row-hover: #f4f2ed;
 
-  --color-bg: #f4f4f4;
-  --color-surface: #ffffff;
-  --color-surface-muted: #ececec;
-  --color-text: #1a1a1a;
-  --color-text-muted: #595959;
-  --color-border: #cfcfcf;
-  --color-border-strong: #1a1a1a;
-  --color-accent: #1a1a1a;
-  --color-accent-text: #ffffff;
-  --color-warning-surface: #e2e2e2;
+  --ink: #0b0b0a;
+  --ink-2: #2e2c28;
+  --ink-hover: #22201c;
+  --muted: #5f5b53;
 
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  --rule: #d6d2c9;
+  --rule-soft: #e7e3db;
+  --rule-strong: #bdb8ad;
+  --dot-empty: #cfcac0;
 
-  --font-size-sm: 0.8125rem;
-  --font-size-md: 0.9375rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.375rem;
+  --red: #e1251b;
+  --red-ink: #b5121b;
+  --red-wash: rgba(225, 37, 27, 0.08);
+  --red-edge: rgba(181, 18, 27, 0.45);
+  --red-ping: rgba(225, 37, 27, 0.45);
+  --red-ping-end: rgba(225, 37, 27, 0);
 
-  --radius-sm: 3px;
-  --radius-md: 6px;
+  --amber: #9a6a00;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --green: #1f7a4d;
+  --green-ping: rgba(31, 122, 77, 0.5);
+  --green-ping-end: rgba(31, 122, 77, 0);
 
-  --border-width: 1px;
-  --border-width-strong: 2px;
-  --content-width: 1120px;
+  --night: #0b0b0a;
+  --night-2: #141412;
+  --night-rule: #26241f;
+  --night-line: #1b1a17;
+  --night-text: #ece9e2;
+  --night-muted: #a29d93;
+  --night-dim: #5e5a52;
+  --night-red: #ff5a4e;
+  --night-green: #7fd1a4;
+
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "Redline Mono", monospace;
+  --wordmark: "Geist", var(--sans);
 }

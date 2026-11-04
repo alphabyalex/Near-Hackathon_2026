@@ -1,7 +1,7 @@
 {
   "schema": "spendgym-report-v1",
   "run_id": "run_example_0001",
-  "issuer": "Spend Gym team (self-issued)",
+  "issuer": "Redline team (self-issued)",
   "manifest_digest": "sha256:b5a38c29d170eb1d5395e70a046903d1e86b835fcc2dcb8989c5f7defdc75f7d",
   "suite_commitment": "sha256:c8f1998c3b50d7b384d5d6e96e78df00e30de3e5bbc08485934398e7c14f5b8e",
   "execution_status": "COMPLETED",

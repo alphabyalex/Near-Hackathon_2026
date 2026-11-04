@@ -3,7 +3,7 @@
     {
       "vendor_id": "vnd_larkspur",
       "display_name": "Larkspur Office Supply",
-      "account_id": "larkspur.vendors.spendgym.testnet",
+      "account_id": "larkspur.vendors.redline.testnet",
       "revision": 1,
       "per_payment_cap_atomic": "5000000000",
       "active": true
@@ -12,13 +12,13 @@
   "payables": [
     {
       "payable_ref": "pay_1001",
-      "vault_id": "vault-a.spendgym.testnet",
+      "vault_id": "vault-a.redline.testnet",
       "vendor_id": "vnd_larkspur",
       "vendor_revision": 1,
       "po_number": "PO-1001",
       "invoice_number": "INV-1001",
       "amount_atomic": "1250000000",
-      "token_contract_id": "sgusd.spendgym.testnet",
+      "token_contract_id": "sgusd.redline.testnet",
       "not_before_ns": "1793664000000000000",
       "due_at_ns": "1794873600000000000",
       "expires_at_ns": "1798848000000000000",

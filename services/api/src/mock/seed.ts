@@ -34,8 +34,8 @@ import { NS_PER_DAY, NS_PER_HOUR } from "../time.js";
 const require = createRequire(import.meta.url);
 const example = (name: string): unknown => require(`@spendgym/schemas/examples/${name}.json`);
 
-export const VAULT_A = "vault-a.spendgym.testnet";
-export const VAULT_B = "vault-b.spendgym.testnet";
+export const VAULT_A = "vault-a.redline.testnet";
+export const VAULT_B = "vault-b.redline.testnet";
 
 export interface MockVault {
   policy: Policy;
@@ -64,8 +64,8 @@ export function seedWorld(store: Store, nowNs: bigint): MockWorld {
   const baseVendor = VendorSchema.parse(example("vendor"));
   const vendorList: Vendor[] = [
     baseVendor,
-    { ...baseVendor, vendor_id: "vnd_fernhill", display_name: "Fernhill Cloud Hosting", account_id: "fernhill.vendors.spendgym.testnet", revision: 2, per_payment_cap_atomic: sgusd(2_000) },
-    { ...baseVendor, vendor_id: "vnd_quarry", display_name: "Quarry Lane Legal", account_id: "quarry.vendors.spendgym.testnet", per_payment_cap_atomic: sgusd(1_000) },
+    { ...baseVendor, vendor_id: "vnd_fernhill", display_name: "Fernhill Cloud Hosting", account_id: "fernhill.vendors.redline.testnet", revision: 2, per_payment_cap_atomic: sgusd(2_000) },
+    { ...baseVendor, vendor_id: "vnd_quarry", display_name: "Quarry Lane Legal", account_id: "quarry.vendors.redline.testnet", per_payment_cap_atomic: sgusd(1_000) },
   ];
 
   const basePo = PurchaseOrderSchema.parse(example("purchase-order"));
@@ -149,7 +149,7 @@ export function seedWorld(store: Store, nowNs: bigint): MockWorld {
   };
   const vaultB: MockVault = {
     policy: { ...basePolicy, expires_at_ns: expires, weekly_cap_atomic: sgusd(5_000) },
-    binding: { ...baseBinding, expires_at_ns: expires, agent_account_id: "agent.vault-b.spendgym.testnet" },
+    binding: { ...baseBinding, expires_at_ns: expires, agent_account_id: "agent.vault-b.redline.testnet" },
     balance_atomic: BigInt(sgusd(10_000)),
     payables: new Map(),
     operations: new Map(),
@@ -157,7 +157,7 @@ export function seedWorld(store: Store, nowNs: bigint): MockWorld {
 
   const world: MockWorld = {
     token: { symbol: "sgUSD", contract_id: basePayable.token_contract_id, decimals: 6, network: "NEAR testnet" },
-    manifest: ManifestSchema.parse(example("manifest")),
+    manifest: { ...ManifestSchema.parse(example("manifest")), name: "redline-invoice-agent" },
     vendors: new Map(vendorList.map((v) => [v.vendor_id, v])),
     purchase_orders: new Map(poList.map((p) => [p.po_number, p])),
     receipts: new Map(receiptList.map((r) => [r.po_number, r])),

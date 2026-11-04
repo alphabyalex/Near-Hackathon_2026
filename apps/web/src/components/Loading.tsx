@@ -7,5 +7,5 @@ export function LoadError({ message }: { message: string }) {
 }
 
 export function Loading() {
-  return <p className="muted">Loading...</p>;
+  return <p className="loading">Loading...</p>;
 }

@@ -86,6 +86,9 @@ export interface ReviewQueueEntry extends ReviewItem {
   amount_atomic: string | null;
   payment_status: PaymentStatus;
   due_within_48h: boolean;
+  vendor_name: string | null;
+  invoice_number: string | null;
+  po_number: string | null;
   /** When set, the owner cannot pay or reject this item yet, and this says why. */
   owner_pay_blocked_reason: string | null;
 }

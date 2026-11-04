@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 
 export function Facts({ rows }: { rows: [label: string, value: ReactNode][] }) {
   return (
-    <dl className="facts">
+    <dl className="factlist">
       {rows.map(([label, value]) => (
-        <div key={label} style={{ display: "contents" }}>
+        <div className="fact" key={label}>
           <dt>{label}</dt>
           <dd>{value}</dd>
         </div>

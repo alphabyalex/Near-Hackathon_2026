@@ -1,5 +1,5 @@
 {
-  "agent_account_id": "agent.vault-a.spendgym.testnet",
+  "agent_account_id": "agent.vault-a.redline.testnet",
   "public_key": "ed25519:ExamplePublicKeyNotARealKey",
   "manifest_digest": "sha256:b5a38c29d170eb1d5395e70a046903d1e86b835fcc2dcb8989c5f7defdc75f7d",
   "assessment_ref": "run_example_0001",

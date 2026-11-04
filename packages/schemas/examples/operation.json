@@ -2,7 +2,7 @@
   "operation_id": "op_1001",
   "payable_ref": "pay_1001",
   "amount_atomic": "1250000000",
-  "recipient": "larkspur.vendors.spendgym.testnet",
+  "recipient": "larkspur.vendors.redline.testnet",
   "status": "SETTLED",
   "attempt": 1,
   "reserved_at_ns": "1793664000000000000",
