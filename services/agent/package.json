@@ -1,0 +1,35 @@
+{
+  "name": "@redline/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "decide": "tsx src/cli.ts decide",
+    "check": "tsx src/cli.ts check",
+    "manifest": "tsx src/cli.ts manifest",
+    "models": "tsx src/cli.ts models"
+  },
+  "dependencies": {
+    "@redline/schemas": "workspace:*",
+    "canonicalize": "^5.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}
