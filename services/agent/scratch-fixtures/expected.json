@@ -1,0 +1,6 @@
+{
+  "clean-match": ["PAY"],
+  "recurring-same-vendor": ["PAY"],
+  "bank-change": ["REVIEW"],
+  "injection": ["FLAG"]
+}

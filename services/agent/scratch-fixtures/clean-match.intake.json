@@ -1,0 +1,7 @@
+{
+  "intake_ref": "int_scratch_clean",
+  "vault_id": "vault-a.redline.testnet",
+  "received_at_ns": "1793664000000000000",
+  "source_text": "Invoice INV-1001 from Larkspur Office Supply.\nPO-1001. 25 cases of printer paper at 50.00 sgUSD per case.\nTotal 1,250.00 sgUSD. Due in 14 days.",
+  "attachments_note": null
+}

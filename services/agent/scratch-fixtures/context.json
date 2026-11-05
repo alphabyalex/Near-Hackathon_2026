@@ -1,0 +1,146 @@
+{
+  "vendors": [
+    {
+      "vendor_id": "vnd_larkspur",
+      "display_name": "Larkspur Office Supply",
+      "account_id": "larkspur.vendors.redline.testnet",
+      "revision": 1,
+      "per_payment_cap_atomic": "5000000000",
+      "active": true
+    },
+    {
+      "vendor_id": "vnd_brightline",
+      "display_name": "Brightline Cloud Hosting",
+      "account_id": "brightline.vendors.redline.testnet",
+      "revision": 1,
+      "per_payment_cap_atomic": "2000000000",
+      "active": true
+    }
+  ],
+  "payables": [
+    {
+      "payable_ref": "pay_1001",
+      "vault_id": "vault-a.redline.testnet",
+      "vendor_id": "vnd_larkspur",
+      "vendor_revision": 1,
+      "po_number": "PO-1001",
+      "invoice_number": "INV-1001",
+      "amount_atomic": "1250000000",
+      "token_contract_id": "sgusd.redline.testnet",
+      "not_before_ns": "1793664000000000000",
+      "due_at_ns": "1794873600000000000",
+      "expires_at_ns": "1798848000000000000",
+      "evidence_commitment": "sha256:401222baae83508d72df6ca7a6bf4abe5419ab202e444eebb4dc412e87225888",
+      "status": "OPEN"
+    },
+    {
+      "payable_ref": "pay_1002",
+      "vault_id": "vault-a.redline.testnet",
+      "vendor_id": "vnd_larkspur",
+      "vendor_revision": 1,
+      "po_number": "PO-1002",
+      "invoice_number": "INV-1002",
+      "amount_atomic": "640000000",
+      "token_contract_id": "sgusd.redline.testnet",
+      "not_before_ns": "1793664000000000000",
+      "due_at_ns": "1794873600000000000",
+      "expires_at_ns": "1798848000000000000",
+      "evidence_commitment": "sha256:401222baae83508d72df6ca7a6bf4abe5419ab202e444eebb4dc412e87225888",
+      "status": "OPEN"
+    },
+    {
+      "payable_ref": "pay_1003",
+      "vault_id": "vault-a.redline.testnet",
+      "vendor_id": "vnd_larkspur",
+      "vendor_revision": 1,
+      "po_number": "PO-1003",
+      "invoice_number": "INV-1003",
+      "amount_atomic": "3100000000",
+      "token_contract_id": "sgusd.redline.testnet",
+      "not_before_ns": "1793664000000000000",
+      "due_at_ns": "1794873600000000000",
+      "expires_at_ns": "1798848000000000000",
+      "evidence_commitment": "sha256:401222baae83508d72df6ca7a6bf4abe5419ab202e444eebb4dc412e87225888",
+      "status": "OPEN"
+    },
+    {
+      "payable_ref": "pay_2010",
+      "vault_id": "vault-a.redline.testnet",
+      "vendor_id": "vnd_brightline",
+      "vendor_revision": 1,
+      "po_number": "PO-2010",
+      "invoice_number": "INV-2010",
+      "amount_atomic": "800000000",
+      "token_contract_id": "sgusd.redline.testnet",
+      "not_before_ns": "1791072000000000000",
+      "due_at_ns": "1792281600000000000",
+      "expires_at_ns": "1796256000000000000",
+      "evidence_commitment": "sha256:401222baae83508d72df6ca7a6bf4abe5419ab202e444eebb4dc412e87225888",
+      "status": "SETTLED"
+    },
+    {
+      "payable_ref": "pay_2011",
+      "vault_id": "vault-a.redline.testnet",
+      "vendor_id": "vnd_brightline",
+      "vendor_revision": 1,
+      "po_number": "PO-2011",
+      "invoice_number": "INV-2011",
+      "amount_atomic": "800000000",
+      "token_contract_id": "sgusd.redline.testnet",
+      "not_before_ns": "1793664000000000000",
+      "due_at_ns": "1794873600000000000",
+      "expires_at_ns": "1798848000000000000",
+      "evidence_commitment": "sha256:401222baae83508d72df6ca7a6bf4abe5419ab202e444eebb4dc412e87225888",
+      "status": "OPEN"
+    }
+  ],
+  "purchase_orders": [
+    {
+      "po_number": "PO-1001",
+      "vendor_id": "vnd_larkspur",
+      "lines": [{ "description": "Printer paper, case", "quantity": 25, "unit_price_atomic": "50000000", "line_total_atomic": "1250000000" }],
+      "total_atomic": "1250000000",
+      "approved_by": "owner.acme-synthetic.testnet",
+      "approved_at_ns": "1793404800000000000"
+    },
+    {
+      "po_number": "PO-1002",
+      "vendor_id": "vnd_larkspur",
+      "lines": [{ "description": "Toner cartridge", "quantity": 8, "unit_price_atomic": "80000000", "line_total_atomic": "640000000" }],
+      "total_atomic": "640000000",
+      "approved_by": "owner.acme-synthetic.testnet",
+      "approved_at_ns": "1793404800000000000"
+    },
+    {
+      "po_number": "PO-1003",
+      "vendor_id": "vnd_larkspur",
+      "lines": [{ "description": "Standing desk", "quantity": 10, "unit_price_atomic": "310000000", "line_total_atomic": "3100000000" }],
+      "total_atomic": "3100000000",
+      "approved_by": "owner.acme-synthetic.testnet",
+      "approved_at_ns": "1793404800000000000"
+    },
+    {
+      "po_number": "PO-2010",
+      "vendor_id": "vnd_brightline",
+      "lines": [{ "description": "Cloud hosting, October", "quantity": 1, "unit_price_atomic": "800000000", "line_total_atomic": "800000000" }],
+      "total_atomic": "800000000",
+      "approved_by": "owner.acme-synthetic.testnet",
+      "approved_at_ns": "1790812800000000000"
+    },
+    {
+      "po_number": "PO-2011",
+      "vendor_id": "vnd_brightline",
+      "lines": [{ "description": "Cloud hosting, November", "quantity": 1, "unit_price_atomic": "800000000", "line_total_atomic": "800000000" }],
+      "total_atomic": "800000000",
+      "approved_by": "owner.acme-synthetic.testnet",
+      "approved_at_ns": "1793404800000000000"
+    }
+  ],
+  "receipts": [
+    { "receipt_id": "GR-1001", "po_number": "PO-1001", "received_at_ns": "1793577600000000000", "note": "25 cases received at the synthetic warehouse, no damage." },
+    { "receipt_id": "GR-1002", "po_number": "PO-1002", "received_at_ns": "1793577600000000000", "note": "8 toner cartridges received." },
+    { "receipt_id": "GR-1003", "po_number": "PO-1003", "received_at_ns": "1793577600000000000", "note": "10 desks received and assembled." },
+    { "receipt_id": "GR-2010", "po_number": "PO-2010", "received_at_ns": "1790985600000000000", "note": "October hosting service confirmed." },
+    { "receipt_id": "GR-2011", "po_number": "PO-2011", "received_at_ns": "1793577600000000000", "note": "November hosting service confirmed." }
+  ]
+}
