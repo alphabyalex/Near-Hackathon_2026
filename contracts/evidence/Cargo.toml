@@ -1,0 +1,16 @@
+[package]
+name = "redline-evidence"
+description = "Redline evidence registry: append-only suite commitments and evaluation run results."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk.workspace = true
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }

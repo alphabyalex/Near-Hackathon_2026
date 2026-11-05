@@ -1,0 +1,13 @@
+[package]
+name = "redline-test-proxy"
+description = "Test only. Forwards any call, to prove the vault rejects proxy callers and forged callbacks."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk.workspace = true
