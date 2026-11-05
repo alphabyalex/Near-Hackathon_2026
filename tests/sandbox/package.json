@@ -1,0 +1,23 @@
+{
+  "name": "@redline/sandbox-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./src/harness.ts",
+  "scripts": {
+    "test:sandbox": "pnpm --filter @redline/schemas --filter @redline/vault-sim --filter @redline/vault-client build && vitest run"
+  },
+  "dependencies": {
+    "@redline/schemas": "workspace:*",
+    "@redline/vault-client": "workspace:*",
+    "@redline/vault-sim": "workspace:*",
+    "near-api-js": "7.4.0",
+    "near-sandbox": "0.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}
