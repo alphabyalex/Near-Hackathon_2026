@@ -1,0 +1,13 @@
+export { PaymentRequestAdapter, NotPayableError, requestDigest } from "./adapter.js";
+export { MODEL_ID, MODEL_PROVIDER, loadRepoEnv } from "./agent-config.js";
+export { AlwaysReviewControl } from "./always-review.js";
+export { canonicalJson, digestOf } from "./canonical.js";
+export { createAgent, type CreateAgentOptions } from "./factory.js";
+export { LlmAgent, type LlmAgentOptions } from "./llm-agent.js";
+export type { ChatClient, ChatResult } from "./llm-client.js";
+export { buildManifest, harnessDigest, manifestDigest } from "./manifest.js";
+export { promptDigest, type PromptVersion } from "./prompts.js";
+export { intakeHash, RecordingAgent, REPLAY_LABEL, ReplayAgent, ReplayStore, type ReplayRecord } from "./replay.js";
+export type { AgentKind, DecisionReport, DecisionWithReport, ReportingAgent, TokenUsage } from "./report.js";
+export { RulesBaseline } from "./rules-baseline.js";
+export { type CallLogger, type CallRecord, jsonlCallLogger } from "./telemetry.js";
