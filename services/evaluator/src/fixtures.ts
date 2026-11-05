@@ -56,6 +56,8 @@ export interface LoadedScenario {
   state: StartingState;
   category: Category;
   file: string;
+  /** The file's JSON exactly as written. Scenario hashes are taken over this, not the parsed copy. */
+  raw: unknown;
 }
 
 export function categoryOf(family: string): Category | null {
@@ -100,7 +102,7 @@ export function loadSuite(dir: string): LoadedScenario[] {
       problems.push(`${f}: family "${sc.data.family}" must start with one of ${CATEGORIES.join(", ")}`);
       continue;
     }
-    loaded.push({ scenario: sc.data, state: st.data, category, file: path });
+    loaded.push({ scenario: sc.data, state: st.data, category, file: path, raw });
   }
   problems.push(...loaded.flatMap(lintScenario), ...lintSuite(loaded));
   if (problems.length > 0) throw new FixtureError(problems);
@@ -141,7 +143,7 @@ export function groupForRun(ordered: LoadedScenario[]): LoadedScenario[][] {
   return groups;
 }
 
-const EM_DASH = "—";
+const EM_DASH = String.fromCharCode(0x2014);
 
 function collectStrings(v: unknown, out: string[] = []): string[] {
   if (typeof v === "string") out.push(v);
