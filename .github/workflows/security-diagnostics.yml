@@ -1,0 +1,71 @@
+name: Spend Gym security diagnostics
+
+on:
+  push:
+    branches:
+      - tharun
+    paths:
+      - ".github/workflows/security-diagnostics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spend-gym-security-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  security-diagnostics:
+    name: Capture sandbox security failure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out tharun
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install pnpm 10.20.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Install Node.js 22.22.2
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.22.2"
+          cache: pnpm
+
+      - name: Install Rust 1.95.0
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          targets: wasm32-unknown-unknown
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all Wasm contracts
+        run: pnpm contracts:build
+
+      - name: Run sandbox security suite and retain output
+        id: security
+        continue-on-error: true
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: |
+          set -o pipefail
+          timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs 2>&1 | tee /tmp/vault-security.log
+
+      - name: Upload sandbox security output
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: spend-gym-security-log-${{ github.run_id }}
+          path: /tmp/vault-security.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Preserve failing status
+        if: steps.security.outcome != 'success'
+        run: exit 1
