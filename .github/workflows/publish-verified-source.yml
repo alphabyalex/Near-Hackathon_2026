@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Reconstruct, verify, and publish source
+    name: Reconstruct, publish, and verify source
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -34,7 +34,7 @@ jobs:
           test "$(git branch --show-current)" = "tharun"
           parts=(.handoff/source.part-*)
           test "${#parts[@]}" -eq 6
-          cat "${parts[@]}" | base64 --decode > /tmp/spend-gym-source.tar.gz
+          cat "${parts[@]}" | tr -cd 'A-Za-z0-9+/=' | base64 --decode > /tmp/spend-gym-source.tar.gz
           echo "4b8a06836aeb96f9a00d3e8264737ca3b93168134312ab3bb73e619b99b2e52e  /tmp/spend-gym-source.tar.gz" | sha256sum --check --strict
 
           rm -rf /tmp/spend-gym-source
@@ -90,6 +90,16 @@ jobs:
           test -f pnpm-lock.yaml
           test -f Cargo.lock
 
+      - name: Publish clean source and lockfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build: publish Spend Gym crypto lane"
+          git push origin HEAD:tharun
+
       - name: Verify TypeScript packages and scripts
         run: |
           pnpm typecheck
@@ -119,15 +129,3 @@ jobs:
             echo "em dash found in authored source" >&2
             exit 1
           fi
-
-      - name: Commit verified source and lockfiles
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add -A
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "build: publish verified Spend Gym crypto lane"
-          git push origin HEAD:tharun
-
-# Retry after restoring the verified missing source segment.
