@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   diagnose:
-    name: Trace ft_on_transfer execution
+    name: Verify ft_on_transfer ABI fix
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -73,8 +73,11 @@ jobs:
 
           vault = Path("contracts/vault/src/lib.rs")
           source = vault.read_text()
+          if "        _msg: String," not in source:
+              raise SystemExit("NEP-141 receiver parameter was not found")
+          source = source.replace("        _msg: String,", "        msg: String,", 1)
           marker = '    ) -> PromiseOrValue<U128> {\n        require!(\n            env::predecessor_account_id() == self.token_contract_id,'
-          replacement = '    ) -> PromiseOrValue<U128> {\n        env::log_str("FUND_TRACE:entered");\n        env::log_str(&format!("FUND_TRACE:predecessor={}", env::predecessor_account_id()));\n        env::log_str(&format!("FUND_TRACE:configured={}", self.token_contract_id));\n        require!(\n            env::predecessor_account_id() == self.token_contract_id,'
+          replacement = '    ) -> PromiseOrValue<U128> {\n        let _ = msg;\n        env::log_str("FUND_TRACE:entered");\n        env::log_str(&format!("FUND_TRACE:predecessor={}", env::predecessor_account_id()));\n        env::log_str(&format!("FUND_TRACE:configured={}", self.token_contract_id));\n        require!(\n            env::predecessor_account_id() == self.token_contract_id,'
           if marker not in source:
               raise SystemExit("funding method entry not found")
           source = source.replace(marker, replacement, 1)
