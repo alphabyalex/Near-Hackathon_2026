@@ -34,7 +34,10 @@ jobs:
           test "$(git branch --show-current)" = "tharun"
           parts=(.handoff/source.part-*)
           test "${#parts[@]}" -eq 6
-          cat "${parts[@]}" | tr -cd 'A-Za-z0-9+/=' | base64 --decode > /tmp/spend-gym-source.tar.gz
+          {
+            cat "${parts[@]}" | tr -cd 'A-Za-z0-9+/'
+            printf '=='
+          } | base64 --decode > /tmp/spend-gym-source.tar.gz
           echo "4b8a06836aeb96f9a00d3e8264737ca3b93168134312ab3bb73e619b99b2e52e  /tmp/spend-gym-source.tar.gz" | sha256sum --check --strict
 
           rm -rf /tmp/spend-gym-source
