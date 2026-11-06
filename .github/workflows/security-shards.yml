@@ -1,0 +1,165 @@
+name: Spend Gym sharded security verification
+
+on:
+  push:
+    branches:
+      - tharun
+    paths:
+      - ".github/workflows/security-shards.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spend-gym-security-shards
+  cancel-in-progress: true
+
+jobs:
+  security-shards:
+    name: Run sandbox security scenarios independently
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out tharun
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Apply verified runtime compatibility fixes
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          vault = Path("contracts/vault/src/lib.rs")
+          source = vault.read_text()
+          if "&& payable.operation_id.is_some()" in source:
+              source = source.replace("&& payable.operation_id.is_some()", "&& let Some(operation_id) = payable.operation_id", 1)
+              source = source.replace('payable.operation_id.expect("checked operation id").0', "operation_id.0", 1)
+          source = source.replace("#[ext_contract(ext_ft)]\ntrait ExtFungibleToken", "#[ext_contract(ext_ft)]\n#[allow(dead_code)]\ntrait ExtFungibleToken", 1)
+          source = source.replace(
+              "        _msg: String,\n    ) -> PromiseOrValue<U128> {\n",
+              "        msg: String,\n    ) -> PromiseOrValue<U128> {\n        let _ = msg;\n",
+              1,
+          )
+          vault.write_text(source)
+
+          package_path = Path("tests/sandbox/package.json")
+          package = json.loads(package_path.read_text())
+          dependencies = package.setdefault("dependencies", {})
+          dependencies["near-api-js"] = "5.1.1"
+          dependencies["near-sandbox"] = "0.3.5"
+          package["dependencies"] = dict(sorted(dependencies.items()))
+          package_path.write_text(json.dumps(package, indent=2) + "\n")
+
+          helper = Path("tests/sandbox/helpers.mjs")
+          source = helper.read_text()
+          source = source.replace(
+              'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";',
+              '\n'.join([
+                  'import { keyStores } from "near-api-js";',
+                  'import { DEFAULT_ACCOUNT_ID, DEFAULT_PRIVATE_KEY, Sandbox } from "near-sandbox";',
+                  'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";',
+              ]),
+              1,
+          )
+          source = source.replace(
+              'export async function setupSandbox(options = {}) {\n  const worker = await Worker.init();\n  const root = worker.rootAccount;',
+              '\n'.join([
+                  'export async function setupSandbox(options = {}) {',
+                  '  const sandbox = await Sandbox.start({});',
+                  '  let worker;',
+                  '  try {',
+                  '    const keyStore = new keyStores.InMemoryKeyStore();',
+                  '    await keyStore.setKey("custom", DEFAULT_ACCOUNT_ID, KeyPair.fromString(DEFAULT_PRIVATE_KEY));',
+                  '    worker = await Worker.init({',
+                  '      network: "custom",',
+                  '      rpcAddr: sandbox.rpcUrl,',
+                  '      rootAccountId: DEFAULT_ACCOUNT_ID,',
+                  '      keyStore,',
+                  '      initialBalance: BigInt(parseNEAR("200")),',
+                  '    });',
+                  '    const root = worker.rootAccount;',
+              ]),
+              1,
+          )
+          source = source.replace(
+              '\n'.join([
+                  '    async tearDown() {',
+                  '      await worker.tearDown();',
+                  '    },',
+                  '  };',
+                  '  return fixture;',
+                  '}',
+              ]),
+              '\n'.join([
+                  '    async tearDown() {',
+                  '      await worker.tearDown();',
+                  '      await sandbox.tearDown();',
+                  '    },',
+                  '  };',
+                  '    return fixture;',
+                  '  } catch (error) {',
+                  '    try { await worker?.tearDown(); } catch {}',
+                  '    try { await sandbox.tearDown(); } catch {}',
+                  '    throw error;',
+                  '  }',
+                  '}',
+              ]),
+              1,
+          )
+          helper.write_text(source)
+          PY
+
+      - name: Install pnpm 10.20.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Install Node.js 22.22.2
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.22.2"
+          cache: pnpm
+
+      - name: Install Rust 1.95.0
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          targets: wasm32-unknown-unknown
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build all Wasm contracts
+        run: pnpm contracts:build
+
+      - name: Authorization and tenant boundaries
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="authorization, key, proxy, revocation, and tenant boundaries" vault-security.test.mjs
+
+      - name: Payable lifecycle and replay
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="payable lifecycle, stale revisions, vendor cap, and replay behavior" vault-security.test.mjs
+
+      - name: Weekly and lifetime boundaries
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="weekly and lifetime exact boundaries reject the next atomic unit" vault-security.test.mjs
+
+      - name: Failure release, owner escalation, and callbacks
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="token failure releases once, owner escalation bypasses caps, callbacks stay private" vault-security.test.mjs
+
+      - name: Concurrent paid lock and budget race
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="concurrent requests preserve a single paid lock and last-budget containment" vault-security.test.mjs
+
+      - name: Rolling seven-day expiry
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="rolling capacity expires after the seven-day window in sandbox time" vault-security.test.mjs
