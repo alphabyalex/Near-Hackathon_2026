@@ -1,6 +1,6 @@
 use near_sdk::json_types::U64;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{ext_contract, near, AccountId, Gas, PanicOnDefault, Promise};
+use near_sdk::{AccountId, Gas, PanicOnDefault, Promise, ext_contract, near};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
