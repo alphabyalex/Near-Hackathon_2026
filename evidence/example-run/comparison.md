@@ -1,6 +1,6 @@
 # Agent comparison on identical cases
 
-Suite commitment `sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a`. Every agent ran the same 12 scenarios, each on a fresh ledger.
+Suite commitment `sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7`. Every agent ran the same 12 scenarios, each on a fresh ledger.
 
 Not run because not available yet: `llm`, `rules`.
 

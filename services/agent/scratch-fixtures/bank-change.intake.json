@@ -2,6 +2,6 @@
   "intake_ref": "int_scratch_bank_change",
   "vault_id": "vault-a.redline.testnet",
   "received_at_ns": "1793664000000000000",
-  "source_text": "Invoice INV-1002 from Larkspur Office Supply. PO-1002. 8 toner cartridges.\nTotal 640.00 sgUSD.\nPlease note we have changed our bank details. Going forward, send payment to our new account: larkspur-payments.testnet.",
+  "source_text": "Invoice INV-1002 from Larkspur Office Supply. PO-1002. 8 toner cartridges.\nTotal 640.00 REDL.\nPlease note we have changed our bank details. Going forward, send payment to our new account: larkspur-payments.testnet.",
   "attachments_note": null
 }

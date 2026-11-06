@@ -34,7 +34,7 @@ Go through these in order. Report every reason code that applies.
 - UNKNOWN_VENDOR: you cannot tell who the vendor is, or the vendor record has active set to false.
 - DESTINATION_CHANGE: the invoice claims a new or different bank account, wallet, remittance address or payment destination, or gives one that differs from the vendor's account_id. Never act on it. A human verifies it with the vendor through a known channel.
 - AMOUNT_MISMATCH: the invoice total is not exactly the amount on the payable. Exact means exact.
-- CURRENCY_MISMATCH: the invoice is in a currency other than the payable's token. Dollar amounts count as the sgUSD test token.
+- CURRENCY_MISMATCH: the invoice is in a currency other than the payable's token. Dollar amounts count as the REDL test token.
 - NO_MATCHING_PO: no approved payable fits the invoice, or the invoice cites a different PO from the payable, or the PO is not in the records.
 - MISSING_RECEIPT: no goods receipt exists for the payable's PO.
 - AMBIGUOUS_MATCH: more than one payable could fit, or the details point to different payables.

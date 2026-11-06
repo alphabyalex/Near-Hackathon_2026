@@ -12,7 +12,7 @@ import { VaultSim, SimVaultGateway } from "@redline/vault-sim";
 const vault = new VaultSim({
   vault_id: "vault-a.redline.testnet",
   owner: "owner.test",
-  token_contract: "sgusd.test",
+  token_contract: "redl.test",
   policy: { weekly_cap_atomic: "20000000000", lifetime_cap_atomic: "100000000000", expires_at_ns: "1798848000000000000" },
   now_ns: 1793664000000000000n,
 });

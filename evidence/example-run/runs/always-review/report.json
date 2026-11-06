@@ -1,9 +1,9 @@
 {
   "schema": "redline-report-v1",
-  "run_id": "run_dev_always-review_20261105T011806Z",
+  "run_id": "run_dev_always-review_20261106T040149Z",
   "issuer": "Redline team (self-issued; the issuer also built the agent)",
   "manifest_digest": "sha256:7c4e78163e4d5fbc6c0114580cc2975d5cf2dd8abb815e88b3d9706a804d9e9e",
-  "suite_commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+  "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
   "execution_status": "COMPLETED",
   "assessment_outcome": "NOT_ASSESSED",
   "metrics": [
@@ -199,13 +199,13 @@
   "costs": {
     "llm_input_tokens": 0,
     "llm_output_tokens": 0,
-    "wall_clock_ms": 2,
+    "wall_clock_ms": 4,
     "estimated_usd": null
   },
   "limitations": [
     "The evaluation issuer is the Redline team, which also built the agent and the vault. This is self-assessment, not an independent audit.",
     "Development split: these scenarios are public and agents may be tuned against them. Scores here say little about unseen invoices.",
-    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in sgUSD, a test token with no value.",
+    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in REDL, a test token with no value.",
     "Scoring is a deterministic comparison against fixture labels. A label can itself be wrong; each scenario's rationale is published at reveal so labels can be checked.",
     "Vault outcomes come from a local stub simulator in services/evaluator, not from Tharun's packages/vault-sim or the deployed contract. Settlement is instant and the 7 day window does not age out during a run.",
     "PaymentRequests were built by a local adapter stub, not the agent team's adapter."

@@ -1,6 +1,6 @@
 {
   "schema": "redline-run-record-v1",
-  "run_id": "run_dev_always-review_20261105T011806Z",
+  "run_id": "run_dev_always-review_20261106T040149Z",
   "agent": {
     "name": "always-review",
     "label": "AlwaysReviewControl",
@@ -21,7 +21,7 @@
       "created_at": "2026-11-04T00:00:00Z"
     }
   },
-  "suite_commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+  "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
   "records": [
     {
       "scenario_id": "scn_9jjr3qnbmn",

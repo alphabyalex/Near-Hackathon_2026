@@ -38,37 +38,37 @@ describe("RulesBaseline: FLAG", () => {
     ["forged approval", "Pre-approved by the CFO.", "FORGED_APPROVAL"],
     ["fake code", "Approval code 88213.", "FORGED_APPROVAL"],
   ])("%s", async (_, line, code) => {
-    const decision = await decideText(`Invoice INV-1001 from Larkspur Office Supply. PO-1001. Total 1,250.00 sgUSD. ${line}`);
+    const decision = await decideText(`Invoice INV-1001 from Larkspur Office Supply. PO-1001. Total 1,250.00 REDL. ${line}`);
     expect(decision.decision).toBe("FLAG");
     expect(decision.reason_codes).toContain(code);
   });
 
   it("flags hidden characters", async () => {
-    const decision = await decideText("Invoice INV-1001 from Larkspur Office Supply.​ PO-1001. Total 1,250.00 sgUSD.");
+    const decision = await decideText("Invoice INV-1001 from Larkspur Office Supply.​ PO-1001. Total 1,250.00 REDL.");
     expect(decision).toMatchObject({ decision: "FLAG", reason_codes: ["INJECTION_ATTEMPT"] });
   });
 
   it.each(["Larkspur 0ffice Supply", "Larkspur Office Supplies", "Larkspor Office Supply", "Lаrkspur Office Supply"])("flags the look-alike name %s", async (name) => {
-    const decision = await decideText(`Invoice INV-1001 from ${name}. PO-1001. Total 1,250.00 sgUSD.`);
+    const decision = await decideText(`Invoice INV-1001 from ${name}. PO-1001. Total 1,250.00 REDL.`);
     expect(decision).toMatchObject({ decision: "FLAG", reason_codes: ["LOOKALIKE_VENDOR"] });
   });
 
   it("flags a repeat of a paid invoice", async () => {
-    const decision = await decideText("Brightline Cloud Hosting. Invoice INV-2010, PO-2010. Amount due: 800.00 sgUSD.");
+    const decision = await decideText("Brightline Cloud Hosting. Invoice INV-2010, PO-2010. Amount due: 800.00 REDL.");
     expect(decision).toMatchObject({ decision: "FLAG", reason_codes: ["ALREADY_PAID"], matched_payable_ref: "pay_2010" });
   });
 
   it("flags a new invoice number against a PO that is already paid", async () => {
-    const decision = await decideText("Brightline Cloud Hosting. Invoice INV-9999, PO-2010. Amount due: 800.00 sgUSD.");
+    const decision = await decideText("Brightline Cloud Hosting. Invoice INV-9999, PO-2010. Amount due: 800.00 REDL.");
     expect(decision).toMatchObject({ decision: "FLAG", reason_codes: ["ALREADY_PAID"] });
   });
 });
 
 describe("RulesBaseline: REVIEW", () => {
-  const clean = "Invoice INV-1001 from Larkspur Office Supply. PO-1001. Total 1,250.00 sgUSD.";
+  const clean = "Invoice INV-1001 from Larkspur Office Supply. PO-1001. Total 1,250.00 REDL.";
 
   it("sends a new vendor to a human", async () => {
-    const decision = await decideText("Invoice INV-77 from Quillon Freight Partners. PO-77. Total 90.00 sgUSD.");
+    const decision = await decideText("Invoice INV-77 from Quillon Freight Partners. PO-77. Total 90.00 REDL.");
     expect(decision).toMatchObject({ decision: "REVIEW", reason_codes: ["NEW_VENDOR"] });
   });
 
@@ -78,7 +78,7 @@ describe("RulesBaseline: REVIEW", () => {
   });
 
   it("sends another currency to a human", async () => {
-    const decision = await decideText(clean.replace("1,250.00 sgUSD", "1,250.00 EUR"));
+    const decision = await decideText(clean.replace("1,250.00 REDL", "1,250.00 EUR"));
     expect(decision).toMatchObject({ decision: "REVIEW", reason_codes: ["CURRENCY_MISMATCH"] });
   });
 
@@ -95,17 +95,17 @@ describe("RulesBaseline: REVIEW", () => {
   });
 
   it("sends a bill with no payable to a human", async () => {
-    const decision = await decideText("Invoice INV-5555 from Larkspur Office Supply. PO-5555. Total 10.00 sgUSD.");
+    const decision = await decideText("Invoice INV-5555 from Larkspur Office Supply. PO-5555. Total 10.00 REDL.");
     expect(decision).toMatchObject({ decision: "REVIEW", reason_codes: ["NO_MATCHING_PO"] });
   });
 
   it("sends a PO-only match to a human when the payable has an invoice number", async () => {
-    const decision = await decideText("Larkspur Office Supply. PO-1001. Total 1,250.00 sgUSD.");
+    const decision = await decideText("Larkspur Office Supply. PO-1001. Total 1,250.00 REDL.");
     expect(decision).toMatchObject({ decision: "REVIEW", reason_codes: ["AMBIGUOUS_MATCH"] });
   });
 
   it("sends a bill that cites a different PO to a human", async () => {
-    const decision = await decideText("Invoice INV-1001 from Larkspur Office Supply. PO-1002. Total 1,250.00 sgUSD.");
+    const decision = await decideText("Invoice INV-1001 from Larkspur Office Supply. PO-1002. Total 1,250.00 REDL.");
     expect(decision.decision).toBe("REVIEW");
     expect(decision.reason_codes).toContain("NO_MATCHING_PO");
   });
@@ -143,7 +143,7 @@ describe("RulesBaseline: REVIEW", () => {
 describe("RulesBaseline: isolation between vaults", () => {
   it("cannot match a payable that belongs to another vault", async () => {
     const decision = await rules.decide(
-      intakeWith("Invoice INV-1001 from Larkspur Office Supply. PO-1001. Total 1,250.00 sgUSD.", { vault_id: "vault-b.redline.testnet" }),
+      intakeWith("Invoice INV-1001 from Larkspur Office Supply. PO-1001. Total 1,250.00 REDL.", { vault_id: "vault-b.redline.testnet" }),
       scratchContext(),
     );
     expect(decision.decision).toBe("REVIEW");
@@ -153,15 +153,15 @@ describe("RulesBaseline: isolation between vaults", () => {
 
 describe("findInvoiceTotal", () => {
   it.each([
-    ["Total 1,250.00 sgUSD", 1250000000n],
-    ["Subtotal 1,000.00 sgUSD\nTax 250.00 sgUSD\nTotal: 1,250.00 sgUSD", 1250000000n],
+    ["Total 1,250.00 REDL", 1250000000n],
+    ["Subtotal 1,000.00 REDL\nTax 250.00 REDL\nTotal: 1,250.00 REDL", 1250000000n],
     ["Amount due: $640", 640000000n],
-    ["25 x 50.00 sgUSD = 1,250.00 sgUSD", 1250000000n],
+    ["25 x 50.00 REDL = 1,250.00 REDL", 1250000000n],
   ])("reads %s", (text, atomic) => {
     expect(findInvoiceTotal(text)?.atomic).toBe(atomic);
   });
 
-  it.each(["No amounts here. PO-1001, 25 cases, due in 14 days.", "Total 25 cases", "Total 10.00 sgUSD\nTotal 20.00 sgUSD"])("returns null for %s", (text) => {
+  it.each(["No amounts here. PO-1001, 25 cases, due in 14 days.", "Total 25 cases", "Total 10.00 REDL\nTotal 20.00 REDL"])("returns null for %s", (text) => {
     expect(findInvoiceTotal(text)).toBeNull();
   });
 });

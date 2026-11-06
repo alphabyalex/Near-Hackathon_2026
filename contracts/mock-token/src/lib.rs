@@ -1,4 +1,4 @@
-//! Spend Gym Test Dollar (sgUSD). A mock NEP-141 test token with no value, for sandbox and
+//! Redline Test Dollar (REDL). A mock NEP-141 test token with no value, for sandbox and
 //! testnet only. All token logic is the reference `FungibleToken` from near-contract-standards.
 //! The one addition is an owner-only `mint`, so scripts can fund test vaults.
 
@@ -15,8 +15,8 @@ use near_contract_standards::storage_management::{
 use near_sdk::json_types::U128;
 use near_sdk::{env, near, AccountId, BorshStorageKey, NearToken, PanicOnDefault, PromiseOrValue};
 
-pub const TOKEN_NAME: &str = "Spend Gym Test Dollar";
-pub const TOKEN_SYMBOL: &str = "sgUSD";
+pub const TOKEN_NAME: &str = "Redline Test Dollar";
+pub const TOKEN_SYMBOL: &str = "REDL";
 pub const TOKEN_DECIMALS: u8 = 6;
 
 #[derive(BorshStorageKey)]

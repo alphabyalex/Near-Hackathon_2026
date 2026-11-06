@@ -10,7 +10,7 @@ import { InvoiceDetailCard } from "../src/views/Invoices";
 
 afterEach(cleanup);
 
-const token: TokenInfo = { symbol: "sgUSD", contract_id: "sgusd.redline.testnet", decimals: 6, network: "NEAR testnet" };
+const token: TokenInfo = { symbol: "REDL", contract_id: "redl.redline.testnet", decimals: 6, network: "NEAR testnet" };
 const HOUR = 3_600_000_000_000n;
 
 describe("Status", () => {

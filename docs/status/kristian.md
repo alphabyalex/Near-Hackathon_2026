@@ -28,8 +28,8 @@ Start with [docs/AGENT.md](../AGENT.md). It covers decision rules, how to run ev
 
 | Version | Digest |
 | --- | --- |
-| A | `sha256:235f34dd1b74bdabe8ddf3bfd75832ed7aca8cc67cd862afe727ae15e9f25baf` |
-| B | `sha256:75e5790ebfdd7e339bf4a78d4fe9bf0b0fd2e981932d77dc942914898cccb842` |
+| A | `sha256:9854361f090131f5159edd9d3fbe9d289e6344bffeda200c9fdf8b8ab65fe483` |
+| B | `sha256:a198744b61036a1273d90ab4c58883f784b5f942d8462f52ac378afe3d0e2fd7` |
 
 Model: `z-ai/glm-5.3-flash`. These digests will change if the first live run needs a harness or settings fix. That is fine before the freeze.
 
@@ -68,9 +68,8 @@ From `@redline/agent` (run `pnpm --filter agent build` first, as with schemas):
 
 ## Assumptions to check
 
-- Package names are `@redline/*`. The handoff prompt said `@spendgym/*`, but the repo has already been renamed, and the repo is the source of truth. `pnpm --filter agent` resolves `@redline/agent`.
 - Version B changes one sentence: how the `summary` field is written. Its decision rules match A, so the version-switch demo shows a digest change and not a behavior change. If the demo should show B scoring worse, B needs a different change.
 - A held PAY that the guard turns into REVIEW is my addition, not in the original brief. It reads trusted records only, and it can only move a decision toward a human.
 - A vendor record edited after approval is REVIEW with `OTHER`, not `DESTINATION_CHANGE`, because the vault bumps the revision for any edit, including a cap change.
-- Dollar amounts on an invoice count as sgUSD. Other currencies, including USDC, are a `CURRENCY_MISMATCH`.
+- Dollar amounts on an invoice count as REDL. Other currencies, including USDC, are a `CURRENCY_MISMATCH`.
 - `ReasonCode` has both `NEW_VENDOR` and `UNKNOWN_VENDOR`. I use the first for a named vendor not on the list, and the second for an unidentifiable or inactive one. Lucy may want to confirm this for scoring.

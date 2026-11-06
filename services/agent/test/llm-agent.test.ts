@@ -155,7 +155,7 @@ describe("what the model is sent", () => {
   });
 
   it("shows readable amounts instead of atomic units", () => {
-    expect(user!.content).toContain("1,250.00 sgUSD");
+    expect(user!.content).toContain("1,250.00 REDL");
     expect(user!.content).not.toContain("1250000000");
   });
 });

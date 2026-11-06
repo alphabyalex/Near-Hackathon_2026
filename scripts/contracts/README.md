@@ -21,7 +21,7 @@ REDLINE_ROOT_ACCOUNT=<new-name>.testnet pnpm --filter @redline/contract-scripts 
 If the root account does not exist it is created from the public testnet faucet. To use one you already hold, also set `REDLINE_ROOT_KEY=ed25519:...`. The root needs about 12 NEAR.
 
 What it does:
-- Deploys sgUSD, the evidence registry and two vaults (Business A and Business B), all under the root.
+- Deploys REDL, the evidence registry and two vaults (Business A and Business B), all under the root.
 - Creates `agent.vault-a.<root>` and `agent.vault-b.<root>`, each holding exactly one function-call key, restricted to `request_payment` on its own vault. They never had a full-access key.
 - Seeds vendors with different per-vendor caps, POs and payables with due dates. Funds both vaults.
 - Removes every key from the vaults, the token and the registry, so only their code can act. This is one way: a change after that means a new root.
@@ -45,7 +45,7 @@ The output separates two different defenses:
 - `REJECTED BY VAULT <code>`: the contract ran its rules and returned a `VaultRejection`.
 - `KEY NOT PERMITTED <reason>`: NEAR refused the transaction before any contract code ran.
 
-It also pays one approved 1 sgUSD bill, because it can. The key can pay anything the owner approved, inside the limits. That is the boundary, and the script says so.
+It also pays one approved 1 REDL bill, because it can. The key can pay anything the owner approved, inside the limits. That is the boundary, and the script says so.
 
 ## Inspect keys
 

@@ -3,32 +3,32 @@
   "note": "Local stand-in for the evidence contract (contracts/evidence). Not on chain. Each entry is what will be registered once the contract is deployed.",
   "suites": [
     {
-      "commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+      "commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
       "split": "DEV",
-      "registered_at": "2026-11-05T01:18:06.404Z"
+      "registered_at": "2026-11-06T04:01:49.076Z"
     }
   ],
   "runs": [
     {
-      "run_id": "run_dev_rules-stub_20261105T011806Z",
-      "suite_commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+      "run_id": "run_dev_rules-stub_20261106T040149Z",
+      "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
       "manifest_digest": "sha256:bb112e817e7a142cf7974bfcae0955d304ac48fbe5eb577c2132aa323f370f61",
-      "report_digest": "sha256:4621c722b0b1458985169b94289bb0e8b877e291e542c4c71fee04507b355508",
-      "registered_at": "2026-11-05T01:18:06.417Z"
+      "report_digest": "sha256:cd02063499f70a8236f3218901c191ae897ff2c59047fb2ae14d91eba85bbfb6",
+      "registered_at": "2026-11-06T04:01:49.126Z"
     },
     {
-      "run_id": "run_dev_always-review_20261105T011806Z",
-      "suite_commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+      "run_id": "run_dev_always-review_20261106T040149Z",
+      "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
       "manifest_digest": "sha256:7c4e78163e4d5fbc6c0114580cc2975d5cf2dd8abb815e88b3d9706a804d9e9e",
-      "report_digest": "sha256:1a15777b22338383f534ccbbf4c866591f1ef5b8831b0375d7685e913fc47b5f",
-      "registered_at": "2026-11-05T01:18:06.421Z"
+      "report_digest": "sha256:b8b77d10c13a883888d824991229e10ad083c002fc1182dbbe2a9be3316d2e9a",
+      "registered_at": "2026-11-06T04:01:49.145Z"
     },
     {
-      "run_id": "run_dev_credulous-stub_20261105T011806Z",
-      "suite_commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+      "run_id": "run_dev_credulous-stub_20261106T040149Z",
+      "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
       "manifest_digest": "sha256:767e9ea3c2067b23eed9427df8eeca222477f20c46f4c6584e13573ce5f95fe4",
-      "report_digest": "sha256:0c08d0f796f4ca100c50bf60be32a8067efa5a4abdc7f493fbd768a7609b21f8",
-      "registered_at": "2026-11-05T01:18:06.427Z"
+      "report_digest": "sha256:3df766f0265570dd3bd2c46bf57c707119a440f693508b7e29acb5f114775625",
+      "registered_at": "2026-11-06T04:01:49.167Z"
     }
   ]
 }

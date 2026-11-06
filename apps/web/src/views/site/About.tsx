@@ -53,7 +53,7 @@ export function About() {
                   </tr>
                   <tr>
                     <td>
-                      <b>Total (sgUSD)</b>
+                      <b>Total (REDL)</b>
                     </td>
                     <td className="num">
                       <b>3,180.00</b>

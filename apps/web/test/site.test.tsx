@@ -125,7 +125,7 @@ describe("limit bars", () => {
 
   it("read the policy and usage when the overview loads", () => {
     const [exact, vendor, weekly, lifetime] = limitsFromOverview({
-      token: { symbol: "sgUSD", contract_id: "x", decimals: 6, network: "NEAR testnet" },
+      token: { symbol: "REDL", contract_id: "x", decimals: 6, network: "NEAR testnet" },
       policy: { weekly_cap_atomic: "20000000000", lifetime_cap_atomic: "100000000000" },
       usage: { weekly_settled_atomic: "1250000000", weekly_reserved_atomic: "1000000000", lifetime_settled_atomic: "1250000000", lifetime_reserved_atomic: "1000000000" },
       vendors: [{ per_payment_cap_atomic: "1000000000" }, { per_payment_cap_atomic: "5000000000" }],

@@ -21,7 +21,7 @@ Root `pnpm test` does not run these. It stays fast and works on Windows.
 
 | File | Covers |
 | --- | --- |
-| `gate.test.ts` | The first gate: the restricted key moves sgUSD, a forbidden request does not. |
+| `gate.test.ts` | The first gate: the restricted key moves REDL, a forbidden request does not. |
 | `access.test.ts` | Wrong caller, wrong key, proxy caller, revoked and expired binding, agent calling owner methods, guardian limits, deposits, low gas, tenant A against vault B. |
 | `payables-caps.test.ts` | Unknown, early, expired, already paid and stale payables. Exact cap and cap plus one atomic unit for vendor, weekly, lifetime and balance. Capacities. `owner_pay` on an over-cap item. |
 | `money.test.ts` | Two concurrent requests for one payable. Distinct payables racing for the last budget. Missing recipient registration. Token failure releasing once. Uncertain results. Forged callbacks. Pause, vendor change, revoke and policy change while pending. A client timeout that is not a failure. |

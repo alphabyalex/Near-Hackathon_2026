@@ -11,7 +11,7 @@ export const NEAR = 10n ** 24n;
 export const MILLINEAR = NEAR / 1000n;
 export const NS_PER_HOUR = 3_600_000_000_000n;
 export const NS_PER_DAY = 24n * NS_PER_HOUR;
-export const SGUSD = 1_000_000n;
+export const REDL = 1_000_000n;
 
 export function repoPath(...parts: string[]): string {
   return resolve(HERE, "../../..", ...parts);

@@ -13,7 +13,7 @@ describe("funding", () => {
   it("the token reads as the labeled test token", async () => {
     const world = await makeWorld(chain);
     const metadata = await viewCall<{ name: string; symbol: string; decimals: number }>(chain.provider, world.token.account_id, "ft_metadata");
-    expect(metadata).toMatchObject({ name: "Spend Gym Test Dollar", symbol: "sgUSD", decimals: 6 });
+    expect(metadata).toMatchObject({ name: "Redline Test Dollar", symbol: "REDL", decimals: 6 });
   });
 
   it("only ft_transfer_call credits, and funding never raises a limit", async () => {

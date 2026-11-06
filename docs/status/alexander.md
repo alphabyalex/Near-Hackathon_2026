@@ -7,7 +7,7 @@
 - packages/schemas: all shared zod schemas and types, one example per concept, and a test that validates every example.
 - services/api: Hono + better-sqlite3 skeleton with all endpoints, mock gateways, and the full POST /intake flow.
 - apps/web: rebuilt as Redline, matching apps/web/design/redline-reference.html. Site pages #/, #/vault, #/scoring, #/about, and the dashboard at #/app/overview, invoices, evaluation, controls. Rules in docs/BRAND.md. Still on mock data.
-- Product renamed to Redline everywhere in the repo, including package names (`@redline/*`), schema ids (`redline-*-v1`), and the event standard (`redline`). The token symbol stays sgUSD.
+- Product renamed to Redline everywhere in the repo, including package names (`@redline/*`), schema ids (`redline-*-v1`), and the event standard (`redline`). The test token is now Redline Test Dollar (REDL).
 
 ## Interfaces I expose
 

@@ -203,7 +203,7 @@ export interface WorldOptions {
   funded?: bigint;
   policy_expires_at_ns?: bigint;
   capacities?: { max_vendors: number; max_payables: number; max_pending: number; max_rolling: number; max_operations: number };
-  /** Use the scriptable fake token instead of real sgUSD. */
+  /** Use the scriptable fake token instead of real REDL. */
   fake_token?: boolean;
   /** Register the vendor with the token. Default true. */
   register_vendor?: boolean;
@@ -340,7 +340,7 @@ export async function registerWithToken(token: SignerHandle, payer: SignerHandle
 }
 
 export async function deployMockToken(chain: Chain, owner: SignerHandle): Promise<SignerHandle> {
-  const token = await chain.account("sgusd");
+  const token = await chain.account("redl");
   await chain.deploy(token, wasm("mock-token"), { method: "new", args: { owner: owner.account_id } });
   return token;
 }

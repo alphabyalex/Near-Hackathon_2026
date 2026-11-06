@@ -10,7 +10,7 @@ import {
   NEAR,
   NS_PER_DAY,
   NS_PER_HOUR,
-  SGUSD,
+  REDL,
   createFromFaucet,
   defaultSecretsDir,
   listKeys,
@@ -71,13 +71,13 @@ const BUSINESSES: BusinessSeed[] = [
     owner: "owner-a",
     agent: "agent.vault-a",
     guardian: "guardian-a",
-    weekly: 20_000n * SGUSD,
-    lifetime: 100_000n * SGUSD,
-    funded: 50_000n * SGUSD,
+    weekly: 20_000n * REDL,
+    lifetime: 100_000n * REDL,
+    funded: 50_000n * REDL,
     vendors: [
-      { vendor_id: "vnd_larkspur", display_name: "Larkspur Office Supply", name: "larkspur", cap: 5_000n * SGUSD },
-      { vendor_id: "vnd_fernhill", display_name: "Fernhill Cloud Hosting", name: "fernhill", cap: 2_000n * SGUSD },
-      { vendor_id: "vnd_quarry", display_name: "Quarry Lane Legal", name: "quarry", cap: 1_000n * SGUSD },
+      { vendor_id: "vnd_larkspur", display_name: "Larkspur Office Supply", name: "larkspur", cap: 5_000n * REDL },
+      { vendor_id: "vnd_fernhill", display_name: "Fernhill Cloud Hosting", name: "fernhill", cap: 2_000n * REDL },
+      { vendor_id: "vnd_quarry", display_name: "Quarry Lane Legal", name: "quarry", cap: 1_000n * REDL },
     ],
     payables: [
       { ref: "pay_1001", vendor_id: "vnd_larkspur", whole: 1_250n, due: 14n * NS_PER_DAY },
@@ -89,7 +89,7 @@ const BUSINESSES: BusinessSeed[] = [
       { ref: "pay_1007", vendor_id: "vnd_larkspur", whole: 2_400n, due: 5n * NS_PER_DAY },
       // For malicious-signer. Not payable for 30 days.
       { ref: "pay_future", vendor_id: "vnd_larkspur", whole: 100n, due: 40n * NS_PER_DAY, not_before: 30n * NS_PER_DAY },
-      // For malicious-signer's replay. A real, approved 1 sgUSD bill: the key can pay what is approved.
+      // For malicious-signer's replay. A real, approved 1 REDL bill: the key can pay what is approved.
       { ref: "pay_replay", vendor_id: "vnd_larkspur", whole: 1n, due: 20n * NS_PER_DAY },
     ],
   },
@@ -98,10 +98,10 @@ const BUSINESSES: BusinessSeed[] = [
     vault: "vault-b",
     owner: "owner-b",
     agent: "agent.vault-b",
-    weekly: 5_000n * SGUSD,
-    lifetime: 50_000n * SGUSD,
-    funded: 10_000n * SGUSD,
-    vendors: [{ vendor_id: "vnd_aldergate", display_name: "Aldergate Couriers", name: "aldergate", cap: 500n * SGUSD }],
+    weekly: 5_000n * REDL,
+    lifetime: 50_000n * REDL,
+    funded: 10_000n * REDL,
+    vendors: [{ vendor_id: "vnd_aldergate", display_name: "Aldergate Couriers", name: "aldergate", cap: 500n * REDL }],
     payables: [
       { ref: "pay_2001", vendor_id: "vnd_aldergate", whole: 300n, due: 7n * NS_PER_DAY },
       { ref: "pay_2002", vendor_id: "vnd_aldergate", whole: 450n, due: 12n * NS_PER_DAY },
@@ -152,7 +152,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   }
   const root = deployer.signer(options.root);
   // Contracts cost their size in storage, and the two vaults are the bulk of this. A rerun needs far less.
-  const alreadyDeployed = await viewAccount(deployer.provider, account("sgusd"));
+  const alreadyDeployed = await viewAccount(deployer.provider, account("redl"));
   if (options.network === "testnet" && !alreadyDeployed) await topUpFromFaucet(deployer.provider, options.root, ROOT_BUDGET, log);
   const rootState = await viewAccount(deployer.provider, options.root);
   log(`Root ${options.root} holds ${BigInt(rootState?.amount ?? 0) / MILLINEAR} mN`);
@@ -164,7 +164,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   };
 
   log("Token");
-  const token = await deployer.ensureAccount(account("sgusd"), root, 1_750n * MILLINEAR);
+  const token = await deployer.ensureAccount(account("redl"), root, 1_750n * MILLINEAR);
   await deployer.ensureContract(token, wasm.token, { method: "new", args: { owner: options.root } });
 
   log("Evidence registry");
@@ -256,7 +256,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
       const notBefore = (now + (seed.not_before ?? -NS_PER_DAY)).toString();
       const po = `PO-${seed.ref.replace("pay_", "")}`;
       const invoice = `INV-${seed.ref.replace("pay_", "")}`;
-      const amount = (seed.whole * SGUSD).toString();
+      const amount = (seed.whole * REDL).toString();
       if ((await viewCall<unknown>(deployer.provider, vault.account_id, "get_payable", { payable_ref: seed.ref })) === null) {
         await deployer.call(
           owner,

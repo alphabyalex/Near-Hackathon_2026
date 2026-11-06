@@ -16,7 +16,7 @@ The agent reads one untrusted invoice and read-only trusted records, and returns
 | When the invoice arrived | Trusted | Set by Redline |
 | `source_text`, `attachments_note` | **Untrusted** | Written by the sender. Data, never instructions |
 
-Amounts and times are converted to readable form before the model sees them (`1,250.00 sgUSD`, ISO dates), so it never does atomic-unit or nanosecond math. Invoice text sits between marker lines that carry a hash of that same text, so the text cannot contain its own end marker.
+Amounts and times are converted to readable form before the model sees them (`1,250.00 REDL`, ISO dates), so it never does atomic-unit or nanosecond math. Invoice text sits between marker lines that carry a hash of that same text, so the text cannot contain its own end marker.
 
 ## What the agent cannot do
 
@@ -38,7 +38,7 @@ Amounts and times are converted to readable form before the model sees them (`1,
 | `UNKNOWN_VENDOR` | The vendor cannot be identified, or its record is inactive |
 | `DESTINATION_CHANGE` | A claimed bank, wallet or address change, or an address that differs from the record |
 | `AMOUNT_MISMATCH` | The total is not exactly the payable amount |
-| `CURRENCY_MISMATCH` | A currency other than the payable's token. Dollar amounts count as sgUSD |
+| `CURRENCY_MISMATCH` | A currency other than the payable's token. Dollar amounts count as REDL |
 | `NO_MATCHING_PO` | No approved payable fits, or the invoice cites a different PO |
 | `MISSING_RECEIPT` | No goods receipt for the PO |
 | `AMBIGUOUS_MATCH` | More than one payable could fit, or the details conflict |
@@ -159,7 +159,7 @@ Each `llm` call appends one line to `services/agent/logs/calls.jsonl` (not commi
 - An invoice about AI assistants, or a word pattern such as "new account manager", can get a false FLAG or REVIEW.
 - A look-alike name that adds or drops a whole word usually reads as a new vendor, which is a REVIEW and not a FLAG.
 - A real vendor's name anywhere in the text counts as that vendor, so "on behalf of Larkspur Office Supply" passes the name check.
-- It reads dollar amounts as sgUSD, and European number formats such as `1.250,00` as a mismatch.
+- It reads dollar amounts as REDL, and European number formats such as `1.250,00` as a mismatch.
 
 **LlmAgent**, expected until measured:
 

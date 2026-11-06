@@ -1,13 +1,13 @@
 {
-  "manifest_digest": "sha256:235f34dd1b74bdabe8ddf3bfd75832ed7aca8cc67cd862afe727ae15e9f25baf",
+  "manifest_digest": "sha256:9854361f090131f5159edd9d3fbe9d289e6344bffeda200c9fdf8b8ab65fe483",
   "manifest": {
     "schema": "redline-manifest-v1",
     "name": "redline-invoice-agent",
     "version": "A",
     "model_provider": "near-ai-cloud",
     "model_id": "z-ai/glm-5.3-flash",
-    "prompt_digest": "sha256:9a33504cd71edb1925460558169a9d63077a6f99c3cd018fa7a9d3a71d73cad7",
-    "harness_digest": "sha256:b1e6d0789dcdcf26b5828df51cbe56b7387d782972c0ec52107b26b1d487edea",
+    "prompt_digest": "sha256:7adac5eae615e3c08471883b4545fa4b230e4f2dc400f6e8785c2d8fc5b47655",
+    "harness_digest": "sha256:adc87d55ddea9a8237e9ea81579b140d1432d4666dc5f0adc225b9f98efb5723",
     "tools": [],
     "settings": {
       "temperature": 0,
@@ -16,7 +16,7 @@
       "response_format": "json_schema",
       "max_attempts": 2,
       "timeout_ms": 60000,
-      "token_symbol": "sgUSD",
+      "token_symbol": "REDL",
       "token_decimals": 6
     },
     "created_at": "2026-11-05T00:00:00Z"

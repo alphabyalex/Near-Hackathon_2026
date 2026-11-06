@@ -18,7 +18,7 @@ export const MODEL_ID = "z-ai/glm-5.3-flash";
 export const DEFAULT_BASE_URL = "https://cloud-api.near.ai/v1";
 
 /** Matches TOKEN_DECIMALS in contracts/mock-token/src/lib.rs. */
-export const TOKEN_SYMBOL = "sgUSD";
+export const TOKEN_SYMBOL = "REDL";
 export const TOKEN_DECIMALS = 6;
 
 /** Sent on every chat completion and recorded in the manifest. */

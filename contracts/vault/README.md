@@ -60,5 +60,5 @@ Use `cargo near build`, not plain `cargo build`: it runs `wasm-opt` with the fea
 ## Other contracts in this workspace
 
 - [contracts/evidence](../evidence): the evidence registry.
-- `contracts/mock-token`: Spend Gym Test Dollar (sgUSD, 6 decimals), a NEP-141 test token with no value, built on `near-contract-standards`. Its only addition is an owner-only `mint`.
+- `contracts/mock-token`: Redline Test Dollar (REDL, 6 decimals), a NEP-141 test token with no value, built on `near-contract-standards`. Its only addition is an owner-only `mint`.
 - `contracts/test-proxy`: test only, and never deployed to testnet. A call forwarder and a scriptable fake token that can hold a transfer open, fail it, or return an unexpected value.

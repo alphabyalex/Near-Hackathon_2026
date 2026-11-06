@@ -40,7 +40,7 @@ export function buildRun(a: BuildArgs): AgentRun {
     a.split === "dev"
       ? "Development split: these scenarios are public and agents may be tuned against them. Scores here say little about unseen invoices."
       : "Assessment split: scenarios were committed before this run and hidden from the agent author. They are still written by one person on our team.",
-    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in sgUSD, a test token with no value.",
+    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in REDL, a test token with no value.",
     "Scoring is a deterministic comparison against fixture labels. A label can itself be wrong; each scenario's rationale is published at reveal so labels can be checked.",
   ];
   if (a.simIsStub) limitations.push("Vault outcomes come from a local stub simulator in services/evaluator, not from Tharun's packages/vault-sim or the deployed contract. Settlement is instant and the 7 day window does not age out during a run.");

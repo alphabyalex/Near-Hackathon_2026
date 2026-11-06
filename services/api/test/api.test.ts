@@ -26,7 +26,7 @@ beforeEach(() => {
 
 describe("POST /intake", () => {
   it("settles an invoice that matches an open payable", async () => {
-    const detail = await submit("Invoice INV-1003 from Fernhill Cloud Hosting. Total 800.00 sgUSD.");
+    const detail = await submit("Invoice INV-1003 from Fernhill Cloud Hosting. Total 800.00 REDL.");
     expect(detail.decision?.decision).toBe("PAY");
     expect(detail.payment_status).toBe("settled");
     expect(detail.operation?.status).toBe("SETTLED");
@@ -40,7 +40,7 @@ describe("POST /intake", () => {
     const seeded = (await queue()).find((q) => q.review_id === "rev_1002")!;
     deps.store.saveReview({ ...seeded, status: "RESOLVED" });
 
-    const detail = await submit("Invoice INV-1002 from Quarry Lane Legal. Total 3,500.00 sgUSD.");
+    const detail = await submit("Invoice INV-1002 from Quarry Lane Legal. Total 3,500.00 REDL.");
     expect(detail.decision?.decision).toBe("PAY");
     expect(detail.payment_status).toBe("rejected by policy");
     expect(detail.review).toMatchObject({ source: "VAULT", vault_rejection: "OVER_VENDOR_CAP", reason_codes: ["OVER_VENDOR_CAP"], status: "OPEN" });
@@ -205,7 +205,7 @@ describe("read endpoints", () => {
   it("serves overview, invoices, evaluations, and history", async () => {
     const overview = await get<OverviewView>("/overview");
     expect(overview.data_source).toBe("mock");
-    expect(overview.token).toMatchObject({ symbol: "sgUSD", network: "NEAR testnet" });
+    expect(overview.token).toMatchObject({ symbol: "REDL", network: "NEAR testnet" });
     expect(BigInt(overview.headroom.weekly_atomic)).toBe(20_000_000_000n - 1_250_000_000n - 1_000_000_000n);
     expect(overview.unresolved_payments.map((p) => p.payment_status).sort()).toEqual(["outcome uncertain", "reserved"]);
 

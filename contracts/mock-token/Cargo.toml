@@ -1,6 +1,6 @@
 [package]
 name = "redline-mock-token"
-description = "Spend Gym Test Dollar (sgUSD): a NEP-141 test token with no value. Sandbox and testnet only."
+description = "Redline Test Dollar (REDL): a NEP-141 test token with no value. Sandbox and testnet only."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

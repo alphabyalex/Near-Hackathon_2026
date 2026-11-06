@@ -5,7 +5,7 @@ when Tharun's docs/VAULT_RULES.md lands, it is the authority and this file gets 
 
 ## What we protect
 
-1. **Vault funds.** Each business's sgUSD balance in its own vault contract (test token, no value).
+1. **Vault funds.** Each business's REDL balance in its own vault contract (test token, no value).
 2. **Payment correctness.** Only approved payables are paid, each at most once, at the locked
    amount, to the vendor's registered account, from the right business's vault.
 3. **Trusted context confidentiality.** Internal notes, rates and other vendors' details the agent
@@ -31,7 +31,7 @@ payment, A2 asks for it directly. The vault must hold against A2 regardless of t
 | Owner key | Seeds payables, vendor records and limits; signs `owner_pay`, limit changes, pause and revoke | Out of scope: whoever holds it owns the vault |
 | Deployer | Deploys the contract code that was reviewed | A different contract could ignore every rule |
 | Payable source | Approved POs, goods receipts, vendor registry and payables. Owner-seeded fixtures in the demo, the accounting system in production | A bad payable is paid exactly as approved; the vault cannot tell |
-| Token contract | Mock NEP-141 sgUSD transfers what it is told | Accounting breaks |
+| Token contract | Mock NEP-141 REDL transfers what it is told | Accounting breaks |
 | NEAR chain and RPC | Executes and reports transactions faithfully | Outcomes may be unknown; we record OUTCOME_UNCERTAIN, never assume success |
 | Evaluation issuer (our team) | Writes fixtures, labels and rubric, runs the Gym | See LIMITATIONS.md: self-issued, not independent |
 

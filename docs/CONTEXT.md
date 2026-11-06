@@ -43,7 +43,7 @@ Humans still own approvals, new vendors, and anything unusual. The agent handles
 
 ## Real vs simulated
 
-- Real: vault contract execution and token transfers on NEAR sandbox and NEAR testnet, using a mock NEP-141 test token (sgUSD, no value).
+- Real: vault contract execution and token transfers on NEAR sandbox and NEAR testnet, using a mock NEP-141 test token (REDL, no value).
 - Synthetic: the company, vendors, invoices, POs, receipts.
 - Live LLM inference for evaluated runs, with a clearly labeled replay mode for demo resilience.
 - Evaluation issuer is our team, and we say so.

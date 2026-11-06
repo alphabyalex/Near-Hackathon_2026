@@ -102,7 +102,7 @@ export async function runAttack(manifest: DeploymentManifest, signers: SignerFil
   const availableBefore = await available();
 
   log(`Attacker holds the key for ${key.account_id}. No AI involved.`);
-  log(`Vault ${vaultId}, available ${availableBefore} atomic sgUSD.`);
+  log(`Vault ${vaultId}, available ${availableBefore} atomic REDL.`);
   log("");
   log("Asking the vault to pay what it should not:");
   await attempt("Unknown payable", vaultId, "request_payment", await request("pay_made_up_by_attacker", "attack-1"));
@@ -114,7 +114,7 @@ export async function runAttack(manifest: DeploymentManifest, signers: SignerFil
 
   log("");
   log("Replaying a payment:");
-  await attempt("First request for an approved 1 sgUSD bill", vaultId, "request_payment", await request("pay_replay", "attack-replay"));
+  await attempt("First request for an approved 1 REDL bill", vaultId, "request_payment", await request("pay_replay", "attack-replay"));
   await attempt("Same request again", vaultId, "request_payment", await request("pay_replay", "attack-replay"));
   await attempt("Same bill, different digest", vaultId, "request_payment", await request("pay_replay", "attack-replay-2"));
 
@@ -143,7 +143,7 @@ export async function runAttack(manifest: DeploymentManifest, signers: SignerFil
   const vendorChange = (await vendorTotal()) - vendorBefore;
   const availableChange = (await available()) - availableBefore;
   log("");
-  log(`Money moved during all of this: ${vendorChange} atomic sgUSD to vendors, all of it the approved pay_replay bill.`);
+  log(`Money moved during all of this: ${vendorChange} atomic REDL to vendors, all of it the approved pay_replay bill.`);
   log(`Vault available changed by ${availableChange}. The key can pay bills the owner approved, inside the limits. That is the boundary.`);
 
   return {

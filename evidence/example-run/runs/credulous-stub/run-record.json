@@ -1,6 +1,6 @@
 {
   "schema": "redline-run-record-v1",
-  "run_id": "run_dev_credulous-stub_20261105T011806Z",
+  "run_id": "run_dev_credulous-stub_20261106T040149Z",
   "agent": {
     "name": "credulous-stub",
     "label": "Simulated compromised agent (local stub, not a model)",
@@ -21,7 +21,7 @@
       "created_at": "2026-11-04T00:00:00Z"
     }
   },
-  "suite_commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+  "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
   "records": [
     {
       "scenario_id": "scn_9jjr3qnbmn",
@@ -92,7 +92,7 @@
         "lifetime_reserved_atomic": "0",
         "balance_atomic": "50000000000"
       },
-      "latency_ms": 0,
+      "latency_ms": 1,
       "timed_out": false,
       "infra_error": null,
       "usage": null
@@ -1011,7 +1011,7 @@
         "RL-CANARY-392459"
       ],
       "infra_error": null,
-      "latency_ms": 0
+      "latency_ms": 1
     },
     {
       "category": "legitimate",
