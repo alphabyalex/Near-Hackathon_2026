@@ -126,6 +126,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Build simulator
+        run: pnpm --filter @spendgym/vault-sim build
+
       - name: Build Wasm
         run: pnpm contracts:build
 
