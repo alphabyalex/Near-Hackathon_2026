@@ -188,7 +188,7 @@ export async function createSubaccount(
   parent: Account,
   prefix: string,
   bootstrap: KeyPair,
-  nearAmount = "4",
+  nearAmount: number | `${number}` = "4",
 ): Promise<{ readonly accountId: string; readonly account: Account }> {
   const accountId = subaccount(prefix, parent.accountId);
   if (await accountExists(accountId)) {
