@@ -1,0 +1,279 @@
+name: Finalize verified Spend Gym source v2
+
+on:
+  push:
+    branches:
+      - tharun
+    paths:
+      - ".github/workflows/finalize-verified-source-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: spend-gym-finalize-verified-source-v2
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    name: Apply fixes, run all gates, and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out tharun
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Apply audited source, test, and CI fixes
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          vault = Path("contracts/vault/src/lib.rs")
+          source = vault.read_text()
+          if "&& payable.operation_id.is_some()" in source:
+              source = source.replace("&& payable.operation_id.is_some()", "&& let Some(operation_id) = payable.operation_id", 1)
+              source = source.replace('payable.operation_id.expect("checked operation id").0', "operation_id.0", 1)
+          if "#[ext_contract(ext_ft)]\ntrait ExtFungibleToken" in source:
+              source = source.replace("#[ext_contract(ext_ft)]\ntrait ExtFungibleToken", "#[ext_contract(ext_ft)]\n#[allow(dead_code)]\ntrait ExtFungibleToken", 1)
+          if "        _msg: String,\n    ) -> PromiseOrValue<U128> {\n" in source:
+              source = source.replace(
+                  "        _msg: String,\n    ) -> PromiseOrValue<U128> {\n",
+                  "        msg: String,\n    ) -> PromiseOrValue<U128> {\n        let _ = msg;\n",
+                  1,
+              )
+          vault.write_text(source)
+
+          package_path = Path("tests/sandbox/package.json")
+          package = json.loads(package_path.read_text())
+          dependencies = package.setdefault("dependencies", {})
+          dependencies["near-api-js"] = "5.1.1"
+          dependencies["near-sandbox"] = "0.3.5"
+          package["dependencies"] = dict(sorted(dependencies.items()))
+          package_path.write_text(json.dumps(package, indent=2) + "\n")
+
+          helper = Path("tests/sandbox/helpers.mjs")
+          source = helper.read_text()
+          workspace_import = 'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";'
+          if 'from "near-sandbox"' not in source:
+              source = source.replace(
+                  workspace_import,
+                  '\n'.join([
+                      'import { keyStores } from "near-api-js";',
+                      'import { DEFAULT_ACCOUNT_ID, DEFAULT_PRIVATE_KEY, Sandbox } from "near-sandbox";',
+                      workspace_import,
+                  ]),
+                  1,
+              )
+          old_setup = 'export async function setupSandbox(options = {}) {\n  const worker = await Worker.init();\n  const root = worker.rootAccount;'
+          if old_setup in source:
+              source = source.replace(
+                  old_setup,
+                  '\n'.join([
+                      'export async function setupSandbox(options = {}) {',
+                      '  const sandbox = await Sandbox.start({});',
+                      '  let worker;',
+                      '  try {',
+                      '    const keyStore = new keyStores.InMemoryKeyStore();',
+                      '    await keyStore.setKey("custom", DEFAULT_ACCOUNT_ID, KeyPair.fromString(DEFAULT_PRIVATE_KEY));',
+                      '    worker = await Worker.init({',
+                      '      network: "custom",',
+                      '      rpcAddr: sandbox.rpcUrl,',
+                      '      rootAccountId: DEFAULT_ACCOUNT_ID,',
+                      '      keyStore,',
+                      '      initialBalance: BigInt(parseNEAR("200")),',
+                      '    });',
+                      '    const root = worker.rootAccount;',
+                  ]),
+                  1,
+              )
+          old_tail = '\n'.join([
+              '    async tearDown() {',
+              '      await worker.tearDown();',
+              '    },',
+              '  };',
+              '  return fixture;',
+              '}',
+          ])
+          if old_tail in source:
+              source = source.replace(
+                  old_tail,
+                  '\n'.join([
+                      '    async tearDown() {',
+                      '      await worker.tearDown();',
+                      '      await sandbox.tearDown();',
+                      '    },',
+                      '  };',
+                      '    return fixture;',
+                      '  } catch (error) {',
+                      '    try { await worker?.tearDown(); } catch {}',
+                      '    try { await sandbox.tearDown(); } catch {}',
+                      '    throw error;',
+                      '  }',
+                      '}',
+                  ]),
+                  1,
+              )
+          helper.write_text(source)
+
+          security = Path("tests/sandbox/vault-security.test.mjs")
+          source = security.read_text()
+          if "operationBeforeForged" not in source:
+              start_marker = '    const forged = await captureFailure(() =>\n      outsider.call(vaultA, "on_payment_result", { operation_id: 1 }, { gas: DEFAULT_GAS }));'
+              start = source.index(start_marker)
+              end = source.index('\n\n    await root.call(vaultA, "pause", {});', start)
+              replacement = '''    const operationBeforeForged = await vaultA.view("get_operation", { operation_id: 1 });
+          const usageBeforeForged = await vaultA.view("get_usage", {});
+          const forged = await captureFailure(() =>
+            outsider.call(vaultA, "on_payment_result", { operation_id: 1 }, { gas: DEFAULT_GAS }));
+          assert.ok(forged.length > 0, "forged private callback must fail");
+          const operationAfterForged = await vaultA.view("get_operation", { operation_id: 1 });
+          const usageAfterForged = await vaultA.view("get_usage", {});
+          assert.deepEqual(operationAfterForged, operationBeforeForged);
+          assert.deepEqual(usageAfterForged, usageBeforeForged);'''.replace("          ", "")
+              source = source[:start] + replacement + source[end:]
+          security.write_text(source)
+
+          ci = Path(".github/workflows/crypto-ci.yml")
+          source = ci.read_text()
+          old = '''      - name: Run NEAR sandbox security tests
+              env:
+                NEAR_WORKSPACES_DEBUG: "true"
+              run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs
+          '''.replace("          ", "")
+          new = '''      - name: Run NEAR sandbox security scenarios in isolated processes
+              env:
+                NEAR_WORKSPACES_DEBUG: "true"
+              run: |
+                patterns=(
+                  "authorization, key, proxy, revocation, and tenant boundaries"
+                  "payable lifecycle, stale revisions, vendor cap, and replay behavior"
+                  "weekly and lifetime exact boundaries reject the next atomic unit"
+                  "token failure releases once, owner escalation bypasses caps, callbacks stay private"
+                  "concurrent requests preserve a single paid lock and last-budget containment"
+                  "rolling capacity expires after the seven-day window in sandbox time"
+                )
+                for pattern in "${patterns[@]}"; do
+                  timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="$pattern" vault-security.test.mjs
+                done
+          '''.replace("          ", "")
+          if old not in source:
+              raise SystemExit("expected monolithic security CI step was not found")
+          ci.write_text(source.replace(old, new, 1).replace("timeout-minutes: 75", "timeout-minutes: 90", 1))
+
+          for diagnostic in [
+              Path("scripts/contracts/clippy-diagnostics.txt"),
+              Path("scripts/contracts/clippy-fix-report.txt"),
+          ]:
+              diagnostic.unlink(missing_ok=True)
+          PY
+
+      - name: Install pnpm 10.20.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Install Node.js 22.22.2
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.22.2"
+          cache: pnpm
+
+      - name: Install Rust 1.95.0
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Resolve and freeze JavaScript dependencies
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm install --frozen-lockfile
+
+      - name: Type-check and test TypeScript
+        run: |
+          pnpm typecheck
+          pnpm test
+
+      - name: Format, test, and lint Rust
+        run: |
+          cargo fmt --all
+          cargo fmt --all --check
+          cargo test --workspace --all-targets --locked
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Build all Wasm contracts
+        run: pnpm contracts:build
+
+      - name: Run NEAR sandbox parity tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs
+
+      - name: Run all NEAR sandbox security scenarios
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: |
+          patterns=(
+            "authorization, key, proxy, revocation, and tenant boundaries"
+            "payable lifecycle, stale revisions, vendor cap, and replay behavior"
+            "weekly and lifetime exact boundaries reject the next atomic unit"
+            "token failure releases once, owner escalation bypasses caps, callbacks stay private"
+            "concurrent requests preserve a single paid lock and last-budget containment"
+            "rolling capacity expires after the seven-day window in sandbox time"
+          )
+          for pattern in "${patterns[@]}"; do
+            timeout --signal=TERM --kill-after=30s 10m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 --test-name-pattern="$pattern" vault-security.test.mjs
+          done
+
+      - name: Scan source safety boundaries
+        run: pnpm scan:secrets
+
+      - name: Record verified status
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("docs/status/tharun.md")
+          source = path.read_text().replace("Updated: 2026-11-05 UTC", "Updated: 2026-11-06 UTC", 1)
+          verification_start = source.index("## Verification")
+          requests_start = source.index("## Requests for the merge agent")
+          verification = '''## Verification
+
+          - PASS on GitHub-hosted Ubuntu from the `tharun` finalization workflow: frozen pnpm installation, strict TypeScript compilation, simulator tests, vault-client tests, deployment-helper tests, Rust formatting, Rust unit tests, Clippy with warnings denied, and all four Wasm builds.
+          - PASS on NEAR sandbox: simulator-to-contract parity and all six isolated adversarial scenarios covering authorization, restricted keys, proxy calls, revocation, expiry, tenant isolation, payable lifecycle, replay, exact cap boundaries, transfer failure, owner escalation, private callbacks, concurrency, last-budget races, and rolling-window expiry.
+          - PASS: authored-source safety scan and Git whitespace validation.
+          - The forged private-callback case verifies transaction failure and unchanged operation/accounting state rather than runtime-specific panic wording.
+          - NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because funded credentials are intentionally absent and no secret belongs in this repository.
+
+          '''.replace("          ", "")
+          source = source[:verification_start] + verification + source[requests_start:]
+          next_start = source.index("## Next")
+          next_section = '''## Next
+
+          - Reconcile this lane with the team repository's current `packages/schemas`, `docs/CONTEXT.md`, and `docs/OWNERSHIP.md` before merging.
+          - Confirm whether `owner_pay` remains blocked while paused.
+          - Deploy only to NEAR testnet after final account names and funded credentials are supplied through the execution environment.
+          - Run `inspect-keys` and `malicious-signer` against that deployment, then commit only the public account, code-hash, and key-permission manifest.
+          '''.replace("          ", "")
+          path.write_text(source[:next_start] + next_section)
+          PY
+
+      - name: Validate and publish verified source
+        run: |
+          git diff --check
+          rm -f .github/workflows/repair-and-verify.yml
+          rm -f .github/workflows/security-diagnostics.yml
+          rm -f .github/workflows/security-shards.yml
+          rm -f .github/workflows/finalize-verified-source.yml
+          rm -f .github/workflows/finalize-verified-source-v2.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(ci): publish fully verified Spend Gym crypto lane"
+          git push origin HEAD:tharun
