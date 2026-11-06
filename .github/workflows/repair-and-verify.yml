@@ -26,14 +26,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply final source fixes
+      - name: Apply final source and sandbox-runtime fixes
         run: |
           python3 - <<'PY'
+          import json
           from pathlib import Path
 
           vault = Path("contracts/vault/src/lib.rs")
           source = vault.read_text()
-
           old_guard = "&& payable.operation_id.is_some()"
           new_guard = "&& let Some(operation_id) = payable.operation_id"
           old_value = 'payable.operation_id.expect("checked operation id").0'
@@ -52,17 +52,91 @@ jobs:
               raise SystemExit("expected ext-contract trait was not found")
           vault.write_text(source)
 
+          package_path = Path("tests/sandbox/package.json")
+          package = json.loads(package_path.read_text())
+          dependencies = package.setdefault("dependencies", {})
+          dependencies["near-api-js"] = "5.1.1"
+          dependencies["near-sandbox"] = "0.3.5"
+          package["dependencies"] = dict(sorted(dependencies.items()))
+          package_path.write_text(json.dumps(package, indent=2) + "\n")
+
           helper = Path("tests/sandbox/helpers.mjs")
           source = helper.read_text()
-          old_start = "export async function setupSandbox(options = {}) {\n  const worker = await Worker.init();\n  const root = worker.rootAccount;"
-          new_start = "export async function setupSandbox(options = {}) {\n  const worker = await Worker.init();\n  try {\n    const root = worker.rootAccount;"
+          old_import = 'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";'
+          new_import = '\n'.join([
+              'import { keyStores } from "near-api-js";',
+              'import {',
+              '  DEFAULT_ACCOUNT_ID,',
+              '  DEFAULT_PRIVATE_KEY,',
+              '  Sandbox,',
+              '} from "near-sandbox";',
+              'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";',
+          ])
+          if old_import in source:
+              source = source.replace(old_import, new_import, 1)
+          elif new_import not in source:
+              raise SystemExit("expected sandbox imports were not found")
+
+          old_start = '\n'.join([
+              'export async function setupSandbox(options = {}) {',
+              '  const worker = await Worker.init();',
+              '  const root = worker.rootAccount;',
+          ])
+          new_start = '\n'.join([
+              'export async function setupSandbox(options = {}) {',
+              '  const sandbox = await Sandbox.start({});',
+              '  let worker;',
+              '  try {',
+              '    const keyStore = new keyStores.InMemoryKeyStore();',
+              '    await keyStore.setKey(',
+              '      "custom",',
+              '      DEFAULT_ACCOUNT_ID,',
+              '      KeyPair.fromString(DEFAULT_PRIVATE_KEY),',
+              '    );',
+              '    worker = await Worker.init({',
+              '      network: "custom",',
+              '      rpcAddr: sandbox.rpcUrl,',
+              '      rootAccountId: DEFAULT_ACCOUNT_ID,',
+              '      keyStore,',
+              '      initialBalance: BigInt(parseNEAR("200")),',
+              '    });',
+              '    const root = worker.rootAccount;',
+          ])
           if old_start in source:
               source = source.replace(old_start, new_start, 1)
           elif new_start not in source:
               raise SystemExit("expected sandbox setup start was not found")
 
-          old_end = "  return fixture;\n}\n"
-          new_end = "    return fixture;\n  } catch (error) {\n    try {\n      await worker.tearDown();\n    } catch {\n      // Preserve the original setup failure.\n    }\n    throw error;\n  }\n}\n"
+          old_end = '\n'.join([
+              '    async tearDown() {',
+              '      await worker.tearDown();',
+              '    },',
+              '  };',
+              '  return fixture;',
+              '}',
+          ])
+          new_end = '\n'.join([
+              '    async tearDown() {',
+              '      await worker.tearDown();',
+              '      await sandbox.tearDown();',
+              '    },',
+              '  };',
+              '    return fixture;',
+              '  } catch (error) {',
+              '    try {',
+              '      await worker?.tearDown();',
+              '    } catch {',
+              '      // Preserve the original setup failure.',
+              '    }',
+              '    try {',
+              '      await sandbox.tearDown();',
+              '    } catch {',
+              '      // Preserve the original setup failure.',
+              '    }',
+              '    throw error;',
+              '  }',
+              '}',
+          ])
           if old_end in source:
               source = source.replace(old_end, new_end, 1)
           elif new_end not in source:
@@ -92,8 +166,8 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-      - name: Install frozen TypeScript dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Resolve and lock the current sandbox runtime
+        run: pnpm install --no-frozen-lockfile
 
       - name: Type-check TypeScript packages and scripts
         run: pnpm typecheck
@@ -143,7 +217,6 @@ jobs:
           path = Path("docs/status/tharun.md")
           source = path.read_text()
           source = source.replace("Updated: 2026-11-05 UTC", "Updated: 2026-11-06 UTC", 1)
-
           start = source.index("## Verification\n")
           end = source.index("## Requests for the merge agent\n")
           run_id = os.environ["VERIFY_RUN_ID"]
@@ -151,12 +224,12 @@ jobs:
           verification = "\n".join([
               "## Verification",
               "",
-              f"- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: frozen dependency installation.",
+              f"- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: dependency resolution and lockfile generation.",
               "- PASS: TypeScript compilation for the simulator, vault client, and contract scripts.",
               "- PASS: all simulator, vault-client, and deployment-helper unit tests.",
               "- PASS: Rust formatting, workspace tests, and Clippy with warnings denied.",
               "- PASS: vault, evidence, mock-token, and sandbox-proxy Wasm builds.",
-              "- PASS: NEAR sandbox parity and adversarial security tests in separate bounded steps.",
+              "- PASS: NEAR sandbox 2.14 parity and adversarial security tests in separate bounded steps.",
               "- PASS: authored-source secret, mainnet, generated-output, and em dash scans.",
               "- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.",
               "",
@@ -166,13 +239,13 @@ jobs:
           path.write_text(source)
           PY
 
-      - name: Commit verified source
+      - name: Commit verified source and lockfiles
         run: |
-          git add contracts/vault/src/lib.rs tests/sandbox/helpers.mjs docs/status/tharun.md
+          git add Cargo.lock pnpm-lock.yaml contracts/vault/src/lib.rs tests/sandbox/package.json tests/sandbox/helpers.mjs docs/status/tharun.md
           git add -u docs/status
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix: publish verified crypto source"
+          git commit -m "fix: run integration tests on current NEAR sandbox"
           git push origin HEAD:tharun
 
-# final-source-run: 2026-11-06-1
+# current-sandbox-run: 2026-11-06-1
