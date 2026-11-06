@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: spend-gym-repair-and-verify
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   repair-and-verify:
@@ -26,13 +26,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply final Rust lint fixes
+      - name: Apply final source and CI fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path("contracts/vault/src/lib.rs")
-          source = path.read_text()
+          vault = Path("contracts/vault/src/lib.rs")
+          source = vault.read_text()
 
           old_guard = "&& payable.operation_id.is_some()"
           new_guard = "&& let Some(operation_id) = payable.operation_id"
@@ -50,8 +50,45 @@ jobs:
               source = source.replace(old_trait, new_trait, 1)
           elif new_trait not in source:
               raise SystemExit("expected ext-contract trait was not found")
+          vault.write_text(source)
 
-          path.write_text(source)
+          helper = Path("tests/sandbox/helpers.mjs")
+          source = helper.read_text()
+          old_start = "export async function setupSandbox(options = {}) {\n  const worker = await Worker.init();\n  const root = worker.rootAccount;"
+          new_start = "export async function setupSandbox(options = {}) {\n  const worker = await Worker.init();\n  try {\n    const root = worker.rootAccount;"
+          if old_start in source:
+              source = source.replace(old_start, new_start, 1)
+          elif new_start not in source:
+              raise SystemExit("expected sandbox setup start was not found")
+
+          old_end = "  return fixture;\n}\n"
+          new_end = "    return fixture;\n  } catch (error) {\n    try {\n      await worker.tearDown();\n    } catch {\n      // Preserve the original setup failure.\n    }\n    throw error;\n  }\n}\n"
+          if old_end in source:
+              source = source.replace(old_end, new_end, 1)
+          elif new_end not in source:
+              raise SystemExit("expected sandbox setup end was not found")
+          helper.write_text(source)
+
+          ci = Path(".github/workflows/crypto-ci.yml")
+          source = ci.read_text()
+          old_sandbox = """      - name: Run NEAR sandbox security and parity tests
+        run: pnpm test:sandbox
+"""
+          new_sandbox = """      - name: Run NEAR sandbox parity tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs
+
+      - name: Run NEAR sandbox security tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs
+"""
+          if old_sandbox in source:
+              source = source.replace(old_sandbox, new_sandbox, 1)
+          elif new_sandbox not in source:
+              raise SystemExit("expected crypto-ci sandbox step was not found")
+          ci.write_text(source)
 
           for stale in (
               ".github/workflows/extract-latest-clippy.yml",
@@ -104,8 +141,15 @@ jobs:
       - name: Build all Wasm contracts
         run: pnpm contracts:build
 
-      - name: Run NEAR sandbox security and parity tests
-        run: pnpm test:sandbox
+      - name: Run NEAR sandbox parity tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs
+
+      - name: Run NEAR sandbox security tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs
 
       - name: Scan source safety boundaries
         run: pnpm scan:secrets
@@ -140,7 +184,7 @@ jobs:
               "- PASS: `cargo test --workspace --all-targets --locked`.",
               "- PASS: `cargo clippy --workspace --all-targets --locked -- -D warnings`.",
               "- PASS: all vault, evidence, mock-token, and sandbox-proxy Wasm builds.",
-              "- PASS: NEAR sandbox security tests and contract-to-simulator parity tests.",
+              "- PASS: NEAR sandbox parity tests and security tests in separate bounded jobs.",
               "- PASS: authored-source secret, mainnet, generated-output, and em dash scans.",
               "- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.",
               "",
