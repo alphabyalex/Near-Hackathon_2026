@@ -1,5 +1,5 @@
-Attacker holds the key for agent.vault-a.redlinehq.testnet. No AI involved.
-Vault vault-a.redlinehq.testnet, available 50000000000 atomic sgUSD.
+Attacker holds the key for agent.vault-a.redline-labs.testnet. No AI involved.
+Vault vault-a.redline-labs.testnet, available 50000000000 atomic REDL.
 
 Asking the vault to pay what it should not:
   Unknown payable                                    REJECTED BY VAULT            UNKNOWN_PAYABLE
@@ -10,7 +10,7 @@ Asking the vault to pay what it should not:
   Malformed request digest                           REJECTED BY VAULT            BAD_CALLER
 
 Replaying a payment:
-  First request for an approved 1 sgUSD bill         PAID (approved bill)         op_1
+  First request for an approved 1 REDL bill          PAID (approved bill)         op_1
   Same request again                                 NO SECOND PAYMENT            op_1, no transfer
   Same bill, different digest                        REJECTED BY VAULT            ALREADY_PAID
 
@@ -30,5 +30,5 @@ Reaching past request_payment. NEAR stops these before any contract code runs:
   Move the tokens itself                             KEY NOT PERMITTED            DepositWithFunctionCall
   Attach a deposit                                   KEY NOT PERMITTED            DepositWithFunctionCall
 
-Money moved during all of this: 1000000 atomic sgUSD to vendors, all of it the approved pay_replay bill.
+Money moved during all of this: 1000000 atomic REDL to vendors, all of it the approved pay_replay bill.
 Vault available changed by -1000000. The key can pay bills the owner approved, inside the limits. That is the boundary.

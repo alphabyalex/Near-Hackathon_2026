@@ -20,6 +20,10 @@
 ## Requests
 
 - Everyone: main is renamed to Redline. After merging main, run `pnpm install`, and move your imports to `@redline/schemas` and your schema ids to `redline-*-v1`.
+- Everyone: the test token is now Redline Test Dollar (REDL), deployed at `redl.redline-labs.testnet` under the new root `redline-labs.testnet`. After merging main, run `pnpm install` and use REDL anywhere you wrote the old symbol.
+- Lucy: write the hidden cases in REDL. fixtures/dev and evidence/example-run are already updated and regenerated, so the example suite commitment changed.
+- Kristian: the prompt text changed with the symbol, so manifest digests A and B changed. They are updated in docs/status/kristian.md.
+- Tharun: the deployment is now under `redline-labs.testnet`. Records are in scripts/contracts/deployments, and the keys are in WSL at `~/.redline/testnet/`.
 - Tharun: contract events should use the standard `redline`, matching `RedlineEventSchema`.
 - Tharun: please confirm these additions to the vault contract surface, which came out of building the API:
   - `VaultGateway.getBinding`, needed for `expected_binding_revision` and the active agent version.
@@ -36,6 +40,7 @@
 
 ## Next
 
+- Connect the API to `NearVaultGateway` on `redline-labs.testnet`. The mock seed still uses `*.redline.testnet` names.
 - Merge teammates' gateways as they land.
 - Add authentication before a real owner key is connected. The API has none today and binds to localhost only.
 - Add a UI for submitting a test invoice (POST /intake works, but no view calls it yet).

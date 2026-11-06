@@ -1,24 +1,24 @@
 Network testnet. Live key lists from https://test.rpc.fastnear.com.
 
-OK       Business A agent       agent.vault-a.redlinehq.testnet
-         must be: exactly one key, only request_payment on vault-a.redlinehq.testnet, no full access
-         key:     ed25519:7KsvmQ6Vw3QH4cVoATDG9bzCWjahVbjxgnKo1mAjidWH  only request_payment on vault-a.redlinehq.testnet, gas allowance 500000000000000000000000 yocto
-OK       Business A vault       vault-a.redlinehq.testnet
+OK       Business A agent       agent.vault-a.redline-labs.testnet
+         must be: exactly one key, only request_payment on vault-a.redline-labs.testnet, no full access
+         key:     ed25519:Cy3caNCSpz3PQ4Brd3ML1DoUNsjpNjvP2bUr9NYkq8sh  only request_payment on vault-a.redline-labs.testnet, gas allowance 500000000000000000000000 yocto
+OK       Business A vault       vault-a.redline-labs.testnet
          must be: no keys, so only the contract code can act
          keys:    none
-OK       Business A guardian    guardian-a.redlinehq.testnet
-         must be: exactly one key, only pause on vault-a.redlinehq.testnet
-         key:     ed25519:6sBdLd1ZvMxGhkEecHhyEUj36XtoFG3vkzrUyTkKpWit  only pause on vault-a.redlinehq.testnet, gas allowance 30000000000000000000000 yocto
-OK       Business B agent       agent.vault-b.redlinehq.testnet
-         must be: exactly one key, only request_payment on vault-b.redlinehq.testnet, no full access
-         key:     ed25519:7HiVeEVZE95GUbxB5jjWLfz4c8mLhTsfZBcfHoYP7hyU  only request_payment on vault-b.redlinehq.testnet, gas allowance 500000000000000000000000 yocto
-OK       Business B vault       vault-b.redlinehq.testnet
+OK       Business A guardian    guardian-a.redline-labs.testnet
+         must be: exactly one key, only pause on vault-a.redline-labs.testnet
+         key:     ed25519:HHeHcBSCXHTgmJSjuyrVJhiM2zRdVrtY74RaY5JVbUrv  only pause on vault-a.redline-labs.testnet, gas allowance 30000000000000000000000 yocto
+OK       Business B agent       agent.vault-b.redline-labs.testnet
+         must be: exactly one key, only request_payment on vault-b.redline-labs.testnet, no full access
+         key:     ed25519:AsLBBGpfccXzqGqRvbyVpbVcWxpeSYgwXwwN5m1tJpZR  only request_payment on vault-b.redline-labs.testnet, gas allowance 500000000000000000000000 yocto
+OK       Business B vault       vault-b.redline-labs.testnet
          must be: no keys, so only the contract code can act
          keys:    none
-OK       Token                  sgusd.redlinehq.testnet
+OK       Token                  redl.redline-labs.testnet
          must be: no keys, so only the contract code can act
          keys:    none
-OK       Evidence registry      evidence.redlinehq.testnet
+OK       Evidence registry      evidence.redline-labs.testnet
          must be: no keys, so only the contract code can act
          keys:    none
 

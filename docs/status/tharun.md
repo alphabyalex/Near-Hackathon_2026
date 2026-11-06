@@ -41,19 +41,21 @@ Eight safety rules were broken on purpose in a separate clone (vendor cap off by
 
 ### Testnet deployment
 
-Root `redlinehq.testnet`. Manifest: [scripts/contracts/deployments/testnet.json](../../scripts/contracts/deployments/testnet.json). Real output: [malicious-signer](../../scripts/contracts/deployments/testnet-malicious-signer.txt), [inspect-keys](../../scripts/contracts/deployments/testnet-inspect-keys.txt).
+Root `redline-labs.testnet`. Manifest: [scripts/contracts/deployments/testnet.json](../../scripts/contracts/deployments/testnet.json). Real output: [malicious-signer](../../scripts/contracts/deployments/testnet-malicious-signer.txt), [inspect-keys](../../scripts/contracts/deployments/testnet-inspect-keys.txt).
 
 | Account | Role |
 | --- | --- |
-| `vault-a.redlinehq.testnet` | Business A, 50,000 REDL, 8 payables |
-| `vault-b.redlinehq.testnet` | Business B, 10,000 REDL, 2 payables |
-| `redl.redlinehq.testnet` | Redline Test Dollar |
-| `evidence.redlinehq.testnet` | Evidence registry. Issuer: `issuer.redlinehq.testnet` |
-| `agent.vault-a.redlinehq.testnet`, `agent.vault-b.redlinehq.testnet` | One key each, `request_payment` on their own vault only |
-| `owner-a.redlinehq.testnet`, `owner-b.redlinehq.testnet` | Owners |
-| `guardian-a.redlinehq.testnet` | One key, `pause` on vault A only |
+| `vault-a.redline-labs.testnet` | Business A, 50,000 REDL, 8 payables |
+| `vault-b.redline-labs.testnet` | Business B, 10,000 REDL, 2 payables |
+| `redl.redline-labs.testnet` | Redline Test Dollar |
+| `evidence.redline-labs.testnet` | Evidence registry. Issuer: `issuer.redline-labs.testnet` |
+| `agent.vault-a.redline-labs.testnet`, `agent.vault-b.redline-labs.testnet` | One key each, `request_payment` on their own vault only |
+| `owner-a.redline-labs.testnet`, `owner-b.redline-labs.testnet` | Owners |
+| `guardian-a.redline-labs.testnet` | One key, `pause` on vault A only |
 
 Vault wasm sha256 `707c093c...4eca75b`, on-chain code hash `8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ`.
+
+The token rename on Nov 5 needed new contracts, so this root replaced the earlier one, `redlinehq.testnet`. Nothing uses the old accounts. Their keys stay in `credentials.json`, and the old signer map is `signers.redlinehq.json`.
 
 Malicious-signer on testnet made 21 attempts: 8 rejected by the vault, 11 refused by NEAR, 1 retry returned the existing operation, and 1 paid. That one is `pay_replay`, a real approved 1 REDL bill. So vault A now shows `op_1` settled and 1 REDL of weekly usage.
 
@@ -86,7 +88,7 @@ All in `docs/VAULT_RULES.md`:
 - Is there an unpause? Yes, owner only, on `VaultAdmin`. It is not on `VaultGateway`.
 - Should pause block `owner_pay`? No. Pause stops the agent. Owner payments do not count against agent caps.
 - Listing payables and vendors: yes, `getPayables` and `getVendors`. POs and receipts are not on chain, only `po_number` and `evidence_commitment`.
-- Deploy under `*.redline.testnet`: **not possible for us.** That account exists and we do not hold its key. If it is yours, tell me and I can redeploy under it. Otherwise names are `*.redlinehq.testnet`.
+- Deploy under `*.redline.testnet`: **not possible for us.** That account exists and we do not hold its key. If it is yours, tell me and I can redeploy under it. Otherwise names are `*.redline-labs.testnet`.
 - Real attack output: saved, linked above. `KEY NOT PERMITTED` matches your wording, and it comes with the NEAR reason such as `MethodNameMismatch`.
 
 ## Blockers
@@ -111,7 +113,7 @@ None.
 - Alexander: please add to `.env.example`: `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`. `NEAR_NETWORK` also accepts `sandbox`.
 - Alexander, optional: `VaultRejection` has no code for "failed and awaiting reopen" or for "policy expired". Today those report `UNKNOWN_PAYABLE` and `BINDING_INACTIVE`. Dedicated codes would read better in the queue, and would need a new vault deployment.
 - Kristian: when the agent is frozen, send me or Alexander the manifest digest for the binding.
-- Lucy: `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redlinehq.testnet` is in the credentials file above.
+- Lucy: `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
 
 ## Next
 
