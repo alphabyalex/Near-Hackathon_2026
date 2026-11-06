@@ -1,6 +1,6 @@
 use near_sdk::json_types::U64;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{AccountId, Gas, PanicOnDefault, Promise, ext_contract, near};
+use near_sdk::{ext_contract, near, AccountId, Gas, PanicOnDefault, Promise};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
@@ -13,6 +13,7 @@ pub struct PaymentRequest {
 }
 
 #[ext_contract(ext_vault)]
+#[allow(dead_code)]
 trait ExtVault {
     fn request_payment(&mut self, request: PaymentRequest);
 }
