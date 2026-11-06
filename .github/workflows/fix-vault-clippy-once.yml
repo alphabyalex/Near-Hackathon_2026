@@ -50,32 +50,34 @@ jobs:
               "#[ext_contract(ext_ft)]\n#[allow(dead_code)]\ntrait ExtFungibleToken {",
           )
 
-          replay_start_marker = """        if matches!(
-              payable.status,
-              PayableStatus::PendingAgent | PayableStatus::Settled
-          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
-          """.replace("              ", "            ")
-          next_marker = "        if payable.request_digest.is_some()"
-          start = source.find(replay_start_marker)
+          expect_marker = 'payable.operation_id.expect("checked operation id").0'
+          expect_position = source.find(expect_marker)
+          if expect_position == -1:
+              raise SystemExit('checked operation id expression not found')
+          start = source.rfind('        if matches!(', 0, expect_position)
           if start == -1:
               raise SystemExit('idempotent replay block start not found')
-          end = source.find(next_marker, start)
+          next_marker = '        if payable.request_digest.is_some()'
+          end = source.find(next_marker, expect_position)
           if end == -1:
               raise SystemExit('idempotent replay block end not found')
-          replacement = """        if matches!(
-              payable.status,
-              PayableStatus::PendingAgent | PayableStatus::Settled
-          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
-          {
-              if let Some(operation_id) = payable.operation_id {
-                  return PromiseOrValue::Value(RequestResult::accepted(
-                      operation_id.0,
-                      payable.status,
-                      true,
-                  ));
-              }
-          }
-          """.replace("              ", "            ")
+
+          replacement = '\n'.join([
+              '        if matches!(',
+              '            payable.status,',
+              '            PayableStatus::PendingAgent | PayableStatus::Settled',
+              '        ) && payable.request_digest.as_ref() == Some(&request.request_digest)',
+              '        {',
+              '            if let Some(operation_id) = payable.operation_id {',
+              '                return PromiseOrValue::Value(RequestResult::accepted(',
+              '                    operation_id.0,',
+              '                    payable.status,',
+              '                    true,',
+              '                ));',
+              '            }',
+              '        }',
+              '',
+          ])
           source = source[:start] + replacement + source[end:]
           path.write_text(source)
           PY
