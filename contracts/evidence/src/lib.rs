@@ -382,8 +382,6 @@ mod tests {
         assert_eq!(registry.list_open_runs(None, None).len(), 0);
     }
 
-
-
     #[test]
     #[should_panic(expected = "non-completed execution cannot publish pass or fail")]
     fn aborted_execution_cannot_claim_pass() {

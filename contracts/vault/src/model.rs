@@ -78,7 +78,16 @@ pub struct PayableInput {
 }
 
 #[derive(
-    BorshDeserialize, BorshSerialize, Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize,
+    BorshDeserialize,
+    BorshSerialize,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
 )]
 #[borsh(crate = "near_sdk::borsh")]
 #[serde(crate = "near_sdk::serde", rename_all = "SCREAMING_SNAKE_CASE")]
@@ -145,7 +154,16 @@ pub enum OperationActor {
 }
 
 #[derive(
-    BorshDeserialize, BorshSerialize, Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize,
+    BorshDeserialize,
+    BorshSerialize,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
 )]
 #[borsh(crate = "near_sdk::borsh")]
 #[serde(crate = "near_sdk::serde", rename_all = "SCREAMING_SNAKE_CASE")]

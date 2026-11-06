@@ -416,7 +416,9 @@ fn vendor_change_and_pause_while_pending_do_not_redirect_or_release() {
     );
     vault.pause();
 
-    let operation = vault.get_operation(U64(1)).expect("pending operation exists");
+    let operation = vault
+        .get_operation(U64(1))
+        .expect("pending operation exists");
     assert_eq!(operation.recipient, account("vendor-a.testnet"));
     assert_eq!(vault.get_usage().reserved_agent_total_atomic, U128(400));
     assert_eq!(
@@ -462,7 +464,6 @@ fn ambiguous_callback_preserves_reservation_for_reconciliation() {
     assert_eq!(usage.available_balance_atomic, U128(9_600));
 }
 
-
 #[test]
 fn oversized_callback_result_preserves_agent_reservation() {
     let mut vault = setup();
@@ -478,7 +479,9 @@ fn oversized_callback_result_preserves_agent_reservation() {
     );
     let result = vault.on_payment_result(1);
     assert_eq!(result.status, Some(PayableStatus::Reconciliation));
-    let operation = vault.get_operation(U64(1)).expect("operation remains recorded");
+    let operation = vault
+        .get_operation(U64(1))
+        .expect("operation remains recorded");
     assert_eq!(
         operation.failure_category.as_deref(),
         Some("PROMISE_RESULT_TOO_LARGE")
@@ -549,8 +552,14 @@ fn withdrawal_success_failure_and_callback_replay_are_idempotent() {
     let failed = vault.on_withdraw_result(2);
     assert_eq!(failed.status, OperationStatus::FailedKnown);
     let after_failure = vault.get_usage();
-    assert_eq!(after_failure.recorded_balance_atomic, after_success.recorded_balance_atomic);
-    assert_eq!(after_failure.available_balance_atomic, after_success.available_balance_atomic);
+    assert_eq!(
+        after_failure.recorded_balance_atomic,
+        after_success.recorded_balance_atomic
+    );
+    assert_eq!(
+        after_failure.available_balance_atomic,
+        after_success.available_balance_atomic
+    );
     let failure_replay = vault.on_withdraw_result(2);
     assert_eq!(failure_replay, failed);
     assert_eq!(vault.get_usage(), after_failure);
