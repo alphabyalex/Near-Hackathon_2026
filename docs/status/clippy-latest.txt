@@ -1,0 +1,91 @@
+# Clippy diagnostic from job 127715313162
+
+2026-11-06T04:40:47.3906149Z    Compiling near-vm-runner v0.38.0
+2026-11-06T04:40:48.9750560Z    Compiling hex-literal v1.1.0
+2026-11-06T04:40:52.4616074Z    Compiling near-sdk v5.30.0
+2026-11-06T04:40:53.7785319Z    Compiling near-contract-standards v5.30.0
+2026-11-06T04:40:55.8695191Z    Compiling spend-gym-test-proxy v0.1.0 (/home/runner/work/spend-gym/spend-gym/tests/sandbox/proxy-contract)
+2026-11-06T04:40:55.8696366Z    Compiling spend-gym-evidence v0.1.0 (/home/runner/work/spend-gym/spend-gym/contracts/evidence)
+2026-11-06T04:40:56.3035006Z    Compiling spend-gym-mock-token v0.1.0 (/home/runner/work/spend-gym/spend-gym/contracts/mock-token)
+2026-11-06T04:40:56.5744981Z    Compiling spend-gym-vault v0.1.0 (/home/runner/work/spend-gym/spend-gym/contracts/vault)
+2026-11-06T04:40:57.0654050Z warning: trait `ExtFungibleToken` is never used
+2026-11-06T04:40:57.0657685Z   --> contracts/vault/src/lib.rs:35:7
+2026-11-06T04:40:57.0658082Z    |
+2026-11-06T04:40:57.0658563Z 35 | trait ExtFungibleToken {
+2026-11-06T04:40:57.0661061Z    |       ^^^^^^^^^^^^^^^^
+2026-11-06T04:40:57.0674268Z    |
+2026-11-06T04:40:57.0674911Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+2026-11-06T04:40:57.0675313Z 
+2026-11-06T04:40:57.4675892Z warning: `spend-gym-vault` (lib test) generated 1 warning
+2026-11-06T04:40:57.4676779Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 10s
+2026-11-06T04:40:57.5125441Z      Running unittests src/lib.rs (target/debug/deps/spend_gym_evidence-5495f4a05e3c2857)
+2026-11-06T04:40:57.5151955Z 
+2026-11-06T04:40:57.5152427Z running 4 tests
+2026-11-06T04:40:57.5484808Z test tests::aborted_execution_cannot_claim_pass - should panic ... ok
+2026-11-06T04:40:57.5643903Z test tests::non_owner_cannot_register_evidence - should panic ... ok
+2026-11-06T04:40:57.5794160Z test tests::records_suite_run_and_one_terminal_result ... ok
+2026-11-06T04:40:57.5881813Z test tests::terminal_result_cannot_be_replaced - should panic ... ok
+2026-11-06T04:40:57.5882198Z 
+2026-11-06T04:40:57.5882938Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+2026-11-06T04:40:57.5883595Z 
+2026-11-06T04:40:57.5886033Z      Running unittests src/lib.rs (target/debug/deps/spend_gym_mock_token-bbb29558e9d488dd)
+2026-11-06T04:40:57.5897441Z 
+2026-11-06T04:40:57.5897696Z running 1 test
+2026-11-06T04:40:57.6089643Z test tests::fixed_metadata_and_supply ... ok
+2026-11-06T04:40:57.6089981Z 
+2026-11-06T04:40:57.6090450Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+2026-11-06T04:40:57.6090802Z 
+2026-11-06T04:40:57.6092119Z      Running unittests src/lib.rs (target/debug/deps/spend_gym_test_proxy-d2ef2202a121c91d)
+2026-11-06T04:41:34.6295604Z     Checking near-vm-runner v0.38.0
+2026-11-06T04:41:35.1607029Z     Checking hex-literal v1.1.0
+2026-11-06T04:41:38.5829771Z     Checking near-sdk v5.30.0
+2026-11-06T04:41:39.0925124Z     Checking near-contract-standards v5.30.0
+2026-11-06T04:41:39.0926103Z     Checking spend-gym-test-proxy v0.1.0 (/home/runner/work/spend-gym/spend-gym/tests/sandbox/proxy-contract)
+2026-11-06T04:41:39.3025161Z     Checking spend-gym-evidence v0.1.0 (/home/runner/work/spend-gym/spend-gym/contracts/evidence)
+2026-11-06T04:41:39.4705245Z     Checking spend-gym-mock-token v0.1.0 (/home/runner/work/spend-gym/spend-gym/contracts/mock-token)
+2026-11-06T04:41:39.5697779Z     Checking spend-gym-vault v0.1.0 (/home/runner/work/spend-gym/spend-gym/contracts/vault)
+2026-11-06T04:41:40.0484846Z error: trait `ExtFungibleToken` is never used
+2026-11-06T04:41:40.0504021Z   --> contracts/vault/src/lib.rs:35:7
+2026-11-06T04:41:40.0513778Z    |
+2026-11-06T04:41:40.0533857Z 35 | trait ExtFungibleToken {
+2026-11-06T04:41:40.0546076Z    |       ^^^^^^^^^^^^^^^^
+2026-11-06T04:41:40.0553825Z    |
+2026-11-06T04:41:40.0573908Z    = note: `-D dead-code` implied by `-D warnings`
+2026-11-06T04:41:40.0593996Z    = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+2026-11-06T04:41:40.0603617Z 
+2026-11-06T04:41:40.2085395Z error: called `expect` on `payable.operation_id` after checking its variant with `is_some`
+2026-11-06T04:41:40.2093698Z    --> contracts/vault/src/lib.rs:434:17
+2026-11-06T04:41:40.2113605Z     |
+2026-11-06T04:41:40.2114155Z 431 |             && payable.operation_id.is_some()
+2026-11-06T04:41:40.2133888Z     |                ------------------------------ the check is happening here
+2026-11-06T04:41:40.2153568Z ...
+2026-11-06T04:41:40.2173845Z 434 |                 payable.operation_id.expect("checked operation id").0,
+2026-11-06T04:41:40.2174569Z     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-06T04:41:40.2193597Z     |
+2026-11-06T04:41:40.2213685Z     = help: try using `if let` or `match`
+2026-11-06T04:41:40.2223975Z     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#unnecessary_unwrap
+2026-11-06T04:41:40.2254370Z     = note: `-D clippy::unnecessary-unwrap` implied by `-D warnings`
+2026-11-06T04:41:40.2255222Z     = help: to override `-D warnings` add `#[allow(clippy::unnecessary_unwrap)]`
+2026-11-06T04:41:40.2273479Z 
+2026-11-06T04:41:40.2631033Z error: could not compile `spend-gym-vault` (lib) due to 2 previous errors
+2026-11-06T04:41:40.2631760Z warning: build failed, waiting for other jobs to finish...
+2026-11-06T04:41:40.3757163Z error: could not compile `spend-gym-vault` (lib test) due to 2 previous errors
+2026-11-06T04:41:40.3939495Z ##[error]Process completed with exit code 101.
+2026-11-06T04:41:40.4001321Z Post job cleanup.
+2026-11-06T04:41:40.4919732Z Pruning is unnecessary.
+2026-11-06T04:41:40.5092884Z Post job cleanup.
+2026-11-06T04:41:40.5776864Z [command]/usr/bin/git version
+2026-11-06T04:41:40.5845087Z git version 2.56.0
+2026-11-06T04:41:40.5925819Z Temporarily overriding HOME='/home/runner/work/_temp/6b8a6a3a-630d-433e-9d01-9170558e8e2d' before making global git config changes
+2026-11-06T04:41:40.5942760Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T04:41:40.5947864Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/spend-gym/spend-gym
+2026-11-06T04:41:40.6013717Z Removing SSH command configuration
+2026-11-06T04:41:40.6021063Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T04:41:40.6075302Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T04:41:40.6237339Z Removing HTTP extra header
+2026-11-06T04:41:40.6250755Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T04:41:40.6355130Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T04:41:40.6582535Z Removing includeIf entries pointing to credentials config files
+2026-11-06T04:41:40.6588173Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-06T04:41:40.6627833Z includeif.gitdir:/home/runner/work/spend-gym/spend-gym/.git.path
+2026-11-06T04:41:40.6629701Z includeif.gitdir:/home/runner/work/spend-gym/spend-gym/.git/worktrees/*.path
