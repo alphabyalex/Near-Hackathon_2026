@@ -61,8 +61,17 @@ export class Chain {
     return new Chain(sandbox, makeSigner(provider, DEFAULT_ACCOUNT_ID, DEFAULT_PRIVATE_KEY));
   }
 
+  /** A node can linger on teardown when a test failed with transfers still held, so bound the wait. */
   async stop(): Promise<void> {
-    await this.sandbox.tearDown();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<"timeout">((resolve) => {
+      timer = setTimeout(() => resolve("timeout"), 20_000);
+    });
+    const result = await Promise.race([this.sandbox.tearDown().then(() => "done" as const), timeout]);
+    clearTimeout(timer);
+    if (result === "timeout") {
+      (this.sandbox as unknown as { childProcess?: { kill(signal: string): void } }).childProcess?.kill("SIGKILL");
+    }
   }
 
   get provider() {
@@ -113,15 +122,77 @@ export class Chain {
     return BigInt(block.header.timestamp_nanosec);
   }
 
-  /** Moves the chain forward without producing the blocks one by one. Sandbox only. */
-  async fastForward(deltaHeight: number): Promise<void> {
+  /**
+   * Back-dates every settled entry in a vault's rolling window by `deltaNs`, by editing the real
+   * contract's state. Sandbox only. This is how tests reach a 7-day boundary: fast-forward only moves
+   * about 0.3 chain seconds per block, which would take hours, and a special short-window build
+   * would not be the wasm we deploy. See "Things a sandbox cannot do" in the README.
+   *
+   * The root state is borsh, and `rolling` is its third-from-last field:
+   *   ... [u32 len][len * (u128 amount, u64 settled_at_ns)][u32 pending_count][u32 agent_pending_count]
+   * The offsets are checked against what the entry must contain, so a layout change fails loudly.
+   */
+  async ageRolling(vaultId: string, deltaNs: bigint): Promise<number> {
+    const stateKey = Buffer.from("STATE").toString("base64");
+    const view = await this.provider.query<{ values: Array<{ key: string; value: string }> }>({
+      request_type: "view_state",
+      account_id: vaultId,
+      prefix_base64: stateKey,
+      finality: "final",
+    } as never);
+    const entry = view.values.find((item) => item.key === stateKey);
+    if (!entry) throw new Error(`No STATE on ${vaultId}`);
+    const state = Buffer.from(entry.value, "base64");
+
+    const counterBytes = 8;
+    const entryBytes = 24;
+    let count = -1;
+    for (let n = 0; n <= 512; n++) {
+      const lengthAt = state.length - counterBytes - n * entryBytes - 4;
+      if (lengthAt < 0) break;
+      if (state.readUInt32LE(lengthAt) !== n) continue;
+      let plausible = true;
+      for (let i = 0; i < n; i++) {
+        const settledAt = state.readBigUInt64LE(lengthAt + 4 + i * entryBytes + 16);
+        if (settledAt < 1_000_000_000_000_000_000n || settledAt > FAR_FUTURE_NS) plausible = false;
+      }
+      if (plausible && n > count) count = n;
+    }
+    if (count < 0) throw new Error("Could not find the rolling window in the vault state. Did the Vault struct's field order change?");
+
+    const firstEntry = state.length - counterBytes - count * entryBytes;
+    for (let i = 0; i < count; i++) {
+      const at = firstEntry + i * entryBytes + 16;
+      state.writeBigUInt64LE(state.readBigUInt64LE(at) - deltaNs, at);
+    }
+
     const response = await fetch(this.sandbox.rpcUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: "ff", method: "sandbox_fast_forward", params: { delta_height: deltaHeight } }),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "patch",
+        method: "sandbox_patch_state",
+        params: { records: [{ Data: { account_id: vaultId, data_key: stateKey, value: state.toString("base64") } }] },
+      }),
     });
     const body = (await response.json()) as { error?: unknown };
-    if (body.error) throw new Error(`sandbox_fast_forward failed: ${JSON.stringify(body.error)}`);
+    if (body.error) throw new Error(`sandbox_patch_state failed: ${JSON.stringify(body.error)}`);
+
+    // The patch applies in a coming block. Wait until a view sees it.
+    const newest = state.readBigUInt64LE(firstEntry + (count - 1) * entryBytes + 16);
+    for (let attempt = 0; attempt < 40 && count > 0; attempt++) {
+      const check = await this.provider.query<{ values: Array<{ key: string; value: string }> }>({
+        request_type: "view_state",
+        account_id: vaultId,
+        prefix_base64: stateKey,
+        finality: "final",
+      } as never);
+      const current = Buffer.from(check.values.find((item) => item.key === stateKey)?.value ?? "", "base64");
+      if (current.length === state.length && current.readBigUInt64LE(firstEntry + (count - 1) * entryBytes + 16) === newest) break;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    return count;
   }
 }
 

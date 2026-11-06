@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VaultExecutionError, assertAllowedNetwork, configFromEnv, readFinalOutcome } from "../src/index.js";
+import { VaultExecutionError, assertAllowedNetwork, configFromEnv, readFinalOutcome, refusalReason } from "../src/index.js";
 
 const b64 = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64");
 
@@ -19,6 +19,23 @@ describe("network rule", () => {
   it("reads inline signers", () => {
     const signers = { "v.testnet": { agent: { account_id: "a.testnet", private_key: "ed25519:x" } } };
     expect(configFromEnv({ NEAR_NETWORK: "testnet", REDLINE_VAULT_SIGNERS: JSON.stringify(signers) }).signers).toEqual(signers);
+  });
+});
+
+describe("what counts as NEAR refusing a transaction", () => {
+  it("a key that does not permit the call is proof nothing ran", () => {
+    expect(refusalReason(new Error("Transaction has MethodNameMismatch"))).toBe("MethodNameMismatch");
+    expect(refusalReason({ name: "InvalidTxError", message: "ReceiverMismatch" })).toBe("ReceiverMismatch");
+  });
+
+  it("a bad nonce or an expired hash is not: a retried transaction that already landed reports these", () => {
+    expect(refusalReason(new Error("InvalidNonce: tx nonce must be larger"))).toBeNull();
+    expect(refusalReason(new Error("Transaction Expired"))).toBeNull();
+  });
+
+  it("network errors and timeouts are not", () => {
+    expect(refusalReason(new Error("fetch failed"))).toBeNull();
+    expect(refusalReason(new Error("TIMEOUT_ERROR: timed out"))).toBeNull();
   });
 });
 

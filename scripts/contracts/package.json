@@ -1,0 +1,21 @@
+{
+  "name": "@redline/contract-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "deploy-and-seed": "tsx src/deploy-and-seed.ts",
+    "malicious-signer": "tsx src/malicious-signer.ts",
+    "inspect-keys": "tsx src/inspect-keys.ts"
+  },
+  "dependencies": {
+    "@redline/vault-client": "workspace:*",
+    "near-api-js": "7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

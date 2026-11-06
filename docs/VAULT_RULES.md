@@ -59,7 +59,7 @@ String limits: ids and refs at most 64 bytes, `display_name` and `po_number` and
 
 | Method | Caller | Deposit | On failure |
 | --- | --- | --- | --- |
-| `new(config)` | Anyone, once (deploy batch) | 0 | Panic |
+| `new(config)` | The vault account itself, once, in the deploy transaction | 0 | Panic |
 | `set_vendor`, `register_payable`, `cancel_payable`, `reopen_failed_payable`, `set_policy`, `activate_agent`, `unpause`, `reconcile_operation`, `reconcile_withdrawal`, `withdraw_available` | Owner | Exactly 1 yocto | Panic with an `E_*` code |
 | `revoke_agent` | Owner | 0 | Panic with an `E_*` code |
 | `pause` | Owner or guardian | 0 | Panic with an `E_*` code |
@@ -69,6 +69,8 @@ String limits: ids and refs at most 64 bytes, `display_name` and `po_number` and
 | `on_payment_result`, `on_withdraw_result` | The vault itself (private) | 0 | Panic |
 
 The 1 yocto rule means these owner methods can only be signed by a full-access key, so a leaked function-call key of the owner cannot move money or raise limits. `pause` and `revoke_agent` only reduce authority, so they stay deposit-free and a guardian can hold a pause-only key.
+
+**The vault account holds no keys after deployment.** `#[private]` only checks that the caller is the vault account, so anyone holding a key to that account could sign a fake `on_payment_result`, or replace the code. `scripts/contracts/deploy-and-seed` removes every key from the vault once it is set up, and `inspect-keys` proves it. The cost: a deployed vault cannot be upgraded. A fix means deploying a new vault.
 
 ## Methods
 
@@ -201,7 +203,11 @@ Owner only, exactly 1 yocto, and: vault paused (`E_NOT_PAUSED`), nothing pending
 
 ### `on_withdraw_result(amount)`
 
-Private. Success: in-flight cleared, `withdrawn += amount`. Failed: in-flight cleared, `A += amount`. Anything else: in-flight stays, which blocks further withdrawals, until `reconcile_withdrawal(settled)` (owner). Does nothing if no withdrawal is in flight.
+Private. Success: in-flight cleared, `withdrawn += amount`. Failed: in-flight cleared, `A += amount`. Anything else: in-flight stays and is marked uncertain, which blocks further withdrawals until reconciled. Does nothing if no matching withdrawal is in flight, or it is already marked uncertain.
+
+### `reconcile_withdrawal(settled)`
+
+Owner only. Allowed when the in-flight withdrawal is uncertain, or at least 1 hour old (a callback that never ran), else `E_NOT_RECONCILABLE`. With none in flight: `E_NO_WITHDRAWAL`. Same reasoning as `reconcile_operation`.
 
 ### Views
 
@@ -272,6 +278,6 @@ Owner and admin errors (panic messages, stable strings): `E_NOT_OWNER`, `E_NOT_O
 
 Stated so nobody overclaims:
 - It checks what the owner approved, not whether the approval was right. A fraudulent payable registered by the owner gets paid.
-- A compromised owner key has full authority over this vault.
+- A compromised owner key has full authority over this vault. The agent key does not, and that is the boundary this contract enforces.
 - The agent can pay any payable that passes the checks, in any order, at any time inside its window. The caps bound that loss. They do not prevent it.
 - `request_digest` is stored and compared for retries, not verified against any invoice. It says "same request", not "correct request".

@@ -106,26 +106,43 @@ function isFinal(response: unknown): boolean {
   return status !== undefined && (status.SuccessValue !== undefined || status.Failure !== undefined);
 }
 
-/** NEAR rejected the transaction itself: a bad nonce, an expired hash, or a key that does not permit this call. */
-function refusalReason(error: unknown): string | null {
+/**
+ * Only errors that prove this exact transaction can never run. A key that does not permit the call is
+ * the main case. Nonce and expiry errors are deliberately not here: a library or RPC retry of a
+ * transaction that already landed reports a bad nonce, so those are not proof that nothing happened.
+ */
+const REFUSALS = [
+  "ReceiverMismatch",
+  "MethodNameMismatch",
+  "DepositWithFunctionCall",
+  "RequiresFullAccess",
+  "AccessKeyNotFound",
+  "NotEnoughAllowance",
+  "InvalidSignature",
+  "NotEnoughBalance",
+  "LackBalanceForState",
+];
+
+export function refusalReason(error: unknown): string | null {
   const text = `${(error as { name?: string })?.name ?? ""} ${(error as Error)?.message ?? String(error)} ${JSON.stringify(error) ?? ""}`;
-  const known = [
-    "ReceiverMismatch",
-    "MethodNameMismatch",
-    "DepositWithFunctionCall",
-    "RequiresFullAccess",
-    "AccessKeyNotFound",
-    "NotEnoughAllowance",
-    "InvalidNonce",
-    "NonceTooLarge",
-    "Expired",
-    "InvalidSignature",
-    "NotEnoughBalance",
-    "LackBalanceForState",
-    "InvalidTxError",
-    "InvalidTransaction",
-  ];
-  return known.find((reason) => text.includes(reason)) ?? null;
+  return REFUSALS.find((reason) => text.includes(reason)) ?? null;
+}
+
+type Raced<T> = { kind: "value"; value: T } | { kind: "error"; error: unknown } | { kind: "deadline" };
+
+/** Waits for `promise`, but never past `deadline`. A late result is dropped, never left unhandled. */
+async function untilDeadline<T>(promise: Promise<T>, deadline: number): Promise<Raced<T>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<Raced<T>>((resolve) => {
+    timer = setTimeout(() => resolve({ kind: "deadline" }), Math.max(0, deadline - Date.now()));
+  });
+  const settled = promise.then(
+    (value): Raced<T> => ({ kind: "value", value }),
+    (error: unknown): Raced<T> => ({ kind: "error", error }),
+  );
+  const result = await Promise.race([settled, timeout]);
+  clearTimeout(timer);
+  return result;
 }
 
 /**
@@ -143,29 +160,26 @@ export async function callFinal(signer: SignerHandle, call: CallSpec, options: T
   const tx_hash = hashOf(signed);
 
   let lastError: unknown = null;
-  try {
-    const response = await provider.sendTransactionUntil(signed, "FINAL");
-    if (isFinal(response)) return readFinalOutcome(response);
-  } catch (error) {
-    if (error instanceof VaultExecutionError) throw error;
-    const reason = refusalReason(error);
-    if (reason) throw new TransactionRefusedError(`NEAR refused the transaction: ${reason}`, reason, error);
-    lastError = error;
+  const sent = await untilDeadline(provider.sendTransactionUntil(signed, "FINAL"), deadline);
+  if (sent.kind === "value" && isFinal(sent.value)) return readFinalOutcome(sent.value);
+  if (sent.kind === "error") {
+    const reason = refusalReason(sent.error);
+    if (reason) throw new TransactionRefusedError(`NEAR refused the transaction: ${reason}`, reason, sent.error);
+    lastError = sent.error;
   }
 
   while (Date.now() < deadline) {
-    try {
-      const response = await provider.viewTransactionStatus({
+    const status = await untilDeadline(
+      provider.viewTransactionStatus({
         txHash: tx_hash,
         accountId: signer.account_id,
         waitUntil: "FINAL",
-      });
-      if (isFinal(response)) return readFinalOutcome(response);
-    } catch (error) {
-      if (error instanceof VaultExecutionError) throw error;
-      lastError = error;
-    }
-    await sleep(pollMs);
+      }),
+      deadline,
+    );
+    if (status.kind === "value" && isFinal(status.value)) return readFinalOutcome(status.value);
+    if (status.kind === "error") lastError = status.error;
+    if (status.kind !== "deadline") await sleep(Math.min(pollMs, Math.max(0, deadline - Date.now())));
   }
   throw new VaultOutcomeUnknownError(`No final outcome for ${tx_hash} before the deadline`, tx_hash, lastError);
 }
