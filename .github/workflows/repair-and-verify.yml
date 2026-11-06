@@ -33,20 +33,17 @@ jobs:
 
           path = Path("contracts/vault/src/lib.rs")
           source = path.read_text()
-          old = '''            && payable.operation_id.is_some()
-          {
-              return PromiseOrValue::Value(RequestResult::accepted(
-                  payable.operation_id.expect("checked operation id").0,
-          '''
-          new = '''            && let Some(operation_id) = payable.operation_id
-          {
-              return PromiseOrValue::Value(RequestResult::accepted(
-                  operation_id.0,
-          '''
-          if old in source:
-              path.write_text(source.replace(old, new, 1))
-          elif new not in source:
-              raise SystemExit("expected replay-path block was not found")
+          old_guard = "&& payable.operation_id.is_some()"
+          new_guard = "&& let Some(operation_id) = payable.operation_id"
+          old_value = 'payable.operation_id.expect("checked operation id").0'
+          new_value = "operation_id.0"
+
+          if old_guard in source and old_value in source:
+              source = source.replace(old_guard, new_guard, 1)
+              source = source.replace(old_value, new_value, 1)
+              path.write_text(source)
+          elif new_guard not in source or new_value not in source:
+              raise SystemExit("expected replay-path tokens were not found")
 
           for stale in (
               ".github/workflows/extract-latest-clippy.yml",
