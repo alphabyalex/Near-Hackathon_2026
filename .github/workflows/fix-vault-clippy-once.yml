@@ -42,29 +42,27 @@ jobs:
           path = Path('contracts/vault/src/lib.rs')
           source = path.read_text()
 
-          old_trait = '''#[ext_contract(ext_ft)]
-          trait ExtFungibleToken {'''.replace('          ', '')
-          new_trait = '''#[ext_contract(ext_ft)]
-          #[allow(dead_code)]
-          trait ExtFungibleToken {'''.replace('          ', '')
-          if source.count(old_trait) != 1:
+          trait_marker = "#[ext_contract(ext_ft)]\ntrait ExtFungibleToken {"
+          if source.count(trait_marker) != 1:
               raise SystemExit('expected exactly one generated FT trait declaration')
-          source = source.replace(old_trait, new_trait)
+          source = source.replace(
+              trait_marker,
+              "#[ext_contract(ext_ft)]\n#[allow(dead_code)]\ntrait ExtFungibleToken {",
+          )
 
-          old_replay = '''        if matches!(
+          replay_start_marker = """        if matches!(
               payable.status,
               PayableStatus::PendingAgent | PayableStatus::Settled
           ) && payable.request_digest.as_ref() == Some(&request.request_digest)
-              && payable.operation_id.is_some()
-          {
-              return PromiseOrValue::Value(RequestResult::accepted(
-                  payable.operation_id.expect("checked operation id").0,
-                  payable.status,
-                  true,
-              ));
-          }
-          '''.replace('          ', '')
-          new_replay = '''        if matches!(
+          """.replace("              ", "            ")
+          next_marker = "        if payable.request_digest.is_some()"
+          start = source.find(replay_start_marker)
+          if start == -1:
+              raise SystemExit('idempotent replay block start not found')
+          end = source.find(next_marker, start)
+          if end == -1:
+              raise SystemExit('idempotent replay block end not found')
+          replacement = """        if matches!(
               payable.status,
               PayableStatus::PendingAgent | PayableStatus::Settled
           ) && payable.request_digest.as_ref() == Some(&request.request_digest)
@@ -77,10 +75,9 @@ jobs:
                   ));
               }
           }
-          '''.replace('          ', '')
-          if source.count(old_replay) != 1:
-              raise SystemExit('expected exactly one idempotent replay block')
-          path.write_text(source.replace(old_replay, new_replay))
+          """.replace("              ", "            ")
+          source = source[:start] + replacement + source[end:]
+          path.write_text(source)
           PY
           cargo fmt --all
           cargo fmt --all --check
