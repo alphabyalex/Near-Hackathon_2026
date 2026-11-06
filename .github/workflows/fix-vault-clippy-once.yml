@@ -1,0 +1,98 @@
+name: Fix vault Clippy once
+
+on:
+  push:
+    branches:
+      - tharun
+    paths:
+      - ".github/workflows/fix-vault-clippy-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: spend-gym-vault-clippy-fix
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out tharun
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: tharun
+          fetch-depth: 0
+
+      - name: Install Rust 1.95.0
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          components: rustfmt, clippy
+
+      - name: Apply exact Clippy fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('contracts/vault/src/lib.rs')
+          source = path.read_text()
+
+          old_trait = '''#[ext_contract(ext_ft)]
+          trait ExtFungibleToken {'''.replace('          ', '')
+          new_trait = '''#[ext_contract(ext_ft)]
+          #[allow(dead_code)]
+          trait ExtFungibleToken {'''.replace('          ', '')
+          if source.count(old_trait) != 1:
+              raise SystemExit('expected exactly one generated FT trait declaration')
+          source = source.replace(old_trait, new_trait)
+
+          old_replay = '''        if matches!(
+              payable.status,
+              PayableStatus::PendingAgent | PayableStatus::Settled
+          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
+              && payable.operation_id.is_some()
+          {
+              return PromiseOrValue::Value(RequestResult::accepted(
+                  payable.operation_id.expect("checked operation id").0,
+                  payable.status,
+                  true,
+              ));
+          }
+          '''.replace('          ', '')
+          new_replay = '''        if matches!(
+              payable.status,
+              PayableStatus::PendingAgent | PayableStatus::Settled
+          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
+          {
+              if let Some(operation_id) = payable.operation_id {
+                  return PromiseOrValue::Value(RequestResult::accepted(
+                      operation_id.0,
+                      payable.status,
+                      true,
+                  ));
+              }
+          }
+          '''.replace('          ', '')
+          if source.count(old_replay) != 1:
+              raise SystemExit('expected exactly one idempotent replay block')
+          path.write_text(source.replace(old_replay, new_replay))
+          PY
+          cargo fmt --all
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          git diff --check
+
+      - name: Commit verified source fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add contracts/vault/src/lib.rs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(vault): satisfy strict Clippy replay checks"
+          git push origin HEAD:tharun
