@@ -1,0 +1,181 @@
+name: Repair and verify Spend Gym
+
+on:
+  push:
+    branches:
+      - tharun
+    paths:
+      - ".github/workflows/repair-and-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: spend-gym-repair-and-verify
+  cancel-in-progress: false
+
+jobs:
+  repair-and-verify:
+    name: Repair, run all gates, and publish clean source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out tharun
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Apply the final replay-path lint fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("contracts/vault/src/lib.rs")
+          source = path.read_text()
+          old = '''        if matches!(
+              payable.status,
+              PayableStatus::PendingAgent | PayableStatus::Settled
+          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
+              && payable.operation_id.is_some()
+          {
+              return PromiseOrValue::Value(RequestResult::accepted(
+                  payable.operation_id.expect("checked operation id").0,
+                  payable.status,
+                  true,
+              ));
+          }
+          '''
+          new = '''        if matches!(
+              payable.status,
+              PayableStatus::PendingAgent | PayableStatus::Settled
+          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
+              && let Some(operation_id) = payable.operation_id
+          {
+              return PromiseOrValue::Value(RequestResult::accepted(
+                  operation_id.0,
+                  payable.status,
+                  true,
+              ));
+          }
+          '''
+          if old in source:
+              path.write_text(source.replace(old, new, 1))
+          elif new not in source:
+              raise SystemExit("expected replay-path block was not found")
+
+          for stale in (
+              ".github/workflows/extract-latest-clippy.yml",
+              ".github/workflows/fix-vault-clippy-once.yml",
+              "docs/status/clippy-latest.txt",
+              "docs/status/clippy-patched.txt",
+          ):
+              Path(stale).unlink(missing_ok=True)
+          PY
+
+      - name: Install pnpm 10.20.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Install Node.js 22.22.2
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.22.2"
+          cache: pnpm
+
+      - name: Install Rust 1.95.0
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Install frozen TypeScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check TypeScript packages and scripts
+        run: pnpm typecheck
+
+      - name: Run TypeScript unit tests
+        run: pnpm test
+
+      - name: Format and check Rust source
+        run: |
+          cargo fmt --all
+          cargo fmt --all --check
+
+      - name: Run Rust unit tests
+        run: cargo test --workspace --all-targets --locked
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Build all Wasm contracts
+        run: pnpm contracts:build
+
+      - name: Run NEAR sandbox security and parity tests
+        run: pnpm test:sandbox
+
+      - name: Scan source safety boundaries
+        run: pnpm scan:secrets
+
+      - name: Check repository diff
+        run: git diff --check
+
+      - name: Record verified status
+        env:
+          VERIFY_RUN_ID: ${{ github.run_id }}
+          VERIFY_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("docs/status/tharun.md")
+          source = path.read_text()
+          source = source.replace("Updated: 2026-11-05 UTC", "Updated: 2026-11-06 UTC", 1)
+
+          start = source.index("## Verification\n")
+          end = source.index("## Requests for the merge agent\n")
+          run_id = os.environ["VERIFY_RUN_ID"]
+          sha = os.environ["VERIFY_SHA"]
+          verification = f'''## Verification
+
+- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: `pnpm install --frozen-lockfile`.
+- PASS: TypeScript compilation for the simulator, vault client, and contract scripts.
+- PASS: all simulator, vault-client, and deployment-helper unit tests.
+- PASS: `cargo fmt --all --check`.
+- PASS: `cargo test --workspace --all-targets --locked`.
+- PASS: `cargo clippy --workspace --all-targets --locked -- -D warnings`.
+- PASS: all vault, evidence, mock-token, and sandbox-proxy Wasm builds.
+- PASS: NEAR sandbox security tests and contract-to-simulator parity tests.
+- PASS: authored-source secret, mainnet, generated-output, and em dash scans.
+- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.
+
+'''
+          source = source[:start] + verification + source[end:]
+
+          next_start = source.index("## Next\n")
+          next_section = '''## Next
+
+- Reconcile local interface types with the team repository's current shared schemas before merge.
+- Confirm the owner payment policy while paused.
+- Supply testnet credentials only through the execution environment, then run deployment, key inspection, and the direct restricted-key attack script.
+- Move the verified crypto lane into the team repository without weakening the tested money invariants.
+'''
+          source = source[:next_start] + next_section
+          path.write_text(source)
+          PY
+
+      - name: Remove the one-time workflow
+        run: rm -f .github/workflows/repair-and-verify.yml
+
+      - name: Commit the verified tree
+        run: |
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: pass full crypto verification suite"
+          git push origin HEAD:tharun
