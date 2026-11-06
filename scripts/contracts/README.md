@@ -4,6 +4,8 @@ Owner: Tharun
 
 Build, deploy, attack and inspect. NEAR testnet and local sandbox only: mainnet is refused in code. Needs Linux, macOS or WSL for the build, and `pnpm install` once.
 
+**A deployment already exists:** see [deployments/testnet.json](deployments/testnet.json), and the real output of [inspect-keys](deployments/testnet-inspect-keys.txt) and [malicious-signer](deployments/testnet-malicious-signer.txt).
+
 ## Build
 
 ```bash

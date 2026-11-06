@@ -1,11 +1,128 @@
 # Status: tharun
 
+Built by Alexander on the alexander branch on Tharun's behalf; Tharun to take over.
+
+Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/vault/README.md](../../contracts/vault/README.md) for building, and [tests/sandbox/README.md](../../tests/sandbox/README.md) for what is tested where.
+
 ## Done
+
+| Deliverable | Where | State |
+| --- | --- | --- |
+| Spec | `docs/VAULT_RULES.md` | Done |
+| Vault | `contracts/vault` | Done, deployed to testnet |
+| Evidence registry | `contracts/evidence` | Done, deployed to testnet |
+| Mock token, sgUSD | `contracts/mock-token` | Done, deployed to testnet |
+| Sandbox tests | `tests/sandbox` | Done |
+| Simulator with parity tests | `packages/vault-sim`, `tests/sandbox/test/parity.test.ts` | Done |
+| `VaultGateway` client | `packages/vault-client` | Done |
+| Deploy, attack and key scripts | `scripts/contracts` | Done, run on testnet |
+
+Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
+
+### Gates
+
+| Gate | Due | State |
+| --- | --- | --- |
+| Restricted key moves sgUSD in sandbox, a forbidden request does not | Nov 4 | **Met** on Nov 5, one day late |
+| Reservations, replay, concurrency, known-failure accounting | Nov 8 | **Met** |
+| Testnet deployment with two vaults and a manifest | Nov 9 | **Met.** See below |
+
+### Test results, last full run on the deployed wasm
+
+| Suite | Result |
+| --- | --- |
+| Rust unit tests (`cargo test --workspace`) | 40 passed |
+| `packages/vault-sim` | 42 passed |
+| `packages/vault-client` | 10 passed |
+| `tests/sandbox`, on a real local node | 122 passed, about 20 minutes |
+| Root `pnpm test`, Linux, in a clean clone | All workspaces pass |
+
+Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
+
+### Testnet deployment
+
+Root `redlinehq.testnet`. Manifest: [scripts/contracts/deployments/testnet.json](../../scripts/contracts/deployments/testnet.json). Real output: [malicious-signer](../../scripts/contracts/deployments/testnet-malicious-signer.txt), [inspect-keys](../../scripts/contracts/deployments/testnet-inspect-keys.txt).
+
+| Account | Role |
+| --- | --- |
+| `vault-a.redlinehq.testnet` | Business A, 50,000 sgUSD, 8 payables |
+| `vault-b.redlinehq.testnet` | Business B, 10,000 sgUSD, 2 payables |
+| `sgusd.redlinehq.testnet` | Spend Gym Test Dollar |
+| `evidence.redlinehq.testnet` | Evidence registry. Issuer: `issuer.redlinehq.testnet` |
+| `agent.vault-a.redlinehq.testnet`, `agent.vault-b.redlinehq.testnet` | One key each, `request_payment` on their own vault only |
+| `owner-a.redlinehq.testnet`, `owner-b.redlinehq.testnet` | Owners |
+| `guardian-a.redlinehq.testnet` | One key, `pause` on vault A only |
+
+Vault wasm sha256 `707c093c...4eca75b`, on-chain code hash `8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ`.
+
+Malicious-signer on testnet made 21 attempts: 8 rejected by the vault, 11 refused by NEAR, 1 retry returned the existing operation, and 1 paid. That one is `pay_replay`, a real approved 1 sgUSD bill. So vault A now shows `op_1` settled and 1 sgUSD of weekly usage.
+
+**Keys:** the only copies are in WSL at `~/.redline/testnet/` (`credentials.json`, `signers.json`), owner-only, not in the repo. They control the owner accounts and the root. Tharun needs them passed privately. Losing them means nobody can act as owner on these vaults, and the fix is a new deployment.
+
+### Beyond the brief, and why
+
+All in `docs/VAULT_RULES.md`:
+- `reconcile_operation`, `reconcile_withdrawal`: without them an uncertain result holds its reservation forever and blocks withdrawal.
+- `cancel_payable`: the schema has CANCELLED, and it is the way to replace a payable after a vendor change.
+- `get_binding`, `get_payables`, `get_config`: the API needs them.
+- 1 yocto on owner methods, so a leaked owner function-call key cannot move money or raise limits.
+- `owner_pay` refuses if the vendor's recipient changed after approval, so it never pays a rotated-out address. A cap-only change does not block it. The brief did not ask for this.
+- Deploy removes every key from vaults, token and registry. `#[private]` only checks that the caller is the vault account, so anyone holding that key could fake a callback. The cost: **a deployed vault cannot be upgraded.** A fix means a new root.
+- `expire_run` on the evidence registry, so a silent run still reaches a terminal state.
+- A scriptable fake token in `contracts/test-proxy`, never deployed to testnet, which makes "while pending" tests deterministic.
+
+### Where the brief and the repo disagreed
+
+The brief says the repo is the source of truth, so the repo won:
+- Event standard is `redline`, not `spendgym`, matching `RedlineEventSchema` and Alexander's request below.
+- New packages are `@redline/*`, not `@spendgym/*`.
 
 ## Interfaces I expose
 
+- `@redline/vault-client`: `NearVaultGateway` implements `VaultGateway`. `NearVaultGateway.fromEnv()` reads `NEAR_NETWORK`, `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`. Also `getVendors`, `getPayables`, and `VaultAdmin` for owner methods. See its README for what each result and error means.
+- `@redline/vault-sim`: `VaultSim`, and `SimVaultGateway`, which implements `VaultGateway` over simulators for the Gym.
+- `docs/VAULT_RULES.md`: every rule, in check order.
+- `contracts/evidence`: see its README for `commit_suite`, `register_run`, `publish_result`.
+
+### Answers to Alexander's questions in docs/status/alexander.md
+
+- Event standard `redline`: done.
+- `getBinding` and `vaultId` first: confirmed, implemented.
+- `OperationStatus` and `VaultUsage`: confirmed. `REQUESTED` is never on chain, the API owns it. Views add extra fields, and the schemas strip them when parsed.
+- Is there an unpause? Yes, owner only, on `VaultAdmin`. It is not on `VaultGateway`.
+- Should pause block `owner_pay`? No. Pause stops the agent. Owner payments do not count against agent caps.
+- Listing payables and vendors: yes, `getPayables` and `getVendors`. POs and receipts are not on chain, only `po_number` and `evidence_commitment`.
+- Deploy under `*.redline.testnet`: **not possible for us.** That account exists and we do not hold its key. If it is yours, tell me and I can redeploy under it. Otherwise names are `*.redlinehq.testnet`.
+- Real attack output: saved, linked above. `KEY NOT PERMITTED` matches your wording, and it comes with the NEAR reason such as `MethodNameMismatch`.
+
 ## Blockers
+
+None.
+
+### Known limits, not blockers
+
+- `NearVaultGateway` itself ran on sandbox only. On testnet, its transport ran through `malicious-signer`, but the API has not been connected to it yet.
+- Agent binding on testnet is a placeholder: `manifest_digest` is the sha256 of `redline-agent-not-yet-frozen`, and `assessment_ref` is `not_yet_assessed`. When the agent is frozen, rerun `deploy-and-seed` with `REDLINE_MANIFEST_DIGEST` and `REDLINE_ASSESSMENT_REF`. That bumps the binding revision, so callers must re-read it.
+- Each vault has about 0.16 NEAR free for storage, enough for a few dozen more payables and payments. Past that, `request_payment` returns `CAPACITY_FULL`. A plain NEAR transfer to the vault fixes it, and the root has 8.6 NEAR left.
+- Exact 1 ns window edges are unit tested, not on a chain, because a block cannot be aimed at one nanosecond. The sandbox suite crosses the real 7-day boundary with block time.
+- A replayed callback is unit tested only: on a real chain only the vault could send one, and it has no keys.
+- `malicious-signer` tests over-cap on the vendor cap only. Weekly and lifetime over-cap are in the sandbox suite.
+- Everything chain-related needs Linux, macOS or WSL. `near-sandbox` has no Windows build.
 
 ## Requests
 
+- **Alexander, needed before anyone else pulls this:** run `pnpm install` on this branch and commit `pnpm-lock.yaml`. Three new workspace packages and two new dependencies are not in the lockfile, because that file is outside my paths and I did not run install in the shared folder. Until then `pnpm test` fails in a checkout that has not installed, and `--frozen-lockfile` fails everywhere. I checked in a separate clone that install then root `pnpm test` pass.
+- Alexander: `services/api/src/service.ts` maps every non-SETTLED operation to "reserved", in both the intake and owner-pay paths. With the real client, `ok: true` can come with FAILED_KNOWN or OUTCOME_UNCERTAIN. Please map OUTCOME_UNCERTAIN to "outcome uncertain", and FAILED_KNOWN to a review item. See "What the results mean" in `packages/vault-client/README.md`.
+- Alexander: to go live, plug `NearVaultGateway.fromEnv()` into `services/api/src/gateways/index.ts`, and replace the mock seed's account ids with the manifest's.
+- Alexander: please add to `.env.example`: `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`. `NEAR_NETWORK` also accepts `sandbox`.
+- Alexander, optional: `VaultRejection` has no code for "failed and awaiting reopen" or for "policy expired". Today those report `UNKNOWN_PAYABLE` and `BINDING_INACTIVE`. Dedicated codes would read better in the queue, and would need a new vault deployment.
+- Alexander, decision: the token is named "Spend Gym Test Dollar" as the brief says, so that name is on chain and visible in `ft_metadata`. User-facing text should say Redline. Renaming needs a new deployment under a new root, so decide before the final freeze.
+- Kristian: when the agent is frozen, send me or Alexander the manifest digest for the binding.
+- Lucy: `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redlinehq.testnet` is in the credentials file above.
+
 ## Next
+
+- Connect the API to `NearVaultGateway`, and run one payment through it on testnet. This is the last untested link.
+- Enroll the frozen agent on both vaults.
+- If any contract rule changes: update the spec, the contract and the sim together, run parity, then deploy under a new root.
+- Stretch, only if there is time: add a weekly over-cap attack to `malicious-signer`, and cut the sandbox suite's runtime by sharing tenants between tests.

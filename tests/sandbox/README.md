@@ -11,7 +11,7 @@ Needs Linux, macOS or WSL (`near-sandbox` has no Windows build), plus the wasm f
 ```bash
 pnpm install
 bash scripts/contracts/build.sh
-pnpm --filter @redline/sandbox-tests test:sandbox              # everything, about 25 minutes
+pnpm --filter @redline/sandbox-tests test:sandbox              # everything, about 20 minutes
 cd tests/sandbox && npx vitest run test/gate.test.ts           # one file, after building the TS packages once
 ```
 

@@ -279,7 +279,15 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
           ONE_YOCTO,
         );
       }
-      payableRecords.push({ payable_ref: seed.ref, vendor_id: seed.vendor_id, amount_atomic: amount, po_number: po, due_at_ns: due });
+      // Read back, so a rerun records what the chain holds and not what this run would have set.
+      const stored = await viewCall<{ payable_ref: string; vendor_id: string; amount_atomic: string; po_number: string; due_at_ns: string }>(deployer.provider, vault.account_id, "get_payable", { payable_ref: seed.ref });
+      payableRecords.push({
+        payable_ref: stored.payable_ref,
+        vendor_id: stored.vendor_id,
+        amount_atomic: stored.amount_atomic,
+        po_number: stored.po_number,
+        due_at_ns: stored.due_at_ns,
+      });
     }
 
     const binding = await viewCall<{ revision: number; manifest_digest: string } | null>(deployer.provider, vault.account_id, "get_binding", {});
@@ -329,6 +337,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
     signers[vault.account_id] = signerEntry;
 
     const vaultState = await viewAccount(deployer.provider, vault.account_id);
+    const storedPolicy = await viewCall<VaultDeployment["policy"]>(deployer.provider, vault.account_id, "get_policy", {});
     vaults.push({
       business: business.business,
       vault_id: vault.account_id,
@@ -338,7 +347,11 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
       agent: { account_id: agentId, keys: await permissionsOf(deployer, agentId) },
       vault_keys: await permissionsOf(deployer, vault.account_id),
       guardian_keys: guardian ? await permissionsOf(deployer, guardian.account_id) : [],
-      policy,
+      policy: {
+        weekly_cap_atomic: storedPolicy.weekly_cap_atomic,
+        lifetime_cap_atomic: storedPolicy.lifetime_cap_atomic,
+        expires_at_ns: storedPolicy.expires_at_ns,
+      },
       vendors: business.vendors.map((vendor) => ({
         vendor_id: vendor.vendor_id,
         display_name: vendor.display_name,

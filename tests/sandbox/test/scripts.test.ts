@@ -125,5 +125,8 @@ describe("deploy, attack and inspect scripts", () => {
       log: () => undefined,
     });
     expect(again.vaults[0]?.code_hash).toBe(manifest.vaults[0]?.code_hash);
+    // The manifest reports what the chain holds, not what this later run computed.
+    expect(again.vaults[0]?.policy).toEqual(manifest.vaults[0]?.policy);
+    expect(again.vaults[0]?.payables).toEqual(manifest.vaults[0]?.payables);
   }, 300_000);
 });
