@@ -1,0 +1,135 @@
+name: Diagnose Spend Gym funding callback
+
+on:
+  push:
+    branches:
+      - tharun
+    paths:
+      - ".github/workflows/funding-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spend-gym-funding-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Trace ft_on_transfer execution
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out tharun
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Apply current sandbox runtime and funding trace
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          package_path = Path("tests/sandbox/package.json")
+          package = json.loads(package_path.read_text())
+          dependencies = package.setdefault("dependencies", {})
+          dependencies["near-api-js"] = "5.1.1"
+          dependencies["near-sandbox"] = "0.3.5"
+          package["dependencies"] = dict(sorted(dependencies.items()))
+          package_path.write_text(json.dumps(package, indent=2) + "\n")
+
+          helper = Path("tests/sandbox/helpers.mjs")
+          source = helper.read_text()
+          old_import = 'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";'
+          new_import = '\n'.join([
+              'import { keyStores } from "near-api-js";',
+              'import { DEFAULT_ACCOUNT_ID, DEFAULT_PRIVATE_KEY, Sandbox } from "near-sandbox";',
+              'import { KeyPair, Worker, captureError, parseNEAR } from "near-workspaces";',
+          ])
+          source = source.replace(old_import, new_import, 1)
+          source = source.replace(
+              '  const worker = await Worker.init();\n  const root = worker.rootAccount;',
+              '\n'.join([
+                  '  const sandbox = await Sandbox.start({});',
+                  '  const keyStore = new keyStores.InMemoryKeyStore();',
+                  '  await keyStore.setKey("custom", DEFAULT_ACCOUNT_ID, KeyPair.fromString(DEFAULT_PRIVATE_KEY));',
+                  '  const worker = await Worker.init({',
+                  '    network: "custom",',
+                  '    rpcAddr: sandbox.rpcUrl,',
+                  '    rootAccountId: DEFAULT_ACCOUNT_ID,',
+                  '    keyStore,',
+                  '    initialBalance: BigInt(parseNEAR("200")),',
+                  '  });',
+                  '  const root = worker.rootAccount;',
+              ]),
+              1,
+          )
+          source = source.replace(
+              '    async tearDown() {\n      await worker.tearDown();\n    },',
+              '    async tearDown() {\n      await worker.tearDown();\n      await sandbox.tearDown();\n    },',
+              1,
+          )
+          helper.write_text(source)
+
+          vault = Path("contracts/vault/src/lib.rs")
+          source = vault.read_text()
+          marker = '    ) -> PromiseOrValue<U128> {\n        require!(\n            env::predecessor_account_id() == self.token_contract_id,'
+          replacement = '    ) -> PromiseOrValue<U128> {\n        env::log_str("FUND_TRACE:entered");\n        env::log_str(&format!("FUND_TRACE:predecessor={}", env::predecessor_account_id()));\n        env::log_str(&format!("FUND_TRACE:configured={}", self.token_contract_id));\n        require!(\n            env::predecessor_account_id() == self.token_contract_id,'
+          if marker not in source:
+              raise SystemExit("funding method entry not found")
+          source = source.replace(marker, replacement, 1)
+          source = source.replace(
+              '        require!(amount.0 > 0, "funding amount must be positive");',
+              '        env::log_str("FUND_TRACE:token-ok");\n        require!(amount.0 > 0, "funding amount must be positive");\n        env::log_str(&format!("FUND_TRACE:amount={}", amount.0));',
+              1,
+          )
+          source = source.replace(
+              '        self.recorded_balance = self',
+              '        env::log_str(&format!("FUND_TRACE:before-recorded={}", self.recorded_balance));\n        self.recorded_balance = self',
+              1,
+          )
+          source = source.replace(
+              '        self.available_balance = self',
+              '        env::log_str("FUND_TRACE:recorded-ok");\n        self.available_balance = self',
+              1,
+          )
+          source = source.replace(
+              '        emit(\n            "vault_funded",',
+              '        env::log_str("FUND_TRACE:available-ok");\n        emit(\n            "vault_funded",',
+              1,
+          )
+          source = source.replace(
+              '        PromiseOrValue::Value(U128(0))\n    }',
+              '        env::log_str("FUND_TRACE:emit-ok");\n        PromiseOrValue::Value(U128(0))\n    }',
+              1,
+          )
+          vault.write_text(source)
+          PY
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.22.2"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.95.0
+          targets: wasm32-unknown-unknown
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build Wasm
+        run: pnpm contracts:build
+
+      - name: Run parity with funding trace
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs
