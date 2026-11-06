@@ -34,6 +34,7 @@ jobs:
 
           vault = Path("contracts/vault/src/lib.rs")
           source = vault.read_text()
+
           old_guard = "&& payable.operation_id.is_some()"
           new_guard = "&& let Some(operation_id) = payable.operation_id"
           old_value = 'payable.operation_id.expect("checked operation id").0'
@@ -50,6 +51,27 @@ jobs:
               source = source.replace(old_trait, new_trait, 1)
           elif new_trait not in source:
               raise SystemExit("expected ext-contract trait was not found")
+
+          old_receiver = """    fn ft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        amount: U128,
+        _msg: String,
+    ) -> PromiseOrValue<U128> {
+"""
+          new_receiver = """    fn ft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        let _ = msg;
+"""
+          if old_receiver in source:
+              source = source.replace(old_receiver, new_receiver, 1)
+          elif new_receiver not in source:
+              raise SystemExit("expected NEP-141 receiver signature was not found")
+
           vault.write_text(source)
 
           package_path = Path("tests/sandbox/package.json")
@@ -248,4 +270,4 @@ jobs:
           git commit -m "fix: run integration tests on current NEAR sandbox"
           git push origin HEAD:tharun
 
-# current-sandbox-run: 2026-11-06-1
+# verified-abi-run: 2026-11-06-1
