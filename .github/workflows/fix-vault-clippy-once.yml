@@ -32,7 +32,8 @@ jobs:
           toolchain: 1.95.0
           components: rustfmt, clippy
 
-      - name: Apply exact Clippy fixes
+      - name: Apply exact fixes and capture verification
+        id: verify
         shell: bash
         run: |
           set -euo pipefail
@@ -81,17 +82,38 @@ jobs:
           source = source[:start] + replacement + source[end:]
           path.write_text(source)
           PY
+
           cargo fmt --all
           cargo fmt --all --check
-          cargo clippy --workspace --all-targets --locked -- -D warnings
+          mkdir -p docs/status
+          set +e
+          cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | tee docs/status/clippy-patched.txt
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "clippy_status=${status}" >> "$GITHUB_OUTPUT"
           git diff --check
 
       - name: Commit verified source fix
+        if: steps.verify.outputs.clippy_status == '0'
         shell: bash
         run: |
           set -euo pipefail
+          rm -f docs/status/clippy-patched.txt
           git add contracts/vault/src/lib.rs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "fix(vault): satisfy strict Clippy replay checks"
           git push origin HEAD:tharun
+
+      - name: Commit exact diagnostic on failure
+        if: steps.verify.outputs.clippy_status != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git restore contracts/vault/src/lib.rs
+          git add docs/status/clippy-patched.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: capture patched Clippy diagnostic"
+          git push origin HEAD:tharun
+          exit 1
