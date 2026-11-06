@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { KeyPair, PublicKey, actions, type KeyPairString, type Provider } from "near-api-js";
+import { KeyPair, PublicKey, actions, baseEncode, type KeyPairString, type Provider } from "near-api-js";
 import { assertAllowedNetwork, callFinal, makeProvider, makeSigner, type SignerHandle, type VaultNetwork, type VaultSigners } from "@redline/vault-client";
 
 export const HERE = dirname(fileURLToPath(import.meta.url));
@@ -171,17 +171,23 @@ export class Deployer {
 
   /** Deploys and runs `new` in one transaction, so nobody can get in between. Skips if code is present. */
   async ensureContract(account: SignerHandle, code: Uint8Array, init: { method: string; args: object }): Promise<void> {
+    const expected = baseEncode(createHash("sha256").update(code).digest());
     const state = await viewAccount(this.provider, account.account_id);
     if (state && state.code_hash !== NO_CODE_HASH) {
-      this.log(`  ${account.account_id} already has code ${state.code_hash}`);
+      if (state.code_hash !== expected) {
+        throw new Error(`${account.account_id} runs code ${state.code_hash}, but the local wasm is ${expected}. A locked contract cannot change: use a new root account.`);
+      }
+      this.log(`  ${account.account_id} already runs this code (${expected})`);
       return;
     }
-    this.log(`  deploy ${account.account_id} (${code.length} bytes)`);
+    this.log(`  deploy ${account.account_id} (${code.length} bytes, ${expected})`);
     await account.account.signAndSendTransaction({
       receiverId: account.account_id,
       actions: [actions.deployContract(code), actions.functionCall(init.method, init.args, 100_000_000_000_000n, 0n)],
       waitUntil: "FINAL",
     });
+    const deployed = await viewAccount(this.provider, account.account_id);
+    if (deployed?.code_hash !== expected) throw new Error(`${account.account_id} reports code ${deployed?.code_hash} after deploying ${expected}`);
   }
 
   /**
@@ -220,6 +226,30 @@ export async function createFromFaucet(accountId: string, publicKey: string): Pr
     body: JSON.stringify({ newAccountId: accountId, newAccountPublicKey: publicKey }),
   });
   if (!response.ok) throw new Error(`Faucet refused ${accountId}: ${response.status} ${await response.text()}`);
+}
+
+/**
+ * Testnet only. One faucet account may hold less than a deployment needs, so this creates throwaway
+ * faucet accounts and deletes them into `root`, until it holds `minimum`. Their keys are never stored:
+ * the accounts are gone at the end of each round.
+ */
+export async function topUpFromFaucet(provider: Provider, root: string, minimum: bigint, log: (line: string) => void): Promise<void> {
+  const base = root.replace(/\.testnet$/, "");
+  for (let round = 1; round <= 5; round++) {
+    const balance = BigInt((await viewAccount(provider, root))?.amount ?? 0);
+    if (balance >= minimum) return;
+    const id = `${base}-fund-${Date.now().toString(36)}.testnet`;
+    const keyPair = KeyPair.fromRandom("ed25519");
+    log(`Root holds ${balance / MILLINEAR} mN, needs ${minimum / MILLINEAR} mN. Topping up from the faucet with ${id}.`);
+    await createFromFaucet(id, keyPair.getPublicKey().toString());
+    for (let i = 0; i < 30 && !(await viewAccount(provider, id)); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+    }
+    const account = makeSigner(provider, id, keyPair.toString());
+    await account.account.signAndSendTransaction({ receiverId: id, actions: [actions.deleteAccount(root)], waitUntil: "FINAL" });
+  }
+  const balance = BigInt((await viewAccount(provider, root))?.amount ?? 0);
+  if (balance < minimum) throw new Error(`Root ${root} holds ${balance / MILLINEAR} mN and needs ${minimum / MILLINEAR} mN. Fund it, then rerun.`);
 }
 
 export interface SignerFile {

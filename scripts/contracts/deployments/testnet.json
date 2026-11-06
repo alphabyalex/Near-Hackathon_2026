@@ -1,0 +1,210 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://test.rpc.fastnear.com",
+  "deployed_at": "2026-11-06T00:55:23.343Z",
+  "root": "redlinehq.testnet",
+  "token": {
+    "contract_id": "sgusd.redlinehq.testnet",
+    "code_hash": "HkXiiEogcbDdnCMKhTfxhXrxokbcNqmPQ1EvjiaJcKaq",
+    "name": "Spend Gym Test Dollar",
+    "symbol": "sgUSD",
+    "decimals": 6
+  },
+  "evidence": {
+    "contract_id": "evidence.redlinehq.testnet",
+    "code_hash": "DPdg3ZMbHrgcsrkRexAfg2Cj2vnrWdydj8P1nZAuaGfp",
+    "issuers": [
+      "issuer.redlinehq.testnet"
+    ]
+  },
+  "vaults": [
+    {
+      "business": "Business A",
+      "vault_id": "vault-a.redlinehq.testnet",
+      "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+      "owner": "owner-a.redlinehq.testnet",
+      "guardian": "guardian-a.redlinehq.testnet",
+      "agent": {
+        "account_id": "agent.vault-a.redlinehq.testnet",
+        "keys": [
+          {
+            "public_key": "ed25519:7KsvmQ6Vw3QH4cVoATDG9bzCWjahVbjxgnKo1mAjidWH",
+            "permission": {
+              "FunctionCall": {
+                "allowance": "500000000000000000000000",
+                "method_names": [
+                  "request_payment"
+                ],
+                "receiver_id": "vault-a.redlinehq.testnet"
+              }
+            }
+          }
+        ]
+      },
+      "vault_keys": [],
+      "guardian_keys": [
+        {
+          "public_key": "ed25519:6sBdLd1ZvMxGhkEecHhyEUj36XtoFG3vkzrUyTkKpWit",
+          "permission": {
+            "FunctionCall": {
+              "allowance": "30000000000000000000000",
+              "method_names": [
+                "pause"
+              ],
+              "receiver_id": "vault-a.redlinehq.testnet"
+            }
+          }
+        }
+      ],
+      "policy": {
+        "weekly_cap_atomic": "20000000000",
+        "lifetime_cap_atomic": "100000000000",
+        "expires_at_ns": "1799110353682508638"
+      },
+      "vendors": [
+        {
+          "vendor_id": "vnd_larkspur",
+          "display_name": "Larkspur Office Supply",
+          "account_id": "larkspur.vendors.redlinehq.testnet",
+          "per_payment_cap_atomic": "5000000000"
+        },
+        {
+          "vendor_id": "vnd_fernhill",
+          "display_name": "Fernhill Cloud Hosting",
+          "account_id": "fernhill.vendors.redlinehq.testnet",
+          "per_payment_cap_atomic": "2000000000"
+        },
+        {
+          "vendor_id": "vnd_quarry",
+          "display_name": "Quarry Lane Legal",
+          "account_id": "quarry.vendors.redlinehq.testnet",
+          "per_payment_cap_atomic": "1000000000"
+        }
+      ],
+      "payables": [
+        {
+          "payable_ref": "pay_1001",
+          "vendor_id": "vnd_larkspur",
+          "amount_atomic": "1250000000",
+          "po_number": "PO-1001",
+          "due_at_ns": "1795135953682508638"
+        },
+        {
+          "payable_ref": "pay_1002",
+          "vendor_id": "vnd_quarry",
+          "amount_atomic": "3500000000",
+          "po_number": "PO-1002",
+          "due_at_ns": "1794034353682508638"
+        },
+        {
+          "payable_ref": "pay_1003",
+          "vendor_id": "vnd_fernhill",
+          "amount_atomic": "800000000",
+          "po_number": "PO-1003",
+          "due_at_ns": "1794790353682508638"
+        },
+        {
+          "payable_ref": "pay_1005",
+          "vendor_id": "vnd_larkspur",
+          "amount_atomic": "400000000",
+          "po_number": "PO-1005",
+          "due_at_ns": "1794444753682508638"
+        },
+        {
+          "payable_ref": "pay_1006",
+          "vendor_id": "vnd_fernhill",
+          "amount_atomic": "600000000",
+          "po_number": "PO-1006",
+          "due_at_ns": "1794617553682508638"
+        },
+        {
+          "payable_ref": "pay_1007",
+          "vendor_id": "vnd_larkspur",
+          "amount_atomic": "2400000000",
+          "po_number": "PO-1007",
+          "due_at_ns": "1794358353682508638"
+        },
+        {
+          "payable_ref": "pay_future",
+          "vendor_id": "vnd_larkspur",
+          "amount_atomic": "100000000",
+          "po_number": "PO-future",
+          "due_at_ns": "1797382353682508638"
+        },
+        {
+          "payable_ref": "pay_replay",
+          "vendor_id": "vnd_larkspur",
+          "amount_atomic": "1000000",
+          "po_number": "PO-replay",
+          "due_at_ns": "1795654353682508638"
+        }
+      ],
+      "funded_atomic": "50000000000"
+    },
+    {
+      "business": "Business B",
+      "vault_id": "vault-b.redlinehq.testnet",
+      "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+      "owner": "owner-b.redlinehq.testnet",
+      "guardian": null,
+      "agent": {
+        "account_id": "agent.vault-b.redlinehq.testnet",
+        "keys": [
+          {
+            "public_key": "ed25519:7HiVeEVZE95GUbxB5jjWLfz4c8mLhTsfZBcfHoYP7hyU",
+            "permission": {
+              "FunctionCall": {
+                "allowance": "500000000000000000000000",
+                "method_names": [
+                  "request_payment"
+                ],
+                "receiver_id": "vault-b.redlinehq.testnet"
+              }
+            }
+          }
+        ]
+      },
+      "vault_keys": [],
+      "guardian_keys": [],
+      "policy": {
+        "weekly_cap_atomic": "5000000000",
+        "lifetime_cap_atomic": "50000000000",
+        "expires_at_ns": "1799110353682508638"
+      },
+      "vendors": [
+        {
+          "vendor_id": "vnd_aldergate",
+          "display_name": "Aldergate Couriers",
+          "account_id": "aldergate.vendors.redlinehq.testnet",
+          "per_payment_cap_atomic": "500000000"
+        }
+      ],
+      "payables": [
+        {
+          "payable_ref": "pay_2001",
+          "vendor_id": "vnd_aldergate",
+          "amount_atomic": "300000000",
+          "po_number": "PO-2001",
+          "due_at_ns": "1794531153682508638"
+        },
+        {
+          "payable_ref": "pay_2002",
+          "vendor_id": "vnd_aldergate",
+          "amount_atomic": "450000000",
+          "po_number": "PO-2002",
+          "due_at_ns": "1794963153682508638"
+        }
+      ],
+      "funded_atomic": "10000000000"
+    }
+  ],
+  "wasm_sha256": {
+    "vault": "707c093c960b7809272bcb07437b3a219fc86bb959eaebe1949cbfe0f4eca75b",
+    "evidence": "b8187cc6a53f1bcaf72bde3cc942ee80c1f7bd9cb1a8f04d8430185935681f6f",
+    "token": "f8e1b32ac4f1ced35c730134a949d20234b8632ef8605d96ea9aaa4bec77279a"
+  },
+  "contract_versions": {
+    "near_sdk": "5.30.1",
+    "rust": "1.95.0"
+  }
+}

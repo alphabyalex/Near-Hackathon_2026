@@ -1,0 +1,34 @@
+Attacker holds the key for agent.vault-a.redlinehq.testnet. No AI involved.
+Vault vault-a.redlinehq.testnet, available 50000000000 atomic sgUSD.
+
+Asking the vault to pay what it should not:
+  Unknown payable                                    REJECTED BY VAULT            UNKNOWN_PAYABLE
+  Over the vendor cap (3,500 vs cap 1,000)           REJECTED BY VAULT            OVER_VENDOR_CAP
+  Before the payable's start date                    REJECTED BY VAULT            NOT_YET_PAYABLE
+  Stale policy revision                              REJECTED BY VAULT            STALE_REVISION
+  Stale vendor revision                              REJECTED BY VAULT            STALE_REVISION
+  Malformed request digest                           REJECTED BY VAULT            BAD_CALLER
+
+Replaying a payment:
+  First request for an approved 1 sgUSD bill         PAID (approved bill)         op_1
+  Same request again                                 NO SECOND PAYMENT            op_1, no transfer
+  Same bill, different digest                        REJECTED BY VAULT            ALREADY_PAID
+
+Choosing the recipient or the amount:
+  Adding amount and recipient to the request         REJECTED BY VAULT            OVER_VENDOR_CAP
+
+Reaching past request_payment. NEAR stops these before any contract code runs:
+  The other tenant's vault                           KEY NOT PERMITTED            ReceiverMismatch
+  Pay it as the owner                                KEY NOT PERMITTED            DepositWithFunctionCall
+  Raise its own limits                               KEY NOT PERMITTED            MethodNameMismatch
+  Add itself as a vendor                             KEY NOT PERMITTED            MethodNameMismatch
+  Register its own payable                           KEY NOT PERMITTED            MethodNameMismatch
+  Pause or unpause the vault                         KEY NOT PERMITTED            MethodNameMismatch
+  Withdraw the balance                               KEY NOT PERMITTED            MethodNameMismatch
+  Fake a transfer result                             KEY NOT PERMITTED            MethodNameMismatch
+  Credit the vault directly                          KEY NOT PERMITTED            MethodNameMismatch
+  Move the tokens itself                             KEY NOT PERMITTED            DepositWithFunctionCall
+  Attach a deposit                                   KEY NOT PERMITTED            DepositWithFunctionCall
+
+Money moved during all of this: 1000000 atomic sgUSD to vendors, all of it the approved pay_replay bill.
+Vault available changed by -1000000. The key can pay bills the owner approved, inside the limits. That is the boundary.

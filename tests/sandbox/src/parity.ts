@@ -430,6 +430,15 @@ class SimDriver {
 export interface ParityReport {
   steps: number;
   mismatch: { index: number; step: Step; contract: unknown; sim: unknown } | null;
+  /** How often each outcome came up, so a test can check a sequence was not vacuous. */
+  outcomes: Record<string, number>;
+}
+
+function outcomeLabel(observation: Observation): string {
+  if (observation === "done") return "done";
+  if ("panic" in observation) return observation.panic;
+  if ("result" in observation) return observation.result.rejection ?? "ACCEPTED";
+  return "done";
 }
 
 /** BigInts in steps, so a mismatch can be printed. */
@@ -471,6 +480,7 @@ export async function runParity(chain: Chain, makeWorldFn: (options: WorldOption
 
   let simAhead = 0n;
   const syncClock = async () => sim.setNow((await chain.blockTimestampNs()) + simAhead);
+  const outcomes: Record<string, number> = {};
 
   for (const [index, step] of steps.entries()) {
     await syncClock();
@@ -479,14 +489,16 @@ export async function runParity(chain: Chain, makeWorldFn: (options: WorldOption
     await syncClock();
     const fromSim = model.apply(step);
     if (JSON.stringify(fromContract) !== JSON.stringify(fromSim)) {
-      return { steps: index, mismatch: { index, step: printable(step) as Step, contract: fromContract, sim: fromSim } };
+      return { steps: index, outcomes, mismatch: { index, step: printable(step) as Step, contract: fromContract, sim: fromSim } };
     }
+    const label = outcomeLabel(fromContract);
+    outcomes[label] = (outcomes[label] ?? 0) + 1;
     await syncClock();
     const contractState = await contract.snapshot(model.operationCount());
     const simState = model.snapshot();
     if (JSON.stringify(contractState) !== JSON.stringify(simState)) {
-      return { steps: index, mismatch: { index, step: printable(step) as Step, contract: contractState, sim: simState } };
+      return { steps: index, outcomes, mismatch: { index, step: printable(step) as Step, contract: contractState, sim: simState } };
     }
   }
-  return { steps: steps.length, mismatch: null };
+  return { steps: steps.length, mismatch: null, outcomes };
 }

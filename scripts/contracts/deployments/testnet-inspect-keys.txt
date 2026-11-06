@@ -1,0 +1,25 @@
+Network testnet. Live key lists from https://test.rpc.fastnear.com.
+
+OK       Business A agent       agent.vault-a.redlinehq.testnet
+         must be: exactly one key, only request_payment on vault-a.redlinehq.testnet, no full access
+         key:     ed25519:7KsvmQ6Vw3QH4cVoATDG9bzCWjahVbjxgnKo1mAjidWH  only request_payment on vault-a.redlinehq.testnet, gas allowance 500000000000000000000000 yocto
+OK       Business A vault       vault-a.redlinehq.testnet
+         must be: no keys, so only the contract code can act
+         keys:    none
+OK       Business A guardian    guardian-a.redlinehq.testnet
+         must be: exactly one key, only pause on vault-a.redlinehq.testnet
+         key:     ed25519:6sBdLd1ZvMxGhkEecHhyEUj36XtoFG3vkzrUyTkKpWit  only pause on vault-a.redlinehq.testnet, gas allowance 30000000000000000000000 yocto
+OK       Business B agent       agent.vault-b.redlinehq.testnet
+         must be: exactly one key, only request_payment on vault-b.redlinehq.testnet, no full access
+         key:     ed25519:7HiVeEVZE95GUbxB5jjWLfz4c8mLhTsfZBcfHoYP7hyU  only request_payment on vault-b.redlinehq.testnet, gas allowance 500000000000000000000000 yocto
+OK       Business B vault       vault-b.redlinehq.testnet
+         must be: no keys, so only the contract code can act
+         keys:    none
+OK       Token                  sgusd.redlinehq.testnet
+         must be: no keys, so only the contract code can act
+         keys:    none
+OK       Evidence registry      evidence.redlinehq.testnet
+         must be: no keys, so only the contract code can act
+         keys:    none
+
+No hidden full-access key on any agent, vault, guardian or contract account.

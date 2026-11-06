@@ -10,10 +10,11 @@ describe("parity: the simulator and the contract give identical outcomes", () =>
   });
   afterAll(() => chain?.stop());
 
-  async function expectParity(options: WorldOptions, steps: Step[]): Promise<void> {
+  async function expectParity(options: WorldOptions, steps: Step[]): Promise<Record<string, number>> {
     const report = await runParity(chain, (o) => makeWorld(chain, o), options, steps);
     expect(report.mismatch).toBeNull();
     expect(report.steps).toBe(steps.length);
+    return report.outcomes;
   }
 
   it("every rejection code a request can produce", async () => {
@@ -247,6 +248,10 @@ describe("parity: the simulator and the contract give identical outcomes", () =>
   }
 
   it.each([[1], [20261105]])("a generated sequence from seed %i", async (seed) => {
-    await expectParity({ fake_token: true, vendor_cap: 700n, weekly_cap: 1_500n, lifetime_cap: 6_000n, funded: 20_000n }, randomSteps(seed, 60));
+    const outcomes = await expectParity({ fake_token: true, vendor_cap: 700n, weekly_cap: 1_500n, lifetime_cap: 6_000n, funded: 20_000n }, randomSteps(seed, 60));
+    console.log(`seed ${seed} outcomes: ${JSON.stringify(outcomes)}`);
+    // A sequence that only ever hit one answer would prove nothing.
+    expect(outcomes.ACCEPTED ?? 0).toBeGreaterThan(0);
+    expect(Object.keys(outcomes).filter((label) => label !== "done" && label !== "ACCEPTED").length).toBeGreaterThanOrEqual(4);
   }, 600_000);
 });

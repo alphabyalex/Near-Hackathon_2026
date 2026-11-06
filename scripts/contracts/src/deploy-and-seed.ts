@@ -19,6 +19,7 @@ import {
   readWasm,
   sha256Digest,
   sha256Hex,
+  topUpFromFaucet,
   viewAccount,
   type DeploymentManifest,
   type KeyPermissionRecord,
@@ -30,6 +31,7 @@ const ONE_YOCTO = 1n;
 const STORAGE_DEPOSIT = 13n * (MILLINEAR / 10n); // 0.0013 NEAR: registration_only refunds the excess.
 const AGENT_KEY_ALLOWANCE = 500n * MILLINEAR; // Gas budget of the restricted key.
 const AGENT_BALANCE = 600n * MILLINEAR;
+const ROOT_BUDGET = 12n * NEAR;
 
 interface VendorSeed {
   vendor_id: string;
@@ -149,6 +151,9 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
     }
   }
   const root = deployer.signer(options.root);
+  // Contracts cost their size in storage, and the two vaults are the bulk of this. A rerun needs far less.
+  const alreadyDeployed = await viewAccount(deployer.provider, account("sgusd"));
+  if (options.network === "testnet" && !alreadyDeployed) await topUpFromFaucet(deployer.provider, options.root, ROOT_BUDGET, log);
   const rootState = await viewAccount(deployer.provider, options.root);
   log(`Root ${options.root} holds ${BigInt(rootState?.amount ?? 0) / MILLINEAR} mN`);
 
@@ -377,6 +382,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   mkdirSync(dirname(options.manifestFile), { recursive: true });
   writeFileSync(options.manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
   writeFileSync(join(options.secretsDir, "signers.json"), `${JSON.stringify(signers, null, 2)}\n`, { mode: 0o600 });
+  log(`Root has ${BigInt((await viewAccount(deployer.provider, options.root))?.amount ?? 0) / MILLINEAR} mN left`);
   log(`Manifest: ${options.manifestFile}`);
   log(`Signers (keep private): ${join(options.secretsDir, "signers.json")}`);
   return manifest;
