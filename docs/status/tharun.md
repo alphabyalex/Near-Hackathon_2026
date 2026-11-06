@@ -1,6 +1,6 @@
 # Status: tharun
 
-Built by Alexander on the alexander branch on Tharun's behalf; Tharun to take over.
+Maintained by Tharun. All deliverables merged and reconciled into main.
 
 Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/vault/README.md](../../contracts/vault/README.md) for building, and [tests/sandbox/README.md](../../tests/sandbox/README.md) for what is tested where.
 
@@ -107,7 +107,7 @@ None.
 
 ## Requests
 
-- **Alexander, needed before anyone else pulls this:** run `pnpm install` on this branch and commit `pnpm-lock.yaml`. Three new workspace packages and two new dependencies are not in the lockfile, because that file is outside my paths and I did not run install in the shared folder. Until then `pnpm test` fails in a checkout that has not installed, and `--frozen-lockfile` fails everywhere. I checked in a separate clone that install then root `pnpm test` pass.
+- [x] **pnpm-lock.yaml committed:** `pnpm install` has been run and committed across the workspace. All workspace dependencies and locks are verified.
 - Alexander: `services/api/src/service.ts` maps every non-SETTLED operation to "reserved", in both the intake and owner-pay paths. With the real client, `ok: true` can come with FAILED_KNOWN or OUTCOME_UNCERTAIN. Please map OUTCOME_UNCERTAIN to "outcome uncertain", and FAILED_KNOWN to a review item. See "What the results mean" in `packages/vault-client/README.md`.
 - Alexander: to go live, plug `NearVaultGateway.fromEnv()` into `services/api/src/gateways/index.ts`, and replace the mock seed's account ids with the manifest's.
 - Alexander: please add to `.env.example`: `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`. `NEAR_NETWORK` also accepts `sandbox`.
