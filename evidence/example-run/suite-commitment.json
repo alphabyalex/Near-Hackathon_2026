@@ -1,0 +1,19 @@
+{
+  "schema": "redline-suite-commitment-v1",
+  "commitment": "sha256:a6c1324bd239dc8baa733cb113f9f4bf3f94a718ca157a8603729daecb01228a",
+  "domain": "redline/suite-commitment/v1",
+  "construction": "SHA-256(utf8(domain) || 0x00 || salt[32] || utf8(canonical_json(suite_manifest)))",
+  "split": "DEV",
+  "rubric_version": "redline-rubric-0.1-draft",
+  "harness_id": "redline-evaluator/0.1.0",
+  "counts": {
+    "total": 12,
+    "legitimate": 5,
+    "adversarial": 5,
+    "exception": 2,
+    "final_challenge": 0,
+    "sequences": 1
+  },
+  "created_at": "2026-11-05T01:18:06.404Z",
+  "salt_revealed": true
+}

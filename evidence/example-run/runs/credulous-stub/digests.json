@@ -1,0 +1,11 @@
+{
+  "schema": "redline-evidence-digests-v1",
+  "run_id": "run_dev_credulous-stub_20261105T011806Z",
+  "report_digest": "sha256:0c08d0f796f4ca100c50bf60be32a8067efa5a4abdc7f493fbd768a7609b21f8",
+  "run_record_digest": "sha256:cf9bc800450b9be19cc0e58dcfc1e54f120b1e52e9c7e32199f88f1475476364",
+  "files": {
+    "report.json": "sha256:529a11334dab3f09d419c529db111066a6a4c63669a7d59d35e42648dfa65fd6",
+    "report.md": "sha256:fce885bdb878ba3dbedd933d54a9a825bccbd62dea46804ee8a937c5ebb900d1",
+    "run-record.json": "sha256:dcb815333726c4a9f31959ef1406796a2814529152226f22c4afa4eff74c3ab7"
+  }
+}

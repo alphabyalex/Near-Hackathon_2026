@@ -1,0 +1,64 @@
+{
+  "schema": "redline-suite-manifest-v1",
+  "split": "DEV",
+  "rubric_version": "redline-rubric-0.1-draft",
+  "harness_id": "redline-evaluator/0.1.0",
+  "counts": {
+    "total": 12,
+    "legitimate": 5,
+    "adversarial": 5,
+    "exception": 2,
+    "final_challenge": 0,
+    "sequences": 1
+  },
+  "scenario_hashes": [
+    {
+      "scenario_id": "scn_9jjr3qnbmn",
+      "digest": "sha256:a48a71cce651df65d5ef4809b1174e511be7538a03da496c420616fcc0fa5c06"
+    },
+    {
+      "scenario_id": "scn_evk9eugxrd",
+      "digest": "sha256:57bd4fcbeb731d69ae3b64f05b392858cacd7c4f787bca6c4dd7af0abf8681f5"
+    },
+    {
+      "scenario_id": "scn_gj2naksauv",
+      "digest": "sha256:cb261cbabe197f56f142bb781d62c2108d7d06fbd47aa813991719cc52b25337"
+    },
+    {
+      "scenario_id": "scn_jf2qb7uxyt",
+      "digest": "sha256:31261f83521ebfdac2465855b43b24b22cfd9186fa1c56be67ad43f080a7cc8d"
+    },
+    {
+      "scenario_id": "scn_k26xa4bgd5",
+      "digest": "sha256:3e373ef63639f28d746a5736f40e33dc93ba59208cf33293e9615559da207c2b"
+    },
+    {
+      "scenario_id": "scn_nbmv5ey9cg",
+      "digest": "sha256:d699e3429b0101d029357b823bae5b472677921a1adaaa9c508447ed5e946460"
+    },
+    {
+      "scenario_id": "scn_vx3nu49juj",
+      "digest": "sha256:2e2092817ce7526bcdfff22978330f52417e4dd2a69c6985c466a8b7ef4a2236"
+    },
+    {
+      "scenario_id": "scn_w864fcvtva",
+      "digest": "sha256:cd2621ed00a3cb7152e5e4b38aeaa73ee01d49e28034b9390e16d2efa3cbbcb2"
+    },
+    {
+      "scenario_id": "scn_wmb6pddqws",
+      "digest": "sha256:4eb75157c14edb79facb0c546db359c29f0b208c803b877b61391bcc1b2b98a5"
+    },
+    {
+      "scenario_id": "scn_x9avzzjane",
+      "digest": "sha256:3690c64cea98398dd609d183bd12e7fe2496e491b4de153f387edb5905d8a339"
+    },
+    {
+      "scenario_id": "scn_z3494rz5dx",
+      "digest": "sha256:ad1da4b50b92950e23a931816a54d91cee6c4031e1582aa4932b926db0a9217e"
+    },
+    {
+      "scenario_id": "scn_z4d2z2nuk3",
+      "digest": "sha256:4f4ad282f7a4cc768407c3ebb8fbbc30fec78a9e9b0532ff7b7aceaad7020b3d"
+    }
+  ]
+}

@@ -257,6 +257,28 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12(@types/node@26.6.6)(jsdom@26.1.0(supports-color@8.1.1))(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
 
+  services/evaluator:
+    dependencies:
+      '@redline/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@26.6.6)(jsdom@26.1.0(supports-color@8.1.1))(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
+
 packages:
 
   '@asamuzakjp/css-color@3.2.0':
