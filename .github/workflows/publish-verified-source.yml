@@ -32,12 +32,23 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git branch --show-current)" = "tharun"
-          parts=(.handoff/source.part-*)
-          test "${#parts[@]}" -eq 6
-          {
-            cat "${parts[@]}" | tr -cd 'A-Za-z0-9+/'
-            printf '=='
-          } | base64 --decode > /tmp/spend-gym-source.tar.gz
+          parts=(
+            .handoff/source.part-000
+            .handoff/source.part-001
+            .handoff/source.part-002
+            .handoff/source.part-003
+            .handoff/source.part-004
+            .handoff/final-005-000
+            .handoff/final-005-001
+            .handoff/final-005-002
+            .handoff/final-005-003
+            .handoff/final-005-004
+            .handoff/final-005-005
+            .handoff/final-005-006
+            .handoff/final-005-007
+          )
+          for part in "${parts[@]}"; do test -f "$part"; done
+          cat "${parts[@]}" | base64 --decode > /tmp/spend-gym-source.tar.gz
           echo "4b8a06836aeb96f9a00d3e8264737ca3b93168134312ab3bb73e619b99b2e52e  /tmp/spend-gym-source.tar.gz" | sha256sum --check --strict
 
           rm -rf /tmp/spend-gym-source
