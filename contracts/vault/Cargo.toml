@@ -1,0 +1,23 @@
+[package]
+name = "spend-gym-vault"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk.workspace = true
+near-contract-standards.workspace = true
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing", "legacy"] }
+# Force Cargo to resolve the exact internal crate set published with near-sdk 5.30.0.
+near-sdk-macros.workspace = true
+near-sys.workspace = true
+near-sdk-env.workspace = true
+near-sdk-core.workspace = true
+near-global-contracts.workspace = true

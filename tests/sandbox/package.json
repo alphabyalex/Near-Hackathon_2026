@@ -1,0 +1,13 @@
+{
+  "name": "@spendgym/sandbox-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 *.test.mjs"
+  },
+  "dependencies": {
+    "@spendgym/vault-sim": "workspace:*",
+    "near-workspaces": "5.0.0"
+  }
+}

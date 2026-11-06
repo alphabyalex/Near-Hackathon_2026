@@ -1,0 +1,28 @@
+{
+  "name": "spend-gym-crypto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "build:sim": "tsc -p packages/vault-sim/tsconfig.json",
+    "test:sim": "pnpm build:sim && node --test packages/vault-sim/test/*.test.mjs",
+    "build:client": "tsc -p packages/vault-client/tsconfig.json",
+    "test:client": "pnpm build:client && node --test packages/vault-client/test/*.test.mjs",
+    "build:scripts": "tsc -p scripts/contracts/tsconfig.json",
+    "typecheck": "pnpm build:sim && pnpm build:client && pnpm build:scripts",
+    "test": "pnpm test:sim && pnpm test:client && pnpm test:scripts",
+    "contracts:build": "bash scripts/contracts/build.sh",
+    "test:sandbox": "pnpm build:sim && pnpm --filter @spendgym/sandbox-tests test",
+    "scan:secrets": "bash scripts/contracts/scan-secrets.sh",
+    "format:check": "git diff --check && cargo fmt --all --check",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "test:scripts": "pnpm build:scripts && pnpm --filter @spendgym/contracts-scripts test"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

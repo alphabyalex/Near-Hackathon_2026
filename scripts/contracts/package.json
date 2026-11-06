@@ -1,0 +1,20 @@
+{
+  "name": "@spendgym/contracts-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "deploy:testnet": "node dist/deploy-and-seed.js",
+    "inspect:keys": "node dist/inspect-keys.js",
+    "attack:restricted-key": "node dist/malicious-signer.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "near-api-js": "7.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3"
+  }
+}
