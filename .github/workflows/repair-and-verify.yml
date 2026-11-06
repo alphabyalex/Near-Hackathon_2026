@@ -33,31 +33,15 @@ jobs:
 
           path = Path("contracts/vault/src/lib.rs")
           source = path.read_text()
-          old = '''        if matches!(
-              payable.status,
-              PayableStatus::PendingAgent | PayableStatus::Settled
-          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
-              && payable.operation_id.is_some()
+          old = '''            && payable.operation_id.is_some()
           {
               return PromiseOrValue::Value(RequestResult::accepted(
                   payable.operation_id.expect("checked operation id").0,
-                  payable.status,
-                  true,
-              ));
-          }
           '''
-          new = '''        if matches!(
-              payable.status,
-              PayableStatus::PendingAgent | PayableStatus::Settled
-          ) && payable.request_digest.as_ref() == Some(&request.request_digest)
-              && let Some(operation_id) = payable.operation_id
+          new = '''            && let Some(operation_id) = payable.operation_id
           {
               return PromiseOrValue::Value(RequestResult::accepted(
                   operation_id.0,
-                  payable.status,
-                  true,
-              ));
-          }
           '''
           if old in source:
               path.write_text(source.replace(old, new, 1))
@@ -141,30 +125,34 @@ jobs:
           end = source.index("## Requests for the merge agent\n")
           run_id = os.environ["VERIFY_RUN_ID"]
           sha = os.environ["VERIFY_SHA"]
-          verification = f'''## Verification
-
-- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: `pnpm install --frozen-lockfile`.
-- PASS: TypeScript compilation for the simulator, vault client, and contract scripts.
-- PASS: all simulator, vault-client, and deployment-helper unit tests.
-- PASS: `cargo fmt --all --check`.
-- PASS: `cargo test --workspace --all-targets --locked`.
-- PASS: `cargo clippy --workspace --all-targets --locked -- -D warnings`.
-- PASS: all vault, evidence, mock-token, and sandbox-proxy Wasm builds.
-- PASS: NEAR sandbox security tests and contract-to-simulator parity tests.
-- PASS: authored-source secret, mainnet, generated-output, and em dash scans.
-- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.
-
-'''
+          verification = "\n".join([
+              "## Verification",
+              "",
+              f"- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: `pnpm install --frozen-lockfile`.",
+              "- PASS: TypeScript compilation for the simulator, vault client, and contract scripts.",
+              "- PASS: all simulator, vault-client, and deployment-helper unit tests.",
+              "- PASS: `cargo fmt --all --check`.",
+              "- PASS: `cargo test --workspace --all-targets --locked`.",
+              "- PASS: `cargo clippy --workspace --all-targets --locked -- -D warnings`.",
+              "- PASS: all vault, evidence, mock-token, and sandbox-proxy Wasm builds.",
+              "- PASS: NEAR sandbox security tests and contract-to-simulator parity tests.",
+              "- PASS: authored-source secret, mainnet, generated-output, and em dash scans.",
+              "- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.",
+              "",
+              "",
+          ])
           source = source[:start] + verification + source[end:]
 
           next_start = source.index("## Next\n")
-          next_section = '''## Next
-
-- Reconcile local interface types with the team repository's current shared schemas before merge.
-- Confirm the owner payment policy while paused.
-- Supply testnet credentials only through the execution environment, then run deployment, key inspection, and the direct restricted-key attack script.
-- Move the verified crypto lane into the team repository without weakening the tested money invariants.
-'''
+          next_section = "\n".join([
+              "## Next",
+              "",
+              "- Reconcile local interface types with the team repository's current shared schemas before merge.",
+              "- Confirm the owner payment policy while paused.",
+              "- Supply testnet credentials only through the execution environment, then run deployment, key inspection, and the direct restricted-key attack script.",
+              "- Move the verified crypto lane into the team repository without weakening the tested money invariants.",
+              "",
+          ])
           source = source[:next_start] + next_section
           path.write_text(source)
           PY
