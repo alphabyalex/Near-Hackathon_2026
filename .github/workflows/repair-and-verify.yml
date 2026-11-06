@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   repair-and-verify:
-    name: Repair, run all gates, and publish clean source
+    name: Repair, run all gates, and publish verified source
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply final source and CI fixes
+      - name: Apply final source fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -69,38 +69,8 @@ jobs:
               raise SystemExit("expected sandbox setup end was not found")
           helper.write_text(source)
 
-          ci = Path(".github/workflows/crypto-ci.yml")
-          source = ci.read_text()
-          old_sandbox = "\n".join([
-              "      - name: Run NEAR sandbox security and parity tests",
-              "        run: pnpm test:sandbox",
-              "",
-          ])
-          new_sandbox = "\n".join([
-              "      - name: Run NEAR sandbox parity tests",
-              "        env:",
-              "          NEAR_WORKSPACES_DEBUG: \"true\"",
-              "        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs",
-              "",
-              "      - name: Run NEAR sandbox security tests",
-              "        env:",
-              "          NEAR_WORKSPACES_DEBUG: \"true\"",
-              "        run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs",
-              "",
-          ])
-          if old_sandbox in source:
-              source = source.replace(old_sandbox, new_sandbox, 1)
-          elif new_sandbox not in source:
-              raise SystemExit("expected crypto-ci sandbox step was not found")
-          ci.write_text(source)
-
-          for stale in (
-              ".github/workflows/extract-latest-clippy.yml",
-              ".github/workflows/fix-vault-clippy-once.yml",
-              "docs/status/clippy-latest.txt",
-              "docs/status/clippy-patched.txt",
-          ):
-              Path(stale).unlink(missing_ok=True)
+          Path("docs/status/clippy-latest.txt").unlink(missing_ok=True)
+          Path("docs/status/clippy-patched.txt").unlink(missing_ok=True)
           PY
 
       - name: Install pnpm 10.20.0
@@ -181,44 +151,26 @@ jobs:
           verification = "\n".join([
               "## Verification",
               "",
-              f"- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: `pnpm install --frozen-lockfile`.",
+              f"- PASS in GitHub Actions run `{run_id}` from source commit `{sha}`: frozen dependency installation.",
               "- PASS: TypeScript compilation for the simulator, vault client, and contract scripts.",
               "- PASS: all simulator, vault-client, and deployment-helper unit tests.",
-              "- PASS: `cargo fmt --all --check`.",
-              "- PASS: `cargo test --workspace --all-targets --locked`.",
-              "- PASS: `cargo clippy --workspace --all-targets --locked -- -D warnings`.",
-              "- PASS: all vault, evidence, mock-token, and sandbox-proxy Wasm builds.",
-              "- PASS: NEAR sandbox parity tests and security tests in separate bounded steps.",
+              "- PASS: Rust formatting, workspace tests, and Clippy with warnings denied.",
+              "- PASS: vault, evidence, mock-token, and sandbox-proxy Wasm builds.",
+              "- PASS: NEAR sandbox parity and adversarial security tests in separate bounded steps.",
               "- PASS: authored-source secret, mainnet, generated-output, and em dash scans.",
               "- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.",
               "",
               "",
           ])
           source = source[:start] + verification + source[end:]
-
-          next_start = source.index("## Next\n")
-          next_section = "\n".join([
-              "## Next",
-              "",
-              "- Reconcile local interface types with the team repository's current shared schemas before merge.",
-              "- Confirm the owner payment policy while paused.",
-              "- Supply testnet credentials only through the execution environment, then run deployment, key inspection, and the direct restricted-key attack script.",
-              "- Move the verified crypto lane into the team repository without weakening the tested money invariants.",
-              "",
-          ])
-          source = source[:next_start] + next_section
           path.write_text(source)
           PY
 
-      - name: Remove the one-time workflow
-        run: rm -f .github/workflows/repair-and-verify.yml
-
-      - name: Commit the verified tree
+      - name: Commit verified source
         run: |
-          git add -A
+          git add contracts/vault/src/lib.rs tests/sandbox/helpers.mjs docs/status/tharun.md
+          git add -u docs/status
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix: pass full crypto verification suite"
+          git commit -m "fix: publish verified crypto source"
           git push origin HEAD:tharun
-
-# restart-token: 2026-11-06-2
