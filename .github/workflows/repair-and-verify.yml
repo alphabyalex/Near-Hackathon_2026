@@ -71,19 +71,23 @@ jobs:
 
           ci = Path(".github/workflows/crypto-ci.yml")
           source = ci.read_text()
-          old_sandbox = """      - name: Run NEAR sandbox security and parity tests
-        run: pnpm test:sandbox
-"""
-          new_sandbox = """      - name: Run NEAR sandbox parity tests
-        env:
-          NEAR_WORKSPACES_DEBUG: "true"
-        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs
-
-      - name: Run NEAR sandbox security tests
-        env:
-          NEAR_WORKSPACES_DEBUG: "true"
-        run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs
-"""
+          old_sandbox = "\n".join([
+              "      - name: Run NEAR sandbox security and parity tests",
+              "        run: pnpm test:sandbox",
+              "",
+          ])
+          new_sandbox = "\n".join([
+              "      - name: Run NEAR sandbox parity tests",
+              "        env:",
+              "          NEAR_WORKSPACES_DEBUG: \"true\"",
+              "        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs",
+              "",
+              "      - name: Run NEAR sandbox security tests",
+              "        env:",
+              "          NEAR_WORKSPACES_DEBUG: \"true\"",
+              "        run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs",
+              "",
+          ])
           if old_sandbox in source:
               source = source.replace(old_sandbox, new_sandbox, 1)
           elif new_sandbox not in source:
@@ -184,7 +188,7 @@ jobs:
               "- PASS: `cargo test --workspace --all-targets --locked`.",
               "- PASS: `cargo clippy --workspace --all-targets --locked -- -D warnings`.",
               "- PASS: all vault, evidence, mock-token, and sandbox-proxy Wasm builds.",
-              "- PASS: NEAR sandbox parity tests and security tests in separate bounded jobs.",
+              "- PASS: NEAR sandbox parity tests and security tests in separate bounded steps.",
               "- PASS: authored-source secret, mainnet, generated-output, and em dash scans.",
               "- NOT RUN: testnet deployment, live key inspection, and malicious-signer execution because credentials are intentionally absent.",
               "",
