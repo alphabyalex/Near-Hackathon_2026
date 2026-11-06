@@ -52,21 +52,25 @@ jobs:
           elif new_trait not in source:
               raise SystemExit("expected ext-contract trait was not found")
 
-          old_receiver = """    fn ft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        amount: U128,
-        _msg: String,
-    ) -> PromiseOrValue<U128> {
-"""
-          new_receiver = """    fn ft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        amount: U128,
-        msg: String,
-    ) -> PromiseOrValue<U128> {
-        let _ = msg;
-"""
+          old_receiver = "\n".join([
+              "    fn ft_on_transfer(",
+              "        &mut self,",
+              "        sender_id: AccountId,",
+              "        amount: U128,",
+              "        _msg: String,",
+              "    ) -> PromiseOrValue<U128> {",
+              "",
+          ])
+          new_receiver = "\n".join([
+              "    fn ft_on_transfer(",
+              "        &mut self,",
+              "        sender_id: AccountId,",
+              "        amount: U128,",
+              "        msg: String,",
+              "    ) -> PromiseOrValue<U128> {",
+              "        let _ = msg;",
+              "",
+          ])
           if old_receiver in source:
               source = source.replace(old_receiver, new_receiver, 1)
           elif new_receiver not in source:
@@ -270,4 +274,4 @@ jobs:
           git commit -m "fix: run integration tests on current NEAR sandbox"
           git push origin HEAD:tharun
 
-# verified-abi-run: 2026-11-06-1
+# verified-abi-run: 2026-11-06-2
