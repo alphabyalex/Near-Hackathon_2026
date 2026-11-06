@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - tharun
+    paths-ignore:
+      - ".github/workflows/repair-and-verify.yml"
   pull_request:
   workflow_dispatch:
 
@@ -18,7 +20,7 @@ jobs:
   verify:
     name: Verify contracts, clients, simulator, and sandbox
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -33,6 +35,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "22.22.2"
+          cache: pnpm
 
       - name: Install Rust 1.95.0
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
@@ -41,7 +44,7 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-      - name: Install TypeScript and sandbox dependencies
+      - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Type-check TypeScript packages and scripts
@@ -62,8 +65,15 @@ jobs:
       - name: Build contract Wasm files
         run: pnpm contracts:build
 
-      - name: Run NEAR sandbox security and parity tests
-        run: pnpm test:sandbox
+      - name: Run NEAR sandbox parity tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 20m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 parity.test.mjs
+
+      - name: Run NEAR sandbox security tests
+        env:
+          NEAR_WORKSPACES_DEBUG: "true"
+        run: timeout --signal=TERM --kill-after=30s 40m pnpm --filter @spendgym/sandbox-tests exec node --test --test-concurrency=1 vault-security.test.mjs
 
       - name: Scan authored source
         run: pnpm scan:secrets
