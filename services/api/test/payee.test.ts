@@ -167,8 +167,9 @@ describe("free tier", () => {
     const via = (ip: string) => proxied.request("/v1/vendors", { headers: { "x-forwarded-for": ip } });
     expect((await via("1.1.1.1")).status).toBe(200);
     expect((await via("1.1.1.1")).status).toBe(402);
+    // The caller controls everything before the last entry, so changing it must not reset the count.
     expect((await via("9.9.9.9, 2.2.2.2")).status).toBe(200);
-    expect((await via("9.9.9.9, 2.2.2.2")).status).toBe(402);
+    expect((await via("8.8.8.8, 2.2.2.2")).status).toBe(402);
   });
 
   it("does not limit the existing owner routes or the attestor key", async () => {

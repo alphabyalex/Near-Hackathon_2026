@@ -14,7 +14,7 @@ Brief: [docs/PAYEE_SHIELD.md](../PAYEE_SHIELD.md). Everything below runs on the 
 | `/v1/vendors/verify`: nep413, eip191, solana-ed25519, merchant identity | `services/api/src/payee/proofs.ts`, `verify-vendor.ts` | Done. NEP-413 checked against a real `near-api-js` signature |
 | Proof and seed scripts | `scripts/make-payee-proof.ts`, `scripts/seed-payees.ts` | Done |
 | SDK, hosted and direct | `packages/sdk` | Hosted done. Direct runs on the sample registry |
-| x402 guard, fake server, swap walkthrough | `packages/x402-guard`, `scripts/demo-x402-swap.ts` | Done, not yet run against a real `@x402/fetch` client |
+| x402 guard, fake server, swap walkthrough | `packages/x402-guard`, `scripts/demo-x402-swap.ts` | Done. Tested with the real `@x402/fetch` wrapper and `x402Client` hook, using a stand-in payment scheme. Not run against a real facilitator |
 | MCP server, HTTP and stdio | `services/mcp` | Done. `server.json` written, not published |
 | Agent onboarding | `apps/web/public/llms.txt`, `docs/skills/redline-payee-check/SKILL.md`, root README | Done |
 

@@ -1,6 +1,8 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { p256 } from "@noble/curves/nist.js";
 import { base64urlnopad } from "@scure/base";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 import { createMemoryRegistry, createRedline, RedlineBlockedError, seedEvmAddress, STUB_VENDORS, type Redline } from "@redline/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFakeX402Server, fakePayingFetch, lookalikeAddress, type FakeServer } from "../src/fake-server.js";
@@ -23,7 +25,10 @@ const start = async (options: Partial<Parameters<typeof createFakeX402Server>[0]
   return server;
 };
 
-afterEach(() => server?.close());
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await server?.close();
+});
 
 const requirement = { scheme: "exact", network: "eip155:84532", amount: "10000", asset: "0xusdc", payTo: REAL };
 
@@ -69,6 +74,75 @@ describe("honest and malicious servers", () => {
   });
 });
 
+describe("with the real @x402/fetch client", () => {
+  // A real wrapper and client. Only the scheme is a stand-in, so no key, chain or funds are involved.
+  const realClient = () =>
+    x402Client.fromConfig({
+      spendControls: false,
+      schemes: [
+        {
+          network: "eip155:84532",
+          client: {
+            scheme: "exact",
+            createPaymentPayload: async (x402Version) => ({ x402Version, payload: { signature: "0xstandin" } }),
+          },
+        },
+      ],
+    });
+
+  it.each([[false], [true]])("pays an honest server through a guarded fetch (signed offers: %s)", async (signOffers) => {
+    await start({ mode: "honest", signOffers });
+    const pay = wrapFetchWithPayment(withRedline(server.fetch, { redline }), realClient());
+    const response = await pay(server.resourceUrl);
+    expect(response.status).toBe(200);
+    expect(server.payments).toEqual([{ payTo: REAL }]);
+  });
+
+  it.each([[false], [true]])("blocks a swapped payTo through a guarded fetch (signed offers: %s)", async (signOffers) => {
+    await start({ mode: "malicious", signOffers });
+    const pay = wrapFetchWithPayment(withRedline(server.fetch, { redline }), realClient());
+    await expect(pay(server.resourceUrl)).rejects.toMatchObject({ name: "RedlineBlockedError", verdict: "BLOCK" });
+    expect(server.payments).toEqual([]);
+  });
+
+  it("removes a HOLD option before the real client chooses", async () => {
+    await start({ mode: "honest" });
+    const unverified = { scheme: "exact", network: "eip155:84532", amount: "10000", asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", payTo: `0x${"77".repeat(20)}`, maxTimeoutSeconds: 60, extra: { name: "USDC", version: "2" } };
+    const wrapped = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await server.fetch(input, init);
+      if (response.status !== 402) return response;
+      const body = (await response.json()) as { accepts: unknown[] };
+      const both = { ...body, accepts: [unverified, ...body.accepts] };
+      return new Response(JSON.stringify(both), { status: 402, headers: { "PAYMENT-REQUIRED": Buffer.from(JSON.stringify(both)).toString("base64") } });
+    }) as typeof fetch;
+    const check = vi.spyOn(redline, "check").mockImplementation(async (request) => {
+      const real = request.payee.endsWith(REAL);
+      return { verdict: real ? "PAY" : "HOLD", payee: request.payee, reasons: [], vendor: null, signals: {} as never, caseFile: null, receipt: null };
+    });
+    const pay = wrapFetchWithPayment(withRedline(wrapped, { redline }), realClient());
+    expect((await pay(server.resourceUrl)).status).toBe(200);
+    expect(server.payments).toEqual([{ payTo: REAL }]);
+    check.mockRestore();
+  });
+
+  it("the hook allows an honest server on a real x402Client", async () => {
+    await start({ mode: "honest", signOffers: true });
+    const check = vi.spyOn(redline, "check");
+    const client = withRedline(realClient(), { redline, resolveDid: async () => (await server.fetch(`https://${DOMAIN}/.well-known/did.json`)).json() as Promise<DidDocument> });
+    expect((await wrapFetchWithPayment(server.fetch, client)(server.resourceUrl)).status).toBe(200);
+    expect(check.mock.calls[0]?.[0]).toMatchObject({ vendor: { domain: DOMAIN }, source: "x402" });
+    expect(server.payments).toEqual([{ payTo: REAL }]);
+    check.mockRestore();
+  });
+
+  it("the hook aborts a swapped payTo on a real x402Client, and nothing is paid", async () => {
+    await start({ mode: "malicious" });
+    const client = withRedline(realClient(), { redline });
+    await expect(wrapFetchWithPayment(server.fetch, client)(server.resourceUrl)).rejects.toThrow(/LOOKALIKE_ACCOUNT/);
+    expect(server.payments).toEqual([]);
+  });
+});
+
 describe("signed offers", () => {
   it("pays on a valid did:web offer for the verified account", async () => {
     await start({ mode: "honest", signOffers: true });
@@ -110,6 +184,18 @@ describe("signed offers", () => {
     const response = await request(body, docFor(), "https://cdn.fastpay.io/x");
     expect(response.status).toBe(402);
     expect(check.mock.calls[0]?.[0]).toMatchObject({ vendor: { domain: DOMAIN }, source: "x402", payee: `eip155:84532:${REAL}` });
+    check.mockRestore();
+  });
+
+  it("uses a signed offer's domain only for the option it signed", async () => {
+    const check = vi.spyOn(redline, "check");
+    const unsigned = { ...requirement, payTo: `0x${"77".repeat(20)}` };
+    const resourceUrl = "https://not-listed.com/x";
+    const body = required(offerFor({ ...offerPayload, resourceUrl }), [requirement, unsigned]);
+    const response = await request(body, docFor(), resourceUrl);
+    expect(((await response.json()) as { accepts: unknown[] }).accepts).toEqual([requirement]);
+    const domains = Object.fromEntries(check.mock.calls.map(([call]) => [call.payee, call.vendor?.domain]));
+    expect(domains).toEqual({ [`eip155:84532:${REAL}`]: DOMAIN, [`eip155:84532:${unsigned.payTo}`]: "not-listed.com" });
     check.mockRestore();
   });
 

@@ -166,6 +166,14 @@ describe("check verdicts", () => {
     expect((await redline.check({ payee: added, vendor: { domain } })).verdict).toBe("PAY");
   });
 
+  it("refuses a proof older than the one on record", async () => {
+    const registry = createMemoryRegistry({ vendors: STUB_VENDORS });
+    await expect(
+      registry.attestVendor({ domain, name: "Northwind Trading", accounts: ["near:testnet:rolled-back.testnet"], evidenceHash: "sha256:x", issuedAt: "2020-01-01T00:00:00Z" }),
+    ).rejects.toThrow(/older/);
+    expect((await registry.findByAccount("near:testnet:rolled-back.testnet"))).toBeNull();
+  });
+
   it("HOLDs when this payer last paid a different account on the same chain", async () => {
     const registry = createMemoryRegistry({ vendors: STUB_VENDORS });
     const added = `eip155:84532:0x${"34".repeat(20)}`;

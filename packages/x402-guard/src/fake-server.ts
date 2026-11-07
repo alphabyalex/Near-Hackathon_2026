@@ -95,7 +95,8 @@ export function createFakeX402Server(options: FakeServerOptions): FakeServer {
     payments,
     fetch: (input, init) => {
       const original = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-      return globalThis.fetch(`${base}${original.pathname}${original.search}`, init);
+      const local = `${base}${original.pathname}${original.search}`;
+      return globalThis.fetch(input instanceof Request ? new Request(local, input) : local, init);
     },
     listen: () =>
       new Promise((resolve) => {
@@ -108,8 +109,9 @@ export function createFakeX402Server(options: FakeServerOptions): FakeServer {
           if (req.url !== "/paid/report") return json(404, { error: "NOT_FOUND" });
           const signature = req.headers["payment-signature"];
           if (typeof signature === "string") {
-            const payment = JSON.parse(Buffer.from(signature, "base64").toString()) as { payTo: string };
-            payments.push({ payTo: payment.payTo });
+            // A real x402 client sends the chosen option under `accepted`. The fake payer sends payTo directly.
+            const payment = JSON.parse(Buffer.from(signature, "base64").toString()) as { payTo?: string; accepted?: { payTo: string } };
+            payments.push({ payTo: payment.accepted?.payTo ?? payment.payTo ?? "" });
             return json(200, { report: "Q3 figures" });
           }
           const required = paymentRequired();

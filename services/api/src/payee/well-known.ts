@@ -39,11 +39,8 @@ for (const [address, prefix] of [
   blocked.addSubnet(address, prefix, "ipv6");
 }
 
-export const isPublicAddress = (address: string, family: number): boolean => {
-  const mapped = family === 6 ? /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address)?.[1] : undefined;
-  if (mapped) return !blocked.check(mapped, "ipv4");
-  return !blocked.check(address, family === 6 ? "ipv6" : "ipv4");
-};
+/** BlockList also applies the IPv4 rules to IPv4-mapped IPv6 addresses. */
+export const isPublicAddress = (address: string, family: number): boolean => !blocked.check(address, family === 6 ? "ipv6" : "ipv4");
 
 /**
  * Resolves the name and refuses private addresses at connect time, so DNS rebinding cannot reach
