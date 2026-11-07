@@ -62,6 +62,21 @@ export class Store {
         at_ns TEXT NOT NULL,
         summary TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS payee_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        payer TEXT NOT NULL,
+        domain TEXT NOT NULL,
+        chain TEXT NOT NULL,
+        account TEXT NOT NULL,
+        recorded_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS payee_payments_lookup ON payee_payments (payer, domain, chain, id);
+      CREATE TABLE IF NOT EXISTS api_calls (
+        ip TEXT NOT NULL,
+        day TEXT NOT NULL,
+        calls INTEGER NOT NULL,
+        PRIMARY KEY (ip, day)
+      );
     `);
   }
 
@@ -71,6 +86,27 @@ export class Store {
 
   close(): void {
     this.db.close();
+  }
+
+  recordPayment(payment: { payer: string; domain: string; chain: string; account: string; at: string }): void {
+    this.db
+      .prepare("INSERT INTO payee_payments (payer, domain, chain, account, recorded_at) VALUES (@payer, @domain, @chain, @account, @at)")
+      .run(payment);
+  }
+
+  lastPaidAccount(payer: string, domain: string, chain: string): string | null {
+    const row = this.db
+      .prepare("SELECT account FROM payee_payments WHERE payer = ? AND domain = ? AND chain = ? ORDER BY id DESC LIMIT 1")
+      .get(payer, domain, chain) as { account: string } | undefined;
+    return row?.account ?? null;
+  }
+
+  /** Adds one call for this IP and day, and returns the new count. */
+  countCall(ip: string, day: string): number {
+    const row = this.db
+      .prepare("INSERT INTO api_calls (ip, day, calls) VALUES (?, ?, 1) ON CONFLICT (ip, day) DO UPDATE SET calls = calls + 1 RETURNING calls")
+      .get(ip, day) as { calls: number };
+    return row.calls;
   }
 
   saveInvoice(row: InvoiceRow): void {

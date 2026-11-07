@@ -12,6 +12,7 @@ import type {
 import { randomUUID } from "node:crypto";
 import type { Gateways } from "./gateways/index.js";
 import type { MockWorld } from "./mock/seed.js";
+import type { PayeeRuntime } from "./payee/runtime.js";
 import type { Store } from "./store.js";
 import type { Clock } from "./time.js";
 
@@ -20,6 +21,7 @@ export interface Deps {
   gateways: Gateways;
   world: MockWorld;
   now: Clock;
+  payee: PayeeRuntime;
 }
 
 export type ServiceFailure = { ok: false; status: 404 | 409 | 502; error: string; message: string; rejection?: VaultRejection };

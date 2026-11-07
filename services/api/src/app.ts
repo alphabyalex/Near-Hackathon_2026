@@ -2,7 +2,8 @@ import { AccountIdSchema } from "@redline/schemas";
 import { Hono } from "hono";
 import { z } from "zod";
 import { VAULT_A } from "./mock/seed.js";
-import { ownerPay, processIntake, rejectReview, type Deps, type ServiceResult } from "./service.js";
+import { registerPayeeRoutes } from "./payee/routes.js";
+import { ownerPay, processIntake,rejectReview, type Deps, type ServiceResult } from "./service.js";
 import { evaluationList, historyView, invoiceDetail, invoiceList, overviewView, reviewQueue } from "./views.js";
 
 const IntakeBodySchema = z.object({
@@ -21,16 +22,13 @@ export function createApp(deps: Deps): Hono {
   const app = new Hono();
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
 
-  app.onError((error, c) => {
-    console.error(error);
-    return c.json({ error: "INTERNAL", message: "Internal error." }, 500);
-  });
-
   const reviewResponse = async (result: ServiceResult) => {
     if (result.ok) return { body: { ok: true, queue: await reviewQueue(deps) }, status: 200 as const };
     const { status, error, message, rejection } = result;
     return { body: rejection === undefined ? { error, message } : { error, message, rejection }, status };
   };
+
+  registerPayeeRoutes(app, deps.payee, deps.store);
 
   app.get("/overview", async (c) => {
     const vaultId = c.req.query("vault_id") ?? VAULT_A;
