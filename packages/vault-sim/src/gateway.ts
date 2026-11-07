@@ -63,6 +63,11 @@ export class SimVaultGateway implements VaultGateway {
     vault.pause(vault.owner);
   }
 
+  async unpause(vaultId: string): Promise<void> {
+    const vault = this.vault(vaultId);
+    vault.unpause(vault.owner);
+  }
+
   async revokeAgent(vaultId: string, agentAccountId: string): Promise<void> {
     const vault = this.vault(vaultId);
     vault.revokeAgent(vault.owner, agentAccountId);

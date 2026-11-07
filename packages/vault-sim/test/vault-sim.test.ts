@@ -612,6 +612,8 @@ describe("SimVaultGateway", () => {
 
     await gateway.pause("a.test");
     expect((await gateway.getPolicy("a.test")).paused).toBe(true);
+    await gateway.unpause("a.test");
+    expect((await gateway.getPolicy("a.test")).paused).toBe(false);
     await gateway.revokeAgent("a.test", AGENT);
     expect((await gateway.getBinding("a.test"))?.enabled).toBe(false);
     await expect(gateway.getUsage("nope")).rejects.toThrow("unknown vault");

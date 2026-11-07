@@ -18,8 +18,10 @@ import {
   type Vendor,
 } from "@redline/schemas";
 import { z } from "zod";
+import { VaultAdmin } from "./admin.js";
 import { configFromEnv, type SignerConfig, type VaultClientConfig } from "./config.js";
 import { MissingSignerError, VaultExecutionError } from "./errors.js";
+import { NearEvidenceClient } from "./evidence.js";
 import { GAS_ADMIN, GAS_PAYMENT, ONE_YOCTO, callFinal, makeProvider, makeSigner, viewCall, type FinalOutcome, type SignerHandle } from "./transport.js";
 import type { Provider } from "near-api-js";
 
@@ -60,6 +62,22 @@ export class NearVaultGateway implements VaultGateway {
   async pause(vaultId: string): Promise<void> {
     const role = this.config.signers[vaultId]?.owner ? "owner" : "guardian";
     await this.send(vaultId, role, "pause", {}, 0n, GAS_ADMIN);
+  }
+
+  async unpause(vaultId: string): Promise<void> {
+    await this.send(vaultId, "owner", "unpause", {}, ONE_YOCTO, GAS_ADMIN);
+  }
+
+  admin(vaultId: string): VaultAdmin {
+    const ownerSigner = this.signerFor(vaultId, "owner");
+    return new VaultAdmin(ownerSigner, vaultId, {
+      final_timeout_ms: this.config.final_timeout_ms,
+      poll_interval_ms: this.config.poll_interval_ms,
+    });
+  }
+
+  evidence(contractId?: string, issuerAccount?: { account_id: string; private_key: string }): NearEvidenceClient {
+    return NearEvidenceClient.fromConfig(this.config, contractId, issuerAccount);
   }
 
   async revokeAgent(vaultId: string, agentAccountId: string): Promise<void> {
