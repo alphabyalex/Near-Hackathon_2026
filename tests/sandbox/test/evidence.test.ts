@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { callFinal, viewCall, type SignerHandle } from "@redline/vault-client";
+import { NearEvidenceClient, callFinal, viewCall, type SignerHandle } from "@redline/vault-client";
 import { Chain, DIGEST_A, DIGEST_B, panicOf, wasm } from "../src/harness.js";
 
 const REPORT = `sha256:${"c".repeat(64)}`;
@@ -69,5 +69,44 @@ describe("evidence registry", () => {
     await register("run_silent");
     expect(await panicOf(() => call(other, "expire_run", { run_id: "run_silent" }))).toBe("E_DEADLINE_NOT_REACHED");
     expect((await getRun("run_silent"))?.execution_status).toBe("REGISTERED");
+  });
+
+  it("NearEvidenceClient: verifies report digests and executes convenient publishRun", async () => {
+    const client = new NearEvidenceClient(chain.provider, registry.account_id, issuer);
+
+    // Test getSuite
+    const suite = await client.getSuite(DIGEST_A);
+    expect(suite?.metadata).toEqual({ name: "assessment", version: "1", case_count: 20 });
+    expect(suite?.issuer).toBe(issuer.account_id);
+
+    // Test verifyReport for run_ok
+    const verificationOk = await client.verifyReport("run_ok", REPORT);
+    expect(verificationOk.matches).toBe(true);
+    expect(verificationOk.on_chain_digest).toBe(REPORT);
+
+    const verificationBad = await client.verifyReport("run_ok", DIGEST_A);
+    expect(verificationBad.matches).toBe(false);
+
+    // Test publishRun convenience method
+    await client.publishRun({
+      run_id: "run_client_convenience",
+      suite_commitment: DIGEST_A,
+      manifest_digest: DIGEST_B,
+      report_digest: REPORT,
+      execution_status: "COMPLETED",
+      assessment_outcome: "MET_THRESHOLDS",
+    });
+
+    const run = await client.getRun("run_client_convenience");
+    expect(run).toMatchObject({
+      run_id: "run_client_convenience",
+      execution_status: "COMPLETED",
+      assessment_outcome: "MET_THRESHOLDS",
+      report_digest: REPORT,
+      issuer: issuer.account_id,
+    });
+
+    const digest = await client.getReportDigest("run_client_convenience");
+    expect(digest).toBe(REPORT);
   });
 });

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { VaultExecutionError, assertAllowedNetwork, configFromEnv, readFinalOutcome, refusalReason } from "../src/index.js";
+import {
+  NearEvidenceClient,
+  VaultExecutionError,
+  assertAllowedNetwork,
+  configFromEnv,
+  readFinalOutcome,
+  refusalReason,
+} from "../src/index.js";
 
 const b64 = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64");
 
@@ -80,5 +87,35 @@ describe("reading final outcomes", () => {
       return;
     }
     throw new Error("expected a throw");
+  });
+});
+
+describe("NearEvidenceClient", () => {
+  it("initializes from config with default contract accounts", () => {
+    const testnetClient = NearEvidenceClient.fromConfig({
+      network: "testnet",
+      rpc_url: "https://rpc.testnet.near.org",
+      signers: {},
+    });
+    expect(testnetClient.contractId).toBe("evidence.redline-labs.testnet");
+    expect(testnetClient.issuer).toBeUndefined();
+
+    const sandboxClient = NearEvidenceClient.fromConfig({
+      network: "sandbox",
+      rpc_url: "http://127.0.0.1:3030",
+      signers: {},
+    });
+    expect(sandboxClient.contractId).toBe("evidence.sandbox");
+  });
+
+  it("throws when mutation is called without an issuer signer", async () => {
+    const client = NearEvidenceClient.fromConfig({
+      network: "sandbox",
+      rpc_url: "http://127.0.0.1:3030",
+      signers: {},
+    });
+    await expect(
+      client.commitSuite("sha256:1111", { name: "test", version: "1", case_count: 5 }),
+    ).rejects.toThrow("no issuer signer configured");
   });
 });

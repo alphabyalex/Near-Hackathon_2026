@@ -33,8 +33,8 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | --- | --- |
 | Rust unit tests (`cargo test --workspace`) | 40 passed |
 | `packages/vault-sim` | 43 passed |
-| `packages/vault-client` | 10 passed |
-| `tests/sandbox`, on a real local node | 122 passed, about 20 minutes |
+| `packages/vault-client` | 12 passed |
+| `tests/sandbox`, on a real local node | 123 passed, about 20 minutes |
 | Root `pnpm test`, Linux, in a clean clone | All workspaces pass |
 
 Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
@@ -75,7 +75,7 @@ All in `docs/VAULT_RULES.md`:
 
 ## Interfaces I expose
 
-- `@redline/vault-client`: `NearVaultGateway` implements `VaultGateway`. `NearVaultGateway.fromEnv()` reads `NEAR_NETWORK`, `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`. Also `getVendors`, `getPayables`, and `VaultAdmin` for owner methods. See its README for what each result and error means.
+- `@redline/vault-client`: `NearVaultGateway` implements `VaultGateway`. `NearVaultGateway.fromEnv()` reads `NEAR_NETWORK`, `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`. Also `getVendors`, `getPayables`, and `VaultAdmin` for owner methods. `NearEvidenceClient` provides read views (`getSuite`, `getRun`, `getReportDigest`, `verifyReport`) and issuer methods (`commitSuite`, `registerRun`, `publishResult`, `publishRun`). See its README for what each result and error means.
 - `@redline/vault-sim`: `VaultSim`, `SimVaultGateway`, and `createGymVaultSim` (implementing `GymVaultSim` with `transfers()` and `setNow()` matching Lucy's `VaultSimFactory`).
 - `docs/VAULT_RULES.md`: every rule, in check order.
 - `contracts/evidence`: see its README for `commit_suite`, `register_run`, `publish_result`.
@@ -113,7 +113,9 @@ None.
 - Alexander: please add to `.env.example`: `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`. `NEAR_NETWORK` also accepts `sandbox`.
 - Alexander, optional: `VaultRejection` has no code for "failed and awaiting reopen" or for "policy expired". Today those report `UNKNOWN_PAYABLE` and `BINDING_INACTIVE`. Dedicated codes would read better in the queue, and would need a new vault deployment.
 - Kristian: when the agent is frozen, send me or Alexander the manifest digest for the binding.
-- Lucy: `createGymVaultSim` is now implemented and exported from `@redline/vault-sim`, matching your `VaultSimFactory` signature (`transfers()`, `setNow(ns)`, `VaultSimInit[]`). `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
+- Lucy: `createGymVaultSim` is now implemented and exported from `@redline/vault-sim`, matching your `VaultSimFactory` signature (`transfers()`, `setNow(ns)`, `VaultSimInit[]`).
+- Lucy: `NearEvidenceClient` is now exported from `@redline/vault-client`. It provides `verifyReport(runId, computedReportDigest)` and `getReportDigest(runId)`, plus `publishRun({ run_id, suite_commitment, manifest_digest, report_digest, execution_status, assessment_outcome })` which executes `register_run` and `publish_result` sequentially for the issuer.
+- Lucy: Rejection order comparison: our contract and simulator check `BINDING_INACTIVE` (check 3) before `PAUSED` (check 4); and `NOT_YET_PAYABLE` (check 9) before `PAYABLE_EXPIRED` (check 10). We also have check 16 for `CAPACITY_FULL` (storage headroom). Otherwise checks match your list. `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
 
 ## Next
 

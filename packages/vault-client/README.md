@@ -54,6 +54,7 @@ A timeout is never reported as a failure. The client signs once, computes the ha
 
 - `gateway.getVendors`, `gateway.getPayables`: bounded pages, for building `AgentContext`.
 - `VaultAdmin`: owner-signed methods for scripts and tests.
+- `NearEvidenceClient`: client for reading and verifying on-chain evidence (`getSuite`, `getRun`, `getReportDigest`, `verifyReport`) and issuer transactions (`commitSuite`, `registerRun`, `publishResult`, `publishRun`).
 - `callFinal`, `viewCall`: the transport underneath.
 
 ## Test
