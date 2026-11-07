@@ -1,7 +1,9 @@
 import type { AgentRunner, InvoiceDetail, OverviewView, ReviewQueueEntry, VaultGateway } from "@redline/schemas";
+import { PaymentRequestAdapter, RulesBaseline } from "@redline/agent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { bootstrap } from "../src/bootstrap.js";
+import { createGateways } from "../src/gateways/index.js";
 import { VAULT_B } from "../src/mock/seed.js";
 import type { Deps } from "../src/service.js";
 
@@ -106,6 +108,40 @@ describe("POST /intake", () => {
     expect((await post(`/review/${id}/reject`)).status).toBe(409);
   });
 
+  it("marks outcome uncertain when the vault operation is OUTCOME_UNCERTAIN", async () => {
+    vi.spyOn(deps.gateways.vault, "getOperation").mockResolvedValueOnce({
+      operation_id: "op_uncertain",
+      vault_id: "vault-a.redline.testnet",
+      payable_ref: "pay_1003",
+      recipient: "fernhill.testnet",
+      amount_atomic: "1250000000",
+      status: "OUTCOME_UNCERTAIN",
+      payer: "AGENT",
+      at_ns: "1",
+      tx_hash: null,
+    });
+    const detail = await submit("Invoice INV-1003 from Fernhill Cloud Hosting.");
+    expect(detail.payment_status).toBe("outcome uncertain");
+    expect(detail.review?.source).toBe("VAULT");
+  });
+
+  it("sends to review when the vault operation is FAILED_KNOWN", async () => {
+    vi.spyOn(deps.gateways.vault, "getOperation").mockResolvedValueOnce({
+      operation_id: "op_failed",
+      vault_id: "vault-a.redline.testnet",
+      payable_ref: "pay_1003",
+      recipient: "fernhill.testnet",
+      amount_atomic: "1250000000",
+      status: "FAILED_KNOWN",
+      payer: "AGENT",
+      at_ns: "1",
+      tx_hash: null,
+    });
+    const detail = await submit("Invoice INV-1003 from Fernhill Cloud Hosting.");
+    expect(detail.payment_status).toBe("review needed");
+    expect(detail.review?.source).toBe("VAULT");
+  });
+
   it("rejects bad input", async () => {
     expect((await post("/intake", { source_text: "" })).status).toBe(400);
     expect((await post("/intake", { source_text: "x", vault_id: "no-such-vault.testnet" })).status).toBe(404);
@@ -201,6 +237,24 @@ describe("POST /vault/unpause", () => {
     const res = await post("/vault/unpause");
     expect(res.status).toBe(200);
     expect((await get<OverviewView>("/overview")).policy.paused).toBe(false);
+  });
+});
+
+describe("gateway swap with rules agent", () => {
+  it("uses RulesBaseline and PaymentRequestAdapter when REDLINE_AGENT_MODE=rules", () => {
+    const origMode = process.env.REDLINE_AGENT_MODE;
+    try {
+      process.env.REDLINE_AGENT_MODE = "rules";
+      const g = createGateways(deps.world, deps.now);
+      expect(g.agent).toBeInstanceOf(RulesBaseline);
+      expect(g.adapter).toBeInstanceOf(PaymentRequestAdapter);
+    } finally {
+      if (origMode === undefined) {
+        delete process.env.REDLINE_AGENT_MODE;
+      } else {
+        process.env.REDLINE_AGENT_MODE = origMode;
+      }
+    }
   });
 });
 

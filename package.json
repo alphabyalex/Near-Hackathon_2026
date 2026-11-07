@@ -10,7 +10,10 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter @redline/schemas build && concurrently -n api,web \"pnpm --filter @redline/api dev\" \"pnpm --filter @redline/web dev\"",
-    "test": "pnpm --filter @redline/schemas build && pnpm -r test"
+    "test": "pnpm --filter @redline/schemas build && pnpm -r test",
+    "eval:dev": "pnpm --filter @redline/evaluator eval:dev",
+    "eval:assessment": "pnpm --filter @redline/evaluator eval:assessment",
+    "verify:evidence": "pnpm --filter @redline/evaluator verify:evidence"
   },
   "devDependencies": {
     "concurrently": "^9.2.5"

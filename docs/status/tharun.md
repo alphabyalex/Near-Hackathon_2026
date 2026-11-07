@@ -110,9 +110,11 @@ None.
 ## Requests
 
 - [x] **pnpm-lock.yaml committed:** `pnpm install` has been run and committed across the workspace. All workspace dependencies and locks are verified.
-- Alexander: `services/api/src/service.ts` maps every non-SETTLED operation to "reserved", in both the intake and owner-pay paths. With the real client, `ok: true` can come with FAILED_KNOWN or OUTCOME_UNCERTAIN. Please map OUTCOME_UNCERTAIN to "outcome uncertain", and FAILED_KNOWN to a review item. See "What the results mean" in `packages/vault-client/README.md`.
-- Alexander: to go live, plug `NearVaultGateway.fromEnv()` into `services/api/src/gateways/index.ts`, and replace the mock seed's account ids with the manifest's.
-- Alexander: please add to `.env.example`: `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`. `NEAR_NETWORK` also accepts `sandbox`.
+- [x] **Operation status mapping:** `services/api/src/service.ts` now maps `OUTCOME_UNCERTAIN` to "outcome uncertain" and `FAILED_KNOWN` to a "review needed" review item.
+- [x] **Gateway swap point:** `services/api/src/gateways/index.ts` is connected to support `NearVaultGateway.fromEnv()` via `REDLINE_GATEWAY_MODE=near`, and `@redline/agent` via `REDLINE_AGENT_MODE=rules|llm`.
+- [x] **Environment example:** `.env.example` now documents `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`.
+- [x] **Root scripts:** Root `package.json` now includes `eval:dev`, `eval:assessment`, and `verify:evidence`.
+- [x] **Gym agent exports:** `@redline/agent` now exports `createGymAgents` and `createDecisionAdapter`, allowing the Gym evaluator to run `RulesBaseline` directly.
 - Alexander, optional: `VaultRejection` has no code for "failed and awaiting reopen" or for "policy expired". Today those report `UNKNOWN_PAYABLE` and `BINDING_INACTIVE`. Dedicated codes would read better in the queue, and would need a new vault deployment.
 - Kristian: when the agent is frozen, send me or Alexander the manifest digest for the binding.
 - Lucy: `createGymVaultSim` is now implemented and exported from `@redline/vault-sim`, matching your `VaultSimFactory` signature (`transfers()`, `setNow(ns)`, `VaultSimInit[]`).

@@ -16,7 +16,9 @@
     "verify:evidence": "tsx src/cli.ts verify"
   },
   "dependencies": {
+    "@redline/agent": "workspace:*",
     "@redline/schemas": "workspace:*",
+    "@redline/vault-sim": "workspace:*",
     "zod": "^4.6.7"
   },
   "devDependencies": {

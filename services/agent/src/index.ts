@@ -11,3 +11,4 @@ export { intakeHash, RecordingAgent, REPLAY_LABEL, ReplayAgent, ReplayStore, typ
 export type { AgentKind, DecisionReport, DecisionWithReport, ReportingAgent, TokenUsage } from "./report.js";
 export { RulesBaseline } from "./rules-baseline.js";
 export { type CallLogger, type CallRecord, jsonlCallLogger } from "./telemetry.js";
+export { createGymAgents, createDecisionAdapter, type GymAgentExport } from "./gym-export.js";

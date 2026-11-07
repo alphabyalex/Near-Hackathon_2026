@@ -155,7 +155,13 @@ export async function processIntake(
 
   const operationId = result.operation_id as string;
   const operation = await gateways.vault.getOperation(intake.vault_id, operationId);
-  finish({ decision, payable, operation_id: operationId, status: operation?.status === "SETTLED" ? "settled" : "reserved" });
+  if (operation?.status === "OUTCOME_UNCERTAIN") {
+    finish({ decision, payable, operation_id: operationId, status: "outcome uncertain", review: { source: "VAULT", reasons: ["OTHER"], rejection: null } });
+  } else if (operation?.status === "FAILED_KNOWN") {
+    finish({ decision, payable, operation_id: operationId, status: "review needed", review: { source: "VAULT", reasons: ["OTHER"], rejection: null } });
+  } else {
+    finish({ decision, payable, operation_id: operationId, status: operation?.status === "SETTLED" ? "settled" : "reserved" });
+  }
   return intake.intake_ref;
 }
 
@@ -188,10 +194,12 @@ export async function ownerPay(deps: Deps, reviewId: string): Promise<ServiceRes
       const rejection = result.rejection as VaultRejection;
       return fail(409, "VAULT_REJECTED", `The vault rejected this payment: ${rejection}.`, rejection);
     }
+    const operation = result.operation_id ? await gateways.vault.getOperation(invoice.intake.vault_id, result.operation_id) : null;
+    const paymentStatus: PaymentStatus = operation?.status === "OUTCOME_UNCERTAIN" ? "outcome uncertain" : "settled";
     store.saveInvoice({
       ...invoice,
       operation_id: result.operation_id,
-      payment_status: "settled",
+      payment_status: paymentStatus,
     });
     store.saveReview({ ...item, status: "APPROVED_OWNER_PAID" });
     store.addHistory("POLICY", now().toString(), `Owner paid ${item.payable_ref} directly from review item ${reviewId}.`);

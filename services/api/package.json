@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.6",
+    "@redline/agent": "workspace:*",
     "@redline/schemas": "workspace:*",
+    "@redline/vault-client": "workspace:*",
     "better-sqlite3": "12.9.0",
     "hono": "^4.13.16",
     "zod": "^4.6.7"
