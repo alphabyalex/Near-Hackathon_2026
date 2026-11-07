@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.alphabyalex/redline",
+  "description": "Verified payees for AI agents: resolve a vendor's account by domain, or check one before paying.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/alphabyalex/Near-Hackathon_2026",
+    "source": "github",
+    "subfolder": "services/mcp"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@redline/mcp",
+      "version": "0.1.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "REDLINE_API_URL",
+          "description": "Base URL of the Redline API",
+          "isRequired": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
