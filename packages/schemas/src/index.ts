@@ -23,3 +23,4 @@ export * from "./report-verification.js";
 export * from "./redline-event.js";
 export * from "./interfaces.js";
 export * from "./api-views.js";
+export * from "./payee-check.js";

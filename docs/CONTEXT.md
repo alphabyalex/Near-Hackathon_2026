@@ -1,3 +1,6 @@
+> Redline is becoming the verified-payee layer for AI agents.
+> Read [PAYEE_SHIELD.md](PAYEE_SHIELD.md) first; it is the current product direction.
+
 # PROJECT CONTEXT (full picture of Redline)
 
 ## One line
