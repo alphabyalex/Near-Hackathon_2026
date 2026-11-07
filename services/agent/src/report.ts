@@ -1,6 +1,6 @@
 import type { AgentContext, AgentRunner, Decision, Digest, Intake } from "@redline/schemas";
 
-export type AgentKind = "llm" | "rules" | "review" | "replay";
+export type AgentKind = "llm" | "rules" | "review" | "replay" | "compromised";
 
 export interface TokenUsage {
   prompt_tokens: number;
@@ -16,7 +16,9 @@ export const NO_USAGE: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, to
  */
 export interface DecisionReport {
   agent: AgentKind;
-  source: "live-llm" | "deterministic" | "control" | "replay";
+  source: "live-llm" | "deterministic" | "control" | "replay" | "simulated-compromise";
+  /** Collected evidence is not a verified hardware claim. */
+  tee?: import("./proof.js").TeeEvidence;
   manifest_digest: Digest | null;
   model_id: string | null;
   latency_ms: number;

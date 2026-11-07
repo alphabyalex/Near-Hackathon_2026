@@ -1,6 +1,8 @@
 export { PaymentRequestAdapter, NotPayableError, requestDigest } from "./adapter.js";
 export { MODEL_ID, MODEL_PROVIDER, loadRepoEnv } from "./agent-config.js";
 export { AlwaysReviewControl } from "./always-review.js";
+export { CompromisedAgent, CompromisedPaymentAdapter } from "./compromised.js";
+export type { TeeEvidence } from "./proof.js";
 export { canonicalJson, digestOf } from "./canonical.js";
 export { createAgent, type CreateAgentOptions } from "./factory.js";
 export { LlmAgent, type LlmAgentOptions } from "./llm-agent.js";

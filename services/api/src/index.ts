@@ -1,6 +1,9 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
 import { bootstrap } from "./bootstrap.js";
+import { loadRepoEnv } from "@redline/agent";
+
+loadRepoEnv();
 
 const port = Number(process.env.API_PORT ?? 8787);
 const dbPath = process.env.API_DB_PATH ?? ":memory:";

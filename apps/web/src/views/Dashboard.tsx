@@ -27,6 +27,16 @@ const VAULTS = [
 export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string | null }) {
   // Every view refetches when this changes, so an owner action updates the whole dashboard.
   const [version, setVersion] = useState(0);
+  const simulation = useApi<{ enabled: boolean; compromised: boolean }>("/agent/simulation", version);
+  const [simulationBusy, setSimulationBusy] = useState(false);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
+  const toggleSimulation = async () => {
+    setSimulationBusy(true);
+    setSimulationError(null);
+    try { await apiPost("/agent/simulation", { compromised: !simulation.data?.compromised }); changed(); }
+    catch (error) { setSimulationError(error instanceof Error ? error.message : "Could not change simulation mode."); }
+    finally { setSimulationBusy(false); }
+  };
   const [vaultId, setVaultId] = useState<string>("vault-a.redline.testnet");
   const changed = () => setVersion((v) => v + 1);
   const overviewPath = vaultId === "vault-a.redline.testnet" ? "/overview" : `/overview?vault_id=${encodeURIComponent(vaultId)}`;
@@ -74,6 +84,8 @@ export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string
               <Tabs label="Dashboard" items={TABS.map((t) => ({ href: `#/app/${t.tab}`, label: t.label, current: t.tab === tab }))} />
             </div>
             <div className="dash-actions">
+              {simulation.data?.enabled && <button type="button" disabled={simulationBusy} aria-pressed={simulation.data.compromised}
+                onClick={() => void toggleSimulation()}>{simulation.data.compromised ? "Simulated compromise ON" : "Simulate compromised agent"}</button>}
               <div className="runpick">
                 <select
                   aria-label="Select vault"
@@ -104,6 +116,8 @@ export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string
         </header>
 
         <div className="appmain" key={`${tab}-${vaultId}`}>
+          {simulation.data?.compromised && <p className="notice" role="status">Simulated compromised agent: invoices attempt payment without safety checks. Vault limits still apply.</p>}
+          {simulationError && <p role="alert">{simulationError}</p>}
           {pauseError && (
             <p className="notice" role="alert">
               {pauseError}

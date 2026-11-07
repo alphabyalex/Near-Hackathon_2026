@@ -90,7 +90,11 @@ function Report({ runId }: { runId: string }) {
                   <td className={c.decision === "FLAG" ? "code danger" : "code"}>{c.decision ?? "None"}</td>
                   <td className="nowrap">{AI_LABEL[c.ai_result]}</td>
                   <td className="nowrap">{VAULT_LABEL[c.vault_result]}</td>
-                  <td>{c.note}</td>
+                  <td>{c.note}{c.provenance && <div className="sub">
+                    {c.provenance.source}{c.provenance.fallback ? " · fallback decision" : ""}
+                    {" · "}{c.provenance.proof_status === "collected" ? "TEE evidence collected (not verified)" : "TEE evidence unavailable"}
+                    {c.provenance.completion_id && <div className="mono">{c.provenance.completion_id}</div>}
+                  </div>}</td>
                 </tr>
               ))}
             </tbody>

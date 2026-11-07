@@ -6,6 +6,7 @@ import { applyGuard } from "./guard.js";
 import { type ChatClient, NearAiClient } from "./llm-client.js";
 import { buildManifest, manifestDigest } from "./manifest.js";
 import type { PromptVersion } from "./prompts.js";
+import type { TeeEvidence } from "./proof.js";
 import { buildMessages, type ChatMessage } from "./render.js";
 import type { DecisionWithReport, ReportingAgent, TokenUsage } from "./report.js";
 import { type CallLogger, estimateCostUsd, noopCallLogger } from "./telemetry.js";
@@ -86,12 +87,14 @@ export class LlmAgent implements ReportingAgent {
     let usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
     let lastProblem = "no attempt was made";
     let attempts = 0;
+    let tee: TeeEvidence | undefined;
 
     while (attempts < LLM_SETTINGS.max_attempts) {
       attempts += 1;
       const base = { at: new Date().toISOString(), intake_ref: intake.intake_ref, manifest_digest: this.manifestDigest, model_id: MODEL_ID, attempt: attempts };
       try {
         const result = await this.client.complete(messages);
+        tee = result.tee;
         usage = addUsage(usage, result.usage);
         const parsed = parseModelOutput(result.content, intake);
         this.logger({
@@ -105,7 +108,7 @@ export class LlmAgent implements ReportingAgent {
         });
         if (parsed.ok) {
           const guarded = applyGuard(parsed.decision, intake, scoped);
-          return this.finish(guarded.decision, started, attempts, usage, null, guarded.notes, result.content);
+          return this.finish(guarded.decision, started, attempts, usage, null, guarded.notes, result.content, tee);
         }
         lastProblem = parsed.problem;
         // The problem text names schema fields only. It never echoes the reply or the invoice.
@@ -125,7 +128,7 @@ export class LlmAgent implements ReportingAgent {
     }
 
     const fallback = makeDecision(intake, "REVIEW", ["OTHER"], "The agent could not produce a valid decision, so this goes to a human.");
-    return this.finish(fallback, started, attempts, usage, lastProblem, [], null);
+    return this.finish(fallback, started, attempts, usage, lastProblem, [], null, tee);
   }
 
   private finish(
@@ -136,11 +139,13 @@ export class LlmAgent implements ReportingAgent {
     fallback: string | null,
     guard: string[],
     rawOutput: string | null,
+    tee?: TeeEvidence,
   ): DecisionWithReport {
     return {
       decision,
       raw_output: rawOutput,
       report: {
+        ...(tee ? { tee } : {}),
         agent: "llm",
         source: "live-llm",
         manifest_digest: this.manifestDigest,

@@ -170,6 +170,7 @@ describe("NearAiClient", () => {
       apiKey: "test-key",
       baseUrl: "https://example.test/v1",
       fetch: async (_url, init) => {
+        if (!init?.body) return ok({ signature_kind: "provider_tee", model: "test" });
         sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
         headers = new Headers(init?.headers);
         return ok({ id: "chat_1", choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 } });

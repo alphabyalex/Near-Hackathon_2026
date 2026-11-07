@@ -1,4 +1,5 @@
 import { AlwaysReviewControl } from "./always-review.js";
+import { CompromisedAgent } from "./compromised.js";
 import { DEFAULT_LOG_FILE } from "./agent-config.js";
 import { LlmAgent } from "./llm-agent.js";
 import { buildManifest, manifestDigest } from "./manifest.js";
@@ -22,6 +23,8 @@ export function createAgent(kind: AgentKind, options: CreateAgentOptions = {}): 
   const version = options.version ?? "A";
   const store = new ReplayStore(options.replayDir);
   switch (kind) {
+    case "compromised":
+      return new CompromisedAgent();
     case "rules":
       return new RulesBaseline();
     case "review":

@@ -23,6 +23,14 @@ export const EvaluationCaseSchema = z.object({
   ai_result: z.enum(["PASS", "FAIL"]),
   vault_result: z.enum(["NOT_REACHED", "PAID_CORRECTLY", "CONTAINED", "BREACHED"]),
   note: z.string(),
+  provenance: z.object({
+    source: z.enum(["live-llm", "deterministic", "control", "replay", "simulated-compromise"]),
+    fallback: z.boolean(),
+    completion_id: z.string().nullable(),
+    proof_status: z.enum(["collected", "unavailable"]),
+    proof_verified: z.literal(false),
+    response_hash: DigestSchema.nullable(),
+  }).optional(),
 });
 export type EvaluationCase = z.infer<typeof EvaluationCaseSchema>;
 

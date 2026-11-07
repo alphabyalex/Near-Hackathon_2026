@@ -58,7 +58,16 @@ export function buildRun(a: BuildArgs): AgentRun {
     execution_status: status,
     assessment_outcome: assessmentOutcome(a.split, status, thresholds),
     metrics,
-    cases: scored.map((s) => s.case),
+    cases: scored.map((s, index) => {
+      const report = a.records[index]?.agent_report;
+      return { ...s.case, ...(report ? { provenance: {
+        source: report.source, fallback: report.fallback !== null,
+        completion_id: report.tee?.completion_id ?? null,
+        proof_status: report.tee?.status ?? "unavailable" as const,
+        proof_verified: false as const,
+        response_hash: report.tee?.response_hash ?? null,
+      } } : {}) };
+    }),
     costs: computeCosts(a.records, a.wallClockMs),
     limitations,
   };

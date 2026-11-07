@@ -37,6 +37,7 @@ export interface CaseRecord {
   timed_out: boolean;
   infra_error: string | null;
   usage: TokenUsage | null;
+  agent_report?: import("@redline/agent").DecisionReport | null;
 }
 
 export interface RunOptions {
@@ -148,6 +149,7 @@ export async function runSuite(suite: LoadedScenario[], agent: GymAgent, opts: R
       }
       rec.latency_ms = Math.max(0, Math.round(clock() - t0));
       rec.usage = agent.lastUsage?.() ?? null;
+      rec.agent_report = rec.infra_error === null ? agent.lastReport?.() ?? null : null;
 
       if (rec.infra_error === null) {
         const parsed = DecisionSchema.safeParse(rec.raw_decision);
