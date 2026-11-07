@@ -1,12 +1,12 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@redline/schemas";
 import { DotBar } from "../src/components/DotBar";
 import { Mark } from "../src/components/Logo";
 import { Money, TokenContext } from "../src/components/Money";
 import { Status } from "../src/components/Status";
 import { businessName, dueIn, formatAtomic, formatNs, formatShort, percentOf, shortDigest, timeOfDay } from "../src/format";
-import { InvoiceDetailCard } from "../src/views/Invoices";
+import { InvoiceDetailCard, Invoices } from "../src/views/Invoices";
 
 afterEach(cleanup);
 
@@ -132,5 +132,15 @@ describe("InvoiceDetailCard", () => {
     expect(source.children.length).toBe(0);
     expect(source.parentElement?.querySelector("script, img")).toBeNull();
     expect((window as unknown as { pwned?: boolean }).pwned).toBeUndefined();
+  });
+});
+
+describe("Invoices", () => {
+  it("renders the submit invoice form with sample presets and target vault", () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify([]), { status: 200 })));
+    render(<Invoices selected={null} version={0} onChanged={() => {}} vaultId="vault-a.redline.testnet" />);
+    expect(screen.getByRole("button", { name: "Run through agent & vault" })).toBeTruthy();
+    expect(screen.getByLabelText("Invoice source text")).toBeTruthy();
+    expect(screen.getByText("vault-a.redline.testnet")).toBeTruthy();
   });
 });

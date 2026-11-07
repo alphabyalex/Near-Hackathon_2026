@@ -181,6 +181,27 @@ describe("dashboard", () => {
     expect((screen.getByRole("button", { name: "Pause vault" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole("link", { name: "Overview" }).getAttribute("aria-current")).toBe("page");
   });
+
+  it("shows Unpause vault when policy is paused and allows vault selection", async () => {
+    stubApi({
+      "/overview": {
+        data_source: "mock",
+        vault_id: "vault-a.redline.testnet",
+        token: { symbol: "REDL", contract_id: "redl.testnet", decimals: 6, network: "NEAR testnet" },
+        manifest: { version: "A" },
+        binding: { enabled: true, manifest_digest: `sha256:${"a".repeat(64)}` },
+        policy: { paused: true, weekly_cap_atomic: "1000000", lifetime_cap_atomic: "5000000" },
+        vendors: [],
+        usage: { balance_atomic: "50000000000", weekly_settled_atomic: "0", weekly_reserved_atomic: "0", lifetime_settled_atomic: "0", lifetime_reserved_atomic: "0" },
+        headroom: { weekly_atomic: "1000000", lifetime_atomic: "5000000" },
+        unresolved_payments: [],
+      },
+    });
+    navigate("#/app/overview");
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "Unpause vault" })).toBeTruthy();
+    expect(screen.getByLabelText("Select vault")).toBeTruthy();
+  });
 });
 
 describe("source rules", () => {

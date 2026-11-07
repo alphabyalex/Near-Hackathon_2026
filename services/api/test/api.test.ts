@@ -194,6 +194,16 @@ describe("POST /vault/pause", () => {
   });
 });
 
+describe("POST /vault/unpause", () => {
+  it("unpauses the vault, allowing payments to proceed again", async () => {
+    await post("/vault/pause");
+    expect((await get<OverviewView>("/overview")).policy.paused).toBe(true);
+    const res = await post("/vault/unpause");
+    expect(res.status).toBe(200);
+    expect((await get<OverviewView>("/overview")).policy.paused).toBe(false);
+  });
+});
+
 describe("tenant separation in the mock", () => {
   it("does not let vault B pay a vault A payable", async () => {
     const result = await deps.gateways.vault.ownerPay(VAULT_B, "pay_1003");

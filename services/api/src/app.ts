@@ -92,5 +92,18 @@ export function createApp(deps: Deps): Hono {
     return c.json({ ok: true, policy: await deps.gateways.vault.getPolicy(body.data.vault_id) });
   });
 
+  app.post("/vault/unpause", async (c) => {
+    const raw = await c.req.json().catch(() => ({}));
+    const body = PauseBodySchema.safeParse(raw);
+    if (!body.success) return c.json({ error: "BAD_REQUEST", message: z.prettifyError(body.error) }, 400);
+    if (!vaultExists(body.data.vault_id)) return c.json(unknownVault, 404);
+    const vaultGateway = deps.gateways.vault as unknown as { unpause?(id: string): Promise<void> };
+    if (typeof vaultGateway.unpause === "function") {
+      await vaultGateway.unpause(body.data.vault_id);
+    }
+    deps.store.addHistory("INCIDENT", deps.now().toString(), `Owner unpaused vault ${body.data.vault_id}.`);
+    return c.json({ ok: true, policy: await deps.gateways.vault.getPolicy(body.data.vault_id) });
+  });
+
   return app;
 }

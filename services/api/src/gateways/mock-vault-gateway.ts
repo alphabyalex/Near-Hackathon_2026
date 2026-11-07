@@ -100,6 +100,11 @@ export class MockVaultGateway implements VaultGateway {
     vault.policy = { ...vault.policy, paused: true };
   }
 
+  async unpause(vaultId: string): Promise<void> {
+    const vault = this.vault(vaultId);
+    vault.policy = { ...vault.policy, paused: false };
+  }
+
   async revokeAgent(vaultId: string, agentAccountId: string): Promise<void> {
     const vault = this.vault(vaultId);
     if (vault.binding.agent_account_id !== agentAccountId) return;

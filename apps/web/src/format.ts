@@ -3,7 +3,7 @@ const NS_PER_HOUR = 3_600_000_000_000n;
 
 /** Atomic string to a grouped decimal with two places, truncated. BigInt so large amounts stay exact. */
 export function formatAtomic(atomic: string, decimals: number): string {
-  const value = BigInt(atomic);
+  const value = BigInt(atomic || "0");
   const scale = 10n ** BigInt(decimals);
   const whole = (value / scale).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const fraction = (value % scale).toString().padStart(decimals, "0").slice(0, 2).padEnd(2, "0");
@@ -50,6 +50,7 @@ export function percentOf(part: string | bigint, whole: string | bigint): number
 
 /** sha256:c8f1998c3b50...5b8e. The full digest goes in a title attribute where it is shown. */
 export function shortDigest(digest: string): string {
+  if (!digest) return "";
   const [algorithm, hex] = digest.split(":");
   if (!hex || hex.length <= 16) return digest;
   return `${algorithm}:${hex.slice(0, 8)}...${hex.slice(-4)}`;

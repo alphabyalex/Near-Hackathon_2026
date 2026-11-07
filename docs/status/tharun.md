@@ -85,7 +85,9 @@ All in `docs/VAULT_RULES.md`:
 - Event standard `redline`: done.
 - `getBinding` and `vaultId` first: confirmed, implemented.
 - `OperationStatus` and `VaultUsage`: confirmed. `REQUESTED` is never on chain, the API owns it. Views add extra fields, and the schemas strip them when parsed.
-- Is there an unpause? Yes, owner only, on `VaultAdmin`. It is not on `VaultGateway`.
+- Is there an unpause? Yes, owner only, on `VaultAdmin`. We also added `unpause` to `NearVaultGateway`, `SimVaultGateway`, `MockVaultGateway`, and `POST /vault/unpause` on the API. The dashboard pause button now dynamically toggles between "Pause vault" and "Unpause vault".
+- Vault switcher on dashboard: implemented in `apps/web/src/views/Dashboard.tsx`, allowing the operator to toggle between `vault-a` (Business A) and `vault-b` (Business B).
+- Submit test invoice UI: implemented in `apps/web/src/views/Invoices.tsx`, with presets (legitimate, prompt injection, over-cap, look-alike vendor, unknown vendor) and custom invoice text input posting to `POST /intake`.
 - Should pause block `owner_pay`? No. Pause stops the agent. Owner payments do not count against agent caps.
 - Listing payables and vendors: yes, `getPayables` and `getVendors`. POs and receipts are not on chain, only `po_number` and `evidence_commitment`.
 - Deploy under `*.redline.testnet`: **not possible for us.** That account exists and we do not hold its key. If it is yours, tell me and I can redeploy under it. Otherwise names are `*.redline-labs.testnet`.

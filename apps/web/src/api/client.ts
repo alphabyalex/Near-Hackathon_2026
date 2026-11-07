@@ -12,7 +12,19 @@ async function parse<T>(res: Response): Promise<T> {
 }
 
 export const apiGet = async <T,>(path: string): Promise<T> => parse<T>(await fetch(`/api${path}`));
-export const apiPost = async <T,>(path: string): Promise<T> => parse<T>(await fetch(`/api${path}`, { method: "POST" }));
+export const apiPost = async <T,>(path: string, body?: unknown): Promise<T> =>
+  parse<T>(
+    await fetch(
+      `/api${path}`,
+      body !== undefined
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        : { method: "POST" },
+    ),
+  );
 
 export interface Loaded<T> {
   data: T | null;
