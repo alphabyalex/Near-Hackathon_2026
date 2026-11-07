@@ -1,4 +1,14 @@
-import type { AgentBinding, Operation, Payable, PaymentRequest, Policy, RequestResult, VaultGateway, VaultUsage } from "@redline/schemas";
+import type {
+  AgentBinding,
+  Operation,
+  Payable,
+  PaymentRequest,
+  Policy,
+  RequestResult,
+  VaultGateway,
+  VaultUsage,
+  Vendor,
+} from "@redline/schemas";
 import { VaultSim } from "./vault-sim.js";
 
 /**
@@ -7,7 +17,7 @@ import { VaultSim } from "./vault-sim.js";
  * To test other callers, call `VaultSim.requestPayment` directly.
  */
 export class SimVaultGateway implements VaultGateway {
-  private readonly vaults = new Map<string, VaultSim>();
+  protected readonly vaults = new Map<string, VaultSim>();
 
   constructor(vaults: VaultSim[]) {
     for (const vault of vaults) this.vaults.set(vault.vaultId, vault);
@@ -58,9 +68,172 @@ export class SimVaultGateway implements VaultGateway {
     vault.revokeAgent(vault.owner, agentAccountId);
   }
 
-  private vault(vaultId: string): VaultSim {
+  protected vault(vaultId: string): VaultSim {
     const vault = this.vaults.get(vaultId);
     if (!vault) throw new Error(`unknown vault ${vaultId}`);
     return vault;
   }
+}
+
+export interface SimTransfer {
+  operation_id: string;
+  vault_id: string;
+  payable_ref: string;
+  recipient: string;
+  amount_atomic: string;
+  at_ns: string;
+  payer: "AGENT" | "OWNER";
+}
+
+export interface VaultSimInit {
+  vault_id: string;
+  policy: Policy;
+  binding_revision: number;
+  binding_enabled: boolean;
+  vendors: Vendor[];
+  payables: Payable[];
+  balance_atomic: string;
+  weekly_settled_atomic: string;
+  lifetime_settled_atomic: string;
+}
+
+export interface GymVaultSim extends VaultGateway {
+  transfers(): readonly SimTransfer[];
+  setNow(ns: bigint): void;
+}
+
+/**
+ * Adapter matching the Gym's VaultSim interface: provides VaultGateway
+ * plus a transfer log and clock controls.
+ */
+export class GymSimVaultGateway extends SimVaultGateway implements GymVaultSim {
+  private readonly transferLog: SimTransfer[] = [];
+
+  constructor(vaults: VaultSim[]) {
+    super(vaults);
+  }
+
+  transfers(): readonly SimTransfer[] {
+    return [...this.transferLog];
+  }
+
+  setNow(ns: bigint): void {
+    for (const vault of this.vaults.values()) {
+      vault.setNow(ns);
+    }
+  }
+
+  override async requestPayment(vaultId: string, request: PaymentRequest): Promise<RequestResult> {
+    const vault = this.vault(vaultId);
+    const payableBefore = vault.getPayable(request.payable_ref);
+    const result = await super.requestPayment(vaultId, request);
+    if (result.ok && result.operation_id && payableBefore) {
+      this.transferLog.push({
+        operation_id: result.operation_id,
+        vault_id: vaultId,
+        payable_ref: request.payable_ref,
+        recipient: payableBefore.recipient,
+        amount_atomic: payableBefore.amount_atomic,
+        at_ns: vault.now().toString(),
+        payer: "AGENT",
+      });
+    }
+    return result;
+  }
+
+  override async ownerPay(vaultId: string, payableRef: string): Promise<RequestResult> {
+    const vault = this.vault(vaultId);
+    const payableBefore = vault.getPayable(payableRef);
+    const result = await super.ownerPay(vaultId, payableRef);
+    if (result.ok && result.operation_id && payableBefore) {
+      this.transferLog.push({
+        operation_id: result.operation_id,
+        vault_id: vaultId,
+        payable_ref: payableRef,
+        recipient: payableBefore.recipient,
+        amount_atomic: payableBefore.amount_atomic,
+        at_ns: vault.now().toString(),
+        payer: "OWNER",
+      });
+    }
+    return result;
+  }
+}
+
+/**
+ * Factory matching Lucy's VaultSimFactory in services/evaluator/src/sim.ts.
+ */
+export function createGymVaultSim(inits: VaultSimInit[], nowNs: bigint): GymVaultSim {
+  const simVaults: VaultSim[] = [];
+
+  for (const init of inits) {
+    const owner = `owner.${init.vault_id}`;
+    const tokenContract = "redl.redline-labs.testnet";
+    const sim = new VaultSim({
+      vault_id: init.vault_id,
+      owner,
+      token_contract: tokenContract,
+      policy: init.policy,
+      now_ns: nowNs.toString(),
+    });
+
+    // Fund the available balance
+    sim.ftOnTransfer(tokenContract, owner, init.balance_atomic);
+
+    // Register vendors
+    for (const vendor of init.vendors) {
+      sim.setVendor(
+        owner,
+        {
+          vendor_id: vendor.vendor_id,
+          display_name: vendor.display_name,
+          account_id: vendor.account_id,
+          per_payment_cap_atomic: vendor.per_payment_cap_atomic,
+          active: vendor.active,
+        },
+        vendor.revision - 1,
+      );
+    }
+
+    // Register payables
+    for (const payable of init.payables) {
+      sim.registerPayable(owner, {
+        payable_ref: payable.payable_ref,
+        vendor_id: payable.vendor_id,
+        vendor_revision: payable.vendor_revision,
+        invoice_number: payable.invoice_number,
+        po_number: payable.po_number,
+        evidence_commitment: payable.evidence_commitment,
+        amount_atomic: payable.amount_atomic,
+        not_before_ns: payable.not_before_ns,
+        expires_at_ns: payable.expires_at_ns,
+        due_at_ns: payable.due_at_ns,
+      });
+    }
+
+    // Configure agent binding
+    sim.activateAgent(
+      owner,
+      {
+        agent_account_id: `agent.${init.vault_id}`,
+        public_key: "ed25519:SimulatedKeyNotReal",
+        manifest_digest: `sha256:${"0".repeat(64)}`,
+        assessment_ref: "sim",
+        expires_at_ns: init.policy.expires_at_ns,
+      },
+      init.binding_revision - 1,
+    );
+
+    if (!init.binding_enabled) {
+      sim.revokeAgent(owner, `agent.${init.vault_id}`);
+    }
+
+    if (!init.policy.paused) {
+      sim.unpause(owner);
+    }
+
+    simVaults.push(sim);
+  }
+
+  return new GymSimVaultGateway(simVaults);
 }

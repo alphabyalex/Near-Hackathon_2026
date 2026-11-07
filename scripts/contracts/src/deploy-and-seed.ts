@@ -164,12 +164,12 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   };
 
   log("Token");
-  const token = await deployer.ensureAccount(account("redl"), root, 1_750n * MILLINEAR);
+  const token = await deployer.ensureAccount(account("redl"), root, 2_500n * MILLINEAR);
   await deployer.ensureContract(token, wasm.token, { method: "new", args: { owner: options.root } });
 
   log("Evidence registry");
   const issuer = await deployer.ensureAccount(account("issuer"), root, 200n * MILLINEAR);
-  const evidence = await deployer.ensureAccount(account("evidence"), root, 2_100n * MILLINEAR);
+  const evidence = await deployer.ensureAccount(account("evidence"), root, 3_000n * MILLINEAR);
   await deployer.ensureContract(evidence, wasm.evidence, {
     method: "new",
     args: { owner: options.root, issuers: [issuer.account_id] },
@@ -194,7 +194,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   for (const business of BUSINESSES) {
     log(business.business);
     const owner = await deployer.ensureAccount(account(business.owner), root, 150n * MILLINEAR);
-    const vault = await deployer.ensureAccount(account(business.vault), root, 3_400n * MILLINEAR);
+    const vault = await deployer.ensureAccount(account(business.vault), root, 4_500n * MILLINEAR);
     const expires = (now + POLICY_DAYS * NS_PER_DAY).toString();
     const policy = {
       weekly_cap_atomic: business.weekly.toString(),

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { PaymentRequest, VaultRejection } from "@redline/schemas";
-import { RECONCILE_AFTER_NS, ROLLING_WINDOW_NS, SimVaultGateway, VaultPanic, VaultSim, type AgentCaller, type VaultSimConfig } from "../src/index.js";
+import { RECONCILE_AFTER_NS, ROLLING_WINDOW_NS, SimVaultGateway, createGymVaultSim, VaultPanic, VaultSim, type AgentCaller, type VaultSimConfig, type VaultSimInit } from "../src/index.js";
 
 const OWNER = "owner.test";
 const AGENT = "agent.test";
@@ -615,5 +615,75 @@ describe("SimVaultGateway", () => {
     await gateway.revokeAgent("a.test", AGENT);
     expect((await gateway.getBinding("a.test"))?.enabled).toBe(false);
     await expect(gateway.getUsage("nope")).rejects.toThrow("unknown vault");
+  });
+
+  it("createGymVaultSim logs transfers and updates clock", async () => {
+    const init: VaultSimInit = {
+      vault_id: "gym.test",
+      policy: {
+        revision: 1,
+        weekly_cap_atomic: "5000",
+        lifetime_cap_atomic: "20000",
+        expires_at_ns: FAR,
+        paused: false,
+      },
+      binding_revision: 1,
+      binding_enabled: true,
+      vendors: [
+        {
+          vendor_id: "v1",
+          display_name: "Vendor One",
+          account_id: "vendor1.test",
+          revision: 1,
+          per_payment_cap_atomic: "2000",
+          active: true,
+        },
+      ],
+      payables: [
+        {
+          payable_ref: "pay_1",
+          vault_id: "gym.test",
+          vendor_id: "v1",
+          vendor_revision: 1,
+          invoice_number: "INV-1",
+          po_number: "PO-1",
+          evidence_commitment: DIGEST_A,
+          amount_atomic: "500",
+          token_contract_id: "redl.redline-labs.testnet",
+          not_before_ns: "0",
+          expires_at_ns: FAR,
+          due_at_ns: "1000",
+          status: "OPEN",
+        },
+      ],
+      balance_atomic: "10000",
+      weekly_settled_atomic: "0",
+      lifetime_settled_atomic: "0",
+    };
+
+    const gym = createGymVaultSim([init], START);
+    expect(gym.transfers()).toHaveLength(0);
+
+    const result = await gym.requestPayment("gym.test", {
+      payable_ref: "pay_1",
+      expected_vendor_revision: 1,
+      expected_policy_revision: 1,
+      expected_binding_revision: 1,
+      request_digest: DIGEST_A,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(gym.transfers()).toHaveLength(1);
+    expect(gym.transfers()[0]).toMatchObject({
+      vault_id: "gym.test",
+      payable_ref: "pay_1",
+      recipient: "vendor1.test",
+      amount_atomic: "500",
+      payer: "AGENT",
+    });
+
+    gym.setNow(START + 100n);
+    const usage = await gym.getUsage("gym.test");
+    expect(usage.balance_atomic).toBe("9500");
   });
 });

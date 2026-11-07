@@ -32,7 +32,7 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | Suite | Result |
 | --- | --- |
 | Rust unit tests (`cargo test --workspace`) | 40 passed |
-| `packages/vault-sim` | 42 passed |
+| `packages/vault-sim` | 43 passed |
 | `packages/vault-client` | 10 passed |
 | `tests/sandbox`, on a real local node | 122 passed, about 20 minutes |
 | Root `pnpm test`, Linux, in a clean clone | All workspaces pass |
@@ -76,7 +76,7 @@ All in `docs/VAULT_RULES.md`:
 ## Interfaces I expose
 
 - `@redline/vault-client`: `NearVaultGateway` implements `VaultGateway`. `NearVaultGateway.fromEnv()` reads `NEAR_NETWORK`, `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`. Also `getVendors`, `getPayables`, and `VaultAdmin` for owner methods. See its README for what each result and error means.
-- `@redline/vault-sim`: `VaultSim`, and `SimVaultGateway`, which implements `VaultGateway` over simulators for the Gym.
+- `@redline/vault-sim`: `VaultSim`, `SimVaultGateway`, and `createGymVaultSim` (implementing `GymVaultSim` with `transfers()` and `setNow()` matching Lucy's `VaultSimFactory`).
 - `docs/VAULT_RULES.md`: every rule, in check order.
 - `contracts/evidence`: see its README for `commit_suite`, `register_run`, `publish_result`.
 
@@ -113,7 +113,7 @@ None.
 - Alexander: please add to `.env.example`: `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`, `REDLINE_ROOT_ACCOUNT`, `REDLINE_ROOT_KEY`, `REDLINE_MANIFEST_DIGEST`, `REDLINE_ASSESSMENT_REF`. `NEAR_NETWORK` also accepts `sandbox`.
 - Alexander, optional: `VaultRejection` has no code for "failed and awaiting reopen" or for "policy expired". Today those report `UNKNOWN_PAYABLE` and `BINDING_INACTIVE`. Dedicated codes would read better in the queue, and would need a new vault deployment.
 - Kristian: when the agent is frozen, send me or Alexander the manifest digest for the binding.
-- Lucy: `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
+- Lucy: `createGymVaultSim` is now implemented and exported from `@redline/vault-sim`, matching your `VaultSimFactory` signature (`transfers()`, `setNow(ns)`, `VaultSimInit[]`). `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
 
 ## Next
 
