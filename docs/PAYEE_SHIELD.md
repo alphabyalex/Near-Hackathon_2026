@@ -37,13 +37,15 @@ Each account signs `redline-payee:v2:<domain>:<caip10>:<issued_at>`.
 
 | Proof | Verification |
 | --- | --- |
-| `nep413` | NEP-413 with recipient `redline-payee-registry` and the nonce. `public_key` must be a current full-access key on the account |
-| `eip191` | Recover the signer and compare it to the address |
-| `solana-ed25519` | Verify with the address as the public key |
+| `nep413` | NEP-413 with recipient `redline-payee-registry` and the nonce. `public_key` must be a current full-access key on the account. Nonce and signature are base64 |
+| `eip191` | Recover the signer and compare it to the address. Signature is 0x hex |
+| `solana-ed25519` | Verify with the address as the public key. Signature is base58 |
 
-`evidence_hash` is the sha256 of the fetched file or files.
+Every account in a file must pass. `issued_at` cannot be in the future, over a year old, or older than the proof on record. Accounts added after a vendor's first verification wait out a cooling-off period, 72 hours in the memory registry, so a hijacked website cannot redirect payments right away.
 
-The file is designed as the payout-account extension to the IETF draft [draft-anders-merchant-identity-assertions](https://www.ietf.org/ietf-ftp/internet-drafts/draft-anders-merchant-identity-assertions-01.html). That draft asserts who a merchant is and defines no payout accounts. If `/.well-known/merchant-identity.json` exists and its `subject` matches the domain, we store its `legalName` next to the vendor.
+`evidence_hash` is the sha256 of the fetched file. With two files, it is the sha256 of both file hashes.
+
+The file is designed as the payout-account extension to the IETF draft [draft-anders-merchant-identity-assertions](https://www.ietf.org/ietf-ftp/internet-drafts/draft-anders-merchant-identity-assertions-01.html). That draft asserts who a merchant is and defines no payout accounts. If `/.well-known/merchant-identity.json` exists and its `subject` matches the domain, we store its `legalName` next to the vendor. We do not check that document's issuer signature yet, so treat the legal name as the vendor's own claim.
 
 ## Check verdicts
 
