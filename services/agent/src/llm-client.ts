@@ -2,8 +2,10 @@ import { DecisionKindSchema, ReasonCodeSchema } from "@redline/schemas";
 import { LLM_SETTINGS, MODEL_ID } from "./agent-config.js";
 import type { ChatMessage } from "./render.js";
 import type { TokenUsage } from "./report.js";
+import { collectProof, type TeeEvidence } from "./proof.js";
 
 export interface ChatResult {
+  tee?: TeeEvidence;
   content: string;
   usage: TokenUsage;
   latency_ms: number;
@@ -57,21 +59,14 @@ export class NearAiClient implements ChatClient {
   async complete(messages: ChatMessage[]): Promise<ChatResult> {
     const started = performance.now();
     let response: Response;
+    const requestBody = JSON.stringify({ model: MODEL_ID, messages,
+      temperature: LLM_SETTINGS.temperature, seed: LLM_SETTINGS.seed, max_tokens: LLM_SETTINGS.max_tokens,
+      response_format: { type: "json_schema", json_schema: { name: "redline_decision", strict: true, schema: MODEL_OUTPUT_JSON_SCHEMA } } });
     try {
       response = await this.fetchImpl(`${this.options.baseUrl}/chat/completions`, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${this.options.apiKey}` },
-        body: JSON.stringify({
-          model: MODEL_ID,
-          messages,
-          temperature: LLM_SETTINGS.temperature,
-          seed: LLM_SETTINGS.seed,
-          max_tokens: LLM_SETTINGS.max_tokens,
-          response_format: {
-            type: "json_schema",
-            json_schema: { name: "redline_decision", strict: true, schema: MODEL_OUTPUT_JSON_SCHEMA },
-          },
-        }),
+        body: requestBody,
         signal: AbortSignal.timeout(LLM_SETTINGS.timeout_ms),
       });
     } catch (error) {
@@ -83,12 +78,15 @@ export class NearAiClient implements ChatClient {
       throw new LlmTransportError(`HTTP ${response.status}: ${body}`, response.status);
     }
 
-    const body = (await response.json().catch(() => null)) as {
+    const responseBody = await response.text();
+    const body = JSON.parse(responseBody) as {
       id?: string;
       choices?: { message?: { content?: string | null } }[];
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
     } | null;
     return {
+      tee: await collectProof(this.options.baseUrl, this.options.apiKey, this.fetchImpl,
+        body?.id ?? null, requestBody, responseBody),
       content: body?.choices?.[0]?.message?.content ?? "",
       usage: {
         prompt_tokens: body?.usage?.prompt_tokens ?? 0,

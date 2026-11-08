@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path";
 import type { AgentRunner, Decision } from "@redline/schemas";
 import { afterAll, describe, expect, it } from "vitest";
-import { resolveAgents, type GymAgent } from "../src/agents.js";
+import { manifestDigest, resolveAgents, type GymAgent } from "../src/agents.js";
+import { buildManifest, manifestDigest as enrollmentDigest } from "@redline/agent";
 import { DOMAIN, canonicalJson, domainDigest } from "../src/canonical.js";
 import { buildSuiteManifest, commitSuite, commitmentRecord, newSalt } from "../src/commitment.js";
 import { loadRegistry, saveRegistry, writeJson, writeRun } from "../src/evidence.js";
@@ -22,6 +23,18 @@ const run = (a: GymAgent, list: LoadedScenario[], opts = {}) =>
 const metric = (r: Awaited<ReturnType<typeof run>>, id: string) => r.report.metrics.find((m) => m.metric_id === id)!;
 
 describe("canonical json and digests", () => {
+  it("uses the enrollment digest for real AI manifests", () => {
+    expect(manifestDigest(buildManifest("A"))).toBe(enrollmentDigest(buildManifest("A")));
+  });
+  it("retains decision provenance in the public report", async () => {
+    const base = await agent("always-review");
+    const candidate: GymAgent = { ...base, lastReport: () => ({ agent: "replay", source: "replay",
+      manifest_digest: null, model_id: null, latency_ms: 0, attempts: 0,
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, cost_usd: null,
+      fallback: null, guard: [], replay: { hit: true, note: "recording" } }) };
+    const result = await run(candidate, [suite[0]!]);
+    expect(result.report.cases[0]?.provenance).toMatchObject({ source: "replay", proof_status: "unavailable", proof_verified: false });
+  });
   it("sorts keys and drops undefined", () => {
     expect(canonicalJson({ b: 1, a: [true, null, "x"], c: undefined })).toBe('{"a":[true,null,"x"],"b":1}');
   });

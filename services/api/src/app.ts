@@ -21,6 +21,15 @@ const badJson = { error: "BAD_REQUEST", message: "Request body must be JSON." };
 export function createApp(deps: Deps): Hono {
   const app = new Hono();
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
+  app.get("/agent/simulation", (c) => c.json({ enabled: !!deps.gateways.demo, compromised: deps.gateways.demo?.compromised ?? false }));
+  app.post("/agent/simulation", async (c) => {
+    if (!deps.gateways.demo) return c.json(notFound, 404);
+    const body = z.object({ compromised: z.boolean() }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json(badJson, 400);
+    deps.gateways.demo.setCompromised(body.data.compromised);
+    deps.store.addHistory("INCIDENT", deps.now().toString(), `Simulated agent compromise ${body.data.compromised ? "enabled" : "disabled"}.`);
+    return c.json({ enabled: true, compromised: deps.gateways.demo.compromised });
+  });
 
   const reviewResponse = async (result: ServiceResult) => {
     if (result.ok) return { body: { ok: true, queue: await reviewQueue(deps) }, status: 200 as const };

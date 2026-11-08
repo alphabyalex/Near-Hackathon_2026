@@ -9,7 +9,7 @@ import { type PromptVersion, promptDigest } from "./prompts.js";
  * Source files that decide how the model's input is built and how its output is treated.
  * prompts.ts is left out on purpose: it is covered by prompt_digest, and it holds both versions.
  */
-export const HARNESS_FILES = ["checks.ts", "decisions.ts", "guard.ts", "llm-agent.ts", "llm-client.ts", "money.ts", "render.ts"];
+export const HARNESS_FILES = ["checks.ts", "decisions.ts", "guard.ts", "llm-agent.ts", "llm-client.ts", "money.ts", "render.ts", "proof.ts"];
 
 /** Line endings are normalized so a Windows and a Linux checkout get the same digest. */
 export function harnessDigest(): Digest {
