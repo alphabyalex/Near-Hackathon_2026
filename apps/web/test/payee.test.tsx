@@ -16,7 +16,7 @@ describe("brand module", () => {
   it("holds the product name and hero line", () => {
     expect(BRAND.name).toBe("Wardline");
     expect(BRAND.homeLabel).toBe(`${BRAND.name} home`);
-    expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("Your agent can read every invoice. It can never choose where the money goes.");
+    expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("AI that only pays on proof.");
   });
 
   it("never claims legal ownership, and says what each trust level does not establish", () => {

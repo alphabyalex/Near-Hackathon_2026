@@ -82,27 +82,27 @@ describe("routing", () => {
   it("follows link clicks in JS, with no hashchange event", () => {
     stubApi();
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("AI that only pays on proof.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Wardline decides where the money may go");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getAllByLabelText("Wardline home")[0] as HTMLElement);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("AI that only pays on proof.");
   });
 
   it("leaves new-tab clicks to the browser", () => {
     stubApi();
     render(<App />);
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"), { ctrlKey: true });
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("AI that only pays on proof.");
   });
 
   it("orders the site nav with About rightmost and gives the footer an owner sign-in link", () => {
     stubApi();
     render(<App />);
     const main = within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link");
-    expect(main.map((a) => a.textContent)).toEqual(["Try it", "Demo", "Connect", "Verify", "About"]);
+    expect(main.map((a) => a.textContent)).toEqual(["Try it", "Demo", "Mutual", "Connect", "Verify", "About"]);
     const footer = within(screen.getByRole("navigation", { name: "Footer" })).getAllByRole("link");
     expect(footer.at(-1)?.getAttribute("href")).toBe("#/app/overview");
     expect(footer.at(-1)?.textContent).toBe("Owner sign-in");

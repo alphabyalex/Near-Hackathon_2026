@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
-export type SitePage = "home" | "try" | "demo" | "connect" | "verify" | "about" | "vault" | "scoring";
-export type DashboardTab = "overview" | "invoices" | "review" | "keys" | "evaluation" | "controls";
+export type SitePage = "home" | "try" | "demo" | "mutual" | "connect" | "verify" | "about" | "vault" | "scoring";
+export type DashboardTab = "overview" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
 export type Route = { kind: "site"; page: SitePage } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
-const SITE_PAGES: readonly string[] = ["try", "demo", "connect", "verify", "about", "vault", "scoring"];
-const TABS: readonly string[] = ["overview", "invoices", "review", "keys", "evaluation", "controls"];
+const SITE_PAGES: readonly string[] = ["try", "demo", "mutual", "connect", "verify", "about", "vault", "scoring"];
+const TABS: readonly string[] = ["overview", "group", "invoices", "review", "keys", "evaluation", "controls"];
 
 function decode(part: string | undefined): string | null {
   if (!part) return null;

@@ -1,3 +1,5 @@
+import { Group } from "./owner/Group";
+import { MeterKeys } from "./owner/MeterKeys";
 import { useEffect, useState } from "react";
 import type { OverviewView } from "@wardline/schemas";
 import { apiPost, SIGNED_OUT_EVENT, useApi } from "../api/client";
@@ -19,6 +21,7 @@ import { SignIn } from "./owner/SignIn";
 
 const TABS: readonly { tab: DashboardTab; label: string }[] = [
   { tab: "overview", label: OWNER.tabs.overview },
+  { tab: "group", label: OWNER.tabs.group },
   { tab: "invoices", label: OWNER.tabs.invoices },
   { tab: "review", label: OWNER.tabs.review },
   { tab: "keys", label: OWNER.tabs.keys },
@@ -190,9 +193,15 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
                 </div>
               </div>
               {tab === "overview" && <Overview data={data} version={version} onChanged={changed} />}
+              {tab === "group" && <Group version={version} />}
               {tab === "invoices" && <Invoices selected={invoice} version={version} onChanged={changed} vaultId={vaultId} />}
               {tab === "review" && <ReviewDesk version={version} onChanged={changed} />}
-              {tab === "keys" && <ApiKeys version={version} onChanged={changed} defaultPayer={vaultId} />}
+              {tab === "keys" && (
+                <>
+                  <MeterKeys version={version} onChanged={changed} />
+                  <ApiKeys version={version} onChanged={changed} defaultPayer={vaultId} />
+                </>
+              )}
               {tab === "evaluation" && <Evaluation />}
               {tab === "controls" && <Controls data={data} version={version} />}
             </>

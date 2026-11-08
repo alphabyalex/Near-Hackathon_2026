@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
-import { WardlineBlockedError, seedEvmAddress, type PayeeRequest, type PayeeResult } from "@wardline/sdk";
-import { withWardline } from "@wardline/x402-guard";
-import { errorText, wardline } from "../../api/public";
+import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type SceneName } from "../../api/ai";
+import { errorText } from "../../api/public";
+import { callWords, modelName } from "../../ai/words";
 import { DEMO } from "../../brand";
+import { formatWusd } from "../../format";
 import { ResultCard } from "../../payee/ResultCard";
 import { firstContact, onFile } from "../../redteam";
 
-type SceneId = keyof typeof DEMO.scenes;
-const SCENES = Object.keys(DEMO.scenes) as SceneId[];
+const SCENES = Object.keys(DEMO.scenes) as SceneName[];
 const STEP_MS = 900;
+const L = DEMO.labels;
 
 /** Same first and last six hex characters as the real address, different in between. */
 export function poisonedAddress(real: string): string {
@@ -18,61 +19,130 @@ export function poisonedAddress(real: string): string {
   return `0x${hex.slice(0, 6)}${middle}${hex.slice(-6)}`;
 }
 
-const ATTACKER_PAY_TO = "0x7a3e9c41d2b85f60e1a4c3b2d9f0e8a7c6b5d4e3";
+interface PluginResult {
+  calls: { status: number; proof: string; call: CallView & { settlement_tx: string }; reply: string | null }[];
+  budget: BudgetView;
+}
+interface SwapResult {
+  claimed: string;
+  status: number;
+  proof: string;
+  error: { code: string; message: string } | null;
+  call: CallView;
+}
+interface LeakResult {
+  bursts: { member: string; sent: number; paid: number; refused: number; reasons: string[] }[];
+  spent: string;
+  cap: string;
+  refused: number;
+}
+interface InvoiceResult {
+  payee: string;
+  vendor: string;
+  result: PayeeCheckResult;
+}
+interface MutualResult {
+  before: PoolView;
+  after: PoolView;
+  claim: ClaimView;
+}
+type SceneResult = PluginResult | SwapResult | LeakResult | InvoiceResult | MutualResult;
 
-/** A paid endpoint that answers 402 with a swapped payTo, run in the page. */
-function swappedMerchant(): typeof fetch {
-  return async () =>
-    new Response(
-      JSON.stringify({
-        x402Version: 2,
-        error: "PAYMENT_REQUIRED",
-        resource: { url: "https://fernhill.example/v1/usage-report", description: "Usage report", mimeType: "application/json" },
-        accepts: [{ scheme: "exact", network: "eip155:84532", amount: "250000", asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", payTo: ATTACKER_PAY_TO }],
-      }),
-      { status: 402, headers: { "content-type": "application/json" } },
-    );
+function Row({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
+  return (
+    <div className={`out-row${cls ? ` ${cls}` : ""}`}>
+      <span>{k}</span>
+      <b>{v}</b>
+    </div>
+  );
 }
 
-/** Runs the scene's real call. The x402 scene goes through the real guard, which calls the API. */
-async function runScene(id: SceneId): Promise<{ result: PayeeResult; request: PayeeRequest; guard?: string }> {
-  if (id === "resolve") {
-    const request = { domain: "northwind.example", chain: "near:testnet" };
-    return { result: await wardline.resolve(request), request };
-  }
-  if (id === "x402") {
-    let seen: { result: PayeeCheckResult; request: PayeeCheckRequest } | null = null;
-    const guarded = withWardline(swappedMerchant(), {
-      wardline: {
-        check: async (request) => {
-          const result = await wardline.check(request);
-          seen = { result, request };
-          return result;
-        },
-      },
-    });
-    let guard = "The guard let the payment through.";
-    try {
-      await guarded("https://fernhill.example/v1/usage-report");
-    } catch (error) {
-      guard = error instanceof WardlineBlockedError ? "Stopped by the x402 guard before anything was signed." : errorText(error);
-    }
-    const checked = seen as { result: PayeeCheckResult; request: PayeeCheckRequest } | null;
-    if (!checked) throw new Error(guard);
-    return { ...checked, guard };
-  }
-  const request: PayeeCheckRequest =
-    id === "bank"
-      ? { payee: "near:testnet:northw1nd.testnet", vendor: { domain: "northwind.example", name: "Northwind Trading" }, source: "invoice" }
-      : { payee: `eip155:84532:${poisonedAddress(seedEvmAddress("larkspur.example"))}`, vendor: { domain: "larkspur.example" }, source: "manual" };
-  return { result: await wardline.check(request), request };
+function PluginOut({ r }: { r: PluginResult }) {
+  return (
+    <div className="scene-out" data-outcome="verified">
+      {r.calls.map((c) => (
+        <div className="out-card" key={c.call.call_id}>
+          <div className="out-head">
+            <span className="badge ok">{c.proof}</span>
+            <b>{modelName(c.call.model_proven)}</b>
+          </div>
+          {c.reply && <p className="out-reply">{c.reply}</p>}
+          <Row k={L.paid} v={`${formatWusd(c.call.amount)} WUSD`} />
+          <Row k={L.refunded} v={`${formatWusd(c.call.refund)} WUSD`} />
+          <Row k={L.settlement} v={<span className="mono">{c.call.settlement_tx}</span>} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SwapOut({ r }: { r: SwapResult }) {
+  return (
+    <div className="scene-out" data-outcome={r.proof}>
+      <div className="out-card refused">
+        <div className="out-head">
+          <span className="badge bad">{r.proof}</span>
+          <b>{callWords(r.call.reason)}</b>
+        </div>
+        <Row k={L.claimed} v={modelName(r.claimed)} />
+        <Row k={L.proven} v={modelName(r.call.model_proven) || L.noneProven} cls="mismatch" />
+        <Row k={L.paid} v={`${formatWusd(r.call.amount)} WUSD`} />
+        <Row k={L.refunded} v={`${formatWusd(r.call.refund)} WUSD`} />
+        <Row k={L.refund} v={<span className="mono">{r.call.release_tx}</span>} />
+      </div>
+    </div>
+  );
+}
+
+function LeakOut({ r }: { r: LeakResult }) {
+  return (
+    <div className="scene-out" data-outcome="capped">
+      <div className="out-card">
+        <div className="out-head">
+          <b className="num">{L.spentOf(formatWusd(r.spent), formatWusd(r.cap))}</b>
+        </div>
+        {r.bursts.map((b) => (
+          <Row key={b.member} k={b.member} v={`${L.burst(b.paid, b.refused)} (${b.reasons.map(callWords).join(" ")})`} />
+        ))}
+        <p className="out-foot">{L.refusedCount(r.refused)}</p>
+      </div>
+    </div>
+  );
+}
+
+function MutualOut({ r }: { r: MutualResult }) {
+  return (
+    <div className="scene-out" data-outcome={r.claim.status}>
+      <div className="out-card">
+        <div className="out-head">
+          <span className="badge ok">{r.claim.status}</span>
+          <b className="num">
+            {L.claim} {formatWusd(r.claim.amount)} WUSD
+          </b>
+        </div>
+        <Row k={`${L.junior}: ${L.before} / ${L.after}`} v={`${formatWusd(r.before.junior)} / ${formatWusd(r.after.junior)}`} />
+        <Row k={`${L.senior}: ${L.before} / ${L.after}`} v={`${formatWusd(r.before.senior)} / ${formatWusd(r.after.senior)}`} />
+        <Row k={L.settlement} v={<span className="mono">{r.claim.tx}</span>} />
+      </div>
+    </div>
+  );
+}
+
+function Outcome({ id, r }: { id: SceneName; r: SceneResult }) {
+  if (id === "plugin") return <PluginOut r={r as PluginResult} />;
+  if (id === "swap") return <SwapOut r={r as SwapResult} />;
+  if (id === "leak") return <LeakOut r={r as LeakResult} />;
+  if (id === "mutual") return <MutualOut r={r as MutualResult} />;
+  const inv = r as InvoiceResult;
+  const request: PayeeCheckRequest = { payee: inv.payee, vendor: { domain: inv.vendor } };
+  return <ResultCard result={{ ...inv.result, receipt: null }} request={request} />;
 }
 
 const reducedMotion = (): boolean => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
-type Run = { shown: number; outcome: null | { state: "busy" } | { state: "done"; result: PayeeResult; request: PayeeRequest; guard?: string } | { state: "error"; message: string } };
+type Run = { shown: number; outcome: null | { state: "busy" } | { state: "done"; result: SceneResult } | { state: "error"; message: string } };
 
-function Stage({ id, run }: { id: SceneId; run: Run }) {
+function Stage({ id, run }: { id: SceneName; run: Run }) {
   const scene = DEMO.scenes[id];
   return (
     <div className="stage" aria-live="polite">
@@ -84,18 +154,13 @@ function Stage({ id, run }: { id: SceneId; run: Run }) {
           </li>
         ))}
       </ol>
-      {run.outcome?.state === "busy" && <p className="loading">Asking the API</p>}
+      {run.outcome?.state === "busy" && <p className="loading">{DEMO.running}</p>}
       {run.outcome?.state === "error" && (
         <p className="notice" role="alert">
           {run.outcome.message}
         </p>
       )}
-      {run.outcome?.state === "done" && (
-        <>
-          {run.outcome.guard && <p className="guard-line">{run.outcome.guard}</p>}
-          <ResultCard result={run.outcome.result} request={run.outcome.request} />
-        </>
-      )}
+      {run.outcome?.state === "done" && <Outcome id={id} r={run.outcome.result} />}
     </div>
   );
 }
@@ -142,7 +207,7 @@ export function Comparison() {
 }
 
 export function Demo() {
-  const [current, setCurrent] = useState<SceneId>("bank");
+  const [current, setCurrent] = useState<SceneName>("plugin");
   const [run, setRun] = useState<Run>({ shown: 0, outcome: null });
   const timers = useRef<number[]>([]);
 
@@ -152,14 +217,14 @@ export function Demo() {
   };
   useEffect(() => clear, []);
 
-  const play = (id: SceneId) => {
+  const play = (id: SceneName) => {
     clear();
     setCurrent(id);
     const steps = DEMO.scenes[id].steps.length;
     const call = () => {
       setRun({ shown: steps, outcome: { state: "busy" } });
-      runScene(id).then(
-        (done) => setRun({ shown: steps, outcome: { state: "done", ...done } }),
+      runDemoScene<SceneResult>(id).then(
+        (result) => setRun({ shown: steps, outcome: { state: "done", result } }),
         (error: unknown) => setRun({ shown: steps, outcome: { state: "error", message: errorText(error) } }),
       );
     };
@@ -184,10 +249,12 @@ export function Demo() {
       <section className="sec tight">
         <div className="wrap demo">
           <div className="scenes" role="list">
-            {SCENES.map((id) => (
+            {SCENES.map((id, i) => (
               <div role="listitem" key={id} className={`scene${id === current ? " on" : ""}`}>
                 <button type="button" onClick={() => play(id)} aria-pressed={id === current && run.shown > 0} data-scene={id}>
-                  <b>{DEMO.scenes[id].name}</b>
+                  <b>
+                    <span className="scene-n num">{i + 1}</span> {DEMO.scenes[id].name}
+                  </b>
                   <span>{DEMO.scenes[id].line}</span>
                   <em>{id === current && run.shown > 0 ? DEMO.replay : DEMO.run}</em>
                 </button>

@@ -6,7 +6,34 @@ import { API_URL, MCP_URL } from "../../config";
 export function snippets(apiUrl: string | null, mcpUrl: string | null) {
   const shellBase = apiUrl ?? "$WARDLINE_API_URL";
   const tsBase = apiUrl ? JSON.stringify(apiUrl) : "process.env.WARDLINE_API_URL!";
+  const jsBase = apiUrl ? JSON.stringify(`${apiUrl}/v1/ai`) : "`${process.env.WARDLINE_API_URL}/v1/ai`";
+  const pyBase = apiUrl ? JSON.stringify(`${apiUrl}/v1/ai`) : 'os.environ["WARDLINE_API_URL"] + "/v1/ai"';
   return {
+    openaiJs: `import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: ${jsBase}, // the one line
+  apiKey: process.env.WARDLINE_METER_KEY,
+});
+
+const { data, response } = await client.chat.completions
+  .create({ model: "deepseek-ai/DeepSeek-V4.1-Flash-1017", messages: [{ role: "user", content: "Summarize this invoice." }] })
+  .withResponse();
+console.log(response.headers.get("x-wardline-proof")); // verified, or the call was refunded`,
+    openaiPy: `import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url=${pyBase},  # the one line
+    api_key=os.environ["WARDLINE_METER_KEY"],
+)
+
+raw = client.chat.completions.with_raw_response.create(
+    model="deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    messages=[{"role": "user", "content": "Summarize this invoice."}],
+)
+print(raw.headers["x-wardline-proof"])  # verified, or the call was refunded
+reply = raw.parse()`,
     mcp: mcpUrl ? JSON.stringify({ mcpServers: { wardline: { type: "http", url: mcpUrl } } }, null, 2) : null,
     resolve: `curl -s ${shellBase}/v1/resolve \\
   -H 'content-type: application/json' \\
@@ -81,6 +108,10 @@ export function Connect() {
             </div>
           )}
           <div className="conns">
+            <Block title={CONNECT.openai} line={CONNECT.openaiLine}>
+              <CodeBlock code={s.openaiJs} label={`${CONNECT.openaiJs} OpenAI client`} language="js" />
+              <CodeBlock code={s.openaiPy} label={`${CONNECT.openaiPy} OpenAI client`} language="py" />
+            </Block>
             <Block title={CONNECT.mcp} line={CONNECT.mcpLine}>
               {MCP_URL && s.mcp ? (
                 <>

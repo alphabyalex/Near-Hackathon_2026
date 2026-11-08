@@ -68,3 +68,11 @@ export const REVIEW_STATUS_LABEL = {
   REJECTED: "Rejected by owner, no payment",
   RESOLVED: "Resolved",
 } as const;
+
+/** Atomic WUSD (6 decimals) for display: two places from 1 WUSD up, every significant place below. */
+export function formatWusd(atomic: string | bigint): string {
+  const value = BigInt(atomic || "0");
+  if (value >= 1_000_000n || value === 0n) return formatAtomic(value.toString(), 6);
+  const fraction = value.toString().padStart(6, "0").replace(/0+$/, "");
+  return `0.${fraction.length < 2 ? fraction.padEnd(2, "0") : fraction}`;
+}

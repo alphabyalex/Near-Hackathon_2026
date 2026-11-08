@@ -1,7 +1,9 @@
 /**
  * Product name, tagline and every line of marketing copy. A rebrand is a change to this file only.
- * Rules: short, specific lines. No em dashes. Never claim legal ownership: we verify control of an
- * account and its link to a domain, at a stated trust level.
+ * Rules: short, specific lines. No em dashes, no hype words. Never claim legal ownership: we verify
+ * control of an account and its link to a domain, at a stated trust level. Never claim we prove token
+ * counts: a TEE signature shows which attested model signed the exact response bytes. The pool is
+ * protocol-backed coverage.
  */
 
 import type { EvidenceTier } from "@wardline/schemas";
@@ -11,8 +13,8 @@ const NAME = "Wardline";
 
 export const BRAND = {
   name: NAME,
-  tagline: "Payment authority for AI agents.",
-  metaDescription: "Your agent can read every invoice. It can never choose where the money goes.",
+  tagline: "AI that only pays on proof.",
+  metaDescription: "AI that only pays on proof. The right party, for the model you actually got, up to what you allowed.",
   homeLabel: `${NAME} home`,
   /** Source repository. Lives in repo.config.json at the root; the GitHub rename to "wardline" is a one-line change there. */
   repoUrl: repo.url,
@@ -21,6 +23,7 @@ export const BRAND = {
 export const NAV = [
   { page: "try", label: "Try it" },
   { page: "demo", label: "Demo" },
+  { page: "mutual", label: "Mutual" },
   { page: "connect", label: "Connect" },
   { page: "verify", label: "Verify" },
   { page: "about", label: "About" },
@@ -33,19 +36,19 @@ export const FOOTER = {
 } as const;
 
 export const HOME = {
-  heroLead: "Your agent can read every invoice.",
-  heroRest: "It can never choose where the money goes",
-  sub: `Pay a business by its website name. ${BRAND.name} returns the account that site linked and checks it before money moves.`,
-  primary: "See a scam get blocked",
-  secondary: "Try a check",
+  heroLead: "AI that only pays",
+  heroRest: "on proof",
+  sub: "The right party, for the model you actually got, up to what you allowed. And if we're wrong, the Mutual pays you back.",
+  primary: "Watch it refuse a swapped model",
+  secondary: "Plug in one line",
   featuresLabel: "What it does",
   features: [
-    ["Pay by reference", `Pay northwind.example, not a pasted address. ${BRAND.name} resolves the account the domain linked.`],
-    ["Payee Proof", "Each account signs for itself and is listed by its domain. Every answer states its trust level."],
-    ["Vendor change control", "A new payout account waits out a cooldown and needs a second person's signature."],
-    ["Release Guard", "Payments are bound to the tested agent's manifest digest. A changed agent cannot release funds."],
-    ["x402 guard", "Wraps your x402 client. A swapped payTo is stopped before anything is signed."],
-    ["Private mode", "Direct mode runs every check in your own process. Your payee list never leaves it."],
+    ["Proof of delivery", "A model call is paid only when NEAR AI's TEE signs that exact response for the model you asked for. Anything else is refunded."],
+    ["Proof of payee", `Pay a business by its website name. ${NAME} returns the account that site linked, at a stated trust level.`],
+    ["Hard cap", "Spending comes from a deposit, and each member has an allowance. A leaked key stops at its limit."],
+    ["Wardline Mutual", "Protocol-backed coverage. If a Wardline approval was wrong, the pool pays you back, and our own stake pays first."],
+    ["Social Money", "A group funds one AI budget from its Sputnik DAO or Trezu treasury, and votes on allowances and payouts."],
+    ["One-line plug-in", `Change your OpenAI client's base URL. Every call is reserved, checked, then paid or refunded.`],
   ],
   resultsLabel: "Red-team results",
   resultsTitle: "Scam payees, thrown at the checks.",
@@ -101,47 +104,76 @@ export const TIERS: Record<EvidenceTier, { short: string; verified: string; notE
 
 export const DEMO = {
   label: "Demo",
-  title: "Four ways money gets misdirected.",
-  lede: "Each scene replays the attack, then asks the live API.",
+  title: "Five ways an AI bill goes wrong, and what happens instead.",
+  lede: "Each scene runs the real gateway, payee check or pool code against simulated contracts and recorded NEAR AI traffic.",
   run: "Run",
   replay: "Replay",
+  running: "Running",
   scenes: {
-    bank: {
+    plugin: {
+      name: "One-line plug-in",
+      line: "Point the OpenAI client at Wardline. Calls are paid with receipts.",
+      steps: [
+        "The app changes one line: baseURL becomes <wardline>/v1/ai.",
+        "Each call reserves the most it can cost, then goes to NEAR AI byte for byte.",
+        `NEAR AI's TEE signs model, request hash and response hash. ${NAME} checks it, then pays.`,
+      ],
+    },
+    swap: {
+      name: "Swapped model",
+      line: "A provider says DeepSeek and serves something cheaper.",
+      steps: [
+        "cheapai takes a request for DeepSeek V4.1 Flash.",
+        "It returns GLM-5.3 Flash's answer, with that model's real NEAR AI signature.",
+        `The signature names the wrong model. ${NAME} pays nothing and refunds the hold.`,
+      ],
+    },
+    leak: {
+      name: "Leaked key",
+      line: "A member's key leaks and gets hammered.",
+      steps: [
+        "40 requests arrive at once on ci-agent's key.",
+        "Each must reserve its cost against that member's allowance first.",
+        "A second leaked key runs into the budget's deposit, the hard cap.",
+      ],
+    },
+    invoice: {
       name: "Bank details changed",
       line: "An email swaps in a look-alike NEAR account.",
       steps: [
         "Email from billing@northwind.example: our bank details changed.",
         "New payout account in the email: northw1nd.testnet",
-        `The agent extracts the payee and asks ${BRAND.name} before paying.`,
+        `The agent extracts the payee and asks ${NAME} before paying.`,
       ],
     },
-    x402: {
-      name: "Swapped x402 offer",
-      line: "A paid API answers 402 with someone else's payTo.",
+    mutual: {
+      name: "Wrong approval",
+      line: `${NAME} said PAY, and it was wrong.`,
       steps: [
-        "The agent calls a paid endpoint on fernhill.example.",
-        "The 402 offer names a payTo that Fernhill never linked.",
-        "The x402 guard checks payTo against fernhill.example before signing.",
+        `${NAME} answered PAY for brightwater-pay.testnet at domain linked.`,
+        "brightwater.example reports its key was stolen before that answer.",
+        "The claim is paid at once. Our first-loss stake takes the loss.",
       ],
     },
-    poison: {
-      name: "Address poisoning",
-      line: "A near-identical EVM address planted in the wallet history.",
-      steps: [
-        "A tiny transfer lands from an address that starts and ends like Larkspur's.",
-        "The agent copies the address from recent history.",
-        `${BRAND.name} compares it with the accounts larkspur.example linked.`,
-      ],
-    },
-    resolve: {
-      name: "Pay by name",
-      line: "The agent is told to pay northwind.example.",
-      steps: [
-        "Instruction: pay northwind.example for invoice 55187.",
-        `The agent never handles an address. It asks ${BRAND.name} to resolve the domain.`,
-        `${BRAND.name} returns the account Northwind linked, with a signed receipt.`,
-      ],
-    },
+  },
+  labels: {
+    claimed: "Asked for",
+    proven: "Signature names",
+    noneProven: "No signature",
+    paid: "Paid",
+    refunded: "Refunded",
+    reserved: "Held",
+    settlement: "Settlement",
+    refund: "Refund transaction",
+    reply: "Reply",
+    spentOf: (spent: string, cap: string) => `Spent ${spent} of ${cap} WUSD`,
+    refusedCount: (n: number) => `${n} requests refused with 402`,
+    burst: (paid: number, refused: number) => `${paid} paid, ${refused} refused`,
+    junior: "First-loss (Wardline)",
+    senior: "Senior LPs",
+    before: "Before",
+    after: "After",
+    claim: "Claim",
   },
   comparisonLabel: "First payment to a vendor",
   comparisonTitle: `No record of the vendor yet. The agent alone, then with ${BRAND.name}.`,
@@ -154,12 +186,16 @@ export const DEMO = {
 export const CONNECT = {
   label: "Connect",
   title: `Put ${BRAND.name} in front of every payment.`,
-  lede: "MCP for agents, HTTP for anything, the SDK for TypeScript.",
+  lede: "One base URL for AI calls. MCP for agents, HTTP for anything, the SDK for TypeScript.",
   unsetTitle: "Set your API URL",
   unsetBody: "These snippets use $WARDLINE_API_URL until the site is built with VITE_WARDLINE_API_URL.",
   unsetMcp: "Set VITE_WARDLINE_MCP_URL to show your MCP endpoint here.",
+  openai: "OpenAI client, one line",
+  openaiLine: "Use any OpenAI-compatible client with a meter key. Each call is paid only on a verified model signature, and every response carries X-Wardline-Proof.",
+  openaiJs: "JavaScript",
+  openaiPy: "Python",
   mcp: "MCP server",
-  mcpLine: "Streamable HTTP. Tools: resolve_payee, check_payee, get_vendor, how_to_verify.",
+  mcpLine: "Streamable HTTP. Tools: resolve_payee, check_payee, get_vendor, how_to_verify, get_ai_spend.",
   resolve: "Resolve a domain",
   check: "Check an address",
   sdkHosted: "SDK, hosted",
@@ -228,6 +264,7 @@ export const OWNER = {
   signOut: "Sign out",
   tabs: {
     overview: "Overview",
+    group: "Group",
     invoices: "Invoices",
     review: "Review Desk",
     keys: "API keys",
@@ -270,4 +307,89 @@ export const KEYS = {
   revoke: "Revoke",
   revoked: "Revoked",
   empty: "No keys yet.",
+  meterTitle: "Meter keys",
+  meterLede: "One key per budget member, for the OpenAI-compatible gateway at /v1/ai. Only its hash is kept.",
+  member: "Member",
+  models: "Models",
+  allModels: "All routed models",
+  createMeter: "Create meter key",
+} as const;
+
+export const AI = {
+  title: "AI spend",
+  verified: "Verified calls",
+  refused: "Refused and refunded",
+  spent: "Spent",
+  refunded: "Refunded",
+  series: "Spend per day",
+  seriesNote: "Verified calls only. Refused calls are refunded in full.",
+  empty: "No metered calls yet. Create a meter key and point an OpenAI client at /v1/ai.",
+} as const;
+
+export const GROUP = {
+  title: "Group",
+  lede: "One shared AI budget, funded and governed by the group's DAO.",
+  budget: "Shared AI budget",
+  deposit: "Deposit (hard cap)",
+  spent: "Spent",
+  held: "Held for calls in flight",
+  left: "Left",
+  period: "Allowances reset each",
+  dao: "Controlled by",
+  members: "Members",
+  allowance: "Allowance",
+  used: "Used",
+  calls: "Calls",
+  callsEmpty: "No calls yet.",
+  col: { time: "Time", member: "Member", claimed: "Model asked for", proven: "Model proven", result: "Result", amount: "Paid", refund: "Refunded" },
+  verified: "verified",
+  refused: "refused",
+  failed: "failed",
+  proposals: "DAO proposals",
+  proposalsEmpty: "No proposals.",
+  payouts: "Payouts awaiting vote",
+  payoutsLede: "Every pending treasury transfer runs through the payee check before anyone votes.",
+  payoutsEmpty: "No payouts waiting for a vote.",
+  flagged: "Flagged",
+  clear: "Payee checked",
+  voteIn: "Vote in your DAO app.",
+  models: "Attested models",
+  modelsLede: "A call is paid only if its signer is attested for the model asked for.",
+} as const;
+
+export const POOL = {
+  label: "Wardline Mutual",
+  title: "If we approve the wrong payment, the pool pays you back.",
+  lede: "Protocol-backed coverage, funded by LPs and by a fee on every proven call.",
+  loseFirstTitle: "We lose first.",
+  loseFirst: [
+    "Every claim is paid from the first-loss tranche, our own stake, before any senior LP is touched.",
+    "Senior LPs earn the coverage fee taken from each settled call.",
+    "Claims above a set size wait for a vote of the pool's DAO. Smaller ones pay at once.",
+  ],
+  stats: {
+    tvl: "Total value locked",
+    junior: "First-loss (Wardline)",
+    senior: "Senior (LPs)",
+    sharePrice: "Senior share price",
+    fees: "Fees earned",
+    claims: "Claims paid",
+    capacity: "Largest claim it can pay",
+  },
+  trancheLabel: "Who pays a claim first",
+  deposit: "Deposit",
+  withdraw: "Withdraw",
+  account: "Your NEAR account",
+  amount: "Amount (WUSD)",
+  shares: "Shares",
+  sign: "Sign with wallet",
+  signing: "Waiting for your wallet",
+  wait: (days: number) => `Withdrawals unlock ${days} days after you ask, so coverage cannot vanish during a claim.`,
+  position: "Your position",
+  noPosition: "No position yet.",
+  pending: "Unlocks",
+  claims: "Claims",
+  claimsEmpty: "No claims yet.",
+  col: { filed: "Filed", subject: "Approval", amount: "Amount", junior: "From first-loss", senior: "From senior", status: "Status" },
+  modeSim: "Simulated pool. Deposits are signed by your wallet and applied to the simulation.",
 } as const;
