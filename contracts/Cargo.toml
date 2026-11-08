@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["vault", "evidence", "mock-token", "test-proxy", "payee-registry"]
+members = ["vault", "evidence", "mock-token", "test-proxy", "payee-registry", "model-registry", "meter", "cover-pool"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,8 +11,9 @@ repository = "https://github.com/alphabyalex/Near-Hackathon_2026"
 # Exact pins: every crate in this workspace builds against these versions.
 # Keep in sync with contracts/rust-toolchain.toml and contracts/vault/README.md.
 [workspace.dependencies]
-near-sdk = "=5.30.1"
+near-sdk = { version = "=5.30.1", features = ["unstable"] }
 near-contract-standards = "=5.30.1"
+hex = "0.4.3"
 
 [profile.release]
 codegen-units = 1

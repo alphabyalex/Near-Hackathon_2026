@@ -2493,9 +2493,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "wardline-cover-pool"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+]
+
+[[package]]
 name = "wardline-evidence"
 version = "0.1.0"
 dependencies = [
+ "near-sdk",
+]
+
+[[package]]
+name = "wardline-meter"
+version = "0.1.0"
+dependencies = [
+ "hex",
  "near-sdk",
 ]
 
@@ -2504,6 +2519,13 @@ name = "wardline-mock-token"
 version = "0.1.0"
 dependencies = [
  "near-contract-standards",
+ "near-sdk",
+]
+
+[[package]]
+name = "wardline-model-registry"
+version = "0.1.0"
+dependencies = [
  "near-sdk",
 ]
 

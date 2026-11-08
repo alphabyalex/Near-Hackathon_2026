@@ -21,6 +21,12 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | Public Payee Registry | `contracts/payee-registry` | Done, opt-in domain-to-account directory with cooling-off |
 | Payee Registry Client | `packages/vault-client` | Done, browser-safe RPC client implementing PayeeRegistry |
 | Release Guard and Registry Specs | `docs/RELEASE_GUARD.md`, `docs/PAYEE_REGISTRY.md` | Done |
+| Model Registry Contract | `contracts/model-registry` | Done, TEE signer attestation directory with DAO management |
+| Meter Gateway Contract | `contracts/meter` | Done, on-chain EIP-191 ecrecover proof verification and budgets |
+| Cover Pool Contract (Mutual) | `contracts/cover-pool` | Done, junior first-loss and senior LP coverage with DAO claims |
+| Chain Clients (Meter, Registry, Pool) | `packages/vault-client` | Done, typed NearMeterClient, NearModelRegistryClient, NearCoverPoolClient |
+| Chain Switch-over | `services/api/src/chain/index.ts` | Done, wired createChain for WARDLINE_CHAIN_MODE=near |
+| DAO Governance Spec | `docs/DAO.md` | Done, Sputnik v2 proposal mappings and methods |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
 

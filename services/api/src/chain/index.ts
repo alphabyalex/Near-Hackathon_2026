@@ -1,5 +1,12 @@
 import { loadAttestations, SIM_MODEL, SIM_TEE_ACCOUNT } from "@wardline/demo-provider";
 import { readEnv } from "@wardline/schemas";
+import {
+  NearCoverPoolClient,
+  NearMeterClient,
+  NearModelRegistryClient,
+  makeProvider,
+  makeSigner,
+} from "@wardline/vault-client";
 import type { DateClock as Clock } from "../time.js";
 import { createSimChain, type SimChainSeed } from "./sim.js";
 import type { AttestedModel, Chain, ChainMode } from "./types.js";
@@ -76,6 +83,44 @@ export function chainModeFromEnv(env: Record<string, string | undefined> = proce
  */
 export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = defaultSimSeed()): Chain {
   if (mode === "sim") return createSimChain(seed, now);
-  // TODO(tharun): construct MeterClient, ModelRegistryClient and CoverPoolClient from vault-client here.
-  throw new Error("WARDLINE_CHAIN_MODE=near needs the meter, model registry and cover pool clients from @wardline/vault-client, which have not landed. Use sim.");
+
+  const rpcUrl =
+    readEnv("WARDLINE_NEAR_RPC_URL", process.env) ??
+    readEnv("NEAR_RPC_URL", process.env) ??
+    "https://rpc.testnet.near.org";
+  const meterContract =
+    readEnv("WARDLINE_METER_CONTRACT", process.env) ?? "meter.wardline.testnet";
+  const registryContract =
+    readEnv("WARDLINE_MODEL_REGISTRY_CONTRACT", process.env) ??
+    "models.wardline.testnet";
+  const poolContract =
+    readEnv("WARDLINE_COVER_POOL_CONTRACT", process.env) ??
+    "mutual.wardline.testnet";
+
+  const provider = makeProvider(rpcUrl);
+
+  const signerAccount = readEnv("WARDLINE_GATEWAY_ACCOUNT", process.env);
+  const signerKey = readEnv("WARDLINE_GATEWAY_KEY", process.env);
+  const signer =
+    signerAccount && signerKey
+      ? makeSigner(provider, signerAccount, signerKey)
+      : undefined;
+
+  const meter = new NearMeterClient({
+    contractId: meterContract,
+    provider,
+    signer,
+  });
+  const registry = new NearModelRegistryClient({
+    contractId: registryContract,
+    provider,
+    signer,
+  });
+  const pool = new NearCoverPoolClient({
+    contractId: poolContract,
+    provider,
+    signer,
+  });
+
+  return { mode: "near", meter, registry, pool };
 }

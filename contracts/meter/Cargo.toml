@@ -1,0 +1,17 @@
+[package]
+name = "wardline-meter"
+description = "Wardline meter contract: budget reservation, on-chain TEE proof verification and settlement."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }

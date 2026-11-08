@@ -6,3 +6,6 @@ export * from "./gateway.js";
 export * from "./admin.js";
 export * from "./evidence.js";
 export * from "./payee-registry.js";
+export * from "./model-registry.js";
+export * from "./meter.js";
+export * from "./cover-pool.js";
