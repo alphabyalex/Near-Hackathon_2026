@@ -105,18 +105,29 @@ export interface MeterKeyRow {
 export const createMeterKey = (body: { member: string; label?: string; models?: string[] }) => apiPost<{ key: string; row: MeterKeyRow }>("/owner/meter-keys", body);
 export const revokeMeterKey = (id: string) => apiPost<{ revoked: string }>(`/owner/meter-keys/${encodeURIComponent(id)}/revoke`, {});
 
+export interface WardPricePoint {
+  at: string;
+  price: string;
+  event: "launch" | "deposit" | "fees" | "claim" | "redeem";
+}
+
 export interface PoolView {
   tvl: string;
   junior: string;
   senior: string;
   junior_holder: string;
-  share_price: string;
-  senior_shares: string;
+  ward_symbol: string;
+  ward_name: string;
+  ward_supply: string;
+  ward_price: string;
+  launch_price: string;
+  price_history: WardPricePoint[];
   fees_earned: string;
   claims_paid: string;
   coverage_capacity: string;
   withdraw_delay_days: number;
   large_claim_threshold: string;
+  trade_url: string | null;
 }
 
 export interface ClaimView {
@@ -128,28 +139,31 @@ export interface ClaimView {
   status: "paid" | "pending_vote" | "rejected";
   paid_from_junior: string;
   paid_from_senior: string;
+  ward_price_before: string;
+  ward_price_after: string;
   filed_at: string;
   tx: string | null;
 }
 
 export interface PoolPosition {
   account: string;
-  shares: string;
+  ward: string;
+  ward_locked: string;
   value: string;
-  pending_withdrawals: { id: string; shares: string; value: string; requested_at: string; available_at: string }[];
+  pending_withdrawals: { id: string; ward: string; value: string; requested_at: string; available_at: string }[];
 }
 
 export const getPool = () => apiGet<{ mode: "sim" | "near"; contract: string; pool: PoolView; claims: ClaimView[] }>("/v1/pool");
 export const getPosition = (account: string) => apiGet<PoolPosition>(`/v1/pool/positions/${encodeURIComponent(account)}`);
-export const poolChallenge = (body: { account: string; action: "deposit" | "withdraw"; amount: string }) =>
+export const poolChallenge = (body: { account: string; action: "deposit" | "withdraw"; amount: string } | { account: string; action: "redeem"; id: string }) =>
   apiPost<{ message: string; recipient: string; nonce: string; expiresAt: string }>("/v1/pool/challenge", body);
 export const poolSubmit = (body: { nonce: string; publicKey: string; signature: string }) =>
-  apiPost<{ action: string; tx: string; available_at?: string; position: PoolPosition }>("/v1/pool/submit", body);
+  apiPost<{ action: string; tx: string; ward?: string; usdc?: string; available_at?: string; position: PoolPosition }>("/v1/pool/submit", body);
 
 export type SceneName = "plugin" | "swap" | "leak" | "invoice" | "mutual";
 export const runDemoScene = <T,>(name: SceneName) => apiPost<T>(`/v1/demo/${name}`);
 
-/** Whole WUSD typed by a person, to atomic units. Up to six decimal places. */
+/** Whole USDC typed by a person, to atomic units. Up to six decimal places. */
 export function toAtomic(text: string): string | null {
   const m = /^\s*(\d{1,12})(?:\.(\d{1,6}))?\s*$/.exec(text);
   if (!m) return null;

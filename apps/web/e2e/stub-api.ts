@@ -39,7 +39,7 @@ const deps = bootstrap(":memory:", undefined, { lookupKeys, fetchFile, freeCalls
       { id: "deepseek-ai/DeepSeek-V4.1-Flash-1017", provider: "nearai", label: "DeepSeek V4.1 Flash", inputPerM: 300_000, outputPerM: 1_200_000, defaultMaxTokens: 1024 },
       { id: "z-ai/glm-5.3-flash", provider: "nearai", label: "GLM-5.3 Flash", inputPerM: 80_000, outputPerM: 500_000, defaultMaxTokens: 1024 },
       { id: "z-ai/glm-5.3", provider: "nearai", label: "GLM-5.3", inputPerM: 1_800_000, outputPerM: 5_750_000, defaultMaxTokens: 1024 },
-      { id: SIM_MODEL, provider: "simtee", label: "Sim Echo (local test TEE)", inputPerM: 0, outputPerM: 0, perCall: 2_000, defaultMaxTokens: 256 },
+      { id: SIM_MODEL, provider: "simtee", label: "Sim Echo (local test TEE)", inputPerM: 0, outputPerM: 0, perCall: 500_000, defaultMaxTokens: 256 },
     ],
   },
   fetch: demoFetch({ replay: createReplayProvider(), simtee: createSimTee() }),

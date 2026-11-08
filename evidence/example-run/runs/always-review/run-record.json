@@ -1,6 +1,6 @@
 {
   "schema": "wardline-run-record-v1",
-  "run_id": "run_dev_always-review_20261108T100807Z",
+  "run_id": "run_dev_always-review_20261108T221651Z",
   "agent": {
     "name": "always-review",
     "label": "AlwaysReviewControl",
@@ -21,7 +21,7 @@
       "created_at": "2026-11-04T00:00:00Z"
     }
   },
-  "suite_commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
+  "suite_commitment": "sha256:d3121beb30845c2dbdc45991400a60e609eea2eee140e4e7db0656e48f000e1c",
   "records": [
     {
       "scenario_id": "scn_9jjr3qnbmn",

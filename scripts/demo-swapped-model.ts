@@ -14,9 +14,9 @@ void createApp(deps);
 const s = (await runScene("swap", { now: toDateClock(systemClock), engine: deps.payee.engine, context: deps.payee.context })) as {
   claimed: string; status: number; proof: string; error: { code: string; message: string }; call: { model_proven: string; reserved: string; refund: string; amount: string; release_tx: string };
 };
-const wusd = (a: string) => (Number(BigInt(a)) / 1e6).toFixed(6);
+const usdc = (a: string) => (Number(BigInt(a)) / 1e6).toFixed(6);
 console.log(`Asked for:      ${s.claimed}`);
 console.log(`Signature names: ${s.call.model_proven}`);
 console.log(`Gateway:        HTTP ${s.status}, X-Wardline-Proof: ${s.proof}, ${s.error.code}`);
-console.log(`Reserved ${wusd(s.call.reserved)} WUSD, paid ${wusd(s.call.amount)}, refunded ${wusd(s.call.refund)} (${s.call.release_tx})`);
+console.log(`Reserved ${usdc(s.call.reserved)} USDC, paid ${usdc(s.call.amount)}, refunded ${usdc(s.call.refund)} (${s.call.release_tx})`);
 if (s.proof !== "refused" || s.call.amount !== "0") process.exitCode = 1;

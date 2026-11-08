@@ -13,8 +13,8 @@ The DAO governs five contracts across Wardline:
 1. **Meter Contract (`meter.wardline.testnet`)**
    - Method: `set_allowance`
    - Arguments: `{"budget_id": string, "member": string, "allowance": string}`
-   - Purpose: Updates a member's per-period spend limit in atomic WUSD.
-   - Funding: Executed as `ft_transfer_call` on the WUSD token contract with `receiver_id` set to the meter contract and `msg` set to `{"action":"fund","budget_id": string}`.
+   - Purpose: Updates a member's per-period spend limit in atomic USDC.
+   - Funding: Executed as `ft_transfer_call` on the USDC token contract with `receiver_id` set to the meter contract and `msg` set to `{"action":"fund","budget_id": string}`.
 
 2. **Model Registry Contract (`models.wardline.testnet`)**
    - Method: `add_provider`

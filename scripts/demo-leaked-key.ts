@@ -16,7 +16,7 @@ import { createChain, defaultSimSeed, GROUP_BUDGET, GROUP_DAO } from "../service
 import { systemClock, toDateClock } from "../services/api/src/time.js";
 
 const PARALLEL = Number(process.env.LEAK_PARALLEL ?? 40);
-const wusd = (atomic: string | bigint) => (Number(BigInt(atomic)) / 1e6).toFixed(6);
+const usdc = (atomic: string | bigint) => (Number(BigInt(atomic)) / 1e6).toFixed(2);
 
 type Send = (key: string, i: number) => Promise<{ status: number; code: string | null; amount: string }>;
 
@@ -26,7 +26,7 @@ async function burst(label: string, key: string, send: Send) {
   const refused = results.filter((r) => r.status === 402);
   const spent = paid.reduce((n, r) => n + BigInt(r.amount), 0n);
   const codes = [...new Set(refused.map((r) => r.code))].join(", ") || "none";
-  console.log(`${label}: ${PARALLEL} parallel requests, ${paid.length} paid, ${refused.length} refused with 402 (${codes}), spent ${wusd(spent)} WUSD`);
+  console.log(`${label}: ${PARALLEL} parallel requests, ${paid.length} paid, ${refused.length} refused with 402 (${codes}), spent ${usdc(spent)} USDC`);
   return { spent, refused: refused.length };
 }
 
@@ -37,16 +37,16 @@ async function remote(apiUrl: string, key: string) {
     return { status: res.status, code: body.error?.code ?? null, amount: res.headers.get("x-wardline-amount") ?? "0" };
   };
   const r = await burst("Leaked key", key, send);
-  console.log(`spent ${wusd(r.spent)} WUSD, ${r.refused} requests refused`);
+  console.log(`spent ${usdc(r.spent)} USDC, ${r.refused} requests refused`);
 }
 
 async function offline() {
   const seed = defaultSimSeed();
-  seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab shared AI budget", owner: GROUP_DAO, deposit: "30000", period: "week", members: [{ member: "ci-agent.testnet", allowance: "20000" }, { member: "bob.testnet", allowance: "20000" }] }];
+  seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab shared AI budget", owner: GROUP_DAO, deposit: "15000000", period: "week", members: [{ member: "ci-agent.testnet", allowance: "10000000" }, { member: "bob.testnet", allowance: "10000000" }] }];
   const deps = bootstrap(":memory:", systemClock, {}, undefined, {
     env: { WARDLINE_CHAIN_MODE: "sim" },
     chain: createChain("sim", toDateClock(systemClock), seed),
-    routes: { providers: [{ id: "simtee", baseUrl: demoBaseUrl("simtee"), payTo: "sim-provider.testnet" }], models: [{ id: SIM_MODEL, provider: "simtee", label: "Sim Echo", inputPerM: 0, outputPerM: 0, perCall: 2000, defaultMaxTokens: 256 }] },
+    routes: { providers: [{ id: "simtee", baseUrl: demoBaseUrl("simtee"), payTo: "sim-provider.testnet" }], models: [{ id: SIM_MODEL, provider: "simtee", label: "Sim Echo", inputPerM: 0, outputPerM: 0, perCall: 500_000, defaultMaxTokens: 256 }] },
     fetch: demoFetch({ simtee: createSimTee() }),
     gateway: { signatureDelaysMs: [0], ratePerMinute: 10_000 },
   });
@@ -57,11 +57,11 @@ async function offline() {
     return { status: res.status, code: body.error?.code ?? null, amount: res.headers.get("x-wardline-amount") ?? "0" };
   };
   const key = (member: string) => deps.ai.meter.createKey({ budgetId: GROUP_BUDGET, member, label: "leaked", models: null, createdBy: GROUP_DAO, now: new Date() }).key;
-  console.log(`Budget: ${wusd(seed.budgets[0]!.deposit)} WUSD deposit (the hard cap). Each member: ${wusd("20000")} WUSD allowance. Each call: ${wusd("2000")} WUSD.\n`);
+  console.log(`Budget: ${usdc(seed.budgets[0]!.deposit)} USDC deposit (the hard cap). Each member: ${usdc("10000000")} USDC allowance. Each call: ${usdc("500000")} USDC.\n`);
   const a = await burst("Leaked key 1 (ci-agent.testnet)", key("ci-agent.testnet"), send);
   const b = await burst("Leaked key 2 (bob.testnet)     ", key("bob.testnet"), send);
   const budget = (await deps.ai.chain.meter.getBudget(GROUP_BUDGET))!;
-  console.log(`\nspent ${wusd(budget.spent)} of ${wusd(budget.deposit)} WUSD, ${a.refused + b.refused} requests refused`);
+  console.log(`\nspent ${usdc(budget.spent)} of ${usdc(budget.deposit)} USDC, ${a.refused + b.refused} requests refused`);
   if (budget.spent !== budget.deposit || BigInt(budget.spent) > BigInt(budget.deposit)) process.exitCode = 1;
 }
 

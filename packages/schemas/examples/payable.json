@@ -6,7 +6,7 @@
   "po_number": "PO-1001",
   "invoice_number": "INV-1001",
   "amount_atomic": "1250000000",
-  "token_contract_id": "wusd.wardline.testnet",
+  "token_contract_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
   "not_before_ns": "1793664000000000000",
   "due_at_ns": "1794873600000000000",
   "expires_at_ns": "1798848000000000000",

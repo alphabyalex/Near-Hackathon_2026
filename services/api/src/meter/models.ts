@@ -1,6 +1,6 @@
 /**
  * Which upstream serves which model, and what a call may cost. Prices are NEAR AI Cloud's list prices
- * in atomic WUSD (6 decimals) per million tokens. The reservation is the most a call can cost; the
+ * in atomic USDC (6 decimals) per million tokens. The reservation is the most a call can cost; the
  * settlement uses the token counts the provider reports, capped at the reservation. We do not prove
  * token counts, only which model's TEE signed the exact response.
  *
@@ -24,10 +24,10 @@ export interface ModelRoute {
   id: string;
   provider: string;
   label: string;
-  /** Atomic WUSD per million prompt and completion tokens. */
+  /** Atomic USDC per million prompt and completion tokens. */
   inputPerM: number;
   outputPerM: number;
-  /** Flat atomic WUSD per call, added to token pricing. */
+  /** Flat atomic USDC per call, added to token pricing. */
   perCall?: number;
   /** Used for the reservation when the request sets no max_tokens. */
   defaultMaxTokens: number;

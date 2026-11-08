@@ -51,9 +51,21 @@ th.r,td.r{text-align:right}
 .meter-keys select{font:inherit;padding:10px 12px;border:1px solid var(--rule-strong);border-radius:4px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
 
 /* Wardline Mutual */
-.pool-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
-.pool-stats>div:nth-child(n+5){border-top:1px solid var(--rule-soft)}
-.pool-stats>div:nth-child(5){padding-left:0;border-left:0}
+.pool-stats{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}
+.pool-stats>div:nth-child(n+4){border-top:1px solid var(--rule-soft)}
+.pool-stats>div:nth-child(4){padding-left:0;border-left:0}
+.ward{border:1px solid var(--rule);border-radius:4px;background:var(--panel);padding:22px 24px 6px;margin-bottom:36px}
+.ward-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.ward-head h2{margin:0}
+.ward-head .muted{font-weight:400;font-size:15px}
+.ward-stats{margin-bottom:16px}
+.ward-stats .v.down{color:var(--red-ink)}
+.ward-copy{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-width:70ch}
+.ward-copy p{margin:0}
+.ward-pitch{font-size:17px;color:var(--ink)}
+.lose-first{border-left:3px solid var(--red);padding-left:16px;margin-bottom:26px}
+.lose-first h2{font-size:26px}
+.position .pending{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pool-stats .v{font-size:22px}
 .pool-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:48px;align-items:start;margin-top:12px}
 .tranche{margin:0 0 32px}
@@ -94,6 +106,7 @@ th.r,td.r{text-align:right}
 @media (max-width:980px){
   .pool-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pool-stats>div:nth-child(odd){padding-left:0;border-left:0}
+  .pool-stats>div:nth-child(even){padding-left:20px;border-left:1px solid var(--rule)}
   .pool-stats>div{border-top:1px solid var(--rule-soft)}
   .pool-grid{grid-template-columns:minmax(0,1fr);gap:28px}
 }

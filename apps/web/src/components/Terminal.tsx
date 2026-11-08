@@ -28,7 +28,7 @@ export function Terminal() {
       ))}
       <div className="total" style={{ animationDelay: `${ATTEMPTS.length * STEP_SECONDS}s` }}>
         <span>moved from the vault</span>
-        <b>0.00 WUSD</b>
+        <b>0.00 USDC</b>
       </div>
     </div>
   );

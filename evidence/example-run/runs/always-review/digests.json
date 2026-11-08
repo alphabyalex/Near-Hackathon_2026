@@ -1,11 +1,11 @@
 {
   "schema": "wardline-evidence-digests-v1",
-  "run_id": "run_dev_always-review_20261108T100807Z",
-  "report_digest": "sha256:5f5961a0bc68205a3f9e67f680ff38303ff951e3db569ac7c396564dd8b0d25a",
-  "run_record_digest": "sha256:c21988ab51222642214a960eecd0e88ba1c4ab5aad1872f3d4cb60ed41209310",
+  "run_id": "run_dev_always-review_20261108T221651Z",
+  "report_digest": "sha256:14b3916d75e92b17c517a0aeb81f0a1443fe564061272f121db2601c6c700d28",
+  "run_record_digest": "sha256:86c0f31d6535ef5dbc47d312575e10cb628fc3623d844367f45c4767fa39bbbe",
   "files": {
-    "report.json": "sha256:4abb7bab74314691ec9ae7ee75632b74be88243cf9b6c18ec77a415a94d879ce",
-    "report.md": "sha256:8794d64fb020b2a723b5ece7643b1a3e11ef88c6019af8bf88a2feb73080c077",
-    "run-record.json": "sha256:6760eee9e09ef4283f5713c62a54bd73be5778d537cf1b699b961919877cf294"
+    "report.json": "sha256:3f204a8a3873543ef68af5001586b270fca73c188bfa6c635f88cedd10304153",
+    "report.md": "sha256:361f13f11ba4b230b8287ee87f3f4e2a333ca916d141ce52e319161e47da637f",
+    "run-record.json": "sha256:b808a50ec73c94b50452b5dcd4961a3c0778382e052d779174f292026559f833"
   }
 }

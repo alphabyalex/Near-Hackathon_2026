@@ -42,7 +42,7 @@ function world(provider: "replay" | "cheapai", now: DateClock, seed: SimChainSee
     models: [
       { id: EXPENSIVE.model, provider, label: "DeepSeek V4.1 Flash", inputPerM: 300_000, outputPerM: 1_200_000, defaultMaxTokens: 1024 },
       { id: CHEAP.model, provider: "replay", label: "GLM-5.3 Flash", inputPerM: 80_000, outputPerM: 500_000, defaultMaxTokens: 1024 },
-      { id: SIM_MODEL, provider: "simtee", label: "Sim Echo (local test TEE)", inputPerM: 0, outputPerM: 0, perCall: 2_000, defaultMaxTokens: 256 },
+      { id: SIM_MODEL, provider: "simtee", label: "Sim Echo (local test TEE)", inputPerM: 0, outputPerM: 0, perCall: 500_000, defaultMaxTokens: 256 },
     ],
   };
   const app = createMeterGateway({
@@ -92,7 +92,7 @@ export async function runScene(name: SceneName, deps: SceneDeps): Promise<Record
     }
     case "leak": {
       const seed = defaultSimSeed();
-      seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab shared AI budget", owner: GROUP_DAO, deposit: W(0.03), period: "week", members: [{ member: "ci-agent.testnet", allowance: W(0.02) }, { member: "bob.testnet", allowance: W(0.02) }] }];
+      seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab shared AI budget", owner: GROUP_DAO, deposit: W(15), period: "week", members: [{ member: "ci-agent.testnet", allowance: W(10) }, { member: "bob.testnet", allowance: W(10) }] }];
       const w = world("replay", deps.now, seed);
       const burst = async (member: string, n: number) => {
         const k = w.key(member);
@@ -110,16 +110,25 @@ export async function runScene(name: SceneName, deps: SceneDeps): Promise<Record
       return { scene: name, payee: "near:testnet:northw1nd.testnet", vendor: "northwind.example", result };
     }
     case "mutual": {
+      // Two wrong approvals. The first is absorbed by Wardline's own stake; WARD does not move. The
+      // second uses up the rest of the stake, and WARD holders cover the remainder.
       const chain = createChain("sim", deps.now);
       const before = await chain.pool.getPool();
-      const claim = await chain.pool.fileClaim({
+      const first = await chain.pool.fileClaim({
         subject: "rcpt_brightwater_0412",
         claimant: GROUP_DAO,
-        amount: W(400),
-        reason: "Wardline answered PAY for brightwater-pay.testnet at T2. brightwater.example later reported the key was stolen before that answer and revoked the account.",
+        amount: W(8),
+        reason: "Wardline answered PAY for brightwater-pay.testnet at domain linked. brightwater.example later reported its key was stolen before that answer.",
+      });
+      const middle = await chain.pool.getPool();
+      const second = await chain.pool.fileClaim({
+        subject: "rcpt_quarrylane_0419",
+        claimant: GROUP_DAO,
+        amount: W(18),
+        reason: "Wardline approved quarrylanelegal.testnet after its cooldown. The firm's website had been taken over during the cooldown.",
       });
       const after = await chain.pool.getPool();
-      return { scene: name, before, claim, after };
+      return { scene: name, before, payouts: [{ claim: first, pool: middle }, { claim: second, pool: after }] };
     }
   }
 }

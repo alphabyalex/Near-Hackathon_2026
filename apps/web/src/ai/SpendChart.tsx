@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatWusd } from "../format";
+import { formatUsdc } from "../format";
 
 export interface SpendPoint {
   day: string;
@@ -43,7 +43,7 @@ export function SpendChart({ series, label }: { series: SpendPoint[]; label: str
                   height={H}
                   className="hit"
                   tabIndex={0}
-                  aria-label={`${p.day}: ${formatWusd(p.spent)} WUSD, ${p.verified} verified, ${p.refused} refused`}
+                  aria-label={`${p.day}: ${formatUsdc(p.spent)} USDC, ${p.verified} verified, ${p.refused} refused`}
                   onMouseEnter={() => setActive(i)}
                   onMouseLeave={() => setActive(null)}
                   onFocus={() => setActive(i)}
@@ -63,7 +63,7 @@ export function SpendChart({ series, label }: { series: SpendPoint[]; label: str
         {point && (
           <div className="spend-tip" style={{ left: `${((active! + 0.5) / series.length) * 100}%` }} role="status">
             <b>{point.day}</b>
-            <span className="num">{formatWusd(point.spent)} WUSD</span>
+            <span className="num">{formatUsdc(point.spent)} USDC</span>
             <span>
               {point.verified} verified, {point.refused} refused
             </span>
@@ -75,7 +75,7 @@ export function SpendChart({ series, label }: { series: SpendPoint[]; label: str
         <thead>
           <tr>
             <th>Day</th>
-            <th>Spent (WUSD)</th>
+            <th>Spent (USDC)</th>
             <th>Verified</th>
             <th>Refused</th>
           </tr>
@@ -84,7 +84,7 @@ export function SpendChart({ series, label }: { series: SpendPoint[]; label: str
           {series.map((p) => (
             <tr key={p.day}>
               <td>{p.day}</td>
-              <td>{formatWusd(p.spent)}</td>
+              <td>{formatUsdc(p.spent)}</td>
               <td>{p.verified}</td>
               <td>{p.refused}</td>
             </tr>

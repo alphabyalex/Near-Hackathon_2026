@@ -113,7 +113,7 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
   app.get("/models", (c) =>
     c.json({
       object: "list",
-      data: allowed(c.get("key")).map((m) => ({ id: m.id, object: "model", owned_by: m.provider, wardline: { label: m.label, input_per_m: String(m.inputPerM), output_per_m: String(m.outputPerM), unit: "atomic WUSD per million tokens" } })),
+      data: allowed(c.get("key")).map((m) => ({ id: m.id, object: "model", owned_by: m.provider, wardline: { label: m.label, input_per_m: String(m.inputPerM), output_per_m: String(m.outputPerM), unit: "atomic USDC per million tokens" } })),
     }),
   );
 

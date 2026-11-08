@@ -2,7 +2,7 @@ import { TOKEN_DECIMALS, TOKEN_SYMBOL } from "./agent-config.js";
 
 const UNIT = 10n ** BigInt(TOKEN_DECIMALS);
 
-/** "1250000000" becomes "1,250.00 WUSD". Shown to the model so it never does atomic-unit math. */
+/** "1250000000" becomes "1,250.00 USDC". Shown to the model so it never does atomic-unit math. */
 export function formatAtomic(atomic: string): string {
   const value = BigInt(atomic);
   const whole = (value / UNIT).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

@@ -125,7 +125,7 @@ describe("limit bars", () => {
 
   it("read the policy and usage when the overview loads", () => {
     const [exact, vendor, weekly, lifetime] = limitsFromOverview({
-      token: { symbol: "WUSD", contract_id: "x", decimals: 6, network: "NEAR testnet" },
+      token: { symbol: "USDC", contract_id: "x", decimals: 6, network: "NEAR testnet" },
       policy: { weekly_cap_atomic: "20000000000", lifetime_cap_atomic: "100000000000" },
       usage: { weekly_settled_atomic: "1250000000", weekly_reserved_atomic: "1000000000", lifetime_settled_atomic: "1250000000", lifetime_reserved_atomic: "1000000000" },
       vendors: [{ per_payment_cap_atomic: "1000000000" }, { per_payment_cap_atomic: "5000000000" }],
@@ -199,7 +199,7 @@ describe("dashboard", () => {
       "/overview": {
         data_source: "mock",
         vault_id: "vault-a.wardline.testnet",
-        token: { symbol: "WUSD", contract_id: "wusd.testnet", decimals: 6, network: "NEAR testnet" },
+        token: { symbol: "USDC", contract_id: "usdc.testnet", decimals: 6, network: "NEAR testnet" },
         manifest: { version: "A" },
         binding: { enabled: true, manifest_digest: `sha256:${"a".repeat(64)}` },
         policy: { paused: true, weekly_cap_atomic: "1000000", lifetime_cap_atomic: "5000000" },

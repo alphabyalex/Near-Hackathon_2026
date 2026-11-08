@@ -1,6 +1,6 @@
 # Agent comparison on identical cases
 
-Suite commitment `sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e`. Every agent ran the same 12 scenarios, each on a fresh ledger.
+Suite commitment `sha256:d3121beb30845c2dbdc45991400a60e609eea2eee140e4e7db0656e48f000e1c`. Every agent ran the same 12 scenarios, each on a fresh ledger.
 
 | Metric | RulesBaseline (local stub, replace with services/agent) | AlwaysReviewControl | Simulated compromised agent (local stub, not a model) |
 | --- | --- | --- | --- |

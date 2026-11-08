@@ -53,8 +53,8 @@
     "legitFalsePositiveRate": 0,
     "unsafePays": 0,
     "adversarialCatchRate": 1,
-    "latencyP50Ms": 0.022,
-    "latencyP95Ms": 0.243
+    "latencyP50Ms": 0.027,
+    "latencyP95Ms": 0.305
   },
   "families": [
     {
@@ -1410,7 +1410,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.048,
+      "latencyMs": 0.072,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1434,7 +1434,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.022,
+      "latencyMs": 0.031,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1458,7 +1458,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.499,
+      "latencyMs": 0.63,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1482,7 +1482,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.042,
+      "latencyMs": 0.034,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1529,7 +1529,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.082,
+      "latencyMs": 0.092,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1554,7 +1554,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.06,
+      "latencyMs": 0.088,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1578,7 +1578,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.249,
+      "latencyMs": 0.3,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1602,7 +1602,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.022,
+      "latencyMs": 0.03,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1626,7 +1626,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.017,
+      "latencyMs": 0.025,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1651,7 +1651,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.05,
+      "latencyMs": 0.075,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1676,7 +1676,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.025,
+      "latencyMs": 0.036,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1700,7 +1700,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.221,
+      "latencyMs": 0.26,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1724,7 +1724,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.02,
+      "latencyMs": 0.033,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1747,7 +1747,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.015,
+      "latencyMs": 0.026,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1772,7 +1772,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.022,
+      "latencyMs": 0.036,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1797,7 +1797,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.052,
+      "latencyMs": 0.076,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1821,7 +1821,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.203,
+      "latencyMs": 0.245,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1845,7 +1845,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.021,
+      "latencyMs": 0.035,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1869,7 +1869,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.015,
+      "latencyMs": 0.025,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1893,7 +1893,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.08,
+      "latencyMs": 0.079,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1918,7 +1918,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.076,
+      "latencyMs": 0.074,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1942,7 +1942,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.369,
+      "latencyMs": 0.308,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1966,7 +1966,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.036,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -1989,7 +1989,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.017,
+      "latencyMs": 0.022,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2013,7 +2013,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.071,
+      "latencyMs": 0.103,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": false,
@@ -2038,7 +2038,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.049,
+      "latencyMs": 0.074,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2062,7 +2062,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.226,
+      "latencyMs": 0.26,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2086,7 +2086,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.03,
+      "latencyMs": 0.029,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2110,7 +2110,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.021,
+      "latencyMs": 0.028,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2133,7 +2133,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.051,
+      "latencyMs": 0.078,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2158,7 +2158,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.021,
+      "latencyMs": 0.031,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2182,7 +2182,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.225,
+      "latencyMs": 0.295,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2205,7 +2205,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2228,7 +2228,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.025,
+      "latencyMs": 0.022,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2252,7 +2252,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.075,
+      "latencyMs": 0.084,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2278,7 +2278,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.054,
+      "latencyMs": 0.075,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2302,7 +2302,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.274,
+      "latencyMs": 0.234,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2326,7 +2326,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2350,7 +2350,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.012,
+      "latencyMs": 0.022,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2375,7 +2375,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.032,
+      "latencyMs": 0.05,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2400,7 +2400,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2424,7 +2424,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.268,
+      "latencyMs": 0.274,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2448,7 +2448,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.039,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2471,7 +2471,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.054,
+      "latencyMs": 0.023,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2494,7 +2494,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2519,7 +2519,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.02,
+      "latencyMs": 0.016,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2543,7 +2543,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.301,
+      "latencyMs": 0.231,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2567,7 +2567,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.014,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2591,7 +2591,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.014,
+      "latencyMs": 0.018,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2615,7 +2615,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.03,
+      "latencyMs": 0.043,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2640,7 +2640,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.029,
+      "latencyMs": 0.044,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2664,7 +2664,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.196,
+      "latencyMs": 0.263,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2688,7 +2688,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.014,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2711,7 +2711,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.013,
+      "latencyMs": 0.011,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2735,7 +2735,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.031,
+      "latencyMs": 0.044,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": false,
@@ -2760,7 +2760,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.029,
+      "latencyMs": 0.041,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2784,7 +2784,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.194,
+      "latencyMs": 0.31,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2808,7 +2808,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2832,7 +2832,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.014,
+      "latencyMs": 0.019,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2856,7 +2856,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.046,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2881,7 +2881,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.03,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2905,7 +2905,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.215,
+      "latencyMs": 0.374,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2929,7 +2929,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2952,7 +2952,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.013,
+      "latencyMs": 0.019,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -2975,7 +2975,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.023,
+      "latencyMs": 0.031,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3000,7 +3000,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.016,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3024,7 +3024,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.213,
+      "latencyMs": 0.264,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3048,7 +3048,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.015,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3072,7 +3072,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.013,
+      "latencyMs": 0.019,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3096,7 +3096,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.017,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3121,7 +3121,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.019,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3145,7 +3145,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.245,
+      "latencyMs": 0.305,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3169,7 +3169,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.029,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3192,7 +3192,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.012,
+      "latencyMs": 0.019,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3216,7 +3216,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.029,
+      "latencyMs": 0.045,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3242,7 +3242,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.033,
+      "latencyMs": 0.078,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3266,7 +3266,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.217,
+      "latencyMs": 0.342,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3289,7 +3289,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.012,
+      "latencyMs": 0.013,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3313,7 +3313,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.021,
+      "latencyMs": 0.01,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3336,7 +3336,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.066,
+      "latencyMs": 0.028,
       "caught": true,
       "verdictMatch": false,
       "exactMatch": false,
@@ -3360,7 +3360,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.02,
+      "latencyMs": 0.013,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3384,7 +3384,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.204,
+      "latencyMs": 0.277,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3408,7 +3408,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3431,7 +3431,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.02,
+      "latencyMs": 0.026,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3455,7 +3455,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.058,
+      "latencyMs": 0.055,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": false,
@@ -3480,7 +3480,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.032,
+      "latencyMs": 0.051,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3504,7 +3504,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.203,
+      "latencyMs": 0.28,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3528,7 +3528,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3552,7 +3552,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.013,
+      "latencyMs": 0.022,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3575,7 +3575,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.025,
+      "latencyMs": 0.071,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3600,7 +3600,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3624,7 +3624,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.182,
+      "latencyMs": 0.296,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3648,7 +3648,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3671,7 +3671,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.012,
+      "latencyMs": 0.02,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3696,7 +3696,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.027,
+      "latencyMs": 0.041,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3720,7 +3720,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.202,
+      "latencyMs": 0.296,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3744,7 +3744,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3768,7 +3768,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.011,
+      "latencyMs": 0.016,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3791,7 +3791,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.025,
+      "latencyMs": 0.041,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3816,7 +3816,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.022,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3840,7 +3840,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.204,
+      "latencyMs": 0.266,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3864,7 +3864,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.02,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3887,7 +3887,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.014,
+      "latencyMs": 0.019,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3911,7 +3911,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.036,
+      "latencyMs": 0.041,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3936,7 +3936,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.025,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3960,7 +3960,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.193,
+      "latencyMs": 0.351,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -3984,7 +3984,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.021,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4008,7 +4008,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.017,
+      "latencyMs": 0.026,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4032,7 +4032,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.04,
+      "latencyMs": 0.062,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4057,7 +4057,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.04,
+      "latencyMs": 0.046,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4081,7 +4081,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.194,
+      "latencyMs": 0.308,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4105,7 +4105,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4128,7 +4128,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.014,
+      "latencyMs": 0.017,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4152,7 +4152,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.033,
+      "latencyMs": 0.042,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4177,7 +4177,7 @@
         "NEW_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.032,
+      "latencyMs": 0.042,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4201,7 +4201,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.197,
+      "latencyMs": 0.261,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4225,7 +4225,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4249,7 +4249,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.015,
+      "latencyMs": 0.02,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4273,7 +4273,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.017,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4298,7 +4298,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.021,
+      "latencyMs": 0.068,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4322,7 +4322,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.251,
+      "latencyMs": 0.37,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4346,7 +4346,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.03,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4369,7 +4369,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.013,
+      "latencyMs": 0.023,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4393,7 +4393,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.038,
+      "latencyMs": 0.049,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4417,7 +4417,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4441,7 +4441,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.207,
+      "latencyMs": 0.36,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4465,7 +4465,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.027,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4489,7 +4489,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.025,
+      "latencyMs": 0.022,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4513,7 +4513,7 @@
         "NEW_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.035,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4539,7 +4539,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.072,
+      "latencyMs": 0.049,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4563,7 +4563,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.301,
+      "latencyMs": 0.262,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4587,7 +4587,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.027,
+      "latencyMs": 0.028,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4633,7 +4633,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.053,
+      "latencyMs": 0.047,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4659,7 +4659,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.046,
+      "latencyMs": 0.076,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4683,7 +4683,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.233,
+      "latencyMs": 0.381,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4707,7 +4707,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4731,7 +4731,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.015,
+      "latencyMs": 0.021,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4754,7 +4754,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.038,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4778,7 +4778,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.011,
+      "latencyMs": 0.017,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4802,7 +4802,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.193,
+      "latencyMs": 0.326,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4825,7 +4825,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.012,
+      "latencyMs": 0.015,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4848,7 +4848,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.015,
+      "latencyMs": 0.019,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4872,7 +4872,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.035,
+      "latencyMs": 0.049,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4897,7 +4897,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.021,
+      "latencyMs": 0.034,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4921,7 +4921,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.192,
+      "latencyMs": 0.269,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -4969,7 +4969,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.01,
+      "latencyMs": 0.013,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5018,7 +5018,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.02,
+      "latencyMs": 0.013,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5042,7 +5042,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.207,
+      "latencyMs": 0.161,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5066,7 +5066,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.012,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5089,7 +5089,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.011,
+      "latencyMs": 0.009,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5113,7 +5113,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.039,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5138,7 +5138,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.033,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5162,7 +5162,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.247,
+      "latencyMs": 0.268,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5186,7 +5186,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.012,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5210,7 +5210,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.013,
+      "latencyMs": 0.011,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5234,7 +5234,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.037,
+      "latencyMs": 0.021,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5258,7 +5258,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.012,
+      "latencyMs": 0.01,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5282,7 +5282,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.243,
+      "latencyMs": 0.222,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5305,7 +5305,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.011,
+      "latencyMs": 0.009,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5328,7 +5328,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.015,
+      "latencyMs": 0.018,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5353,7 +5353,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.04,
+      "latencyMs": 0.048,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5378,7 +5378,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.023,
+      "latencyMs": 0.021,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5402,7 +5402,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.376,
+      "latencyMs": 0.338,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5426,7 +5426,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.012,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5450,7 +5450,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.027,
+      "latencyMs": 0.012,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5500,7 +5500,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.02,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5524,7 +5524,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.19,
+      "latencyMs": 0.252,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5548,7 +5548,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.018,
+      "latencyMs": 0.028,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5571,7 +5571,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.012,
+      "latencyMs": 0.017,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5595,7 +5595,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.032,
+      "latencyMs": 0.031,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5620,7 +5620,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.048,
+      "latencyMs": 0.029,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5644,7 +5644,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.197,
+      "latencyMs": 0.206,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5668,7 +5668,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.013,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5692,7 +5692,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.012,
+      "latencyMs": 0.01,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5716,7 +5716,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.035,
+      "latencyMs": 0.022,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5741,7 +5741,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.014,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5765,7 +5765,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.205,
+      "latencyMs": 0.15,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5789,7 +5789,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.012,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5812,7 +5812,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.012,
+      "latencyMs": 0.01,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5836,7 +5836,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.014,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5861,7 +5861,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.028,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5885,7 +5885,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.269,
+      "latencyMs": 0.16,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5909,7 +5909,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.021,
+      "latencyMs": 0.011,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5933,7 +5933,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.024,
+      "latencyMs": 0.012,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5958,7 +5958,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.033,
+      "latencyMs": 0.031,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -5983,7 +5983,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.025,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6007,7 +6007,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.192,
+      "latencyMs": 0.167,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6031,7 +6031,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.011,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6054,7 +6054,7 @@
         "VERIFIED_MATCH"
       ],
       "evidenceTier": "T3_RELATIONSHIP",
-      "latencyMs": 0.011,
+      "latencyMs": 0.01,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6078,7 +6078,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6128,7 +6128,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.188,
+      "latencyMs": 0.235,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6152,7 +6152,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.012,
+      "latencyMs": 0.022,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6176,7 +6176,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T2_DOMAIN_LINKED",
-      "latencyMs": 0.011,
+      "latencyMs": 0.017,
       "caught": false,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6202,7 +6202,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.027,
+      "latencyMs": 0.04,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6226,7 +6226,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.01,
+      "latencyMs": 0.017,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6251,7 +6251,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.018,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6276,7 +6276,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6301,7 +6301,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.018,
+      "latencyMs": 0.03,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6326,7 +6326,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.025,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6351,7 +6351,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.019,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6376,7 +6376,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.018,
+      "latencyMs": 0.028,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6401,7 +6401,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6426,7 +6426,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.028,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6451,7 +6451,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6476,7 +6476,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.022,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6500,7 +6500,7 @@
         "LOOKALIKE_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6525,7 +6525,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6550,7 +6550,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.025,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6575,7 +6575,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.022,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6600,7 +6600,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.022,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6625,7 +6625,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.028,
+      "latencyMs": 0.044,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6650,7 +6650,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.03,
+      "latencyMs": 0.047,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6676,7 +6676,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.029,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6701,7 +6701,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.026,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6726,7 +6726,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.025,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6751,7 +6751,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.028,
+      "latencyMs": 0.044,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6777,7 +6777,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.028,
+      "latencyMs": 0.043,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6802,7 +6802,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6827,7 +6827,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.025,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6852,7 +6852,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.032,
+      "latencyMs": 0.049,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6877,7 +6877,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.022,
+      "latencyMs": 0.028,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6902,7 +6902,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.055,
+      "latencyMs": 0.051,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6951,7 +6951,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.01,
+      "latencyMs": 0.014,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -6975,7 +6975,7 @@
         "NOT_IN_REGISTRY"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.009,
+      "latencyMs": 0.014,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7000,7 +7000,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7025,7 +7025,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.017,
+      "latencyMs": 0.025,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7050,7 +7050,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.023,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7075,7 +7075,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.015,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7100,7 +7100,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7125,7 +7125,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7151,7 +7151,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.038,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7176,7 +7176,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.013,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7201,7 +7201,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.018,
+      "latencyMs": 0.024,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7226,7 +7226,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7251,7 +7251,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.024,
+      "latencyMs": 0.027,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7276,7 +7276,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.059,
+      "latencyMs": 0.043,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7301,7 +7301,7 @@
         "NEW_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.039,
+      "latencyMs": 0.035,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7326,7 +7326,7 @@
         "NEW_ACCOUNT"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.043,
+      "latencyMs": 0.035,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7351,7 +7351,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.016,
+      "latencyMs": 0.021,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,
@@ -7376,7 +7376,7 @@
         "PAYEE_CHANGED"
       ],
       "evidenceTier": "T0_NONE",
-      "latencyMs": 0.014,
+      "latencyMs": 0.02,
       "caught": true,
       "verdictMatch": true,
       "exactMatch": true,

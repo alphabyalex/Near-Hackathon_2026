@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        "/api": { target: process.env.WARDLINE_DEV_API ?? "http://127.0.0.1:8787", rewrite: (path: string) => path.replace(/^\/api/, "") },
+        "/api": { target: process.env.WARDLINE_DEV_API ?? `http://127.0.0.1:${process.env.WARDLINE_API_PORT ?? 8787}`, rewrite: (path: string) => path.replace(/^\/api/, "") },
       },
     },
     test: { environment: "jsdom", css: true, include: ["test/**/*.test.{ts,tsx}"] },

@@ -6,6 +6,14 @@ AI that only pays on proof. Wardline pays for a model call only when NEAR AI's T
 
 Needs Node 20.19 or later and pnpm 12. Run these from the repo root. No keys or accounts are needed, and nothing here calls NEAR AI: AI calls replay real NEAR AI traffic recorded in `fixtures/nearai`. Commands are for a POSIX shell.
 
+Pick the API port first. Any free port works:
+
+```sh
+export WARDLINE_API_PORT=8787
+```
+
+Run that in every terminal you open below. The API and every command read it.
+
 ### 1. Build
 
 Run:
@@ -29,14 +37,14 @@ pnpm demo:providers
 WARDLINE_PAYEE_ENGINE=stub WARDLINE_REGISTRY_MODE=memory WARDLINE_AI_PROVIDER_URL=http://127.0.0.1:8791/replay/v1 WARDLINE_SEED_METER_KEYS=true pnpm --filter @wardline/api start
 ```
 
-See: `Demo providers on http://127.0.0.1:8791/{replay,cheapai,simtee}/v1` in the first. In the second, `Wardline API on http://127.0.0.1:8787 (payee engine stub, registry memory, chain sim)`, `AI gateway at /v1/ai`, two lines starting `Meter key for`, and `Owner routes at /owner`. The first run also writes a development signing key to the gitignored `.env`.
+See: `Demo providers on http://127.0.0.1:8791/{replay,cheapai,simtee}/v1` in the first. In the second, `Wardline API on http://127.0.0.1:$WARDLINE_API_PORT (payee engine stub, registry memory, chain sim)` with your port, `AI gateway at /v1/ai`, two lines starting `Meter key for`, and `Owner routes at /owner`. The first run also writes a development signing key to the gitignored `.env`.
 
 ### 3. Resolve northwind
 
 Run:
 
 ```sh
-curl -s http://127.0.0.1:8787/v1/resolve -H 'content-type: application/json' \
+curl -s http://127.0.0.1:$WARDLINE_API_PORT/v1/resolve -H 'content-type: application/json' \
   -d '{"domain":"northwind.example","chain":"near:testnet"}'
 ```
 
@@ -47,7 +55,7 @@ See: `"verdict":"PAY"`, `"account":"near:testnet:northwind.testnet"`, `"code":"V
 Run:
 
 ```sh
-curl -s http://127.0.0.1:8787/v1/check -H 'content-type: application/json' \
+curl -s http://127.0.0.1:$WARDLINE_API_PORT/v1/check -H 'content-type: application/json' \
   -d '{"payee":"near:testnet:northw1nd.testnet","vendor":{"domain":"northwind.example"}}'
 ```
 
@@ -60,20 +68,20 @@ A paid API swaps its `payTo` to a look-alike address and signs the swap with its
 Run:
 
 ```sh
-WARDLINE_API_URL=http://127.0.0.1:8787 pnpm demo:x402-swap
+WARDLINE_API_URL=http://127.0.0.1:$WARDLINE_API_PORT pnpm demo:x402-swap
 ```
 
 See: `Offer signature:  valid`, then `Verdict:          BLOCK`, `Reason:           LOOKALIKE_ACCOUNT` and `Payments made:    0`. The command exits 0.
 
 ### 6. Pay for an AI call on proof
 
-This is what an OpenAI client does after its base URL changes to `http://127.0.0.1:8787/v1/ai`. Use the key printed for `alice.testnet` in step 2.
+This is what an OpenAI client does after its base URL changes to `http://127.0.0.1:$WARDLINE_API_PORT/v1/ai`. Use the key printed for `alice.testnet` in step 2.
 
 Run:
 
 ```sh
 KEY=wk_paste_the_alice_key_here
-curl -si http://127.0.0.1:8787/v1/ai/chat/completions -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
+curl -si http://127.0.0.1:$WARDLINE_API_PORT/v1/ai/chat/completions -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
   -d '{"model":"deepseek-ai/DeepSeek-V4.1-Flash-1017","messages":[{"role":"user","content":"In one sentence, why should an AI agent verify who it is paying?"}],"max_tokens":600,"temperature":0}'
 ```
 
@@ -99,7 +107,7 @@ Run:
 pnpm demo:leaked-key
 ```
 
-See: the first leaked key gets `10 paid, 30 refused with 402 (ALLOWANCE_EXHAUSTED)`, the second `5 paid, 35 refused with 402 (BUDGET_EXHAUSTED)`, and the last line `spent 0.030000 of 0.030000 WUSD, 65 requests refused`.
+See: the first leaked key gets `20 paid, 20 refused with 402 (ALLOWANCE_EXHAUSTED)`, the second `10 paid, 30 refused with 402 (BUDGET_EXHAUSTED)`, and the last line `spent 15.00 of 15.00 USDC, 50 requests refused`.
 
 ### 9. Run the tests
 

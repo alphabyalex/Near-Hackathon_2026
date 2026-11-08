@@ -3,7 +3,7 @@
 import type Database from "better-sqlite3";
 import { buildProposal, createSimDao, createSputnikClient, type DaoClient, type WardlineContracts } from "@wardline/dao-adapter";
 import { SIM_MODEL } from "@wardline/demo-provider";
-import { readEnv } from "@wardline/schemas";
+import { readEnv, usdcAccount } from "@wardline/schemas";
 import { chainModeFromEnv, createChain, GROUP_BUDGET, GROUP_DAO, type Chain } from "./chain/index.js";
 import type { GatewayOptions } from "./meter/gateway.js";
 import { routesFromEnv, type RouteTable } from "./meter/models.js";
@@ -35,7 +35,7 @@ export function contractsFromEnv(env: Record<string, string | undefined>): Wardl
     meter: readEnv("WARDLINE_METER_CONTRACT", env) ?? "meter.wardline.testnet",
     registry: readEnv("WARDLINE_MODEL_REGISTRY_CONTRACT", env) ?? "models.wardline.testnet",
     pool: readEnv("WARDLINE_COVER_POOL_CONTRACT", env) ?? "mutual.wardline.testnet",
-    token: readEnv("WARDLINE_TOKEN_CONTRACT", env) ?? "wusd.wardline.testnet",
+    token: usdcAccount(env),
     vault: readEnv("WARDLINE_GROUP_VAULT", env) ?? "vault-a.wardline.testnet",
   };
 }
@@ -51,7 +51,7 @@ export function aiRoutesFromEnv(env: Record<string, string | undefined>, simMode
   if (!simMode) return { providers, models: base.models };
   return {
     providers: [...providers, { id: "simtee", baseUrl: (readEnv("WARDLINE_SIMTEE_URL", env) ?? "http://127.0.0.1:8791/simtee/v1").replace(/\/$/, ""), payTo: "sim-provider.testnet" }],
-    models: [...base.models, { id: SIM_MODEL, provider: "simtee", label: "Sim Echo (local test TEE)", inputPerM: 0, outputPerM: 0, perCall: 2_000, defaultMaxTokens: 256 }],
+    models: [...base.models, { id: SIM_MODEL, provider: "simtee", label: "Sim Echo (local test TEE)", inputPerM: 0, outputPerM: 0, perCall: 500_000, defaultMaxTokens: 256 }],
   };
 }
 
@@ -65,8 +65,8 @@ export function simGroupDao(now: Date, contracts: WardlineContracts): DaoClient 
       { proposer: "alice.testnet", input: buildProposal({ type: "fund_budget", budget_id: GROUP_BUDGET, amount: "25000000" }, contracts, "Weekly AI budget"), at: at(6), votes: [["alice.testnet", "VoteApprove"], ["bob.testnet", "VoteApprove"]] },
       { proposer: "bob.testnet", input: buildProposal({ type: "add_provider", provider_id: "nearai", pay_to: "nearai.testnet", model_ids: ["deepseek-ai/DeepSeek-V4.1-Flash-1017", "z-ai/glm-5.3-flash"] }, contracts), at: at(5), votes: [["alice.testnet", "VoteApprove"], ["carol.testnet", "VoteApprove"]] },
       { proposer: "alice.testnet", input: buildProposal({ type: "set_allowance", budget_id: GROUP_BUDGET, member: "ci-agent.testnet", allowance: "15000000" }, contracts, "CI runs nightly evals"), at: at(1), votes: [["alice.testnet", "VoteApprove"]] },
-      { proposer: "bob.testnet", input: { description: "Pay northwind.example invoice 55187 for lab freight", kind: { Transfer: { token_id: contracts.token, receiver_id: "northwind.testnet", amount: "1200000000", msg: null } } }, at: at(1) },
-      { proposer: "carol.testnet", input: { description: "Pay northwind.example invoice 55190. Their bank details changed, see email", kind: { Transfer: { token_id: contracts.token, receiver_id: "northw1nd.testnet", amount: "950000000", msg: null } } }, at: at(0.2) },
+      { proposer: "bob.testnet", input: { description: "Pay northwind.example invoice 55187 for lab freight", kind: { Transfer: { token_id: contracts.token, receiver_id: "northwind.testnet", amount: "12000000", msg: null } } }, at: at(1) },
+      { proposer: "carol.testnet", input: { description: "Pay northwind.example invoice 55190. Their bank details changed, see email", kind: { Transfer: { token_id: contracts.token, receiver_id: "northw1nd.testnet", amount: "9500000", msg: null } } }, at: at(0.2) },
       { proposer: "bob.testnet", input: buildProposal({ type: "approve_payout_change", vendor_id: "vnd_fernhill", revision: 2, account: "fernhill-cloud.testnet" }, contracts, "fernhill.example says it moved hosts"), at: at(0.5) },
     ],
   });

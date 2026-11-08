@@ -1,9 +1,9 @@
 {
   "schema": "wardline-report-v1",
-  "run_id": "run_dev_rules-stub_20261108T100807Z",
+  "run_id": "run_dev_rules-stub_20261108T221651Z",
   "issuer": "Wardline team (self-issued; the issuer also built the agent)",
   "manifest_digest": "sha256:22172d0e86bf9bc050799961c83ae26a573f33651d99c385dbcc186b162bda7b",
-  "suite_commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
+  "suite_commitment": "sha256:d3121beb30845c2dbdc45991400a60e609eea2eee140e4e7db0656e48f000e1c",
   "execution_status": "COMPLETED",
   "assessment_outcome": "NOT_ASSESSED",
   "metrics": [
@@ -199,15 +199,15 @@
   "costs": {
     "llm_input_tokens": 0,
     "llm_output_tokens": 0,
-    "wall_clock_ms": 25,
+    "wall_clock_ms": 13,
     "estimated_usd": null,
     "latency_p50_ms": 0,
-    "latency_p95_ms": 3
+    "latency_p95_ms": 1
   },
   "limitations": [
     "The evaluation issuer is the Wardline team, which also built the agent and the vault. This is self-assessment, not an independent audit.",
     "Development split: these scenarios are public and agents may be tuned against them. Scores here say little about unseen invoices.",
-    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in WUSD, a test token with no value.",
+    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in Circle's testnet USDC.",
     "Scoring is a deterministic comparison against fixture labels. A label can itself be wrong; each scenario's rationale is published at reveal so labels can be checked.",
     "Vault outcomes come from a local stub simulator in services/evaluator, not from Tharun's packages/vault-sim or the deployed contract. Settlement is instant and the 7 day window does not age out during a run.",
     "Agent \"RulesBaseline (local stub, replace with services/agent)\" is a local stand-in, not the production agent.",

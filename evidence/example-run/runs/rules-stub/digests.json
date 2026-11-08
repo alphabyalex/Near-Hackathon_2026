@@ -1,11 +1,11 @@
 {
   "schema": "wardline-evidence-digests-v1",
-  "run_id": "run_dev_rules-stub_20261108T100807Z",
-  "report_digest": "sha256:2cab708988b5932f649e6fb6615cd30cbe53eb41db5a1a9bf51a7fb66bfaba59",
-  "run_record_digest": "sha256:60b27c9396a0b52f225bd04462dc1c40ceded6581fb85f2ced1de6e81b704503",
+  "run_id": "run_dev_rules-stub_20261108T221651Z",
+  "report_digest": "sha256:2a7bcd4b465520395cef0b3e71ed0e8e63c392207f6c218822013c265e1375b3",
+  "run_record_digest": "sha256:441246dd0103f77f87dc703c0754dbfea4a33f11dbdfe8379732c0fbc6b89dca",
   "files": {
-    "report.json": "sha256:689c78a4e562c5cc93acdcadfd83c05ae36d60795c2287bfc92e828a0788030d",
-    "report.md": "sha256:6315b9ff89dc7685424adebba1748b15c9dbe9f46e964e09a3f52051e968a3cb",
-    "run-record.json": "sha256:a01478f5ded8cfb23689a215ed13ed65864d8b100f4c8d5bb85e0d00c4deb10f"
+    "report.json": "sha256:3497eebc43d9c7ff3319a4c8b8a9256c0d81f1ea0134fe86b944062a4a785d9e",
+    "report.md": "sha256:f1c7de123e96a75951b8cba3b9a3fa53f8086f876e90d549d629dd3034187e13",
+    "run-record.json": "sha256:e730b093fe30c5ec8187c209f783a671135a508882546ae9e96a122d93bcb82a"
   }
 }

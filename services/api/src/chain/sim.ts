@@ -18,6 +18,7 @@ import type {
   ModelRegistryClient,
   PoolPosition,
   PoolView,
+  WardPricePoint,
   ReserveResult,
   SettleResult,
 } from "./types.js";
@@ -218,47 +219,70 @@ export class SimMeter implements MeterClient {
 export interface SimPoolSeed {
   junior: string;
   junior_holder: string;
-  senior: string;
   withdraw_delay_days: number;
   large_claim_threshold: string;
   /** Largest single claim, as a share of TVL in basis points. */
   max_claim_bps: number;
+  /** LPs who bought WARD at launch, at 1 USDC each. */
   positions: { account: string; amount: string }[];
+  /** A DEX pool where WARD trades, if one exists. */
+  trade_url?: string | null;
 }
 
 const SCALE = 1_000_000n;
 
+interface Redemption {
+  id: string;
+  account: string;
+  ward: bigint;
+  requested: number;
+}
+
+/**
+ * Wardline Mutual with WARD. Junior (first-loss) is Wardline's own USDC. Senior is the USDC behind
+ * WARD: price = senior / supply. Deposits mint WARD at the current price, so they do not move it;
+ * fees raise it; payouts beyond the junior stake lower it. Redemptions lock WARD for the wait, then
+ * burn it for USDC at the price on that day.
+ */
 export class SimPool implements CoverPoolClient {
   readonly mode = "sim" as const;
   private junior: bigint;
-  private senior: bigint;
-  private shares = 0n;
+  private senior = 0n;
+  private supply = 0n;
   private fees = 0n;
   private paid = 0n;
-  private readonly positions = new Map<string, bigint>();
-  private readonly withdrawals: { id: string; account: string; shares: bigint; requested: number }[] = [];
+  private readonly balances = new Map<string, bigint>();
+  private readonly redemptions: Redemption[] = [];
   private readonly claims: ClaimView[] = [];
+  private readonly history: WardPricePoint[] = [];
 
   constructor(
     private readonly seed: SimPoolSeed,
     private readonly now: Clock,
   ) {
     this.junior = big(seed.junior);
-    this.senior = 0n;
+    this.mark("launch");
     for (const p of seed.positions) this.mint(p.account, big(p.amount));
-    if (this.senior === 0n) this.senior = big(seed.senior);
   }
 
   private price(): bigint {
-    return this.shares === 0n ? SCALE : (this.senior * SCALE) / this.shares;
+    return this.supply === 0n ? SCALE : (this.senior * SCALE) / this.supply;
   }
 
-  private mint(account: string, amount: bigint): bigint {
-    const shares = (amount * SCALE) / this.price();
-    this.senior += amount;
-    this.shares += shares;
-    this.positions.set(account, (this.positions.get(account) ?? 0n) + shares);
-    return shares;
+  private mark(event: WardPricePoint["event"]): void {
+    this.history.push({ at: this.now().toISOString(), price: this.price().toString(), event });
+  }
+
+  private mint(account: string, usdc: bigint): bigint {
+    const ward = (usdc * SCALE) / this.price();
+    this.senior += usdc;
+    this.supply += ward;
+    this.balances.set(account, (this.balances.get(account) ?? 0n) + ward);
+    return ward;
+  }
+
+  private locked(account: string): bigint {
+    return this.redemptions.filter((r) => r.account === account).reduce((n, r) => n + r.ward, 0n);
   }
 
   async getPool(): Promise<PoolView> {
@@ -268,44 +292,67 @@ export class SimPool implements CoverPoolClient {
       junior: this.junior.toString(),
       senior: this.senior.toString(),
       junior_holder: this.seed.junior_holder,
-      share_price: this.price().toString(),
-      senior_shares: this.shares.toString(),
+      ward_symbol: "WARD",
+      ward_name: "Wardline Mutual share",
+      ward_supply: this.supply.toString(),
+      ward_price: this.price().toString(),
+      launch_price: SCALE.toString(),
+      price_history: [...this.history],
       fees_earned: this.fees.toString(),
       claims_paid: this.paid.toString(),
       coverage_capacity: ((tvl * BigInt(this.seed.max_claim_bps)) / 10_000n).toString(),
       withdraw_delay_days: this.seed.withdraw_delay_days,
       large_claim_threshold: this.seed.large_claim_threshold,
+      trade_url: this.seed.trade_url ?? null,
     };
   }
 
   async getPosition(account: string): Promise<PoolPosition> {
-    const shares = this.positions.get(account) ?? 0n;
+    const balance = this.balances.get(account) ?? 0n;
+    const locked = this.locked(account);
     const delay = this.seed.withdraw_delay_days * 86_400_000;
+    const price = this.price();
     return {
       account,
-      shares: shares.toString(),
-      value: ((shares * this.price()) / SCALE).toString(),
-      pending_withdrawals: this.withdrawals
-        .filter((w) => w.account === account)
-        .map((w) => ({ id: w.id, shares: w.shares.toString(), value: ((w.shares * this.price()) / SCALE).toString(), requested_at: new Date(w.requested).toISOString(), available_at: new Date(w.requested + delay).toISOString() })),
+      ward: (balance - locked).toString(),
+      ward_locked: locked.toString(),
+      value: ((balance * price) / SCALE).toString(),
+      pending_withdrawals: this.redemptions
+        .filter((r) => r.account === account)
+        .map((r) => ({ id: r.id, ward: r.ward.toString(), value: ((r.ward * price) / SCALE).toString(), requested_at: new Date(r.requested).toISOString(), available_at: new Date(r.requested + delay).toISOString() })),
     };
   }
 
-  async deposit(account: string, amount: string): Promise<{ tx: string; shares: string }> {
-    const value = big(amount);
-    if (value <= 0n) throw new Error("Deposit must be positive");
-    return { tx: simTx("deposit", account), shares: this.mint(account, value).toString() };
+  async deposit(account: string, amount: string): Promise<{ tx: string; ward: string }> {
+    const usdc = big(amount);
+    if (usdc <= 0n) throw new Error("Deposit must be positive");
+    const ward = this.mint(account, usdc);
+    this.mark("deposit");
+    return { tx: simTx("deposit", account), ward: ward.toString() };
   }
 
-  async requestWithdraw(account: string, shares: string): Promise<{ tx: string; id: string; available_at: string }> {
-    const want = big(shares);
-    const held = this.positions.get(account) ?? 0n;
-    const queued = this.withdrawals.filter((w) => w.account === account).reduce((n, w) => n + w.shares, 0n);
-    if (want <= 0n || want > held - queued) throw new Error("Not enough shares to withdraw");
+  async requestWithdraw(account: string, ward: string): Promise<{ tx: string; id: string; available_at: string }> {
+    const want = big(ward);
+    const free = (this.balances.get(account) ?? 0n) - this.locked(account);
+    if (want <= 0n || want > free) throw new Error("Not enough free WARD to redeem");
     const requested = this.now().getTime();
-    const id = `wd_${createHash("sha256").update(`${account}:${requested}:${this.withdrawals.length}`).digest("hex").slice(0, 10)}`;
-    this.withdrawals.push({ id, account, shares: want, requested });
-    return { tx: simTx("withdraw", account), id, available_at: new Date(requested + this.seed.withdraw_delay_days * 86_400_000).toISOString() };
+    const id = `rd_${createHash("sha256").update(`${account}:${requested}:${this.redemptions.length}`).digest("hex").slice(0, 10)}`;
+    this.redemptions.push({ id, account, ward: want, requested });
+    return { tx: simTx("lock", account), id, available_at: new Date(requested + this.seed.withdraw_delay_days * 86_400_000).toISOString() };
+  }
+
+  async redeem(account: string, id: string): Promise<{ tx: string; usdc: string }> {
+    const i = this.redemptions.findIndex((r) => r.id === id && r.account === account);
+    if (i < 0) throw new Error("No such redemption");
+    const r = this.redemptions[i]!;
+    if (this.now().getTime() < r.requested + this.seed.withdraw_delay_days * 86_400_000) throw new Error("The 7-day wait is not over yet");
+    const usdc = (r.ward * this.price()) / SCALE;
+    this.redemptions.splice(i, 1);
+    this.balances.set(account, (this.balances.get(account) ?? 0n) - r.ward);
+    this.supply -= r.ward;
+    this.senior -= usdc;
+    this.mark("redeem");
+    return { tx: simTx("redeem", account), usdc: usdc.toString() };
   }
 
   async listClaims(): Promise<ClaimView[]> {
@@ -314,6 +361,7 @@ export class SimPool implements CoverPoolClient {
 
   async fileClaim(args: { subject: string; claimant: string; amount: string; reason: string }): Promise<ClaimView> {
     const amount = big(args.amount);
+    const before = this.price().toString();
     const claim: ClaimView = {
       claim_id: `clm_${createHash("sha256").update(`${args.subject}:${this.claims.length}`).digest("hex").slice(0, 10)}`,
       subject: args.subject,
@@ -323,18 +371,21 @@ export class SimPool implements CoverPoolClient {
       status: "pending_vote",
       paid_from_junior: "0",
       paid_from_senior: "0",
+      ward_price_before: before,
+      ward_price_after: before,
       filed_at: this.now().toISOString(),
       tx: null,
     };
     const capacity = big((await this.getPool()).coverage_capacity);
     if (amount <= big(this.seed.large_claim_threshold) && amount <= capacity) {
-      // We lose first: the junior tranche absorbs the loss before any senior LP is touched.
+      // We lose first: Wardline's junior stake absorbs the loss before WARD holders are touched.
       const fromJunior = min(amount, this.junior);
       const fromSenior = amount - fromJunior;
       this.junior -= fromJunior;
       this.senior -= fromSenior;
       this.paid += amount;
-      Object.assign(claim, { status: "paid", paid_from_junior: fromJunior.toString(), paid_from_senior: fromSenior.toString(), tx: simTx("claim", claim.claim_id) });
+      Object.assign(claim, { status: "paid", paid_from_junior: fromJunior.toString(), paid_from_senior: fromSenior.toString(), ward_price_after: this.price().toString(), tx: simTx("claim", claim.claim_id) });
+      this.mark("claim");
     }
     this.claims.push(claim);
     return claim;
@@ -342,8 +393,10 @@ export class SimPool implements CoverPoolClient {
 
   async addFees(amount: string): Promise<void> {
     const value = big(amount);
+    if (value === 0n) return;
     this.fees += value;
     this.senior += value;
+    this.mark("fees");
   }
 }
 

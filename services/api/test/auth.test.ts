@@ -194,7 +194,7 @@ describe("owner routes", () => {
   it.each(ROUTES)("%s %s needs a session", async (method, path) => {
     const { app, deps } = setup();
     const before = deps.world.vaults.get("vault-a.wardline.testnet")?.balance_atomic;
-    const body = { source_text: "Invoice INV-1003 from Fernhill. Total 800.00 WUSD.", payer: "acme.testnet", account: "northwind.testnet", compromised: true };
+    const body = { source_text: "Invoice INV-1003 from Fernhill. Total 800.00 USDC.", payer: "acme.testnet", account: "northwind.testnet", compromised: true };
     const res = await app.request(path, method === "POST" ? json(body) : {});
     expect(res.status).toBe(401);
     expect(deps.world.vaults.get("vault-a.wardline.testnet")?.balance_atomic).toBe(before);
@@ -400,6 +400,8 @@ describe("binding", () => {
   it("binds to localhost by default and to all interfaces only with the flag", () => {
     expect(serverConfigFromEnv({}, auth)).toEqual({ port: 8787, host: "127.0.0.1", ownerPort: null, ownerHost: "127.0.0.1" });
     expect(serverConfigFromEnv({ WARDLINE_BIND_PUBLIC: "true" }, auth).host).toBe("0.0.0.0");
+    expect(serverConfigFromEnv({ WARDLINE_API_PORT: "8797" }, auth).port).toBe(8797);
+    expect(serverConfigFromEnv({ API_PORT: "8798" }, auth).port).toBe(8798);
     expect(serverConfigFromEnv({ WARDLINE_BIND_PUBLIC: "true", WARDLINE_OWNER_PORT: "8788" }, auth)).toMatchObject({ host: "0.0.0.0", ownerPort: 8788, ownerHost: "127.0.0.1" });
   });
 
