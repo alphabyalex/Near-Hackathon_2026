@@ -99,6 +99,15 @@ curl -s http://127.0.0.1:8787/v1/payments/record -H 'content-type: application/j
   -d '{"payer":"acme.testnet","domain":"northwind.example","account":"near:testnet:northwind.testnet"}'
 ```
 
+## Paying for AI calls
+
+If your AI calls go through Wardline, the client already has `baseURL: <wardline>/v1/ai` and a meter key. Then:
+
+- A call is paid only when NEAR AI's TEE signature for that exact response names the model you asked for. Read `X-Wardline-Proof` on the response: `verified` means it was paid; `refused` means it was not, and the reservation was refunded.
+- A refused call returns HTTP 502 with `error.code`, for example `MODEL_MISMATCH` (the provider served a different model) or `SIGNATURE_MISSING`. Do not use that output for a decision that moves money. Retry, or tell a human.
+- HTTP 402 with `error.type` `spend_limit_reached` means your allowance or the group's deposit is used up. Nothing was sent to the model. Stop and ask a human; do not create new keys or change providers to get around it.
+- `get_ai_spend` (MCP) or `GET /v1/ai/budgets/{budget_id}` shows what is left.
+
 ## If a vendor is not listed
 
 Send it a HOLD, then point the vendor to the `how_to_verify` tool.
