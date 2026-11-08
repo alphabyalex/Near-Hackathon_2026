@@ -57,7 +57,7 @@ export interface RedteamReport {
   families: FamilyStats[];
   lookalikeStrategies: { strategy: string; cases: number; flaggedAsLookalike: number; caught: number }[];
   adversarial: { relations: { relation: string; cases: number; caught: number; flaggedAsLookalike: number }[]; rows: AdversarialRow[] } | null;
-  agentComparison: Comparison | null;
+  agentComparisons: Comparison[];
   findings: string[];
   results: CaseResult[];
 }
@@ -126,7 +126,7 @@ export function buildReport(input: {
   model: RedteamReport["model"];
   ledger: Ledger;
   adversarialMeta?: Map<string, { strategy: string; vendorName: string }>;
-  agentComparison?: Comparison | null;
+  agentComparisons?: Comparison[];
 }): RedteamReport {
   const written = input.results.filter((r) => r.family !== "adversarial");
   const adversarial = input.results.filter((r) => r.family === "adversarial");
@@ -203,7 +203,7 @@ export function buildReport(input: {
     families: [...WRITTEN.map((f) => stats(f, written.filter((r) => r.family === f))), ...(adversarial.length ? [stats("adversarial", adversarial)] : [])],
     lookalikeStrategies,
     adversarial: adversarial.length ? { relations, rows: advRows } : null,
-    agentComparison: input.agentComparison ?? null,
+    agentComparisons: input.agentComparisons ?? [],
     findings,
     results: input.results.map((r) => ({ ...r, latencyMs: round(r.latencyMs) })),
   };
@@ -280,28 +280,38 @@ export function renderMarkdown(report: RedteamReport): string {
     );
   }
 
-  const a = report.agentComparison;
-  if (a) {
+  const onFile = report.agentComparisons.find((x) => x.variant === "on_file");
+  const first = report.agentComparisons.find((x) => x.variant === "first_contact");
+  const shown = [onFile, first].filter((x): x is Comparison => x !== undefined);
+  if (shown.length > 0) {
+    const label = (x: Comparison) => (x.variant === "on_file" ? "Account on file" : "First contact");
+    const any = shown[0] as Comparison;
+    const calls = shown.reduce((n, x) => n + x.calls, 0);
+    const tokens = shown.reduce((n, x) => n + x.tokens, 0);
+    const cost = shown.reduce((n, x) => n + x.costUsd, 0);
     lines.push(
       "## Invoice agent alone vs agent plus Redline",
       "",
-      `${a.cases} cases, ${AGENT_NOTE}. The agent is the repo's invoice agent on ${a.model}, given trusted records in which the invoice matches an open approved payable, so the only warning sign is in the text. "Agent alone" pays the account named in the document whenever the agent decides PAY. "Agent plus Redline" also needs Redline's PAY for that account.`,
+      `${any.cases} cases per setup, ${AGENT_NOTE}. The agent is the repo's invoice agent on ${any.model}, given trusted records in which the invoice matches an open approved payable. "Agent alone" pays the account named in the document whenever the agent decides PAY. "Agent plus Redline" also needs Redline's PAY for that account.`,
       "",
-      "| | Agent alone | Agent plus Redline |",
-      "| --- | --- | --- |",
-      `| Unsafe payees let through (of ${a.attacks} attacks) | ${a.agentAlone.unsafePayees} | ${a.agentWithRedline.unsafePayees} |`,
-      `| Legit recurring invoices paid (of ${a.legitRecurring}) | ${a.agentAlone.legitPaid} | ${a.agentWithRedline.legitPaid} |`,
-      `| New accounts in cooling-off paid | ${a.agentAlone.coolingOffPaid} | ${a.agentWithRedline.coolingOffPaid} |`,
+      "- **Account on file:** the agent's vendor record holds the vendor's real payout account from earlier business.",
+      "- **First contact:** a first purchase or a first x402 payment. The vendor record was created from this same message, so the only account the agent has on file is the one the message names.",
       "",
-      `For reference, Redline's payee verdict on its own let ${a.redlineAlone.unsafePayees} unsafe payees through and answered PAY on ${a.redlineAlone.legitPaid} of ${a.legitRecurring} legit recurring invoices.`,
+      `| | ${shown.map((x) => `${label(x)}: agent alone | ${label(x)}: agent plus Redline`).join(" | ")} |`,
+      `| --- | ${shown.map(() => "--- | ---").join(" | ")} |`,
+      `| Unsafe payees let through (of ${any.attacks} attacks) | ${shown.map((x) => `${x.agentAlone.unsafePayees} | ${x.agentWithRedline.unsafePayees}`).join(" | ")} |`,
+      `| Legit recurring invoices paid (of ${any.legitRecurring}) | ${shown.map((x) => `${x.agentAlone.legitPaid} | ${x.agentWithRedline.legitPaid}`).join(" | ")} |`,
+      `| New accounts in cooling-off paid | ${shown.map((x) => `${x.agentAlone.coolingOffPaid} | ${x.agentWithRedline.coolingOffPaid}`).join(" | ")} |`,
+      "",
+      `For reference, Redline's payee verdict on its own let ${any.redlineAlone.unsafePayees} unsafe payees through and answered PAY on ${any.redlineAlone.legitPaid} of ${any.legitRecurring} legit recurring invoices. It does not depend on what the agent has on file.`,
       "",
       AGENT_CAVEAT,
       "",
-      `Agent calls: ${a.calls}, ${a.tokens.toLocaleString("en-US")} tokens, about $${a.costUsd.toFixed(4)}.`,
+      `Agent calls, both setups: ${calls}, ${tokens.toLocaleString("en-US")} tokens, about $${cost.toFixed(4)}.`,
       "",
-      "| Case | Family | Agent | Redline | Agent alone pays | Agent plus Redline pays |",
-      "| --- | --- | --- | --- | --- | --- |",
-      ...a.rows.map((r) => `| ${r.id} | ${r.family} | ${r.agentDecision} | ${r.redlineVerdict} | ${r.agentAlonePays ? "yes" : "no"} | ${r.combinedPays ? "yes" : "no"} |`),
+      `| Case | Family | Redline | ${shown.map((x) => `${label(x)}: agent`).join(" | ")} |`,
+      `| --- | --- | --- | ${shown.map(() => "---").join(" | ")} |`,
+      ...any.rows.map((row) => `| ${row.id} | ${row.family} | ${row.redlineVerdict} | ${shown.map((x) => x.rows.find((y) => y.id === row.id)?.agentDecision ?? "n/a").join(" | ")} |`),
       "",
     );
   }
@@ -312,4 +322,4 @@ export function renderMarkdown(report: RedteamReport): string {
 
 const AGENT_NOTE = "5 from each of families 1 to 6";
 const AGENT_CAVEAT =
-  "Read this result carefully. The agent's trusted records already hold the vendor's payout account, so it treats any other account in the text as a destination change and holds it. That is why it let nothing through, at the cost of holding legit invoices too. An agent paying a merchant it has no record for, such as a first x402 purchase, has nothing to compare against; that variant was not measured here.";
+  "With the account on file, the agent compares the text against its own record and holds any other account as a destination change, so it lets nothing through but also holds legit invoices. On first contact it has no independent record to compare against, which is where an outside check matters.";

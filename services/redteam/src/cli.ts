@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { AgentCache, agentCacheKey, compare, pickAgentCases, runAgentDecisions, type AgentDecisionEntry, type ComparisonRow } from "./agent.js";
+import { AGENT_VARIANTS, AgentCache, agentCacheKey, compare, pickAgentCases, runAgentDecisions, type AgentDecisionEntry, type AgentVariant, type Comparison, type ComparisonRow } from "./agent.js";
 import { fillAdversarial, fillProse, type FillResult } from "./fill.js";
 import { chooseModel, nearAiJsonClient, readLedger, worstCaseCallUsd, writeLedger, type Ledger, type ModelChoice } from "./llm.js";
 import { generateAdversarialCases, generateCases, type CaseParams } from "./params.js";
@@ -149,7 +149,9 @@ function usableCases(file: CasesFile): { usable: Usable[]; adversarial: (Usable 
   return { usable, adversarial: adv, excluded };
 }
 
-async function agent(flags: { batch?: string }): Promise<void> {
+async function agent(flags: { batch?: string; variant?: string }): Promise<void> {
+  const variant = (flags.variant ?? "on-file").replace("-", "_") as AgentVariant;
+  if (!AGENT_VARIANTS.includes(variant)) throw new Error("--variant must be on-file or first-contact.");
   if (existsSync(PATHS.env)) process.loadEnvFile(PATHS.env);
   if (!process.env.NEAR_AI_API_KEY) throw new Error("NEAR_AI_API_KEY is not set in .env.");
   const { createAgent, buildManifest, manifestDigest, LLM_SETTINGS, MODEL_ID } = await import("@redline/agent");
@@ -163,7 +165,7 @@ async function agent(flags: { batch?: string }): Promise<void> {
   const llm = createAgent("llm", { version: "A" });
   const ledger = readLedger(PATHS.ledger);
   const before = { calls: ledger.calls, cost: ledger.costUsd };
-  console.log(`Agent: ${MODEL_ID}, ${picked.length} cases. Worst case per case: $${worstPerCase.toFixed(4)}.`);
+  console.log(`Agent: ${MODEL_ID}, ${picked.length} cases, variant ${variant}. Worst case per case: $${worstPerCase.toFixed(4)}.`);
   const result = await runAgentDecisions(picked, {
     batchSize: Number(flags.batch ?? 10),
     capUsd: CAP_USD,
@@ -174,8 +176,9 @@ async function agent(flags: { batch?: string }): Promise<void> {
     cache: new AgentCache(PATHS.agent),
     manifestDigest: manifestDigest(buildManifest("A")),
     worstPerCase,
+    variant,
   });
-  ledger.runs.push({ at: new Date().toISOString(), mode: "agent comparison", calls: ledger.calls - before.calls, costUsd: ledger.costUsd - before.cost });
+  ledger.runs.push({ at: new Date().toISOString(), mode: `agent comparison, ${variant}`, calls: ledger.calls - before.calls, costUsd: ledger.costUsd - before.cost });
   writeLedger(PATHS.ledger, ledger);
   console.log(`Decided ${result.decided}, ${result.cached} already cached. This run: ${ledger.calls - before.calls} calls, about $${(ledger.costUsd - before.cost).toFixed(5)}. All runs: $${ledger.costUsd.toFixed(5)} of $${CAP_USD.toFixed(2)}.`);
 }
@@ -197,20 +200,22 @@ async function bench(flags: { engine?: string; "payee-check"?: string }): Promis
 
   const byId = new Map(results.map((r) => [r.id, r]));
   const agentCache = new AgentCache(PATHS.agent);
-  const rows: ComparisonRow[] = [];
-  const entries: AgentDecisionEntry[] = [];
-  let agentModel = "";
+  const comparisons: Comparison[] = [];
   if (existsSync(PATHS.agent)) {
     const { buildManifest, manifestDigest, MODEL_ID } = await import("@redline/agent");
-    agentModel = MODEL_ID;
     const digest = manifestDigest(buildManifest("A"));
-    for (const u of pickAgentCases(usable)) {
-      const entry = agentCache.get(agentCacheKey(u.proseKey, digest));
-      const result = byId.get(u.params.id);
-      if (!entry || !result) continue;
-      entries.push(entry);
-      const agentAlonePays = entry.decision === "PAY";
-      rows.push({ id: u.params.id, family: u.params.family, agentDecision: entry.decision, redlineVerdict: result.verdict, agentAlonePays, combinedPays: agentAlonePays && result.verdict === "PAY" });
+    for (const variant of AGENT_VARIANTS) {
+      const rows: ComparisonRow[] = [];
+      const entries: AgentDecisionEntry[] = [];
+      for (const u of pickAgentCases(usable)) {
+        const entry = agentCache.get(agentCacheKey(u.proseKey, digest, variant));
+        const result = byId.get(u.params.id);
+        if (!entry || !result) continue;
+        entries.push(entry);
+        const agentAlonePays = entry.decision === "PAY";
+        rows.push({ id: u.params.id, family: u.params.family, agentDecision: entry.decision, redlineVerdict: result.verdict, agentAlonePays, combinedPays: agentAlonePays && result.verdict === "PAY" });
+      }
+      if (rows.length) comparisons.push(compare(rows, entries, MODEL_ID, isAttack, variant));
     }
   }
 
@@ -222,7 +227,7 @@ async function bench(flags: { engine?: string; "payee-check"?: string }): Promis
     model: { id: file.model, note: file.modelNote },
     ledger: readLedger(PATHS.ledger),
     adversarialMeta: new Map(adv.map((a) => [a.params.id, { strategy: a.strategy, vendorName: a.params.vendor.name }])),
-    agentComparison: rows.length ? compare(rows, entries, agentModel, isAttack) : null,
+    agentComparisons: comparisons,
   });
   mkdirSync(PATHS.evidence, { recursive: true });
   writeFileSync(mode === "live" ? PATHS.reportLive : PATHS.report, `${JSON.stringify(report, null, 2)}\n`);
@@ -232,9 +237,8 @@ async function bench(flags: { engine?: string; "payee-check"?: string }): Promis
   console.log(`Cases: ${report.cases.written} written plus ${report.cases.adversarial} adversarial, ${excluded} without usable text left out.`);
   console.log(`Attacks stopped: ${(h.attackCatchRate * 100).toFixed(1)}%. Expected verdict and reason: ${(h.attackExactMatchRate * 100).toFixed(1)}%. Legit false positives: ${(h.legitFalsePositiveRate * 100).toFixed(1)}%. Unsafe PAY: ${h.unsafePays}.`);
   if (h.adversarialCatchRate !== null) console.log(`Attacks we didn't write, stopped: ${(h.adversarialCatchRate * 100).toFixed(1)}%.`);
-  if (report.agentComparison) {
-    const a = report.agentComparison;
-    console.log(`Agent alone let ${a.agentAlone.unsafePayees} of ${a.attacks} unsafe payees through; agent plus Redline let ${a.agentWithRedline.unsafePayees}.`);
+  for (const a of report.agentComparisons) {
+    console.log(`Agent (${a.variant}) alone let ${a.agentAlone.unsafePayees} of ${a.attacks} unsafe payees through; agent plus Redline let ${a.agentWithRedline.unsafePayees}.`);
   }
   console.log(`Latency p50 ${h.latencyP50Ms} ms, p95 ${h.latencyP95Ms} ms.`);
   console.log(mode === "live" ? "Wrote evidence/redteam/report-live.json." : "Wrote evidence/redteam/report.json and docs/REDTEAM.md.");
@@ -250,6 +254,7 @@ const { positionals, values } = parseArgs({
     batch: { type: "string" },
     engine: { type: "string" },
     "payee-check": { type: "string" },
+    variant: { type: "string" },
   },
 });
 
@@ -262,7 +267,7 @@ const commands: Record<string, () => Promise<void>> = {
 };
 const run = commands[positionals[0] ?? ""];
 if (!run) {
-  console.error("Usage: tsx src/cli.ts generate | prose [--dry-run | --limit 200] | adversarial [--limit 50] | agent | bench [--engine stub|live] [--payee-check path]");
+  console.error("Usage: tsx src/cli.ts generate | prose [--dry-run | --limit 200] | adversarial [--limit 50] | agent [--variant on-file|first-contact] | bench [--engine stub|live] [--payee-check path]");
   process.exit(2);
 }
 run().catch((error: unknown) => {

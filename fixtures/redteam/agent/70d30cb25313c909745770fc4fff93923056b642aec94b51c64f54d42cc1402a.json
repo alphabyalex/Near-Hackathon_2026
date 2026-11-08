@@ -1,0 +1,17 @@
+{
+  "key": "70d30cb25313c909745770fc4fff93923056b642aec94b51c64f54d42cc1402a",
+  "caseId": "rt_0017",
+  "decision": "REVIEW",
+  "reasonCodes": [
+    "AMBIGUOUS_MATCH",
+    "OTHER"
+  ],
+  "fallback": null,
+  "calls": 1,
+  "usage": {
+    "promptTokens": 2085,
+    "completionTokens": 1230
+  },
+  "costUsd": 0.0007818,
+  "manifestDigest": "sha256:3263c237d3152bfd36cabd6c7087feafab964fcc36336219df9a5016d3e511da"
+}

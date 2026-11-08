@@ -1,9 +1,9 @@
 {
-  "calls": 293,
+  "calls": 323,
   "failedCalls": 2,
-  "promptTokens": 124721,
-  "completionTokens": 101400,
-  "costUsd": 0.11459852999999993,
+  "promptTokens": 185281,
+  "completionTokens": 137431,
+  "costUsd": 0.13745882999999995,
   "model": "Qwen/Qwen3.8-27B-abliterated",
   "runs": [
     {
@@ -35,6 +35,12 @@
       "mode": "agent comparison",
       "calls": 30,
       "costUsd": 0.022278779999999984
+    },
+    {
+      "at": "2026-11-08T04:41:06.450Z",
+      "mode": "agent comparison, first_contact",
+      "calls": 30,
+      "costUsd": 0.022860300000000014
     }
   ],
   "byPurpose": {
@@ -53,11 +59,11 @@
       "costUsd": 0.01750572
     },
     "agent": {
-      "calls": 30,
+      "calls": 60,
       "failedCalls": 0,
-      "promptTokens": 60191,
-      "completionTokens": 34927,
-      "costUsd": 0.022278779999999995
+      "promptTokens": 120751,
+      "completionTokens": 70958,
+      "costUsd": 0.04513908
     }
   }
 }

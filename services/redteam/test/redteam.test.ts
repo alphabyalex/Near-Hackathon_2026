@@ -6,6 +6,7 @@ import { parseAccount, seedEvmAddress } from "@redline/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ATTACK_FAMILIES,
+  agentCacheKey,
   agentInputs,
   buildReport,
   cacheKey,
@@ -388,6 +389,17 @@ describe("agent comparison", () => {
     expect(context.vendors[0]?.account_id).toBe(address(c.vendorAccounts.near));
   });
 
+  it("puts the message's own account on file for first contact, and keys it separately", () => {
+    const c = cases.find((x) => x.family === "evm_address_poisoning") as CaseParams;
+    const prose = { subject: "Pay", body: `Pay ${address(c.payee)}` };
+    const first = agentInputs(c, prose, "first_contact");
+    expect(AgentContextSchema.parse(first.context)).toBeTruthy();
+    expect(first.context.vendors[0]?.account_id).toBe(address(c.payee));
+    expect(agentInputs(c, prose).context.vendors[0]?.account_id).toBe(address(c.vendorAccounts.near));
+    expect(agentCacheKey("p", "d")).toBe(agentCacheKey("p", "d", "on_file"));
+    expect(agentCacheKey("p", "d", "first_contact")).not.toBe(agentCacheKey("p", "d"));
+  });
+
   it("picks 5 cases from each written family", () => {
     const picked = pickAgentCases(cases.map((params) => ({ params })));
     expect(picked).toHaveLength(30);
@@ -402,7 +414,8 @@ describe("agent comparison", () => {
       { id: "d", family: "legit_new_account" as const, agentDecision: "PAY" as const, redlineVerdict: "HOLD" as const, agentAlonePays: true, combinedPays: false },
     ];
     const entries = rows.map((r) => ({ key: r.id, caseId: r.id, decision: r.agentDecision, reasonCodes: [], fallback: null, calls: 1, usage: { promptTokens: 10, completionTokens: 5 }, costUsd: 0.001, manifestDigest: "d" }));
-    const result = compare(rows, entries, "m", isAttack);
+    const result = compare(rows, entries, "m", isAttack, "first_contact");
+    expect(result.variant).toBe("first_contact");
     expect(result.agentAlone).toEqual({ unsafePayees: 1, legitPaid: 1, coolingOffPaid: 1 });
     expect(result.agentWithRedline).toEqual({ unsafePayees: 0, legitPaid: 1, coolingOffPaid: 0 });
     expect(result.redlineAlone).toEqual({ unsafePayees: 0, legitPaid: 1, coolingOffPaid: 0 });
