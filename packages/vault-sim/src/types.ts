@@ -52,7 +52,6 @@ export interface EndpointRevisionView {
   evidence_digest: string;
   status: EndpointStatusView;
   approval_digest: string | null;
-  activates_at_ns?: string | null;
 }
 
 export interface VaultSimConfig {

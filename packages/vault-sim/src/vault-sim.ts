@@ -659,7 +659,6 @@ export class VaultSim {
         evidence_digest: e.evidence_digest,
         status: e.status,
         approval_digest: e.approval_digest,
-        activates_at_ns: e.activates_at_ns.toString(),
       })),
       active_endpoint_revision: vendor.active_endpoint_revision,
     };
@@ -682,7 +681,6 @@ export class VaultSim {
           evidence_digest: e.evidence_digest,
           status: e.status,
           approval_digest: e.approval_digest,
-          activates_at_ns: e.activates_at_ns.toString(),
         })),
         active_endpoint_revision: vendor.active_endpoint_revision,
       }));
