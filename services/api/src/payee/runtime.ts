@@ -44,6 +44,9 @@ const storeHistory = (store: Store, now: () => Date): PayeeHistoryStore => ({
   async lastAccount(payer, domain, chain) {
     return store.lastPaidAccount(payer, domain, chain);
   },
+  async hasRelationship(payer, account) {
+    return store.hasRelationship(payer, account);
+  },
 });
 
 /** The stub engine, memory registry and stub signals, unless a backend is passed in. */

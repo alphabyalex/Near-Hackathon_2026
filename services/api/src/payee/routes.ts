@@ -1,10 +1,13 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { PayeeCheckRequest, PayeeResolveRequest } from "@redline/schemas";
-import { InvalidPayeeInputError, normalizeAccount, normalizeDomain, type RegistryVendor } from "@redline/sdk";
+import { canonicalJson } from "@redline/agent";
+import { InvalidPayeeInputError, normalizeAccount, normalizeDomain, parseAccount, type RegistryVendor } from "@redline/sdk";
 import type { Context, Hono } from "hono";
+import { apiKeyFrom, PAYMENT_RECORD_RECIPIENT, paymentRecordMessage, sha256Hex, SIGNED_REQUEST_WINDOW_MS, type OwnerAuthConfig } from "../auth.js";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import type { Store } from "../store.js";
+import { verifyNep413 } from "./proofs.js";
 import type { PayeeRuntime } from "./runtime.js";
 import { verifyVendor } from "./verify-vendor.js";
 
@@ -20,6 +23,7 @@ const vendorView = (vendor: RegistryVendor) => ({
   domain: vendor.domain,
   name: vendor.name,
   legalName: vendor.legalName,
+  legalNameSource: vendor.legalName === null ? null : "vendor-claimed",
   verifiedAt: vendor.verifiedAt,
   evidenceHash: vendor.evidenceHash,
   accounts: vendor.accounts,
@@ -54,15 +58,85 @@ function paymentRequired(c: Context, runtime: PayeeRuntime) {
   return c.json(body, 402);
 }
 
-export function registerPayeeRoutes(app: Hono, runtime: PayeeRuntime, store: Store): void {
+export interface PublicVariables {
+  /** The payer an API key acts for, or null for an anonymous call. */
+  apiKeyPayer: string | null;
+  apiKeyScopes: readonly string[];
+}
+
+type PublicContext = Context<{ Variables: PublicVariables }>;
+
+const forbiddenPayer = (c: Context) =>
+  c.json({ error: "PAYER_NOT_AUTHORIZED", message: "A payer's history needs that payer's API key." }, 403);
+
+/**
+ * A payment record is accepted from that payer's API key, or with a NEP-413 signature by the payer's
+ * NEAR account over the timestamp and canonical body. Headers: x-redline-public-key,
+ * x-redline-signature, x-redline-nonce (32 bytes, base64) and x-redline-timestamp (ISO 8601).
+ */
+async function recordAuthorized(c: PublicContext, payer: string, body: unknown, runtime: PayeeRuntime, store: Store, auth: OwnerAuthConfig): Promise<Response | null> {
+  const keyPayer = c.get("apiKeyPayer");
+  if (keyPayer !== null) {
+    if (keyPayer !== payer) return forbiddenPayer(c);
+    if (!c.get("apiKeyScopes").includes("record")) {
+      return c.json({ error: "SCOPE_REQUIRED", message: "This key cannot record payments. Ask an owner for a key with the record scope." }, 403);
+    }
+    return null;
+  }
+  const publicKey = c.req.header("x-redline-public-key");
+  const signature = c.req.header("x-redline-signature");
+  const nonceText = c.req.header("x-redline-nonce");
+  const timestamp = c.req.header("x-redline-timestamp");
+  if (!publicKey || !signature || !nonceText || !timestamp) {
+    return c.json({ error: "UNAUTHORIZED", message: "Send the payer's API key, or sign the request with the payer's NEAR account." }, 401);
+  }
+  const unauthorized = (message: string) => c.json({ error: "UNAUTHORIZED", message }, 401);
+  const now = runtime.nowDate().getTime();
+  const at = Date.parse(timestamp);
+  if (Number.isNaN(at) || Math.abs(now - at) > SIGNED_REQUEST_WINDOW_MS) return unauthorized("The signed timestamp is missing or outside 5 minutes.");
+  const nonce = Uint8Array.from(Buffer.from(nonceText, "base64"));
+  if (nonce.length !== 32) return unauthorized("The nonce must be 32 bytes.");
+  let accountId: string;
+  try {
+    const parsed = parseAccount(payer, auth.network);
+    if (parsed.namespace !== "near" || parsed.reference !== auth.network) return unauthorized("Only a NEAR payer on this network can sign.");
+    accountId = parsed.address;
+  } catch {
+    return unauthorized("Only a NEAR payer account can sign.");
+  }
+  const reason = await verifyNep413(
+    { network: auth.network, accountId, publicKey, signature, nonce, message: paymentRecordMessage(timestamp, canonicalJson(body)), recipient: PAYMENT_RECORD_RECIPIENT },
+    runtime.lookupKeys,
+  ).catch(() => "The payer's keys could not be read.");
+  if (reason) return unauthorized(reason);
+  if (!store.useNonce(sha256Hex(nonceText), at + 2 * SIGNED_REQUEST_WINDOW_MS, now)) return unauthorized("This signature was already used.");
+  return null;
+}
+
+export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, runtime: PayeeRuntime, store: Store, auth: OwnerAuthConfig): void {
   const { context, engine, attestor } = runtime;
 
   app.use("/v1/*", cors());
   app.use("/.well-known/redline-attestor.json", cors());
 
   app.use("/v1/*", async (c, next) => {
+    c.set("apiKeyPayer", null);
+    c.set("apiKeyScopes", []);
     if (c.req.method === "OPTIONS") return next();
     const day = runtime.nowDate().toISOString().slice(0, 10);
+    const key = apiKeyFrom(c);
+    if (key !== null) {
+      // Keyed calls have their own daily limit, separate from the per-IP free tier.
+      const found = store.findApiKey(sha256Hex(key));
+      if (!found) return c.json({ error: "UNAUTHORIZED", message: "Unknown or revoked API key." }, 401);
+      if (store.countKeyCall(found.id, day) > found.callsPerDay) {
+        c.header("Retry-After", "86400");
+        return c.json({ error: "API_KEY_LIMIT", message: `This key allows ${found.callsPerDay} calls per day.` }, 429);
+      }
+      c.set("apiKeyPayer", found.payer);
+      c.set("apiKeyScopes", found.scopes);
+      return next();
+    }
     const calls = store.countCall(clientIp(c, runtime.trustProxy), day);
     if (calls > runtime.freeCallsPerDay) {
       // TODO(x402): when REDLINE_X402=on, accept a PAYMENT-SIGNATURE header here: verify and settle it
@@ -83,6 +157,7 @@ export function registerPayeeRoutes(app: Hono, runtime: PayeeRuntime, store: Sto
     if (raw === null) return badJson(c);
     const body = PayeeCheckRequest.safeParse(raw);
     if (!body.success) return badRequest(c, z.prettifyError(body.error));
+    if (body.data.payer !== undefined && c.get("apiKeyPayer") !== body.data.payer) return forbiddenPayer(c);
     const result = { ...(await engine.check(body.data, context)), receipt: null };
     return c.json({ ...result, receipt: attestor.issueReceipt(body.data, result, runtime.nowDate().toISOString()) });
   });
@@ -92,6 +167,7 @@ export function registerPayeeRoutes(app: Hono, runtime: PayeeRuntime, store: Sto
     if (raw === null) return badJson(c);
     const body = PayeeResolveRequest.safeParse(raw);
     if (!body.success) return badRequest(c, z.prettifyError(body.error));
+    if (body.data.payer !== undefined && c.get("apiKeyPayer") !== body.data.payer) return forbiddenPayer(c);
     const result = { ...(await engine.resolve(body.data, context)), receipt: null };
     return c.json({ ...result, receipt: attestor.issueReceipt(body.data, result, runtime.nowDate().toISOString()) });
   });
@@ -101,6 +177,8 @@ export function registerPayeeRoutes(app: Hono, runtime: PayeeRuntime, store: Sto
     if (raw === null) return badJson(c);
     const body = RecordBody.safeParse(raw);
     if (!body.success) return badRequest(c, z.prettifyError(body.error));
+    const denied = await recordAuthorized(c, body.data.payer, raw, runtime, store, auth);
+    if (denied) return denied;
     const payment = {
       payer: body.data.payer,
       domain: normalizeDomain(body.data.domain),

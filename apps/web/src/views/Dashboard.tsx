@@ -27,13 +27,13 @@ const VAULTS = [
 export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string | null }) {
   // Every view refetches when this changes, so an owner action updates the whole dashboard.
   const [version, setVersion] = useState(0);
-  const simulation = useApi<{ enabled: boolean; compromised: boolean }>("/agent/simulation", version);
+  const simulation = useApi<{ enabled: boolean; compromised: boolean }>("/owner/agent/simulation", version);
   const [simulationBusy, setSimulationBusy] = useState(false);
   const [simulationError, setSimulationError] = useState<string | null>(null);
   const toggleSimulation = async () => {
     setSimulationBusy(true);
     setSimulationError(null);
-    try { await apiPost("/agent/simulation", { compromised: !simulation.data?.compromised }); changed(); }
+    try { await apiPost("/owner/agent/simulation", { compromised: !simulation.data?.compromised }); changed(); }
     catch (error) { setSimulationError(error instanceof Error ? error.message : "Could not change simulation mode."); }
     finally { setSimulationBusy(false); }
   };
@@ -52,7 +52,7 @@ export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string
       setPausing(true);
       setPauseError(null);
       try {
-        await apiPost("/vault/unpause", { vault_id: vaultId });
+        await apiPost("/owner/vault/unpause", { vault_id: vaultId });
       } catch (error) {
         setPauseError(error instanceof Error ? error.message : "Could not unpause.");
       } finally {
@@ -64,7 +64,7 @@ export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string
       setPausing(true);
       setPauseError(null);
       try {
-        await apiPost("/vault/pause", { vault_id: vaultId });
+        await apiPost("/owner/vault/pause", { vault_id: vaultId });
       } catch (error) {
         setPauseError(error instanceof Error ? error.message : "Could not pause.");
       } finally {

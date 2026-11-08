@@ -135,8 +135,8 @@ function UnresolvedPanel({ data }: { data: OverviewView }) {
 }
 
 export function Overview({ data, version, onChanged }: { data: OverviewView; version: number; onChanged: () => void }) {
-  const queue = useApi<ReviewQueueEntry[]>("/review-queue", version);
-  const invoices = useApi<InvoiceSummary[]>("/invoices", version);
+  const queue = useApi<ReviewQueueEntry[]>("/owner/review-queue", version);
+  const invoices = useApi<InvoiceSummary[]>("/owner/invoices", version);
   const { manifest, binding, policy, usage, headroom, token } = data;
   const note = queue.data ? waitingNote(queue.data) : null;
   const recent = [...(invoices.data ?? [])].sort((a, b) => Number(BigInt(b.received_at_ns) - BigInt(a.received_at_ns))).slice(0, RECENT_DECISIONS);

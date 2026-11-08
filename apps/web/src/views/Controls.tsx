@@ -27,7 +27,7 @@ function Events({ title, empty, entries }: { title: string; empty: string; entri
 
 /** Pausing lives in the top bar, which every dashboard tab shares. */
 export function Controls({ data, version }: { data: OverviewView; version: number }) {
-  const history = useApi<HistoryView>("/history", version);
+  const history = useApi<HistoryView>("/owner/history", version);
   if (history.error) return <LoadError message={history.error} />;
   if (!history.data) return <Loading />;
   const { vendors, policy, policy_changes: policyChanges, agent_events: agentEvents, incidents } = history.data;

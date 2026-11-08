@@ -88,7 +88,46 @@ export function createNearKeyLookup(rpcUrl: string, configuredNetwork: string, f
   };
 }
 
-export type ProofCheck = { account: string; ok: true; normalized: string } | { account: string; ok: false; reason: string };
+export interface Nep413Input {
+  network: string;
+  accountId: string;
+  /** ed25519:<base58> */
+  publicKey: string;
+  /** base64 */
+  signature: string;
+  nonce: Uint8Array;
+  message: string;
+  recipient?: string;
+}
+
+/**
+ * Verifies a NEP-413 signature and that the key is a current full-access key on the account.
+ * Returns null when it holds, otherwise the reason. Shared by vendor proofs, owner sign-in and
+ * payer-signed payment records, each with its own recipient so a signature for one is useless for another.
+ */
+export async function verifyNep413(input: Nep413Input, lookupKeys: NearKeyLookup): Promise<string | null> {
+  const [keyType, encodedKey] = input.publicKey.split(":");
+  if (keyType !== "ed25519" || !encodedKey) return "Expected an ed25519 public key.";
+  let valid = false;
+  try {
+    valid = ed25519.verify(base64.decode(input.signature), nep413Hash(input.message, input.nonce, input.recipient), base58.decode(encodedKey));
+  } catch {
+    valid = false;
+  }
+  if (!valid) return "The signature does not match.";
+  const keys = await lookupKeys(input.network, input.accountId);
+  const key = keys.find((k) => k.publicKey === input.publicKey);
+  if (!key) return "This public key is not on the account.";
+  if (!key.fullAccess) return "This public key is not a full-access key.";
+  return null;
+}
+
+/** Signs a NEP-413 message with a raw ed25519 secret. For tests and scripts; wallets do this in production. */
+export function signNep413(message: string, nonce: Uint8Array, secret: Uint8Array, recipient?: string): string {
+  return base64.encode(ed25519.sign(nep413Hash(message, nonce, recipient), secret));
+}
+
+export type ProofCheck ={ account: string; ok: true; normalized: string } | { account: string; ok: false; reason: string };
 
 async function verifyEntry(entry: ProofEntry, domain: string, issuedAt: string, lookupKeys: NearKeyLookup): Promise<string | null> {
   const parsed = parseAccount(entry.account);
@@ -96,25 +135,20 @@ async function verifyEntry(entry: ProofEntry, domain: string, issuedAt: string, 
   const { proof } = entry;
   switch (proof.type) {
     case "nep413": {
-      if (parsed.namespace !== "near") return "nep413 proves NEAR accounts only.";
+      if (parsed.namespace !== "near") return "nep413 verifies NEAR accounts only.";
       if (!proof.public_key || !proof.nonce) return "nep413 needs public_key and nonce.";
-      const [keyType, encodedKey] = proof.public_key.split(":");
-      if (keyType !== "ed25519" || !encodedKey) return "nep413 needs an ed25519 public key.";
-      const valid = ed25519.verify(base64.decode(proof.signature), nep413Hash(message, base64.decode(proof.nonce)), base58.decode(encodedKey));
-      if (!valid) return "The signature does not match.";
-      const keys = await lookupKeys(parsed.reference, parsed.address);
-      const key = keys.find((k) => k.publicKey === proof.public_key);
-      if (!key) return "This public key is not on the account.";
-      if (!key.fullAccess) return "This public key is not a full-access key.";
-      return null;
+      return verifyNep413(
+        { network: parsed.reference, accountId: parsed.address, publicKey: proof.public_key, signature: proof.signature, nonce: base64.decode(proof.nonce), message },
+        lookupKeys,
+      );
     }
     case "eip191": {
-      if (parsed.namespace !== "eip155") return "eip191 proves EVM accounts only.";
+      if (parsed.namespace !== "eip155") return "eip191 verifies EVM accounts only.";
       const recovered = await recoverMessageAddress({ message, signature: proof.signature as `0x${string}` });
       return recovered.toLowerCase() === parsed.address ? null : "The signature does not match.";
     }
     case "solana-ed25519": {
-      if (parsed.namespace !== "solana") return "solana-ed25519 proves Solana accounts only.";
+      if (parsed.namespace !== "solana") return "solana-ed25519 verifies Solana accounts only.";
       const valid = ed25519.verify(base58.decode(proof.signature), new TextEncoder().encode(message), base58.decode(parsed.address));
       return valid ? null : "The signature does not match.";
     }
@@ -128,7 +162,7 @@ export interface ProofFileResult {
   accounts: ProofCheck[];
 }
 
-/** Every account must pass. A file with one bad proof proves nothing. */
+/** Every account must pass. A file with one bad signature counts for nothing. */
 export async function verifyProofFile(raw: unknown, domain: string, options: { lookupKeys: NearKeyLookup; now: Date }): Promise<ProofFileResult> {
   const parsed = PayeeProofFile.safeParse(raw);
   if (!parsed.success) return { ok: false, message: "The proof file is not in the expected format.", file: null, accounts: [] };
@@ -154,7 +188,7 @@ export async function verifyProofFile(raw: unknown, domain: string, options: { l
     }
   }
   const ok = accounts.every((a) => a.ok);
-  return { ok, message: ok ? "All accounts proven." : "At least one account failed its proof.", file, accounts };
+  return { ok, message: ok ? "All accounts verified." : "At least one account failed its proof.", file, accounts };
 }
 
 /** Signs one account's proof with its own key. Runs on the vendor's machine, never on the API. */

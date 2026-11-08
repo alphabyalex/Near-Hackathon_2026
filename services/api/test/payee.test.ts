@@ -10,13 +10,15 @@ import { privateKeyToAccount } from "viem/accounts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { bootstrap } from "../src/bootstrap.js";
+import { createApiKey } from "../src/auth.js";
 import { createAttestor, ensureAttestorKey, requestHash } from "../src/payee/attestor.js";
+import { LOCAL_AUTH } from "./helpers.js";
 import { buildProofFile, createNearKeyLookup, nep413Hash, type NearKeyLookup, type PayeeProofFile } from "../src/payee/proofs.js";
 import { createPayeeRuntime, loadPayeeBackends, type PayeeOverrides } from "../src/payee/runtime.js";
 import { evidenceHash, MERCHANT_IDENTITY_PATH, PAYEE_FILE_PATH } from "../src/payee/verify-vendor.js";
 import { isPublicAddress, type WellKnownFetcher } from "../src/payee/well-known.js";
 
-const DOMAIN = "northwind.com";
+const DOMAIN = "northwind.example";
 const NOW_NS = BigInt(Date.parse("2026-11-07T12:00:00Z")) * 1_000_000n;
 const ISSUED_AT = "2026-11-07T00:00:00Z";
 
@@ -25,8 +27,11 @@ function makeApp(overrides: PayeeOverrides = {}, clock: () => bigint = () => NOW
   return { deps, app: createApp(deps) };
 }
 
-const post = (app: ReturnType<typeof createApp>, path: string, body: unknown) =>
-  app.request(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const post = (app: ReturnType<typeof createApp>, path: string, body: unknown, key?: string) =>
+  app.request(path, { method: "POST", headers: { "content-type": "application/json", ...(key ? { authorization: `Bearer ${key}` } : {}) }, body: JSON.stringify(body) });
+
+const keyFor = (deps: ReturnType<typeof makeApp>["deps"], payer: string): string =>
+  createApiKey(deps.store, { payer, label: null, callsPerDay: 10_000, scopes: ["check", "record"], createdBy: "test", createdAt: "now" }).key;
 
 const codes = (result: { reasons: { code: string }[] }) => result.reasons.map((r) => r.code);
 
@@ -64,7 +69,7 @@ describe("POST /v1/check and /v1/resolve", () => {
 
   it.each([
     ["/v1/check", { payee: "eip155:1:0x123" }],
-    ["/v1/check", { payee: "northwind.testnet", vendor: { domain: "https://northwind.com" } }],
+    ["/v1/check", { payee: "northwind.testnet", vendor: { domain: "https://northwind.example" } }],
     ["/v1/check", { nope: true }],
     ["/v1/resolve", { domain: DOMAIN, chain: "not a chain" }],
     ["/v1/resolve", { domain: "localhost", chain: "near:testnet" }],
@@ -87,29 +92,32 @@ describe("POST /v1/check and /v1/resolve", () => {
 
 describe("payment history", () => {
   it("raises PAYEE_CHANGED after a recorded payment to a different account, and persists through the store", async () => {
-    const { app } = makeApp();
+    const { app, deps } = makeApp();
     const payer = "acme.testnet";
+    const key = keyFor(deps, payer);
     const account = `eip155:84532:0x${"ab".repeat(20)}`;
-    const recorded = await post(app, "/v1/payments/record", { payer, domain: DOMAIN, account });
+    const recorded = await post(app, "/v1/payments/record", { payer, domain: DOMAIN, account }, key);
     expect(recorded.status).toBe(201);
     const result = PayeeCheckResult.parse(
-      await (await post(app, "/v1/check", { payee: `eip155:84532:${seedEvmAddress(DOMAIN)}`, vendor: { domain: DOMAIN }, payer })).json(),
+      await (await post(app, "/v1/check", { payee: `eip155:84532:${seedEvmAddress(DOMAIN)}`, vendor: { domain: DOMAIN }, payer }, key)).json(),
     );
     expect(result.verdict).toBe("HOLD");
     expect(codes(result)).toEqual(["VERIFIED_MATCH", "PAYEE_CHANGED"]);
   });
 
   it("stays PAY when the recorded account is the same one", async () => {
-    const { app } = makeApp();
-    await post(app, "/v1/payments/record", { payer: "acme.testnet", domain: DOMAIN, account: "northwind.testnet" });
-    const result = PayeeCheckResult.parse(await (await post(app, "/v1/check", { payee: "northwind.testnet", vendor: { domain: DOMAIN }, payer: "acme.testnet" })).json());
+    const { app, deps } = makeApp();
+    const key = keyFor(deps, "acme.testnet");
+    await post(app, "/v1/payments/record", { payer: "acme.testnet", domain: DOMAIN, account: "northwind.testnet" }, key);
+    const result = PayeeCheckResult.parse(await (await post(app, "/v1/check", { payee: "northwind.testnet", vendor: { domain: DOMAIN }, payer: "acme.testnet" }, key)).json());
     expect(result.verdict).toBe("PAY");
   });
 
   it("rejects a malformed record", async () => {
-    const { app } = makeApp();
-    expect((await post(app, "/v1/payments/record", { payer: "p", domain: DOMAIN, account: "eip155:1:0x1" })).status).toBe(400);
-    expect((await post(app, "/v1/payments/record", { domain: DOMAIN })).status).toBe(400);
+    const { app, deps } = makeApp();
+    const key = keyFor(deps, "p");
+    expect((await post(app, "/v1/payments/record", { payer: "p", domain: DOMAIN, account: "eip155:1:0x1" }, key)).status).toBe(400);
+    expect((await post(app, "/v1/payments/record", { domain: DOMAIN }, key)).status).toBe(400);
   });
 });
 
@@ -126,7 +134,7 @@ describe("vendors", () => {
   it("gets one vendor, 404s an unknown one, 400s a bad domain", async () => {
     const { app } = makeApp();
     expect(await (await app.request(`/v1/vendors/${DOMAIN}`)).json()).toMatchObject({ domain: DOMAIN, name: "Northwind Trading" });
-    expect((await app.request("/v1/vendors/not-listed.com")).status).toBe(404);
+    expect((await app.request("/v1/vendors/not-listed.example")).status).toBe(404);
     expect((await app.request("/v1/vendors/localhost")).status).toBe(400);
   });
 });
@@ -172,9 +180,9 @@ describe("free tier", () => {
     expect((await via("8.8.8.8, 2.2.2.2")).status).toBe(402);
   });
 
-  it("does not limit the existing owner routes or the attestor key", async () => {
-    const { app } = makeApp({ freeCallsPerDay: 0 });
-    expect((await app.request("/review-queue")).status).toBe(200);
+  it("does not limit the owner routes or the attestor key", async () => {
+    const app = createApp(bootstrap(":memory:", () => NOW_NS, { freeCallsPerDay: 0 }, LOCAL_AUTH));
+    expect((await app.request("/owner/review-queue")).status).toBe(200);
     expect((await app.request("/.well-known/redline-attestor.json")).status).toBe(200);
     expect((await app.request("/v1/vendors")).status).toBe(402);
   });
@@ -218,7 +226,7 @@ describe("signed receipts", () => {
   it("signs a HOLD too, including a vendor that is not in the registry", async () => {
     const { app } = makeApp();
     const { public_key: publicKey } = (await (await app.request("/.well-known/redline-attestor.json")).json()) as { public_key: string };
-    const result = PayeeCheckResult.parse(await (await post(app, "/v1/check", { payee: "nobody-known.testnet", vendor: { domain: "not-listed.com" } })).json());
+    const result = PayeeCheckResult.parse(await (await post(app, "/v1/check", { payee: "nobody-known.testnet", vendor: { domain: "not-listed.example" } })).json());
     expect(result.vendor).toBeNull();
     expect(verifyReceipt(result, publicKey)).toBe(true);
   });
@@ -309,7 +317,7 @@ describe("vendor verification", () => {
   const evmAddress = privateKeyToAccount(evmPrivate).address;
   const solanaSecret = ed25519.utils.randomSecretKey();
   const solanaAddress = base58.encode(ed25519.getPublicKey(solanaSecret));
-  const domain = "newvendor.com";
+  const domain = "newvendor.example";
 
   const near = `near:testnet:newvendor.testnet`;
   const evm = `eip155:84532:${evmAddress.toLowerCase()}`;
@@ -391,7 +399,7 @@ describe("vendor verification", () => {
   });
 
   it("rejects a file naming another domain, a future or very old date, and a bad shape", async () => {
-    expect((await verify({ ...(await proofFile()), domain: "other.com" })).res.status).toBe(422);
+    expect((await verify({ ...(await proofFile()), domain: "other.example" })).res.status).toBe(422);
     expect((await verify(await proofFile("2026-11-08T00:00:00Z"))).res.status).toBe(422);
     expect((await verify(await proofFile("2025-01-01T00:00:00Z"))).res.status).toBe(422);
     expect((await verify({ version: 1 })).res.status).toBe(422);
@@ -442,7 +450,7 @@ describe("vendor verification", () => {
 
   it("ignores a merchant file for a different subject", async () => {
     const file = await proofFile();
-    const { app } = makeApp({ fetchFile: serving({ [PAYEE_FILE_PATH]: file, [MERCHANT_IDENTITY_PATH]: { subject: "other.com", legalName: "Other Inc" } }), lookupKeys });
+    const { app } = makeApp({ fetchFile: serving({ [PAYEE_FILE_PATH]: file, [MERCHANT_IDENTITY_PATH]: { subject: "other.example", legalName: "Other Inc" } }), lookupKeys });
     const body = (await (await post(app, "/v1/vendors/verify", { domain })).json()) as { vendor: { legalName: string | null }; evidenceHash: string };
     expect(body.vendor.legalName).toBeNull();
     expect(body.evidenceHash).toBe(evidenceHash(new TextEncoder().encode(JSON.stringify(file)), null));
@@ -495,17 +503,18 @@ describe("vendor verification", () => {
 
 describe("hosted SDK against the real routes", () => {
   it("resolves, checks, gets a vendor and records a payment", async () => {
-    const { app } = makeApp();
+    const { app, deps } = makeApp();
     const redline = createRedline({
       mode: "hosted",
       baseUrl: "http://api.local",
+      apiKey: keyFor(deps, "p"),
       fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(String(input), init)) as typeof fetch,
     });
     expect((await redline.resolve({ domain: DOMAIN, chain: "near:testnet" })).account).toBe("near:testnet:northwind.testnet");
     const check = await redline.check({ payee: "northwind.testnet", vendor: { domain: DOMAIN } });
     expect(check.receipt).not.toBeNull();
     expect((await redline.getVendor(DOMAIN))?.name).toBe("Northwind Trading");
-    await expect(redline.getVendor("not-listed.com")).resolves.toBeNull();
+    await expect(redline.getVendor("not-listed.example")).resolves.toBeNull();
     await expect(redline.recordPayment({ payer: "p", domain: DOMAIN, account: "northwind.testnet" })).resolves.toBeUndefined();
   });
 });

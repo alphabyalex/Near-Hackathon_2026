@@ -41,7 +41,7 @@ export function ReviewQueue({ queue, onChanged }: { queue: Loaded<ReviewQueueEnt
     setBusy(item.review_id);
     setActionError(null);
     try {
-      await apiPost(`/review/${encodeURIComponent(item.review_id)}/${action}`);
+      await apiPost(`/owner/review/${encodeURIComponent(item.review_id)}/${action}`);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "The action failed.");
     } finally {
