@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["vault", "evidence", "mock-token", "test-proxy"]
+members = ["vault", "evidence", "mock-token", "test-proxy", "payee-registry"]
 
 [workspace.package]
 version = "0.1.0"

@@ -55,6 +55,7 @@ enum StorageKey {
     Vendors,
     Payables,
     Operations,
+    UsedApprovals,
 }
 
 #[ext_contract(ext_ft)]
@@ -95,6 +96,15 @@ pub struct Vault {
     pending_count: u32,
     /// The agent subset of `pending_count`. Each one holds a settlement slot in `rolling`.
     agent_pending_count: u32,
+
+    // V2 additions
+    approver: Option<AccountId>,
+    attestor: Option<AccountId>,
+    cooldown_policy: StoredCooldownPolicy,
+    conservative_caps: Option<StoredPolicy>,
+    binding_tier_is_conservative: bool,
+    full_policy_weekly_cap: u128,
+    used_approvals: LookupMap<String, bool>,
 }
 
 enum RequestDecision {
@@ -123,6 +133,24 @@ impl Vault {
                 && capacities.max_rolling <= HARD_LIMITS.max_rolling
                 && capacities.max_operations <= HARD_LIMITS.max_operations,
         );
+        let cooldown_policy = match config.cooldown_policy {
+            Some(p) => StoredCooldownPolicy {
+                tier2_under_cap_ns: p.tier2_under_cap_ns.0,
+                default_ns: p.default_ns.0,
+            },
+            None => StoredCooldownPolicy {
+                tier2_under_cap_ns: 24 * 3600 * 1_000_000_000,
+                default_ns: 72 * 3600 * 1_000_000_000,
+            },
+        };
+        let conservative_caps = config.conservative_caps.map(|p| StoredPolicy {
+            revision: 1,
+            weekly_cap: p.weekly_cap_atomic.0,
+            lifetime_cap: p.lifetime_cap_atomic.0,
+            expires_at_ns: p.expires_at_ns.0,
+            paused: true,
+        });
+        let weekly_cap = config.policy.weekly_cap_atomic.0;
         Self {
             owner: config.owner,
             guardian: config.guardian,
@@ -131,7 +159,7 @@ impl Vault {
             capacities,
             policy: StoredPolicy {
                 revision: 1,
-                weekly_cap: config.policy.weekly_cap_atomic.0,
+                weekly_cap,
                 lifetime_cap: config.policy.lifetime_cap_atomic.0,
                 expires_at_ns: config.policy.expires_at_ns.0,
                 paused: true,
@@ -152,6 +180,13 @@ impl Vault {
             rolling: Vec::new(),
             pending_count: 0,
             agent_pending_count: 0,
+            approver: config.approver,
+            attestor: config.attestor,
+            cooldown_policy,
+            conservative_caps,
+            binding_tier_is_conservative: false,
+            full_policy_weekly_cap: weekly_cap,
+            used_approvals: LookupMap::new(StorageKey::UsedApprovals),
         }
     }
 
@@ -163,7 +198,8 @@ impl Vault {
         self.assert_owner();
         check_id(&vendor.vendor_id);
         check_text(&vendor.display_name);
-        let current = self.vendors.get(&vendor.vendor_id).map(|v| v.revision);
+        let existing = self.vendors.get(&vendor.vendor_id);
+        let current = existing.map(|v| v.revision);
         if current.unwrap_or(0) != expected_revision {
             fail("E_STALE_REVISION");
         }
@@ -178,6 +214,23 @@ impl Vault {
             vendor.per_payment_cap_atomic.0,
             vendor.active,
         );
+        let (endpoints, active_endpoint_revision) = match existing {
+            Some(v) => (v.endpoints.clone(), v.active_endpoint_revision),
+            None => {
+                let initial_rev = 1u64;
+                (
+                    vec![StoredEndpointRevision {
+                        revision: initial_rev,
+                        account: format!("near:testnet:{}", vendor.account_id),
+                        evidence_tier: "T2".to_string(),
+                        evidence_digest: format!("sha256:{}", "0".repeat(64)),
+                        status: StoredEndpointStatus::Active,
+                        approval_digest: None,
+                    }],
+                    Some(initial_rev),
+                )
+            }
+        };
         self.vendors.insert(
             vendor.vendor_id,
             StoredVendor {
@@ -186,9 +239,231 @@ impl Vault {
                 revision,
                 per_payment_cap: vendor.per_payment_cap_atomic.0,
                 active: vendor.active,
+                endpoints,
+                active_endpoint_revision,
             },
         );
         revision
+    }
+
+    #[payable]
+    pub fn propose_endpoint(
+        &mut self,
+        vendor_id: String,
+        account: String,
+        evidence_tier: String,
+        evidence_digest: String,
+    ) -> u64 {
+        assert_one_yocto();
+        let caller = env::predecessor_account_id();
+        if caller != self.owner && Some(&caller) != self.attestor.as_ref() {
+            fail("E_NOT_OWNER_OR_ATTESTOR");
+        }
+        check_id(&vendor_id);
+        check_input(is_digest(&evidence_digest));
+        check_input(!account.is_empty() && account.len() <= 128);
+
+        let vendor = match self.vendors.get_mut(&vendor_id) {
+            Some(vendor) => vendor,
+            None => fail("E_UNKNOWN_VENDOR"),
+        };
+        if !vendor.active {
+            fail("E_VENDOR_INACTIVE");
+        }
+
+        let next_rev = vendor.endpoints.iter().map(|e| e.revision).max().unwrap_or(0) + 1;
+
+        let mut largest_open = 0u128;
+        for (_, payable) in self.payables.iter() {
+            if payable.vendor_id == vendor_id && payable.status == PayableStatus::Open {
+                if payable.amount > largest_open {
+                    largest_open = payable.amount;
+                }
+            }
+        }
+
+        let cooldown_ns = if (evidence_tier == "T2" || evidence_tier == "T3" || evidence_tier == "T4")
+            && largest_open <= vendor.per_payment_cap
+        {
+            self.cooldown_policy.tier2_under_cap_ns
+        } else {
+            self.cooldown_policy.default_ns
+        };
+
+        let now = env::block_timestamp();
+        let activates_at_ns = now.saturating_add(cooldown_ns);
+        let normalized = normalize_caip10(&account);
+
+        events::endpoint_proposed(
+            &vendor_id,
+            next_rev,
+            &normalized,
+            &evidence_tier,
+            &evidence_digest,
+            activates_at_ns,
+        );
+
+        vendor.endpoints.push(StoredEndpointRevision {
+            revision: next_rev,
+            account: normalized,
+            evidence_tier,
+            evidence_digest,
+            status: StoredEndpointStatus::PendingCooldown { activates_at_ns },
+            approval_digest: None,
+        });
+
+        next_rev
+    }
+
+    pub fn approve_endpoint(
+        &mut self,
+        vendor_id: String,
+        revision: u64,
+        approval_digest: String,
+        expiry_ns: Option<U64>,
+    ) {
+        let caller = env::predecessor_account_id();
+        let Some(ref approver) = self.approver else {
+            fail("E_NO_APPROVER_CONFIGURED");
+        };
+        if caller != *approver {
+            fail("E_NOT_APPROVER");
+        }
+        if caller == self.owner {
+            fail("E_APPROVER_CANNOT_BE_OWNER");
+        }
+        if let Some(ref binding) = self.binding {
+            if caller == binding.agent_account_id {
+                fail("E_APPROVER_CANNOT_BE_AGENT");
+            }
+        }
+
+        check_input(is_digest(&approval_digest));
+        if self.used_approvals.get(&approval_digest).is_some() {
+            fail("E_APPROVAL_REPLAYED");
+        }
+
+        let vendor = match self.vendors.get_mut(&vendor_id) {
+            Some(vendor) => vendor,
+            None => fail("E_UNKNOWN_VENDOR"),
+        };
+
+        let endpoint = match vendor.endpoints.iter_mut().find(|e| e.revision == revision) {
+            Some(e) => e,
+            None => fail("E_UNKNOWN_ENDPOINT"),
+        };
+
+        let activates_at_ns = match endpoint.status {
+            StoredEndpointStatus::PendingCooldown { activates_at_ns } => activates_at_ns,
+            _ => fail("E_INVALID_STATUS"),
+        };
+
+        let now = env::block_timestamp();
+        let expiry = expiry_ns
+            .map(|e| e.0)
+            .unwrap_or_else(|| activates_at_ns.saturating_add(7 * 24 * 3600 * 1_000_000_000));
+
+        if now >= expiry {
+            fail("E_APPROVAL_STALE");
+        }
+
+        let expected_digest = compute_approval_digest(
+            &env::current_account_id(),
+            &vendor_id,
+            revision,
+            &endpoint.account,
+            expiry,
+        );
+
+        if approval_digest != expected_digest {
+            fail("E_APPROVAL_MISMATCH");
+        }
+
+        self.used_approvals.insert(approval_digest.clone(), true);
+        endpoint.approval_digest = Some(approval_digest);
+        events::endpoint_approved(&vendor_id, revision, &caller);
+
+        if now >= activates_at_ns {
+            endpoint.status = StoredEndpointStatus::Active;
+            if let Some(acc) = parse_caip10_near_account(&endpoint.account) {
+                vendor.account_id = acc;
+            }
+            vendor.active_endpoint_revision = Some(revision);
+            events::endpoint_activated(&vendor_id, revision, &endpoint.account);
+        } else {
+            endpoint.status = StoredEndpointStatus::ApprovedPendingCooldown { activates_at_ns };
+        }
+    }
+
+    pub fn activate_endpoint(&mut self, vendor_id: String, revision: u64) {
+        let vendor = match self.vendors.get_mut(&vendor_id) {
+            Some(vendor) => vendor,
+            None => fail("E_UNKNOWN_VENDOR"),
+        };
+        let endpoint = match vendor.endpoints.iter_mut().find(|e| e.revision == revision) {
+            Some(e) => e,
+            None => fail("E_UNKNOWN_ENDPOINT"),
+        };
+        let activates_at_ns = match endpoint.status {
+            StoredEndpointStatus::ApprovedPendingCooldown { activates_at_ns } => activates_at_ns,
+            StoredEndpointStatus::Active => return,
+            _ => fail("E_NOT_APPROVED"),
+        };
+        let now = env::block_timestamp();
+        if now < activates_at_ns {
+            fail("E_COOLDOWN_ACTIVE");
+        }
+        endpoint.status = StoredEndpointStatus::Active;
+        if let Some(acc) = parse_caip10_near_account(&endpoint.account) {
+            vendor.account_id = acc;
+        }
+        vendor.active_endpoint_revision = Some(revision);
+        events::endpoint_activated(&vendor_id, revision, &endpoint.account);
+    }
+
+    pub fn reject_endpoint(&mut self, vendor_id: String, revision: u64) {
+        let caller = env::predecessor_account_id();
+        let is_owner = caller == self.owner;
+        let is_approver = self.approver.as_ref() == Some(&caller);
+        if !is_owner && !is_approver {
+            fail("E_NOT_OWNER_OR_APPROVER");
+        }
+        let vendor = match self.vendors.get_mut(&vendor_id) {
+            Some(vendor) => vendor,
+            None => fail("E_UNKNOWN_VENDOR"),
+        };
+        let endpoint = match vendor.endpoints.iter_mut().find(|e| e.revision == revision) {
+            Some(e) => e,
+            None => fail("E_UNKNOWN_ENDPOINT"),
+        };
+        match endpoint.status {
+            StoredEndpointStatus::Rejected | StoredEndpointStatus::Revoked => fail("E_INVALID_STATUS"),
+            _ => {}
+        }
+        endpoint.status = StoredEndpointStatus::Rejected;
+        events::endpoint_rejected(&vendor_id, revision, &caller);
+    }
+
+    pub fn revoke_endpoint(&mut self, vendor_id: String, revision: u64) {
+        let caller = env::predecessor_account_id();
+        let is_owner = caller == self.owner;
+        let is_approver = self.approver.as_ref() == Some(&caller);
+        if !is_owner && !is_approver {
+            fail("E_NOT_OWNER_OR_APPROVER");
+        }
+        let vendor = match self.vendors.get_mut(&vendor_id) {
+            Some(vendor) => vendor,
+            None => fail("E_UNKNOWN_VENDOR"),
+        };
+        let endpoint = match vendor.endpoints.iter_mut().find(|e| e.revision == revision) {
+            Some(e) => e,
+            None => fail("E_UNKNOWN_ENDPOINT"),
+        };
+        endpoint.status = StoredEndpointStatus::Revoked;
+        if vendor.active_endpoint_revision == Some(revision) {
+            vendor.active_endpoint_revision = None;
+        }
+        events::endpoint_revoked(&vendor_id, revision, &caller);
     }
 
     #[payable]
@@ -213,6 +488,11 @@ impl Vault {
         }
         if vendor.revision != payable.vendor_revision {
             fail("E_VENDOR_REVISION_MISMATCH");
+        }
+        if let Some(expected_ep_rev) = payable.expected_endpoint_revision {
+            if vendor.active_endpoint_revision != Some(expected_ep_rev) {
+                fail("E_ENDPOINT_REVISION_MISMATCH");
+            }
         }
         let (not_before, due, expires) = (
             payable.not_before_ns.0,
@@ -248,6 +528,7 @@ impl Vault {
                 status: PayableStatus::Open,
                 attempts: 0,
                 operation_id: None,
+                expected_endpoint_revision: payable.expected_endpoint_revision,
             },
         );
     }
@@ -299,6 +580,8 @@ impl Vault {
         self.policy.weekly_cap = change.weekly_cap_atomic.0;
         self.policy.lifetime_cap = change.lifetime_cap_atomic.0;
         self.policy.expires_at_ns = change.expires_at_ns.0;
+        self.full_policy_weekly_cap = change.weekly_cap_atomic.0;
+        self.binding_tier_is_conservative = false;
         events::policy_set(
             self.policy.revision,
             self.policy.weekly_cap,
@@ -306,6 +589,14 @@ impl Vault {
             self.policy.expires_at_ns,
         );
         self.policy.revision
+    }
+
+    #[payable]
+    pub fn raise_binding_caps(&mut self) {
+        assert_one_yocto();
+        self.assert_owner();
+        self.binding_tier_is_conservative = false;
+        self.policy.weekly_cap = self.full_policy_weekly_cap;
     }
 
     #[payable]
@@ -318,6 +609,10 @@ impl Vault {
         check_input(is_digest(&binding.manifest_digest));
         check_text(&binding.assessment_ref);
         self.binding_revision += 1;
+        if let Some(ref conservative) = self.conservative_caps {
+            self.policy.weekly_cap = conservative.weekly_cap;
+            self.binding_tier_is_conservative = true;
+        }
         events::agent_activated(
             &binding.agent_account_id,
             self.binding_revision,
@@ -378,6 +673,7 @@ impl Vault {
         expected_vendor_revision: u64,
         expected_policy_revision: u64,
         expected_binding_revision: u64,
+        manifest_digest: Option<String>,
     ) -> PromiseOrValue<RequestResult> {
         let decision = self.decide_request(
             &payable_ref,
@@ -385,6 +681,7 @@ impl Vault {
             expected_vendor_revision,
             expected_policy_revision,
             expected_binding_revision,
+            manifest_digest.as_deref(),
         );
         match decision {
             RequestDecision::Reject(rejection) => {
@@ -642,8 +939,17 @@ impl Vault {
                 revision: vendor.revision,
                 per_payment_cap_atomic: U128(vendor.per_payment_cap),
                 active: vendor.active,
+                endpoints: vendor.endpoints.iter().map(stored_endpoint_to_view).collect(),
+                active_endpoint_revision: vendor.active_endpoint_revision,
             })
             .collect()
+    }
+
+    pub fn get_vendor_endpoints(&self, vendor_id: String) -> Vec<EndpointRevisionView> {
+        self.vendors
+            .get(&vendor_id)
+            .map(|v| v.endpoints.iter().map(stored_endpoint_to_view).collect())
+            .unwrap_or_default()
     }
 
     pub fn get_binding(&self) -> Option<BindingView> {
@@ -666,6 +972,8 @@ impl Vault {
             token_decimals: self.token_decimals,
             capacities: self.capacities,
             contract_version: env!("CARGO_PKG_VERSION").to_string(),
+            approver: self.approver.clone(),
+            attestor: self.attestor.clone(),
         }
     }
 }
@@ -687,6 +995,7 @@ impl Vault {
         expected_vendor_revision: u64,
         expected_policy_revision: u64,
         expected_binding_revision: u64,
+        manifest_digest: Option<&str>,
     ) -> RequestDecision {
         use VaultRejection::*;
         let now = env::block_timestamp();
@@ -705,6 +1014,13 @@ impl Vault {
         // 2. Request shape.
         if !is_digest(request_digest) {
             return RequestDecision::Reject(BadCaller);
+        }
+        // Release Guard check:
+        if let Some(md) = manifest_digest {
+            if md != binding.manifest_digest {
+                events::release_mismatch(&binding.agent_account_id, md, &binding.manifest_digest);
+                return RequestDecision::Reject(ReleaseMismatch);
+            }
         }
         // 3. Authority still live.
         if !binding.enabled || now >= binding.expires_at_ns || now >= self.policy.expires_at_ns {
@@ -748,6 +1064,15 @@ impl Vault {
             || !vendor.active
         {
             return RequestDecision::Reject(StaleRevision);
+        }
+        // Vendor endpoint checks:
+        let Some(active_ep_rev) = vendor.active_endpoint_revision else {
+            return RequestDecision::Reject(PayeeNotVerified);
+        };
+        if let Some(expected_ep_rev) = payable.expected_endpoint_revision {
+            if expected_ep_rev != active_ep_rev {
+                return RequestDecision::Reject(EndpointRevisionMismatch);
+            }
         }
         // 12 to 14. Caps. Exactly at a cap passes.
         let amount = payable.amount;
@@ -814,6 +1139,14 @@ impl Vault {
         let vendor = self.vendors.get(&payable.vendor_id).ok_or(StaleRevision)?;
         if !vendor.active || vendor.account_id != payable.recipient {
             return Err(StaleRevision);
+        }
+        let Some(active_ep_rev) = vendor.active_endpoint_revision else {
+            return Err(PayeeNotVerified);
+        };
+        if let Some(expected_ep_rev) = payable.expected_endpoint_revision {
+            if expected_ep_rev != active_ep_rev {
+                return Err(EndpointRevisionMismatch);
+            }
         }
         if payable.amount > self.available {
             return Err(InsufficientBalance);
@@ -985,8 +1318,82 @@ impl Vault {
             status,
             recipient: payable.recipient.clone(),
             operation_id: payable.operation_id.clone(),
+            expected_endpoint_revision: payable.expected_endpoint_revision,
         }
     }
+}
+
+fn stored_endpoint_to_view(e: &StoredEndpointRevision) -> EndpointRevisionView {
+    EndpointRevisionView {
+        revision: e.revision,
+        account: e.account.clone(),
+        evidence_tier: e.evidence_tier.clone(),
+        evidence_digest: e.evidence_digest.clone(),
+        status: match e.status {
+            StoredEndpointStatus::Active => EndpointStatusView::Active,
+            StoredEndpointStatus::PendingCooldown { activates_at_ns } => {
+                EndpointStatusView::PendingCooldown {
+                    activates_at_ns: U64(activates_at_ns),
+                }
+            }
+            StoredEndpointStatus::ApprovedPendingCooldown { activates_at_ns } => {
+                EndpointStatusView::ApprovedPendingCooldown {
+                    activates_at_ns: U64(activates_at_ns),
+                }
+            }
+            StoredEndpointStatus::Rejected => EndpointStatusView::Rejected,
+            StoredEndpointStatus::Revoked => EndpointStatusView::Revoked,
+        },
+        approval_digest: e.approval_digest.clone(),
+    }
+}
+
+pub fn parse_caip10_near_account(caip10: &str) -> Option<AccountId> {
+    if let Some(rest) = caip10.strip_prefix("near:") {
+        let parts: Vec<&str> = rest.split(':').collect();
+        if parts.len() == 2 {
+            parts[1].parse::<AccountId>().ok()
+        } else if parts.len() == 1 {
+            parts[0].parse::<AccountId>().ok()
+        } else {
+            None
+        }
+    } else {
+        caip10.parse::<AccountId>().ok()
+    }
+}
+
+pub fn normalize_caip10(account: &str) -> String {
+    if let Some(rest) = account.strip_prefix("eip155:") {
+        let parts: Vec<&str> = rest.split(':').collect();
+        if parts.len() == 2 {
+            format!("eip155:{}:{}", parts[0], parts[1].to_ascii_lowercase())
+        } else {
+            account.to_ascii_lowercase()
+        }
+    } else {
+        account.to_string()
+    }
+}
+
+pub fn compute_approval_digest(
+    vault: &AccountId,
+    vendor_id: &str,
+    revision: u64,
+    account: &str,
+    expiry_ns: u64,
+) -> String {
+    let payload = format!(
+        "redline:endpoint-approval:{}:{}:{}:{}:{}",
+        vault, vendor_id, revision, account, expiry_ns
+    );
+    let hash = env::sha256(payload.as_bytes());
+    let mut hex = String::with_capacity(64);
+    for b in hash {
+        use std::fmt::Write;
+        let _ = write!(hex, "{:02x}", b);
+    }
+    format!("sha256:{}", hex)
 }
 
 /// An entry counts while `now < settled_at + 7 days`. At exactly 7 days it no longer counts.

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   AgentBinding,
   OperationStatus,
@@ -16,6 +17,8 @@ import {
   type AgentCaller,
   type BindingInput,
   type Capacities,
+  type EndpointRevisionView,
+  type EndpointStatusView,
   type Origin,
   type PayableInput,
   type PolicyInput,
@@ -34,12 +37,24 @@ const MAX_PAGE = 100;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const encoder = new TextEncoder();
 
+interface StoredEndpointRevision {
+  revision: number;
+  account: string;
+  evidence_tier: string;
+  evidence_digest: string;
+  status: EndpointStatusView;
+  approval_digest: string | null;
+  activates_at_ns: bigint;
+}
+
 interface StoredVendor {
   display_name: string;
   account_id: string;
   revision: number;
   per_payment_cap: bigint;
   active: boolean;
+  endpoints: StoredEndpointRevision[];
+  active_endpoint_revision: number | null;
 }
 
 interface StoredPayable {
@@ -56,6 +71,7 @@ interface StoredPayable {
   status: Exclude<PayableStatus, "EXPIRED">;
   attempts: number;
   operation_id: string | null;
+  expected_endpoint_revision: number | null;
 }
 
 interface StoredOperation {
@@ -119,6 +135,13 @@ export class VaultSim {
   readonly tokenContract: string;
   readonly tokenDecimals: number;
   readonly capacities: Capacities;
+  readonly approver: string | null;
+  readonly attestor: string | null;
+  readonly cooldownPolicy: { tier2_under_cap_ns: bigint; default_ns: bigint };
+  readonly conservativeCaps: PolicyInput | null;
+  bindingTierIsConservative: boolean;
+  fullPolicyWeeklyCap: bigint;
+  private readonly usedApprovals = new Set<string>();
 
   private nowNs: bigint;
   private readonly autoResolve: boolean;
@@ -165,6 +188,15 @@ export class VaultSim {
     this.tokenContract = config.token_contract;
     this.tokenDecimals = config.token_decimals ?? 6;
     this.capacities = capacities;
+    this.approver = config.approver ?? null;
+    this.attestor = config.attestor ?? null;
+    this.cooldownPolicy = {
+      tier2_under_cap_ns: BigInt(config.cooldown_policy?.tier2_under_cap_ns ?? 24 * 3600 * 1_000_000_000),
+      default_ns: BigInt(config.cooldown_policy?.default_ns ?? 72 * 3600 * 1_000_000_000),
+    };
+    this.conservativeCaps = config.conservative_caps ?? null;
+    this.bindingTierIsConservative = false;
+    this.fullPolicyWeeklyCap = BigInt(config.policy.weekly_cap_atomic);
     this.nowNs = BigInt(config.now_ns);
     this.autoResolve = config.auto_resolve ?? true;
     this.tokenRegistered = config.token_registered === undefined || config.token_registered === "all" ? "all" : new Set(config.token_registered);
@@ -206,14 +238,150 @@ export class VaultSim {
     if ((current?.revision ?? 0) !== expectedRevision) panic("E_STALE_REVISION");
     if (!current && this.vendors.size >= this.capacities.max_vendors) panic("E_CAPACITY_FULL");
     const revision = expectedRevision + 1;
+    const initialRev = 1;
+    const endpoints: StoredEndpointRevision[] = current?.endpoints ?? [
+      {
+        revision: initialRev,
+        account: `near:testnet:${vendor.account_id}`,
+        evidence_tier: "T2",
+        evidence_digest: `sha256:${"0".repeat(64)}`,
+        status: "ACTIVE",
+        approval_digest: null,
+        activates_at_ns: 0n,
+      },
+    ];
     this.vendors.set(vendor.vendor_id, {
       display_name: vendor.display_name,
       account_id: vendor.account_id,
       revision,
       per_payment_cap: BigInt(vendor.per_payment_cap_atomic),
       active: vendor.active,
+      endpoints,
+      active_endpoint_revision: current?.active_endpoint_revision ?? initialRev,
     });
     return revision;
+  }
+
+  proposeEndpoint(caller: string, vendorId: string, account: string, evidenceTier: string, evidenceDigest: string): number {
+    if (caller !== this.owner && caller !== this.attestor) panic("E_NOT_OWNER_OR_ATTESTOR");
+    checkInput(isBounded(vendorId, MAX_ID_BYTES));
+    checkInput(DIGEST.test(evidenceDigest));
+    checkInput(account.length > 0 && account.length <= 128);
+
+    const vendor = this.vendors.get(vendorId);
+    if (!vendor) panic("E_UNKNOWN_VENDOR");
+    if (!vendor.active) panic("E_VENDOR_INACTIVE");
+
+    const nextRev = Math.max(0, ...vendor.endpoints.map((e) => e.revision)) + 1;
+
+    let largestOpen = 0n;
+    for (const payable of this.payables.values()) {
+      if (payable.vendor_id === vendorId && payable.status === "OPEN") {
+        if (payable.amount > largestOpen) largestOpen = payable.amount;
+      }
+    }
+
+    const cooldownNs =
+      (evidenceTier === "T2" || evidenceTier === "T3" || evidenceTier === "T4") && largestOpen <= vendor.per_payment_cap
+        ? this.cooldownPolicy.tier2_under_cap_ns
+        : this.cooldownPolicy.default_ns;
+
+    const activatesAtNs = this.nowNs + cooldownNs;
+    const normalized = normalizeCaip10(account);
+
+    vendor.endpoints.push({
+      revision: nextRev,
+      account: normalized,
+      evidence_tier: evidenceTier,
+      evidence_digest: evidenceDigest,
+      status: "PENDING_COOLDOWN",
+      approval_digest: null,
+      activates_at_ns: activatesAtNs,
+    });
+
+    return nextRev;
+  }
+
+  approveEndpoint(caller: string, vendorId: string, revision: number, approvalDigest: string, expiryNs?: string | bigint): void {
+    if (!this.approver) panic("E_NO_APPROVER_CONFIGURED");
+    if (caller !== this.approver) panic("E_NOT_APPROVER");
+    if (caller === this.owner) panic("E_APPROVER_CANNOT_BE_OWNER");
+    if (this.binding && caller === this.binding.agent_account_id) panic("E_APPROVER_CANNOT_BE_AGENT");
+
+    checkInput(DIGEST.test(approvalDigest));
+    if (this.usedApprovals.has(approvalDigest)) panic("E_APPROVAL_REPLAYED");
+
+    const vendor = this.vendors.get(vendorId);
+    if (!vendor) panic("E_UNKNOWN_VENDOR");
+
+    const endpoint = vendor.endpoints.find((e) => e.revision === revision);
+    if (!endpoint) panic("E_UNKNOWN_ENDPOINT");
+    if (endpoint.status !== "PENDING_COOLDOWN") panic("E_INVALID_STATUS");
+
+    const expiry = expiryNs !== undefined
+      ? BigInt(expiryNs)
+      : endpoint.activates_at_ns + 7n * 24n * 3600n * 1_000_000_000n;
+
+    if (this.nowNs >= expiry) panic("E_APPROVAL_STALE");
+
+    const expectedDigest = computeApprovalDigest(this.vaultId, vendorId, revision, endpoint.account, expiry);
+    if (approvalDigest !== expectedDigest) panic("E_APPROVAL_MISMATCH");
+
+    this.usedApprovals.add(approvalDigest);
+    endpoint.approval_digest = approvalDigest;
+
+    if (this.nowNs >= endpoint.activates_at_ns) {
+      endpoint.status = "ACTIVE";
+      vendor.account_id = parseNearAccount(endpoint.account);
+      vendor.active_endpoint_revision = revision;
+    } else {
+      endpoint.status = "APPROVED_PENDING_COOLDOWN";
+    }
+  }
+
+  activateEndpoint(vendorId: string, revision: number): void {
+    const vendor = this.vendors.get(vendorId);
+    if (!vendor) panic("E_UNKNOWN_VENDOR");
+    const endpoint = vendor.endpoints.find((e) => e.revision === revision);
+    if (!endpoint) panic("E_UNKNOWN_ENDPOINT");
+    if (endpoint.status === "ACTIVE") return;
+    if (endpoint.status !== "APPROVED_PENDING_COOLDOWN") panic("E_NOT_APPROVED");
+    if (this.nowNs < endpoint.activates_at_ns) panic("E_COOLDOWN_ACTIVE");
+    endpoint.status = "ACTIVE";
+    vendor.account_id = parseNearAccount(endpoint.account);
+    vendor.active_endpoint_revision = revision;
+  }
+
+  rejectEndpoint(caller: string, vendorId: string, revision: number): void {
+    const isOwner = caller === this.owner;
+    const isApprover = caller === this.approver;
+    if (!isOwner && !isApprover) panic("E_NOT_OWNER_OR_APPROVER");
+    const vendor = this.vendors.get(vendorId);
+    if (!vendor) panic("E_UNKNOWN_VENDOR");
+    const endpoint = vendor.endpoints.find((e) => e.revision === revision);
+    if (!endpoint) panic("E_UNKNOWN_ENDPOINT");
+    if (endpoint.status === "REJECTED" || endpoint.status === "REVOKED") panic("E_INVALID_STATUS");
+    endpoint.status = "REJECTED";
+  }
+
+  revokeEndpoint(caller: string, vendorId: string, revision: number): void {
+    const isOwner = caller === this.owner;
+    const isApprover = caller === this.approver;
+    if (!isOwner && !isApprover) panic("E_NOT_OWNER_OR_APPROVER");
+    const vendor = this.vendors.get(vendorId);
+    if (!vendor) panic("E_UNKNOWN_VENDOR");
+    const endpoint = vendor.endpoints.find((e) => e.revision === revision);
+    if (!endpoint) panic("E_UNKNOWN_ENDPOINT");
+    endpoint.status = "REVOKED";
+    if (vendor.active_endpoint_revision === revision) {
+      vendor.active_endpoint_revision = null;
+    }
+  }
+
+  raiseBindingCaps(caller: string): void {
+    this.assertOwner(caller);
+    this.bindingTierIsConservative = false;
+    this.policy.weekly_cap = this.fullPolicyWeeklyCap;
   }
 
   registerPayable(caller: string, payable: PayableInput): void {
@@ -227,6 +395,11 @@ export class VaultSim {
     if (!vendor) panic("E_UNKNOWN_VENDOR");
     if (!vendor.active) panic("E_VENDOR_INACTIVE");
     if (vendor.revision !== payable.vendor_revision) panic("E_VENDOR_REVISION_MISMATCH");
+    if (payable.expected_endpoint_revision !== undefined && payable.expected_endpoint_revision !== null) {
+      if (vendor.active_endpoint_revision !== payable.expected_endpoint_revision) {
+        panic("E_ENDPOINT_REVISION_MISMATCH");
+      }
+    }
     const amount = BigInt(payable.amount_atomic);
     const notBefore = BigInt(payable.not_before_ns);
     const due = BigInt(payable.due_at_ns);
@@ -247,6 +420,7 @@ export class VaultSim {
       status: "OPEN",
       attempts: 0,
       operation_id: null,
+      expected_endpoint_revision: payable.expected_endpoint_revision ?? null,
     });
   }
 
@@ -274,6 +448,8 @@ export class VaultSim {
     this.policy.weekly_cap = BigInt(change.weekly_cap_atomic);
     this.policy.lifetime_cap = BigInt(change.lifetime_cap_atomic);
     this.policy.expires_at_ns = BigInt(change.expires_at_ns);
+    this.fullPolicyWeeklyCap = BigInt(change.weekly_cap_atomic);
+    this.bindingTierIsConservative = false;
     return this.policy.revision;
   }
 
@@ -283,6 +459,10 @@ export class VaultSim {
     checkInput(DIGEST.test(binding.manifest_digest));
     checkInput(isBounded(binding.assessment_ref, MAX_TEXT_BYTES));
     this.bindingRevision += 1;
+    if (this.conservativeCaps) {
+      this.policy.weekly_cap = BigInt(this.conservativeCaps.weekly_cap_atomic);
+      this.bindingTierIsConservative = true;
+    }
     this.binding = {
       agent_account_id: binding.agent_account_id,
       public_key: binding.public_key,
@@ -462,6 +642,29 @@ export class VaultSim {
     };
   }
 
+  getVendor(vendorId: string): SimVendor | null {
+    const vendor = this.vendors.get(vendorId);
+    if (!vendor) return null;
+    return {
+      vendor_id: vendorId,
+      display_name: vendor.display_name,
+      account_id: vendor.account_id,
+      revision: vendor.revision,
+      per_payment_cap_atomic: vendor.per_payment_cap.toString(),
+      active: vendor.active,
+      endpoints: vendor.endpoints.map((e) => ({
+        revision: e.revision,
+        account: e.account,
+        evidence_tier: e.evidence_tier,
+        evidence_digest: e.evidence_digest,
+        status: e.status,
+        approval_digest: e.approval_digest,
+        activates_at_ns: e.activates_at_ns.toString(),
+      })),
+      active_endpoint_revision: vendor.active_endpoint_revision,
+    };
+  }
+
   getVendors(fromIndex = 0, limit = MAX_PAGE): SimVendor[] {
     return [...this.vendors.entries()]
       .slice(fromIndex, fromIndex + Math.min(limit, MAX_PAGE))
@@ -472,6 +675,16 @@ export class VaultSim {
         revision: vendor.revision,
         per_payment_cap_atomic: vendor.per_payment_cap.toString(),
         active: vendor.active,
+        endpoints: vendor.endpoints.map((e) => ({
+          revision: e.revision,
+          account: e.account,
+          evidence_tier: e.evidence_tier,
+          evidence_digest: e.evidence_digest,
+          status: e.status,
+          approval_digest: e.approval_digest,
+          activates_at_ns: e.activates_at_ns.toString(),
+        })),
+        active_endpoint_revision: vendor.active_endpoint_revision,
       }));
   }
 
@@ -511,6 +724,12 @@ export class VaultSim {
     }
     // 2. Request shape.
     if (!DIGEST.test(request.request_digest)) return reject("BAD_CALLER");
+    // Release Guard:
+    if (request.manifest_digest !== undefined && request.manifest_digest !== null) {
+      if (request.manifest_digest !== binding.manifest_digest) {
+        return reject("RELEASE_MISMATCH");
+      }
+    }
     // 3. Authority still live.
     if (!binding.enabled || now >= binding.expires_at_ns || now >= this.policy.expires_at_ns) {
       return reject("BINDING_INACTIVE");
@@ -539,6 +758,17 @@ export class VaultSim {
       !vendor.active
     ) {
       return reject("STALE_REVISION");
+    }
+    // Endpoint checks:
+    if (vendor.active_endpoint_revision === null || vendor.active_endpoint_revision === undefined) {
+      return reject("PAYEE_NOT_VERIFIED");
+    }
+    if (
+      payable.expected_endpoint_revision !== null &&
+      payable.expected_endpoint_revision !== undefined &&
+      payable.expected_endpoint_revision !== vendor.active_endpoint_revision
+    ) {
+      return reject("ENDPOINT_REVISION_MISMATCH");
     }
     // 12 to 14. Caps. Exactly at a cap passes.
     const amount = payable.amount;
@@ -576,6 +806,16 @@ export class VaultSim {
     if (payable.status !== "OPEN") return { rejection: "UNKNOWN_PAYABLE" };
     const vendor = this.vendors.get(payable.vendor_id);
     if (!vendor || !vendor.active || vendor.account_id !== payable.recipient) return { rejection: "STALE_REVISION" };
+    if (vendor.active_endpoint_revision === null || vendor.active_endpoint_revision === undefined) {
+      return { rejection: "PAYEE_NOT_VERIFIED" };
+    }
+    if (
+      payable.expected_endpoint_revision !== null &&
+      payable.expected_endpoint_revision !== undefined &&
+      payable.expected_endpoint_revision !== vendor.active_endpoint_revision
+    ) {
+      return { rejection: "ENDPOINT_REVISION_MISMATCH" };
+    }
     if (payable.amount > this.available) return { rejection: "INSUFFICIENT_BALANCE" };
     if (this.pendingCount >= this.capacities.max_pending || this.operationCount >= this.capacities.max_operations) {
       return { rejection: "CAPACITY_FULL" };
@@ -685,6 +925,40 @@ export class VaultSim {
       status: payable.status === "OPEN" && this.nowNs >= payable.expires_at_ns ? "EXPIRED" : payable.status,
       recipient: payable.recipient,
       operation_id: payable.operation_id,
+      expected_endpoint_revision: payable.expected_endpoint_revision,
     };
   }
+}
+
+export function parseNearAccount(caip10: string): string {
+  if (caip10.startsWith("near:")) {
+    const parts = caip10.slice("near:".length).split(":");
+    if (parts.length === 2) return parts[1]!;
+    if (parts.length === 1) return parts[0]!;
+    return caip10;
+  }
+  return caip10;
+}
+
+export function normalizeCaip10(account: string): string {
+  if (account.startsWith("eip155:")) {
+    const parts = account.slice("eip155:".length).split(":");
+    if (parts.length === 2) {
+      return `eip155:${parts[0]}:${parts[1]!.toLowerCase()}`;
+    }
+    return account.toLowerCase();
+  }
+  return account;
+}
+
+export function computeApprovalDigest(
+  vaultId: string,
+  vendorId: string,
+  revision: number,
+  account: string,
+  expiryNs: bigint | string | number,
+): string {
+  const payload = `redline:endpoint-approval:${vaultId}:${vendorId}:${revision}:${account}:${expiryNs.toString()}`;
+  const hash = createHash("sha256").update(payload).digest("hex");
+  return `sha256:${hash}`;
 }

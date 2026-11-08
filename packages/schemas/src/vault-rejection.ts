@@ -15,5 +15,8 @@ export const VaultRejectionSchema = z.enum([
   "PAUSED",
   "BINDING_INACTIVE",
   "BAD_CALLER",
+  "ENDPOINT_REVISION_MISMATCH",
+  "PAYEE_NOT_VERIFIED",
+  "RELEASE_MISMATCH",
 ]);
 export type VaultRejection = z.infer<typeof VaultRejectionSchema>;

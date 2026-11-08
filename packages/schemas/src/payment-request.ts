@@ -8,5 +8,6 @@ export const PaymentRequestSchema = z.object({
   expected_vendor_revision: RevisionSchema,
   expected_policy_revision: RevisionSchema,
   expected_binding_revision: RevisionSchema,
+  manifest_digest: DigestSchema.optional(),
 });
 export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;

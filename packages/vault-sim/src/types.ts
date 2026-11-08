@@ -33,6 +33,28 @@ export interface PolicyInput {
   expires_at_ns: string;
 }
 
+export interface CooldownPolicyInput {
+  tier2_under_cap_ns: string;
+  default_ns: string;
+}
+
+export type EndpointStatusView =
+  | "ACTIVE"
+  | "PENDING_COOLDOWN"
+  | "APPROVED_PENDING_COOLDOWN"
+  | "REJECTED"
+  | "REVOKED";
+
+export interface EndpointRevisionView {
+  revision: number;
+  account: string;
+  evidence_tier: string;
+  evidence_digest: string;
+  status: EndpointStatusView;
+  approval_digest: string | null;
+  activates_at_ns?: string | null;
+}
+
 export interface VaultSimConfig {
   vault_id: string;
   owner: string;
@@ -41,6 +63,10 @@ export interface VaultSimConfig {
   token_decimals?: number;
   policy: PolicyInput;
   capacities?: Capacities;
+  approver?: string | null;
+  attestor?: string | null;
+  cooldown_policy?: CooldownPolicyInput | null;
+  conservative_caps?: PolicyInput | null;
   /** Start time of the simulated clock, in nanoseconds. */
   now_ns: string | bigint;
   /**
@@ -74,6 +100,7 @@ export interface PayableInput {
   due_at_ns: string;
   expires_at_ns: string;
   evidence_commitment: string;
+  expected_endpoint_revision?: number | null;
 }
 
 export interface BindingInput {
@@ -96,7 +123,11 @@ export type Origin = "AGENT" | "OWNER";
 /** What the callback sees. "unknown" is anything other than a clean success or a clean failure. */
 export type TransferOutcome = "success" | "failed" | "unknown";
 
-export type SimPayable = Payable & { recipient: string; operation_id: string | null };
+export type SimPayable = Payable & {
+  recipient: string;
+  operation_id: string | null;
+  expected_endpoint_revision?: number | null;
+};
 
 export type SimOperation = Operation & { origin: Origin; request_digest: string | null };
 
@@ -108,7 +139,10 @@ export type SimUsage = VaultUsage & {
   pending_count: number;
 };
 
-export type SimVendor = Vendor;
+export type SimVendor = Vendor & {
+  endpoints?: EndpointRevisionView[];
+  active_endpoint_revision?: number | null;
+};
 
 /** A panic in the contract. `code` is the same `E_*` string as the contract's panic message. */
 export class VaultPanic extends Error {

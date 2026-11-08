@@ -31,7 +31,7 @@ export const WEEK_NS = 7n * NS_PER_DAY;
 /** Far enough ahead to never matter during a test. */
 export const FAR_FUTURE_NS = 4_000_000_000_000_000_000n;
 
-export type WasmName = "vault" | "evidence" | "mock-token" | "test-proxy";
+export type WasmName = "vault" | "evidence" | "mock-token" | "test-proxy" | "payee-registry";
 
 export function wasm(name: WasmName): Uint8Array {
   try {
@@ -209,6 +209,10 @@ export interface WorldOptions {
   register_vendor?: boolean;
   unpaused?: boolean;
   guardian?: boolean;
+  approver?: boolean | SignerHandle;
+  attestor?: boolean | SignerHandle;
+  cooldown_policy?: { tier2_under_cap_ns: string; default_ns: string } | null;
+  conservative_caps?: { weekly_cap_atomic: string; lifetime_cap_atomic: string; expires_at_ns: string } | null;
 }
 
 /** One complete tenant: real token (or fake), vault, owner, enrolled agent with a restricted key, one vendor. */
@@ -227,6 +231,8 @@ export class World {
     readonly guardian: SignerHandle | null,
     readonly admin: VaultAdmin,
     readonly fake: boolean,
+    readonly approver: SignerHandle | null = null,
+    readonly attestor: SignerHandle | null = null,
   ) {}
 
   get vaultId(): string {
@@ -363,6 +369,8 @@ export async function makeWorld(chain: Chain, options: WorldOptions = {}, shared
   const agent = await chain.account("agent");
   const vendor = await chain.account("vendor");
   const guardian = options.guardian ? await chain.account("guardian") : null;
+  const approver = options.approver ? (typeof options.approver === "object" ? options.approver : await chain.account("approver")) : null;
+  const attestor = options.attestor ? (typeof options.attestor === "object" ? options.attestor : await chain.account("attestor")) : null;
   const vault = await chain.account("vault", 30n);
 
   let token: SignerHandle;
@@ -389,6 +397,10 @@ export async function makeWorld(chain: Chain, options: WorldOptions = {}, shared
           expires_at_ns: (options.policy_expires_at_ns ?? FAR_FUTURE_NS).toString(),
         },
         capacities: options.capacities ?? null,
+        approver: approver?.account_id ?? null,
+        attestor: attestor?.account_id ?? null,
+        cooldown_policy: options.cooldown_policy ?? null,
+        conservative_caps: options.conservative_caps ?? null,
       },
     },
   });
@@ -426,7 +438,7 @@ export async function makeWorld(chain: Chain, options: WorldOptions = {}, shared
     }
   }
   if (options.unpaused !== false) await admin.unpause();
-  return new World(chain, token, vault, owner, agent, agentKey, vendor, guardian, admin, options.fake_token === true);
+  return new World(chain, token, vault, owner, agent, agentKey, vendor, guardian, admin, options.fake_token === true, approver, attestor);
 }
 
 /** Runs a call that should panic, and returns the panic's stable code or message. */

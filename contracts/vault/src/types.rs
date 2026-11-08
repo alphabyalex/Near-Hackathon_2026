@@ -22,6 +22,9 @@ pub enum VaultRejection {
     Paused,
     BindingInactive,
     BadCaller,
+    EndpointRevisionMismatch,
+    PayeeNotVerified,
+    ReleaseMismatch,
 }
 
 /// Same shape as `RequestResultSchema`.
@@ -102,6 +105,13 @@ pub struct PolicyInput {
     pub expires_at_ns: U64,
 }
 
+#[near(serializers = [json])]
+#[derive(Clone, Debug)]
+pub struct CooldownPolicyInput {
+    pub tier2_under_cap_ns: U64,
+    pub default_ns: U64,
+}
+
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Capacities {
@@ -121,6 +131,10 @@ pub struct VaultConfig {
     pub token_decimals: u8,
     pub policy: PolicyInput,
     pub capacities: Option<Capacities>,
+    pub approver: Option<AccountId>,
+    pub attestor: Option<AccountId>,
+    pub cooldown_policy: Option<CooldownPolicyInput>,
+    pub conservative_caps: Option<PolicyInput>,
 }
 
 #[near(serializers = [json])]
@@ -146,6 +160,7 @@ pub struct PayableInput {
     pub due_at_ns: U64,
     pub expires_at_ns: U64,
     pub evidence_commitment: String,
+    pub expected_endpoint_revision: Option<u64>,
 }
 
 #[near(serializers = [json])]
@@ -158,7 +173,59 @@ pub struct BindingInput {
     pub expires_at_ns: U64,
 }
 
+// ---------- Endpoint revision types ----------
+
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum EndpointStatusView {
+    Active,
+    PendingCooldown { activates_at_ns: U64 },
+    ApprovedPendingCooldown { activates_at_ns: U64 },
+    Rejected,
+    Revoked,
+}
+
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EndpointRevisionView {
+    pub revision: u64,
+    pub account: String,
+    pub evidence_tier: String,
+    pub evidence_digest: String,
+    pub status: EndpointStatusView,
+    pub approval_digest: Option<String>,
+}
+
 // ---------- Stored records ----------
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum StoredEndpointStatus {
+    Active,
+    PendingCooldown { activates_at_ns: u64 },
+    ApprovedPendingCooldown { activates_at_ns: u64 },
+    Rejected,
+    Revoked,
+}
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StoredEndpointRevision {
+    pub revision: u64,
+    pub account: String,
+    pub evidence_tier: String,
+    pub evidence_digest: String,
+    pub status: StoredEndpointStatus,
+    pub approval_digest: Option<String>,
+}
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug)]
+pub struct StoredCooldownPolicy {
+    pub tier2_under_cap_ns: u64,
+    pub default_ns: u64,
+}
 
 #[near(serializers = [borsh])]
 #[derive(Clone, Debug)]
@@ -168,6 +235,8 @@ pub struct StoredVendor {
     pub revision: u64,
     pub per_payment_cap: u128,
     pub active: bool,
+    pub endpoints: Vec<StoredEndpointRevision>,
+    pub active_endpoint_revision: Option<u64>,
 }
 
 #[near(serializers = [borsh])]
@@ -186,6 +255,7 @@ pub struct StoredPayable {
     pub status: PayableStatus,
     pub attempts: u32,
     pub operation_id: Option<String>,
+    pub expected_endpoint_revision: Option<u64>,
 }
 
 #[near(serializers = [borsh])]
@@ -250,6 +320,8 @@ pub struct VendorView {
     pub revision: u64,
     pub per_payment_cap_atomic: U128,
     pub active: bool,
+    pub endpoints: Vec<EndpointRevisionView>,
+    pub active_endpoint_revision: Option<u64>,
 }
 
 /// `PayableSchema`, plus `recipient` and `operation_id`.
@@ -271,6 +343,7 @@ pub struct PayableView {
     pub status: PayableStatus,
     pub recipient: AccountId,
     pub operation_id: Option<String>,
+    pub expected_endpoint_revision: Option<u64>,
 }
 
 /// `PolicySchema`.
@@ -339,4 +412,6 @@ pub struct ConfigView {
     pub token_decimals: u8,
     pub capacities: Capacities,
     pub contract_version: String,
+    pub approver: Option<AccountId>,
+    pub attestor: Option<AccountId>,
 }

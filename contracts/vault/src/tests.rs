@@ -74,6 +74,10 @@ fn funded_vault(capacities: Option<Capacities>) -> Vault {
             expires_at_ns: U64(FAR),
         },
         capacities,
+        approver: None,
+        attestor: None,
+        cooldown_policy: None,
+        conservative_caps: None,
     });
     as_owner(START);
     vault.set_vendor(
@@ -115,11 +119,12 @@ fn add_payable(vault: &mut Vault, payable_ref: &str, amount: u128) {
         due_at_ns: U64(FAR),
         expires_at_ns: U64(FAR),
         evidence_commitment: DIGEST_A.to_string(),
+        expected_endpoint_revision: None,
     });
 }
 
 fn request(vault: &mut Vault, payable_ref: &str, digest: &str) -> PromiseOrValue<RequestResult> {
-    vault.request_payment(payable_ref.to_string(), digest.to_string(), 1, 1, 1)
+    vault.request_payment(payable_ref.to_string(), digest.to_string(), 1, 1, 1, None)
 }
 
 fn rejection_of(result: PromiseOrValue<RequestResult>) -> VaultRejection {
@@ -241,6 +246,7 @@ fn payable_window_edges() {
         due_at_ns: U64(START + 150),
         expires_at_ns: U64(START + 200),
         evidence_commitment: DIGEST_A.to_string(),
+        expected_endpoint_revision: None,
     });
     as_agent(START + 99);
     assert_eq!(
@@ -282,7 +288,7 @@ fn expired_policy_reports_binding_inactive() {
     as_agent(START + 5);
     assert_eq!(
         vault
-            .request_payment("a".to_string(), DIGEST_A.to_string(), 1, 2, 1)
+            .request_payment("a".to_string(), DIGEST_A.to_string(), 1, 2, 1, None)
             .into_rejection(),
         VaultRejection::BindingInactive
     );
@@ -652,4 +658,342 @@ impl IntoRejection for PromiseOrValue<RequestResult> {
     fn into_rejection(self) -> VaultRejection {
         rejection_of(self)
     }
+}
+
+// ---------- Vault v2: Endpoint change control and Release Guard tests ----------
+
+fn funded_vault_v2() -> Vault {
+    testing_env!(context("vault.test", "vault.test", OTHER_KEY, START, 0).build());
+    let mut vault = Vault::new(VaultConfig {
+        owner: account("owner.test"),
+        guardian: Some(account("guardian.test")),
+        token_contract: account("token.test"),
+        token_decimals: 6,
+        policy: PolicyInput {
+            weekly_cap_atomic: U128(WEEKLY),
+            lifetime_cap_atomic: U128(LIFETIME),
+            expires_at_ns: U64(FAR),
+        },
+        capacities: None,
+        approver: Some(account("approver.test")),
+        attestor: Some(account("attestor.test")),
+        cooldown_policy: Some(CooldownPolicyInput {
+            tier2_under_cap_ns: U64(24 * 3600 * 1_000_000_000),
+            default_ns: U64(72 * 3600 * 1_000_000_000),
+        }),
+        conservative_caps: Some(PolicyInput {
+            weekly_cap_atomic: U128(500),
+            lifetime_cap_atomic: U128(LIFETIME),
+            expires_at_ns: U64(FAR),
+        }),
+    });
+    as_owner(START);
+    vault.set_vendor(
+        VendorInput {
+            vendor_id: "vnd".to_string(),
+            display_name: "Vendor".to_string(),
+            account_id: account("vendor.test"),
+            per_payment_cap_atomic: U128(VENDOR_CAP),
+            active: true,
+        },
+        0,
+    );
+    vault.activate_agent(
+        BindingInput {
+            agent_account_id: account("agent.test"),
+            public_key: key(AGENT_KEY),
+            manifest_digest: DIGEST_A.to_string(),
+            assessment_ref: "run".to_string(),
+            expires_at_ns: U64(FAR),
+        },
+        0,
+    );
+    vault.unpause();
+    testing_env!(context("token.test", "owner.test", OTHER_KEY, START, 0).build());
+    vault.ft_on_transfer(account("owner.test"), U128(1_000_000), String::new());
+    vault
+}
+
+fn as_approver(now: u64) {
+    testing_env!(context("approver.test", "approver.test", OTHER_KEY, now, 0).build());
+}
+
+#[test]
+fn test_endpoint_proposal_and_cooldown_duration() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    // T2 under cap: 24h cooldown
+    let rev2 = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:new-vnd.testnet".to_string(),
+        "T2".to_string(),
+        DIGEST_B.to_string(),
+    );
+    assert_eq!(rev2, 2);
+    let endpoints = vault.get_vendor_endpoints("vnd".to_string());
+    assert_eq!(endpoints.len(), 2);
+    let ep2 = &endpoints[1];
+    let activates_at = match ep2.status {
+        EndpointStatusView::PendingCooldown { activates_at_ns } => activates_at_ns.0,
+        _ => panic!("expected PendingCooldown"),
+    };
+    assert_eq!(activates_at, START + 24 * 3600 * 1_000_000_000);
+
+    // T1: default 72h cooldown
+    let rev3 = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:vnd3.testnet".to_string(),
+        "T1".to_string(),
+        DIGEST_B.to_string(),
+    );
+    assert_eq!(rev3, 3);
+    let endpoints = vault.get_vendor_endpoints("vnd".to_string());
+    let ep3 = &endpoints[2];
+    let activates_at_3 = match ep3.status {
+        EndpointStatusView::PendingCooldown { activates_at_ns } => activates_at_ns.0,
+        _ => panic!("expected PendingCooldown"),
+    };
+    assert_eq!(activates_at_3, START + 72 * 3600 * 1_000_000_000);
+}
+
+#[test]
+#[should_panic(expected = "E_NOT_APPROVER")]
+fn test_owner_cannot_call_approve_endpoint() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    let rev = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:new-vnd.testnet".to_string(),
+        "T2".to_string(),
+        DIGEST_B.to_string(),
+    );
+    // Owner tries to approve: must panic
+    as_owner(START + 100);
+    vault.approve_endpoint("vnd".to_string(), rev, DIGEST_A.to_string(), None);
+}
+
+#[test]
+#[should_panic(expected = "E_NOT_APPROVER")]
+fn test_agent_cannot_call_approve_endpoint() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    let rev = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:new-vnd.testnet".to_string(),
+        "T2".to_string(),
+        DIGEST_B.to_string(),
+    );
+    // Agent tries to approve: must panic
+    as_agent(START + 100);
+    vault.approve_endpoint("vnd".to_string(), rev, DIGEST_A.to_string(), None);
+}
+
+#[test]
+fn test_approval_digest_verification_and_replay() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    let rev = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:new-vnd.testnet".to_string(),
+        "T2".to_string(),
+        DIGEST_B.to_string(),
+    );
+    let activates_at = START + 24 * 3600 * 1_000_000_000;
+    let expiry = activates_at + 3600 * 1_000_000_000;
+
+    let valid_digest = compute_approval_digest(
+        &account("vault.test"),
+        "vnd",
+        rev,
+        "near:testnet:new-vnd.testnet",
+        expiry,
+    );
+
+    // 1. Mismatched digest should panic
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut v = funded_vault_v2();
+        as_owner(START);
+        v.propose_endpoint(
+            "vnd".to_string(),
+            "near:testnet:new-vnd.testnet".to_string(),
+            "T2".to_string(),
+            DIGEST_B.to_string(),
+        );
+        as_approver(START + 100);
+        v.approve_endpoint("vnd".to_string(), rev, DIGEST_A.to_string(), Some(U64(expiry)));
+    }));
+    assert!(result.is_err());
+
+    // 2. Valid approval succeeds
+    as_approver(START + 100);
+    vault.approve_endpoint("vnd".to_string(), rev, valid_digest.clone(), Some(U64(expiry)));
+
+    // 3. Replay should panic
+    let replay_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        vault.approve_endpoint("vnd".to_string(), rev, valid_digest, Some(U64(expiry)));
+    }));
+    assert!(replay_result.is_err());
+}
+
+#[test]
+fn test_cooldown_holds_payment_and_activation() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    let rev = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:new-vnd.testnet".to_string(),
+        "T2".to_string(),
+        DIGEST_B.to_string(),
+    );
+    let cooldown_duration = 24 * 3600 * 1_000_000_000;
+    let activates_at = START + cooldown_duration;
+    let expiry = activates_at + 3600 * 1_000_000_000;
+
+    let digest = compute_approval_digest(
+        &account("vault.test"),
+        "vnd",
+        rev,
+        "near:testnet:new-vnd.testnet",
+        expiry,
+    );
+
+    // Approve at t=100s (before cooldown ends)
+    as_approver(START + 100);
+    vault.approve_endpoint("vnd".to_string(), rev, digest, Some(U64(expiry)));
+
+    // Pinned payable to revision 2: register fails or if registered pins rev 2
+    // During cooldown, active revision is still 1
+    let vendors = vault.get_vendors(None, None);
+    assert_eq!(vendors[0].active_endpoint_revision, Some(1));
+
+    // Try paying during cooldown pinned to rev 2:
+    as_owner(START + 200);
+    vault.register_payable(PayableInput {
+        payable_ref: "pay_v1".to_string(),
+        vendor_id: "vnd".to_string(),
+        vendor_revision: 1,
+        po_number: "PO-1".to_string(),
+        invoice_number: None,
+        amount_atomic: U128(100),
+        not_before_ns: U64(START),
+        due_at_ns: U64(FAR),
+        expires_at_ns: U64(FAR),
+        evidence_commitment: DIGEST_A.to_string(),
+        expected_endpoint_revision: Some(1),
+    });
+
+    // Pinned to rev 1 succeeds during cooldown
+    as_agent(START + 300);
+    assert_transfer(vault.request_payment("pay_v1".to_string(), DIGEST_A.to_string(), 1, 1, 1, None));
+
+    // After cooldown ends, activate endpoint
+    testing_env!(context("vault.test", "anyone.test", OTHER_KEY, activates_at + 1, 0).build());
+    vault.activate_endpoint("vnd".to_string(), rev);
+
+    let vendors_after = vault.get_vendors(None, None);
+    assert_eq!(vendors_after[0].active_endpoint_revision, Some(2));
+    assert_eq!(vendors_after[0].account_id, account("new-vnd.testnet"));
+}
+
+#[test]
+fn test_release_guard_manifest_check() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    vault.register_payable(PayableInput {
+        payable_ref: "p_rel".to_string(),
+        vendor_id: "vnd".to_string(),
+        vendor_revision: 1,
+        po_number: "PO-1".to_string(),
+        invoice_number: None,
+        amount_atomic: U128(100),
+        not_before_ns: U64(START),
+        due_at_ns: U64(FAR),
+        expires_at_ns: U64(FAR),
+        evidence_commitment: DIGEST_A.to_string(),
+        expected_endpoint_revision: None,
+    });
+
+    // Wrong manifest digest: rejects with ReleaseMismatch
+    as_agent(START);
+    let res = vault.request_payment(
+        "p_rel".to_string(),
+        DIGEST_A.to_string(),
+        1,
+        1,
+        1,
+        Some(DIGEST_B.to_string()),
+    );
+    assert_eq!(rejection_of(res), VaultRejection::ReleaseMismatch);
+
+    // Matching manifest digest: passes
+    let res_ok = vault.request_payment(
+        "p_rel".to_string(),
+        DIGEST_A.to_string(),
+        1,
+        1,
+        1,
+        Some(DIGEST_A.to_string()),
+    );
+    assert_transfer(res_ok);
+}
+
+#[test]
+fn test_conservative_caps_and_raise() {
+    let mut vault = funded_vault_v2();
+    // Conservative weekly cap is 500 REDL
+    as_owner(START);
+    vault.register_payable(PayableInput {
+        payable_ref: "p_large".to_string(),
+        vendor_id: "vnd".to_string(),
+        vendor_revision: 1,
+        po_number: "PO-1".to_string(),
+        invoice_number: None,
+        amount_atomic: U128(600), // over conservative cap 500
+        not_before_ns: U64(START),
+        due_at_ns: U64(FAR),
+        expires_at_ns: U64(FAR),
+        evidence_commitment: DIGEST_A.to_string(),
+        expected_endpoint_revision: None,
+    });
+
+    // Rejects with OverWeeklyCap
+    as_agent(START);
+    let res = vault.request_payment("p_large".to_string(), DIGEST_A.to_string(), 1, 1, 1, None);
+    assert_eq!(rejection_of(res), VaultRejection::OverWeeklyCap);
+
+    // Owner raises binding caps
+    as_owner(START + 1);
+    vault.raise_binding_caps();
+
+    // Now succeeds
+    as_agent(START + 2);
+    let res_raised = vault.request_payment("p_large".to_string(), DIGEST_A.to_string(), 1, 1, 1, None);
+    assert_transfer(res_raised);
+}
+
+#[test]
+fn test_endpoint_revocation_blocks_payment() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    vault.register_payable(PayableInput {
+        payable_ref: "p_revk".to_string(),
+        vendor_id: "vnd".to_string(),
+        vendor_revision: 1,
+        po_number: "PO-1".to_string(),
+        invoice_number: None,
+        amount_atomic: U128(100),
+        not_before_ns: U64(START),
+        due_at_ns: U64(FAR),
+        expires_at_ns: U64(FAR),
+        evidence_commitment: DIGEST_A.to_string(),
+        expected_endpoint_revision: None,
+    });
+
+    // Owner revokes active endpoint (rev 1)
+    vault.revoke_endpoint("vnd".to_string(), 1);
+
+    // Agent request now rejected with PayeeNotVerified
+    as_agent(START);
+    let res = vault.request_payment("p_revk".to_string(), DIGEST_A.to_string(), 1, 1, 1, None);
+    assert_eq!(rejection_of(res), VaultRejection::PayeeNotVerified);
 }

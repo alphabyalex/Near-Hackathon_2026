@@ -1,6 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { PaymentRequest, VaultRejection } from "@redline/schemas";
-import { RECONCILE_AFTER_NS, ROLLING_WINDOW_NS, SimVaultGateway, createGymVaultSim, VaultPanic, VaultSim, type AgentCaller, type VaultSimConfig, type VaultSimInit } from "../src/index.js";
+import {
+  RECONCILE_AFTER_NS,
+  ROLLING_WINDOW_NS,
+  SimVaultGateway,
+  createGymVaultSim,
+  computeApprovalDigest,
+  VaultPanic,
+  VaultSim,
+  type AgentCaller,
+  type VaultSimConfig,
+  type VaultSimInit,
+} from "../src/index.js";
 
 const OWNER = "owner.test";
 const AGENT = "agent.test";
@@ -687,5 +698,192 @@ describe("SimVaultGateway", () => {
     gym.setNow(START + 100n);
     const usage = await gym.getUsage("gym.test");
     expect(usage.balance_atomic).toBe("9500");
+  });
+});
+
+describe("v2 endpoint change control and release guard", () => {
+  const APPROVER = "approver.test";
+
+  it("proposes an endpoint and calculates cooldown based on tier and open payables", () => {
+    const vault = makeVault({ approver: APPROVER });
+    addPayable(vault, "p_open", 1000n);
+
+    // T2 with payable under vendor cap (5000): cooldown should be 24h
+    const rev2 = vault.proposeEndpoint(OWNER, "vnd", "near:testnet:new.testnet", "T2", DIGEST_A);
+    expect(rev2).toBe(2);
+
+    const vendor = vault.getVendor("vnd");
+    expect(vendor).not.toBeNull();
+    const ep2 = vendor!.endpoints?.find((e) => e.revision === rev2);
+    expect(ep2).toBeDefined();
+    expect(ep2!.status).toBe("PENDING_COOLDOWN");
+    const cd24h = 24n * 3600n * 1_000_000_000n;
+    expect(BigInt(ep2!.activates_at_ns!)).toBe(START + cd24h);
+
+    // T1: cooldown should be default 72h
+    const rev3 = vault.proposeEndpoint(OWNER, "vnd", "near:testnet:other.testnet", "T1", DIGEST_A);
+    const ep3 = vault.getVendor("vnd")!.endpoints?.find((e) => e.revision === rev3);
+    const cd72h = 72n * 3600n * 1_000_000_000n;
+    expect(BigInt(ep3!.activates_at_ns!)).toBe(START + cd72h);
+  });
+
+  it("approver role separation: only configured approver can approve", () => {
+    const vault = makeVault({ approver: APPROVER });
+    const rev = vault.proposeEndpoint(OWNER, "vnd", "near:testnet:new.testnet", "T2", DIGEST_A);
+    const expiry = START + 7n * 24n * 3600n * 1_000_000_000n;
+    const digest = computeApprovalDigest("vault.test", "vnd", rev, "near:testnet:new.testnet", expiry);
+
+    // Owner cannot approve when approver is configured
+    expectPanic(() => vault.approveEndpoint(OWNER, "vnd", rev, digest, expiry), "E_NOT_APPROVER");
+    // Agent cannot approve
+    expectPanic(() => vault.approveEndpoint(AGENT, "vnd", rev, digest, expiry), "E_NOT_APPROVER");
+    // Approver succeeds
+    vault.approveEndpoint(APPROVER, "vnd", rev, digest, expiry);
+    const ep = vault.getVendor("vnd")!.endpoints?.find((e) => e.revision === rev);
+    expect(ep!.status).toBe("APPROVED_PENDING_COOLDOWN");
+  });
+
+  it("rejects stale or mismatched approvals, and prevents replay", () => {
+    const vault = makeVault({ approver: APPROVER });
+    const rev = vault.proposeEndpoint(OWNER, "vnd", "near:testnet:new.testnet", "T2", DIGEST_A);
+    const expiry = START + 1000n;
+    const wrongDigest = `sha256:${"f".repeat(64)}`;
+
+    // Mismatched digest
+    expectPanic(() => vault.approveEndpoint(APPROVER, "vnd", rev, wrongDigest, expiry), "E_APPROVAL_MISMATCH");
+
+    // Stale approval
+    vault.setNow(expiry + 1n);
+    const validDigest = computeApprovalDigest("vault.test", "vnd", rev, "near:testnet:new.testnet", expiry);
+    expectPanic(() => vault.approveEndpoint(APPROVER, "vnd", rev, validDigest, expiry), "E_APPROVAL_STALE");
+
+    // Replay rejection
+    vault.setNow(START);
+    const freshExpiry = START + 100_000n;
+    const freshDigest = computeApprovalDigest("vault.test", "vnd", rev, "near:testnet:new.testnet", freshExpiry);
+    vault.approveEndpoint(APPROVER, "vnd", rev, freshDigest, freshExpiry);
+
+    // Propose rev 3 with identical details (for replay test)
+    const rev3 = vault.proposeEndpoint(OWNER, "vnd", "near:testnet:new.testnet", "T2", DIGEST_A);
+    expectPanic(() => vault.approveEndpoint(APPROVER, "vnd", rev3, freshDigest, freshExpiry), "E_APPROVAL_REPLAYED");
+  });
+
+  it("cooldown holds payment until finished and approved", () => {
+    const vault = makeVault({ approver: APPROVER });
+    const rev = vault.proposeEndpoint(OWNER, "vnd", "near:testnet:new.testnet", "T2", DIGEST_A);
+    const cd = 24n * 3600n * 1_000_000_000n;
+
+    // Register payable pinned to new revision
+    expectPanic(
+      () =>
+        vault.registerPayable(OWNER, {
+          payable_ref: "p_pin",
+          vendor_id: "vnd",
+          vendor_revision: 1,
+          po_number: "PO-PIN",
+          invoice_number: "INV-PIN",
+          amount_atomic: "100",
+          not_before_ns: START.toString(),
+          due_at_ns: FAR,
+          expires_at_ns: FAR,
+          evidence_commitment: DIGEST_A,
+          expected_endpoint_revision: rev,
+        }),
+      "E_ENDPOINT_REVISION_MISMATCH",
+    );
+
+    // Standard payable pays old active revision during cooldown
+    addPayable(vault, "p_old", 100n);
+    const res = vault.requestPayment(agent, requestFor(vault, "p_old"));
+    expect(res.ok).toBe(true);
+
+    // Advance time past cooldown without approval: cannot activate
+    vault.setNow(START + cd + 1n);
+    expectPanic(() => vault.activateEndpoint("vnd", rev), "E_NOT_APPROVED");
+
+    // Approve now that cooldown has passed: activates immediately
+    const expiry = START + cd + 10_000n;
+    const digest = computeApprovalDigest("vault.test", "vnd", rev, "near:testnet:new.testnet", expiry);
+    vault.approveEndpoint(APPROVER, "vnd", rev, digest, expiry);
+
+    const vendorAfter = vault.getVendor("vnd");
+    expect(vendorAfter!.active_endpoint_revision).toBe(rev);
+    expect(vendorAfter!.account_id).toBe("new.testnet");
+  });
+
+  it("Release Guard: manifest digest mismatch rejects with RELEASE_MISMATCH", () => {
+    const vault = makeVault();
+    addPayable(vault, "p_rg", 100n);
+
+    // Matching manifest succeeds
+    const matchRes = vault.requestPayment(
+      agent,
+      requestFor(vault, "p_rg", { manifest_digest: DIGEST_A }),
+    );
+    expect(matchRes.ok).toBe(true);
+
+    addPayable(vault, "p_rg2", 100n);
+    // Mismatched manifest fails
+    const mismatchRes = vault.requestPayment(
+      agent,
+      requestFor(vault, "p_rg2", { manifest_digest: DIGEST_B }),
+    );
+    expect(mismatchRes.ok).toBe(false);
+    expect(mismatchRes.rejection).toBe("RELEASE_MISMATCH");
+  });
+
+  it("conservative caps on agent activation and explicit owner raise", () => {
+    const conservativeCaps = {
+      weekly_cap_atomic: "1000",
+      lifetime_cap_atomic: "5000",
+      expires_at_ns: FAR,
+    };
+    const vault = makeVault({ conservative_caps: conservativeCaps });
+
+    // Re-enroll agent to trigger conservative caps
+    vault.activateAgent(
+      OWNER,
+      {
+        agent_account_id: AGENT,
+        public_key: AGENT_KEY,
+        manifest_digest: DIGEST_A,
+        assessment_ref: "assessment_v2",
+        expires_at_ns: FAR,
+      },
+      1,
+    );
+
+    expect(vault.getPolicy().weekly_cap_atomic).toBe("1000");
+
+    // Amount over conservative weekly cap (1000) fails
+    addPayable(vault, "p_big", 1500n);
+    const rej = rejectionOf(vault, "p_big");
+    expect(rej).toBe("OVER_WEEKLY_CAP");
+
+    // Explicit owner raise restores policy weekly cap (WEEKLY = 10000)
+    vault.raiseBindingCaps(OWNER);
+    expect(vault.getPolicy().weekly_cap_atomic).toBe(WEEKLY.toString());
+
+    // Now payable passes
+    const okRes = vault.requestPayment(agent, requestFor(vault, "p_big"));
+    expect(okRes.ok).toBe(true);
+  });
+
+  it("revoking active endpoint prevents payments with PAYEE_NOT_VERIFIED", () => {
+    const vault = makeVault({ approver: APPROVER });
+    addPayable(vault, "p_payee", 100n);
+
+    // Revoke active endpoint (rev 1)
+    vault.revokeEndpoint(OWNER, "vnd", 1);
+    const vendor = vault.getVendor("vnd");
+    expect(vendor!.active_endpoint_revision).toBeNull();
+
+    const rej = rejectionOf(vault, "p_payee");
+    expect(rej).toBe("PAYEE_NOT_VERIFIED");
+
+    // owner_pay also fails with PAYEE_NOT_VERIFIED
+    const ownerRes = vault.ownerPay(OWNER, "p_payee");
+    expect(ownerRes.ok).toBe(false);
+    expect(ownerRes.rejection).toBe("PAYEE_NOT_VERIFIED");
   });
 });

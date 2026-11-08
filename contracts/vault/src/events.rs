@@ -159,3 +159,79 @@ pub fn funding_received(sender_id: &AccountId, amount: u128) {
 pub fn withdrawal(event: &str, amount: u128) {
     emit(event, json!({ "amount_atomic": amount.to_string() }));
 }
+
+pub fn endpoint_proposed(
+    vendor_id: &str,
+    revision: u64,
+    account: &str,
+    evidence_tier: &str,
+    evidence_digest: &str,
+    activates_at_ns: u64,
+) {
+    emit(
+        "endpoint_proposed",
+        json!({
+            "vendor_id": vendor_id,
+            "revision": revision,
+            "account": account,
+            "evidence_tier": evidence_tier,
+            "evidence_digest": evidence_digest,
+            "activates_at_ns": activates_at_ns.to_string(),
+        }),
+    );
+}
+
+pub fn endpoint_approved(vendor_id: &str, revision: u64, approver: &AccountId) {
+    emit(
+        "endpoint_approved",
+        json!({
+            "vendor_id": vendor_id,
+            "revision": revision,
+            "approver": approver,
+        }),
+    );
+}
+
+pub fn endpoint_activated(vendor_id: &str, revision: u64, account: &str) {
+    emit(
+        "endpoint_activated",
+        json!({
+            "vendor_id": vendor_id,
+            "revision": revision,
+            "account": account,
+        }),
+    );
+}
+
+pub fn endpoint_rejected(vendor_id: &str, revision: u64, by: &AccountId) {
+    emit(
+        "endpoint_rejected",
+        json!({
+            "vendor_id": vendor_id,
+            "revision": revision,
+            "by": by,
+        }),
+    );
+}
+
+pub fn endpoint_revoked(vendor_id: &str, revision: u64, by: &AccountId) {
+    emit(
+        "endpoint_revoked",
+        json!({
+            "vendor_id": vendor_id,
+            "revision": revision,
+            "by": by,
+        }),
+    );
+}
+
+pub fn release_mismatch(agent: &AccountId, presented_digest: &str, expected_digest: &str) {
+    emit(
+        "release_mismatch",
+        json!({
+            "agent_account_id": agent,
+            "presented_manifest_digest": presented_digest,
+            "expected_manifest_digest": expected_digest,
+        }),
+    );
+}

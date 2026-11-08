@@ -1862,6 +1862,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "redline-payee-registry"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+]
+
+[[package]]
 name = "redline-test-proxy"
 version = "0.1.0"
 dependencies = [

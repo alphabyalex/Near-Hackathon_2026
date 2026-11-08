@@ -16,6 +16,11 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | Simulator with parity tests | `packages/vault-sim`, `tests/sandbox/test/parity.test.ts` | Done |
 | `VaultGateway` client | `packages/vault-client` | Done |
 | Deploy, attack and key scripts | `scripts/contracts` | Done, run on testnet |
+| Vault v2 change control | `contracts/vault` | Done, endpoints with cooldown and approver separation |
+| Release Guard | `contracts/vault` | Done, manifest digest verification and conservative caps |
+| Public Payee Registry | `contracts/payee-registry` | Done, opt-in domain-to-account directory with cooling-off |
+| Payee Registry Client | `packages/vault-client` | Done, browser-safe RPC client implementing PayeeRegistry |
+| Release Guard and Registry Specs | `docs/RELEASE_GUARD.md`, `docs/PAYEE_REGISTRY.md` | Done |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
 
@@ -31,11 +36,12 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 
 | Suite | Result |
 | --- | --- |
-| Rust unit tests (`cargo test --workspace`) | 40 passed |
-| `packages/vault-sim` | 43 passed |
+| Rust unit tests (`cargo test --workspace`) | 53 passed (38 vault, 5 payee-registry, 6 evidence, 4 mock-token) |
+| `packages/vault-sim` | 50 passed |
 | `packages/vault-client` | 12 passed |
-| `tests/sandbox`, on a real local node | 123 passed, about 20 minutes |
-| Root `pnpm test`, Linux, in a clean clone | All workspaces pass |
+| `tests/sandbox/test/v2-endpoint-release.test.ts` | 11 passed |
+| `tests/sandbox`, on a real local node | All suites pass |
+| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass |
 
 Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
 
@@ -75,10 +81,48 @@ All in `docs/VAULT_RULES.md`:
 
 ## Interfaces I expose
 
-- `@redline/vault-client`: `NearVaultGateway` implements `VaultGateway`. `NearVaultGateway.fromEnv()` reads `NEAR_NETWORK`, `NEAR_RPC_URL`, `REDLINE_VAULT_SIGNERS_FILE`. Also `getVendors`, `getPayables`, and `VaultAdmin` for owner methods. `NearEvidenceClient` provides read views (`getSuite`, `getRun`, `getReportDigest`, `verifyReport`) and issuer methods (`commitSuite`, `registerRun`, `publishResult`, `publishRun`). See its README for what each result and error means.
-- `@redline/vault-sim`: `VaultSim`, `SimVaultGateway`, and `createGymVaultSim` (implementing `GymVaultSim` with `transfers()` and `setNow()` matching Lucy's `VaultSimFactory`).
-- `docs/VAULT_RULES.md`: every rule, in check order.
-- `contracts/evidence`: see its README for `commit_suite`, `register_run`, `publish_result`.
+- `@redline/vault-client`:
+  - `NearVaultGateway`: implements `VaultGateway`. Reads environment configurations and manages payments, bindings, policies, and queries.
+  - `PayeeRegistryClient`: implements `PayeeRegistry` from `@redline/sdk`. Provides browser-safe RPC view calls (`getVendor`, `listVendors`, `findByAccount`, `resolve`, `isVerifiedPayee`) and authenticated actions (`attestVendor`, `proposeUpdate`, `revokeVendor`).
+  - `VaultAdmin`: administrative control exposing `proposeEndpoint`, `approveEndpoint`, `activateEndpoint`, `rejectEndpoint`, `revokeEndpoint`, and `raiseBindingCaps`.
+  - `NearEvidenceClient`: read views and issuer methods for the evidence registry.
+- `@redline/vault-sim`:
+  - `VaultSim`: in-memory simulator matching all Vault v2 rules, endpoint revisions, Release Guard manifest checks, and conservative authority tiers.
+  - `SimVaultGateway` and `createGymVaultSim`: Gym-compatible gateway with simulated clock controls and transfer logging.
+- `@redline/schemas`:
+  - `PaymentRequestSchema` updated to include optional `manifest_digest: DigestSchema.optional()`.
+  - `VaultRejectionSchema` updated with `ENDPOINT_REVISION_MISMATCH`, `PAYEE_NOT_VERIFIED`, and `RELEASE_MISMATCH`.
+- `contracts/payee-registry`:
+  - Opt-in public registry for cross-agent payee resolution with cooling-off protection.
+- `docs/RELEASE_GUARD.md`:
+  - Release manifest coverage, gateway trust boundaries, conservative authority caps, and event specifications.
+- `docs/PAYEE_REGISTRY.md`:
+  - Directory architecture, CAIP-10 account normalization, attestor first-listing, self-service updates, and vault independence.
+
+### Payee Registry wiring for Alexander (services/api/src/payee/runtime.ts)
+
+Alexander, here is the exact snippet to wire `PayeeRegistryClient` at the marked TODO in `services/api/src/payee/runtime.ts`:
+
+```typescript
+  if (registryMode === "near") {
+    const vaultClient = await importOptional("@redline/vault-client");
+    if (!vaultClient?.PayeeRegistryClient) {
+      throw new Error("REDLINE_REGISTRY_MODE=near needs PayeeRegistryClient from @redline/vault-client, which has not landed.");
+    }
+    const registryContractId = env.REDLINE_PAYEE_REGISTRY_ID ?? "payee-registry.redline-labs.testnet";
+    const rpcUrl = env.NEAR_RPC_URL ?? DEFAULT_NEAR_RPC;
+    const client = new (vaultClient.PayeeRegistryClient as typeof PayeeRegistryClient)({
+      registryId: registryContractId,
+      rpcUrl,
+    });
+    backends.registry = {
+      getVendor: (domain) => client.getVendor(domain),
+      listVendors: () => client.listVendors(),
+      findByAccount: (caip10) => client.findByAccount(caip10),
+      attestVendor: (input) => client.attestVendor(input),
+    };
+  }
+```
 
 ### Answers to Alexander's questions in docs/status/alexander.md
 

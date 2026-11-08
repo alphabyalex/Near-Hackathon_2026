@@ -19,6 +19,7 @@ export interface PayableInput {
   due_at_ns: string;
   expires_at_ns: string;
   evidence_commitment: string;
+  expected_endpoint_revision?: number | null;
 }
 
 export interface PolicyInput {
@@ -100,5 +101,78 @@ export class VaultAdmin {
 
   reconcileWithdrawal(settled: boolean): Promise<FinalOutcome> {
     return this.call("reconcile_withdrawal", { settled });
+  }
+
+  proposeEndpoint(vendorId: string, account: string, evidenceTier: string, evidenceDigest: string): Promise<FinalOutcome> {
+    return this.call("propose_endpoint", {
+      vendor_id: vendorId,
+      account,
+      evidence_tier: evidenceTier,
+      evidence_digest: evidenceDigest,
+    });
+  }
+
+  approveEndpoint(
+    vendorId: string,
+    revision: number,
+    approvalDigest: string,
+    expiryNs?: string,
+    signer?: SignerHandle,
+  ): Promise<FinalOutcome> {
+    const handle = signer ?? this.owner;
+    return callFinal(
+      handle,
+      {
+        contract_id: this.vaultId,
+        method: "approve_endpoint",
+        args: {
+          vendor_id: vendorId,
+          revision,
+          approval_digest: approvalDigest,
+          expiry_ns: expiryNs ?? null,
+        },
+        deposit: 0n,
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+  }
+
+  activateEndpoint(vendorId: string, revision: number): Promise<FinalOutcome> {
+    return this.call("activate_endpoint", { vendor_id: vendorId, revision }, 0n);
+  }
+
+  rejectEndpoint(vendorId: string, revision: number, signer?: SignerHandle): Promise<FinalOutcome> {
+    const handle = signer ?? this.owner;
+    return callFinal(
+      handle,
+      {
+        contract_id: this.vaultId,
+        method: "reject_endpoint",
+        args: { vendor_id: vendorId, revision },
+        deposit: 0n,
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+  }
+
+  revokeEndpoint(vendorId: string, revision: number, signer?: SignerHandle): Promise<FinalOutcome> {
+    const handle = signer ?? this.owner;
+    return callFinal(
+      handle,
+      {
+        contract_id: this.vaultId,
+        method: "revoke_endpoint",
+        args: { vendor_id: vendorId, revision },
+        deposit: 0n,
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+  }
+
+  raiseBindingCaps(): Promise<FinalOutcome> {
+    return this.call("raise_binding_caps", {});
   }
 }

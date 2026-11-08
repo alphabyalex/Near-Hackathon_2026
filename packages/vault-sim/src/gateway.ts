@@ -10,6 +10,7 @@ import type {
   Vendor,
 } from "@redline/schemas";
 import { VaultSim } from "./vault-sim.js";
+import type { SimVendor } from "./types.js";
 
 /**
  * `VaultGateway` over simulators, so the Gym can drop it in wherever the API uses the real client.
@@ -71,6 +72,52 @@ export class SimVaultGateway implements VaultGateway {
   async revokeAgent(vaultId: string, agentAccountId: string): Promise<void> {
     const vault = this.vault(vaultId);
     vault.revokeAgent(vault.owner, agentAccountId);
+  }
+
+  async proposeEndpoint(
+    vaultId: string,
+    caller: string,
+    vendorId: string,
+    account: string,
+    evidenceTier: string,
+    evidenceDigest: string,
+  ): Promise<number> {
+    return this.vault(vaultId).proposeEndpoint(caller, vendorId, account, evidenceTier, evidenceDigest);
+  }
+
+  async approveEndpoint(
+    vaultId: string,
+    caller: string,
+    vendorId: string,
+    revision: number,
+    approvalDigest: string,
+    expiryNs?: string | bigint,
+  ): Promise<void> {
+    this.vault(vaultId).approveEndpoint(caller, vendorId, revision, approvalDigest, expiryNs);
+  }
+
+  async activateEndpoint(vaultId: string, vendorId: string, revision: number): Promise<void> {
+    this.vault(vaultId).activateEndpoint(vendorId, revision);
+  }
+
+  async rejectEndpoint(vaultId: string, caller: string, vendorId: string, revision: number): Promise<void> {
+    this.vault(vaultId).rejectEndpoint(caller, vendorId, revision);
+  }
+
+  async revokeEndpoint(vaultId: string, caller: string, vendorId: string, revision: number): Promise<void> {
+    this.vault(vaultId).revokeEndpoint(caller, vendorId, revision);
+  }
+
+  async raiseBindingCaps(vaultId: string, caller: string): Promise<void> {
+    this.vault(vaultId).raiseBindingCaps(caller);
+  }
+
+  async getVendor(vaultId: string, vendorId: string): Promise<SimVendor | null> {
+    return this.vault(vaultId).getVendor(vendorId);
+  }
+
+  async getVendors(vaultId: string, fromIndex = 0, limit = 100): Promise<SimVendor[]> {
+    return this.vault(vaultId).getVendors(fromIndex, limit);
   }
 
   protected vault(vaultId: string): VaultSim {
