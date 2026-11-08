@@ -769,7 +769,7 @@ fn test_owner_cannot_call_approve_endpoint() {
     );
     // Owner tries to approve: must panic
     as_owner(START + 100);
-    vault.approve_endpoint("vnd".to_string(), rev, DIGEST_A.to_string(), None);
+    vault.approve_endpoint("vnd".to_string(), rev, Some(DIGEST_A.to_string()), None, None);
 }
 
 #[test]
@@ -785,7 +785,7 @@ fn test_agent_cannot_call_approve_endpoint() {
     );
     // Agent tries to approve: must panic
     as_agent(START + 100);
-    vault.approve_endpoint("vnd".to_string(), rev, DIGEST_A.to_string(), None);
+    vault.approve_endpoint("vnd".to_string(), rev, Some(DIGEST_A.to_string()), None, None);
 }
 
 #[test]
@@ -820,19 +820,62 @@ fn test_approval_digest_verification_and_replay() {
             DIGEST_B.to_string(),
         );
         as_approver(START + 100);
-        v.approve_endpoint("vnd".to_string(), rev, DIGEST_A.to_string(), Some(U64(expiry)));
+        v.approve_endpoint("vnd".to_string(), rev, Some(DIGEST_A.to_string()), Some(U64(expiry)), None);
     }));
     assert!(result.is_err());
 
     // 2. Valid approval succeeds
     as_approver(START + 100);
-    vault.approve_endpoint("vnd".to_string(), rev, valid_digest.clone(), Some(U64(expiry)));
+    vault.approve_endpoint("vnd".to_string(), rev, Some(valid_digest.clone()), Some(U64(expiry)), None);
 
     // 3. Replay should panic
     let replay_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        vault.approve_endpoint("vnd".to_string(), rev, valid_digest, Some(U64(expiry)));
+        vault.approve_endpoint("vnd".to_string(), rev, Some(valid_digest), Some(U64(expiry)), None);
     }));
     assert!(replay_result.is_err());
+}
+
+#[test]
+fn test_dao_account_approval_path() {
+    let mut vault = funded_vault_v2();
+    as_owner(START);
+    let rev = vault.propose_endpoint(
+        "vnd".to_string(),
+        "near:testnet:new-vnd.testnet".to_string(),
+        "T2".to_string(),
+        DIGEST_B.to_string(),
+    );
+
+    // Mismatched account panics
+    let mismatch_res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut v = funded_vault_v2();
+        as_owner(START);
+        v.propose_endpoint(
+            "vnd".to_string(),
+            "near:testnet:new-vnd.testnet".to_string(),
+            "T2".to_string(),
+            DIGEST_B.to_string(),
+        );
+        as_approver(START + 100);
+        v.approve_endpoint(
+            "vnd".to_string(),
+            rev,
+            None,
+            None,
+            Some("near:testnet:wrong.testnet".to_string()),
+        );
+    }));
+    assert!(mismatch_res.is_err());
+
+    // Valid DAO account approval succeeds
+    as_approver(START + 100);
+    vault.approve_endpoint(
+        "vnd".to_string(),
+        rev,
+        None,
+        None,
+        Some("near:testnet:new-vnd.testnet".to_string()),
+    );
 }
 
 #[test]
@@ -859,7 +902,7 @@ fn test_cooldown_holds_payment_and_activation() {
 
     // Approve at t=100s (before cooldown ends)
     as_approver(START + 100);
-    vault.approve_endpoint("vnd".to_string(), rev, digest, Some(U64(expiry)));
+    vault.approve_endpoint("vnd".to_string(), rev, Some(digest), Some(U64(expiry)), None);
 
     // Pinned payable to revision 2: register fails or if registered pins rev 2
     // During cooldown, active revision is still 1

@@ -302,14 +302,18 @@ export class VaultSim {
     return nextRev;
   }
 
-  approveEndpoint(caller: string, vendorId: string, revision: number, approvalDigest: string, expiryNs?: string | bigint): void {
+  approveEndpoint(
+    caller: string,
+    vendorId: string,
+    revision: number,
+    approvalDigest?: string | null,
+    expiryNs?: string | bigint,
+    account?: string,
+  ): void {
     if (!this.approver) panic("E_NO_APPROVER_CONFIGURED");
     if (caller !== this.approver) panic("E_NOT_APPROVER");
     if (caller === this.owner) panic("E_APPROVER_CANNOT_BE_OWNER");
     if (this.binding && caller === this.binding.agent_account_id) panic("E_APPROVER_CANNOT_BE_AGENT");
-
-    checkInput(DIGEST.test(approvalDigest));
-    if (this.usedApprovals.has(approvalDigest)) panic("E_APPROVAL_REPLAYED");
 
     const vendor = this.vendors.get(vendorId);
     if (!vendor) panic("E_UNKNOWN_VENDOR");
@@ -325,10 +329,23 @@ export class VaultSim {
     if (this.nowNs >= expiry) panic("E_APPROVAL_STALE");
 
     const expectedDigest = computeApprovalDigest(this.vaultId, vendorId, revision, endpoint.account, expiry);
-    if (approvalDigest !== expectedDigest) panic("E_APPROVAL_MISMATCH");
 
-    this.usedApprovals.add(approvalDigest);
-    endpoint.approval_digest = approvalDigest;
+    let finalDigest: string;
+    if (approvalDigest) {
+      checkInput(DIGEST.test(approvalDigest));
+      if (this.usedApprovals.has(approvalDigest)) panic("E_APPROVAL_REPLAYED");
+      if (approvalDigest !== expectedDigest) panic("E_APPROVAL_MISMATCH");
+      finalDigest = approvalDigest;
+    } else if (account) {
+      if (endpoint.account !== account) panic("E_APPROVAL_MISMATCH");
+      if (this.usedApprovals.has(expectedDigest)) panic("E_APPROVAL_REPLAYED");
+      finalDigest = expectedDigest;
+    } else {
+      panic("E_MISSING_APPROVAL_DIGEST");
+    }
+
+    this.usedApprovals.add(finalDigest);
+    endpoint.approval_digest = finalDigest;
 
     if (this.nowNs >= endpoint.activates_at_ns) {
       endpoint.status = "ACTIVE";

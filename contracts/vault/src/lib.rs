@@ -319,8 +319,9 @@ impl Vault {
         &mut self,
         vendor_id: String,
         revision: u64,
-        approval_digest: String,
+        approval_digest: Option<String>,
         expiry_ns: Option<U64>,
+        account: Option<String>,
     ) {
         let caller = env::predecessor_account_id();
         let Some(ref approver) = self.approver else {
@@ -336,11 +337,6 @@ impl Vault {
             if caller == binding.agent_account_id {
                 fail("E_APPROVER_CANNOT_BE_AGENT");
             }
-        }
-
-        check_input(is_digest(&approval_digest));
-        if self.used_approvals.get(&approval_digest).is_some() {
-            fail("E_APPROVAL_REPLAYED");
         }
 
         let vendor = match self.vendors.get_mut(&vendor_id) {
@@ -375,12 +371,29 @@ impl Vault {
             expiry,
         );
 
-        if approval_digest != expected_digest {
-            fail("E_APPROVAL_MISMATCH");
-        }
+        let final_digest = if let Some(digest) = approval_digest {
+            check_input(is_digest(&digest));
+            if self.used_approvals.get(&digest).is_some() {
+                fail("E_APPROVAL_REPLAYED");
+            }
+            if digest != expected_digest {
+                fail("E_APPROVAL_MISMATCH");
+            }
+            digest
+        } else if let Some(acc) = account {
+            if endpoint.account != acc {
+                fail("E_APPROVAL_MISMATCH");
+            }
+            if self.used_approvals.get(&expected_digest).is_some() {
+                fail("E_APPROVAL_REPLAYED");
+            }
+            expected_digest
+        } else {
+            fail("E_MISSING_APPROVAL_DIGEST");
+        };
 
-        self.used_approvals.insert(approval_digest.clone(), true);
-        endpoint.approval_digest = Some(approval_digest);
+        self.used_approvals.insert(final_digest.clone(), true);
+        endpoint.approval_digest = Some(final_digest);
         events::endpoint_approved(&vendor_id, revision, &caller);
 
         if now >= activates_at_ns {
