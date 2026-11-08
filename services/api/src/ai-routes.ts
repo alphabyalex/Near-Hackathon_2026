@@ -79,7 +79,10 @@ export function aiOverview(calls: CallRow[], now: Date) {
   };
 }
 
-const PoolChallenge = z.object({ account: z.string().min(2).max(64), action: z.enum(["deposit", "withdraw"]), amount: z.string().regex(/^[1-9][0-9]{0,30}$/) });
+const PoolChallenge = z.union([
+  z.object({ account: z.string().min(2).max(64), action: z.enum(["deposit", "withdraw"]), amount: z.string().regex(/^[1-9][0-9]{0,30}$/) }),
+  z.object({ account: z.string().min(2).max(64), action: z.literal("redeem"), id: z.string().regex(/^[a-z0-9_]{3,40}$/) }),
+]);
 const PoolSigned = z.object({ nonce: z.string(), publicKey: z.string(), signature: z.string() });
 const MeterKeyBody = z.object({ budget_id: z.string().min(1).default(GROUP_BUDGET), member: z.string().min(2).max(64), label: z.string().max(60).optional(), models: z.array(z.string()).min(1).optional() });
 
@@ -100,7 +103,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     const body = PoolChallenge.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: "BAD_REQUEST", message: z.prettifyError(body.error) }, 400);
     const expiresAt = new Date(nowMs() + POOL_TTL_MS).toISOString();
-    const message = `wardline-mutual:v1:${JSON.stringify({ action: body.data.action, account: body.data.account, amount: body.data.amount, pool: deps.ai.contracts.pool, expiresAt })}`;
+    const message = `wardline-mutual:v1:${JSON.stringify({ ...body.data, pool: deps.ai.contracts.pool, expiresAt })}`;
     const nonce = randomBytes(32).toString("base64");
     deps.store.saveChallenge({ nonce, account: body.data.account, message, expiresAt: nowMs() + POOL_TTL_MS }, nowMs());
     return c.json({ message, recipient: MUTUAL_RECIPIENT, nonce, expiresAt });
@@ -117,10 +120,11 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
       deps.payee.lookupKeys,
     ).catch(() => "Your account's keys could not be read.");
     if (reason) return c.json({ error: "REFUSED", message: reason }, 401);
-    const req = JSON.parse(challenge.message.slice("wardline-mutual:v1:".length)) as { action: "deposit" | "withdraw"; account: string; amount: string };
+    const req = JSON.parse(challenge.message.slice("wardline-mutual:v1:".length)) as { action: "deposit" | "withdraw" | "redeem"; account: string; amount?: string; id?: string };
     try {
-      if (req.action === "deposit") return c.json({ action: "deposit", ...(await pool.deposit(req.account, req.amount)), position: await pool.getPosition(req.account) });
-      return c.json({ action: "withdraw", ...(await pool.requestWithdraw(req.account, req.amount)), position: await pool.getPosition(req.account) });
+      if (req.action === "deposit") return c.json({ action: "deposit", ...(await pool.deposit(req.account, req.amount!)), position: await pool.getPosition(req.account) });
+      if (req.action === "redeem") return c.json({ action: "redeem", ...(await pool.redeem(req.account, req.id!)), position: await pool.getPosition(req.account) });
+      return c.json({ action: "withdraw", ...(await pool.requestWithdraw(req.account, req.amount!)), position: await pool.getPosition(req.account) });
     } catch (error) {
       return c.json({ error: "REFUSED", message: error instanceof Error ? error.message : "Pool refused the request." }, 409);
     }

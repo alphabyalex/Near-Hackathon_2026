@@ -239,12 +239,12 @@ RESERVED for 1 hour with no callback --reconcile_operation--> SETTLED or FAILED_
 
 ## One payment, step by step
 
-1. Owner has approved vendor `vnd_larkspur` (cap 5,000 WUSD) and registered `pay_1001` for exactly 1,250 WUSD, and the vault is funded and unpaused.
+1. Owner has approved vendor `vnd_larkspur` (cap 5,000 USDC) and registered `pay_1001` for exactly 1,250 USDC, and the vault is funded and unpaused.
 2. The API takes a PAY decision from the agent. The adapter builds a `PaymentRequest`: `payable_ref`, `request_digest`, and the three revisions it read.
 3. `vault-client` signs `request_payment` with the agent's function-call key, which NEAR only accepts for this one method on this one vault, with no deposit.
 4. The vault runs checks 1 to 17. Suppose one fails: it returns `{ ok: false, operation_id: null, rejection: "OVER_WEEKLY_CAP" }`, nothing changes, no money moves. The API opens a review item and the owner can `owner_pay`. Otherwise:
 5. Same receipt: A and R change, `pay_1001` becomes PENDING, `op_7` is RESERVED, slots are taken, `payment_reserved` is logged. Then `ft_transfer` and the callback are scheduled. From here on no second payment of `pay_1001` can start.
-6. Next receipt, on the token: 1,250 WUSD moves to the locked recipient, or the call reverts.
+6. Next receipt, on the token: 1,250 USDC moves to the locked recipient, or the call reverts.
 7. Next receipt, on the vault: `on_payment_result("op_7")` reads the real result. Success: `op_7` and `pay_1001` become SETTLED, R moves to S, a rolling entry is added at this block's time.
 8. The final value `{ ok: true, operation_id: "op_7", rejection: null }` comes back. `vault-client` waited for final execution and returns it. The API reads `get_operation` for the outcome and the receipt.
 9. A timeout at any point is not a failure: `vault-client` throws, the API marks "outcome uncertain", and a retry with the same digest returns `op_7` with no second transfer.

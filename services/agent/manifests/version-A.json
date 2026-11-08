@@ -1,13 +1,13 @@
 {
-  "manifest_digest": "sha256:be48e5ff9385a61bed08dfd3c12801a7b5edd90394b70c43171a47e70f74c877",
+  "manifest_digest": "sha256:075dec44145477beeb0f8b8a361348c096544902ee7633d5a9f00c216eba86ab",
   "manifest": {
     "schema": "wardline-manifest-v1",
     "name": "wardline-invoice-agent",
     "version": "A",
     "model_provider": "near-ai-cloud",
     "model_id": "z-ai/glm-5.3-flash",
-    "prompt_digest": "sha256:224e7d4889b99d95d5f0c0270305d74bd6cf0df384643b9c6ea40fc984ea2750",
-    "harness_digest": "sha256:82c6ca5f959f80461e7593d4034cd427e094c4a77d0e233112335b85cb9bd67f",
+    "prompt_digest": "sha256:3bcf88026e3d29b01f4bd819cc47f160e40e118c4be32a5a8603470afd5404f5",
+    "harness_digest": "sha256:a640c0e3cfe5d371d57635dff4ce2487dc6e5d3af1d0fe99c0f4fc6cf3173165",
     "tools": [],
     "settings": {
       "temperature": 0,
@@ -17,7 +17,7 @@
       "response_format": "json_schema",
       "max_attempts": 2,
       "timeout_ms": 60000,
-      "token_symbol": "WUSD",
+      "token_symbol": "USDC",
       "token_decimals": 6
     },
     "created_at": "2026-11-05T00:00:00Z"

@@ -11,7 +11,7 @@ export interface WardlineContracts {
   meter: string;
   registry: string;
   pool: string;
-  /** WUSD token contract. */
+  /** USDC token contract. */
   token: string;
   /** Vault whose payout accounts the group controls. */
   vault: string;
@@ -37,21 +37,21 @@ const b64 = (value: unknown): string => Buffer.from(JSON.stringify(value)).toStr
 const unb64 = (text: string): unknown => JSON.parse(Buffer.from(text, "base64").toString("utf8"));
 const call = (method_name: string, args: unknown): ActionCall => ({ method_name, args: b64(args), deposit: "0", gas: DEFAULT_GAS });
 
-/** Atomic WUSD (6 decimals) as a person reads it, for proposal text. */
-export function wusdText(atomic: string): string {
+/** Atomic USDC (6 decimals) as a person reads it, for proposal text. */
+export function usdcText(atomic: string): string {
   const v = BigInt(atomic);
   const whole = (v / 1_000_000n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const frac = (v % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "").padEnd(2, "0");
-  return `${whole}.${frac} WUSD`;
+  return `${whole}.${frac} USDC`;
 }
 
 /** One line a voter reads in their DAO app. */
 export function describeAction(a: WardlineAction): string {
   switch (a.type) {
     case "fund_budget":
-      return `Fund AI budget ${a.budget_id} with ${wusdText(a.amount)}`;
+      return `Fund AI budget ${a.budget_id} with ${usdcText(a.amount)}`;
     case "set_allowance":
-      return `Set ${a.member}'s allowance in ${a.budget_id} to ${wusdText(a.allowance)} a period`;
+      return `Set ${a.member}'s allowance in ${a.budget_id} to ${usdcText(a.allowance)} a period`;
     case "add_provider":
       return `Add AI provider ${a.provider_id} (pays ${a.pay_to}) for ${a.model_ids.join(", ")}`;
     case "approve_payout_change":

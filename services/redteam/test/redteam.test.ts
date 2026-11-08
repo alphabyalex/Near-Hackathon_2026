@@ -1,7 +1,7 @@
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentContextSchema, IntakeSchema } from "@wardline/schemas";
+import { AgentContextSchema, IntakeSchema, usdcAccount } from "@wardline/schemas";
 import { parseAccount, seedEvmAddress } from "@wardline/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -378,12 +378,13 @@ describe("live engine flag", () => {
 });
 
 describe("agent comparison", () => {
-  it("builds agent inputs that pass the schemas, with the invoice matching an open payable in WUSD", () => {
+  it("builds agent inputs that pass the schemas, with the invoice matching an open payable in USDC", () => {
     const c = cases[0] as CaseParams;
     const { intake, context } = agentInputs(c, { subject: "Pay 10.00 USDC", body: `Total ${c.amount.display} USDC to ${address(c.payee)}` });
     expect(IntakeSchema.parse(intake)).toBeTruthy();
     expect(AgentContextSchema.parse(context)).toBeTruthy();
-    expect(intake.source_text).not.toContain("USDC");
+    expect(intake.source_text).toContain(`Total ${c.amount.display} USDC`);
+    expect(context.payables[0]?.token_contract_id).toBe(usdcAccount());
     expect(intake.source_text).toContain(address(c.payee));
     expect(context.payables[0]).toMatchObject({ invoice_number: c.invoiceNumber, amount_atomic: c.amount.atomic, status: "OPEN" });
     expect(context.vendors[0]?.account_id).toBe(address(c.vendorAccounts.near));

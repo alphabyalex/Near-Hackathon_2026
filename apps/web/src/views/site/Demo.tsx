@@ -4,7 +4,7 @@ import { runDemoScene, type BudgetView, type CallView, type ClaimView, type Pool
 import { errorText } from "../../api/public";
 import { callWords, modelName } from "../../ai/words";
 import { DEMO } from "../../brand";
-import { formatWusd } from "../../format";
+import { formatUsdc } from "../../format";
 import { ResultCard } from "../../payee/ResultCard";
 import { firstContact, onFile } from "../../redteam";
 
@@ -43,8 +43,7 @@ interface InvoiceResult {
 }
 interface MutualResult {
   before: PoolView;
-  after: PoolView;
-  claim: ClaimView;
+  payouts: { claim: ClaimView; pool: PoolView }[];
 }
 type SceneResult = PluginResult | SwapResult | LeakResult | InvoiceResult | MutualResult;
 
@@ -67,8 +66,8 @@ function PluginOut({ r }: { r: PluginResult }) {
             <b>{modelName(c.call.model_proven)}</b>
           </div>
           {c.reply && <p className="out-reply">{c.reply}</p>}
-          <Row k={L.paid} v={`${formatWusd(c.call.amount)} WUSD`} />
-          <Row k={L.refunded} v={`${formatWusd(c.call.refund)} WUSD`} />
+          <Row k={L.paid} v={`${formatUsdc(c.call.amount)} USDC`} />
+          <Row k={L.refunded} v={`${formatUsdc(c.call.refund)} USDC`} />
           <Row k={L.settlement} v={<span className="mono">{c.call.settlement_tx}</span>} />
         </div>
       ))}
@@ -86,8 +85,8 @@ function SwapOut({ r }: { r: SwapResult }) {
         </div>
         <Row k={L.claimed} v={modelName(r.claimed)} />
         <Row k={L.proven} v={modelName(r.call.model_proven) || L.noneProven} cls="mismatch" />
-        <Row k={L.paid} v={`${formatWusd(r.call.amount)} WUSD`} />
-        <Row k={L.refunded} v={`${formatWusd(r.call.refund)} WUSD`} />
+        <Row k={L.paid} v={`${formatUsdc(r.call.amount)} USDC`} />
+        <Row k={L.refunded} v={`${formatUsdc(r.call.refund)} USDC`} />
         <Row k={L.refund} v={<span className="mono">{r.call.release_tx}</span>} />
       </div>
     </div>
@@ -99,7 +98,7 @@ function LeakOut({ r }: { r: LeakResult }) {
     <div className="scene-out" data-outcome="capped">
       <div className="out-card">
         <div className="out-head">
-          <b className="num">{L.spentOf(formatWusd(r.spent), formatWusd(r.cap))}</b>
+          <b className="num">{L.spentOf(formatUsdc(r.spent), formatUsdc(r.cap))}</b>
         </div>
         {r.bursts.map((b) => (
           <Row key={b.member} k={b.member} v={`${L.burst(b.paid, b.refused)} (${b.reasons.map(callWords).join(" ")})`} />
@@ -110,20 +109,29 @@ function LeakOut({ r }: { r: LeakResult }) {
   );
 }
 
+const wardPrice = (scaled: string): string => (Number(BigInt(scaled)) / 1e6).toFixed(4);
+
 function MutualOut({ r }: { r: MutualResult }) {
   return (
-    <div className="scene-out" data-outcome={r.claim.status}>
-      <div className="out-card">
-        <div className="out-head">
-          <span className="badge ok">{r.claim.status}</span>
-          <b className="num">
-            {L.claim} {formatWusd(r.claim.amount)} WUSD
-          </b>
-        </div>
-        <Row k={`${L.junior}: ${L.before} / ${L.after}`} v={`${formatWusd(r.before.junior)} / ${formatWusd(r.after.junior)}`} />
-        <Row k={`${L.senior}: ${L.before} / ${L.after}`} v={`${formatWusd(r.before.senior)} / ${formatWusd(r.after.senior)}`} />
-        <Row k={L.settlement} v={<span className="mono">{r.claim.tx}</span>} />
-      </div>
+    <div className="scene-out" data-outcome={r.payouts.every((p) => p.claim.status === "paid") ? "paid" : "pending"}>
+      {r.payouts.map(({ claim, pool }, i) => {
+        const dipped = claim.ward_price_after !== claim.ward_price_before;
+        return (
+          <div className="out-card" key={claim.claim_id} data-payout={i + 1}>
+            <div className="out-head">
+              <span className="badge ok">{claim.status}</span>
+              <b className="num">
+                {L.payout(i + 1)}: {formatUsdc(claim.amount)} USDC
+              </b>
+            </div>
+            <Row k={L.junior} v={`${formatUsdc(claim.paid_from_junior)} USDC`} />
+            <Row k={L.senior} v={`${formatUsdc(claim.paid_from_senior)} USDC`} />
+            <Row k={L.stakeLeft} v={`${formatUsdc(pool.junior)} USDC`} />
+            <Row k={L.wardPrice} v={`${wardPrice(claim.ward_price_before)} to ${wardPrice(claim.ward_price_after)} USDC`} cls={dipped ? "mismatch" : ""} />
+            <Row k={L.settlement} v={<span className="mono">{claim.tx}</span>} />
+          </div>
+        );
+      })}
     </div>
   );
 }

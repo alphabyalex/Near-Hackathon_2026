@@ -10,7 +10,7 @@ import { InvoiceDetailCard, Invoices } from "../src/views/Invoices";
 
 afterEach(cleanup);
 
-const token: TokenInfo = { symbol: "WUSD", contract_id: "wusd.wardline.testnet", decimals: 6, network: "NEAR testnet" };
+const token: TokenInfo = { symbol: "USDC", contract_id: "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af", decimals: 6, network: "NEAR testnet" };
 const HOUR = 3_600_000_000_000n;
 
 describe("Status", () => {

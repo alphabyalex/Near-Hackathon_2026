@@ -9,7 +9,7 @@ import {
 } from "@wardline/vault-client";
 import type { DateClock as Clock } from "../time.js";
 import { createSimChain, type SimChainSeed } from "./sim.js";
-import type { AttestedModel, Chain, ChainMode } from "./types.js";
+import type { AttestedModel, Chain, ChainMode, CoverPoolClient } from "./types.js";
 
 export * from "./types.js";
 export { createSimChain, COVER_FEE_BPS, SimMeter, SimPool, SimRegistry, type SimBudgetSeed, type SimChainSeed, type SimPoolSeed } from "./sim.js";
@@ -57,16 +57,16 @@ export function defaultSimSeed(): SimChainSeed {
     ],
     models: [...recordedModels(), SIM_TEE_MODEL],
     pool: {
-      junior: W(5_000),
+      junior: W(20),
       junior_holder: "wardline-labs.testnet",
-      senior: W(20_000),
       withdraw_delay_days: 7,
-      large_claim_threshold: W(1_000),
-      max_claim_bps: 1_000,
+      large_claim_threshold: W(30),
+      max_claim_bps: 2_500,
       positions: [
-        { account: "lp-north.testnet", amount: W(12_000) },
-        { account: "lp-harbor.testnet", amount: W(8_000) },
+        { account: "lp-north.testnet", amount: W(70) },
+        { account: "lp-harbor.testnet", amount: W(50) },
       ],
+      trade_url: readEnv("WARDLINE_WARD_TRADE_URL", process.env) ?? null,
     },
   };
 }
@@ -116,11 +116,70 @@ export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = de
     provider,
     signer,
   });
-  const pool = new NearCoverPoolClient({
+  const nearPool = new NearCoverPoolClient({
     contractId: poolContract,
     provider,
     signer,
   });
 
-  return { mode: "near", meter, registry, pool };
+  return { mode: "near", meter, registry, pool: wardPoolAdapter(nearPool, readEnv("WARDLINE_WARD_TRADE_URL", process.env) ?? null) };
+}
+
+/**
+ * Maps the deployed cover pool's shares (share_price, senior_shares) onto WARD. Remove once the
+ * contract exposes ward_supply, ward_price and redeem itself.
+ * TODO(tharun): WARD as NEP-141 on the cover pool, ft_on_transfer for USDC deposits, and redeem.
+ */
+function wardPoolAdapter(near: NearCoverPoolClient, tradeUrl: string | null): CoverPoolClient {
+  return {
+    mode: "near",
+    async getPool() {
+      const p = await near.getPool();
+      return {
+        tvl: p.tvl,
+        junior: p.junior,
+        senior: p.senior,
+        junior_holder: p.junior_holder,
+        ward_symbol: "WARD",
+        ward_name: "Wardline Mutual share",
+        ward_supply: p.senior_shares,
+        ward_price: p.share_price,
+        launch_price: "1000000",
+        price_history: [],
+        fees_earned: p.fees_earned,
+        claims_paid: p.claims_paid,
+        coverage_capacity: p.coverage_capacity,
+        withdraw_delay_days: p.withdraw_delay_days,
+        large_claim_threshold: p.large_claim_threshold,
+        trade_url: tradeUrl,
+      };
+    },
+    async getPosition(account) {
+      const p = await near.getPosition(account);
+      const locked = p.pending_withdrawals.reduce((n, w) => n + BigInt(w.shares), 0n);
+      return {
+        account: p.account,
+        ward: (BigInt(p.shares) - locked).toString(),
+        ward_locked: locked.toString(),
+        value: p.value,
+        pending_withdrawals: p.pending_withdrawals.map((w) => ({ id: w.id, ward: w.shares, value: w.value, requested_at: w.requested_at, available_at: w.available_at })),
+      };
+    },
+    async deposit(account, amount) {
+      const r = await near.deposit(account, amount);
+      return { tx: r.tx, ward: r.shares };
+    },
+    requestWithdraw: (account, ward) => near.requestWithdraw(account, ward),
+    async redeem() {
+      throw new Error("The deployed cover pool has no redeem yet.");
+    },
+    async listClaims() {
+      return (await near.listClaims()).map((c) => ({ ...c, ward_price_before: "", ward_price_after: "" }));
+    },
+    async fileClaim(args) {
+      const c = await near.fileClaim(args);
+      return { ...c, ward_price_before: "", ward_price_after: "" };
+    },
+    addFees: (amount) => near.addFees(amount),
+  };
 }

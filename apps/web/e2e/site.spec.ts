@@ -55,16 +55,22 @@ test.describe("public site", () => {
     await expect(out.locator(".out-row.mismatch")).toContainText("glm-5.3-flash");
 
     await page.locator('[data-scene="leak"]').click();
-    await expect(out).toContainText("Spent 0.03 of 0.03 WUSD");
-    await expect(out).toContainText("65 requests refused with 402");
+    await expect(out).toContainText("Spent 15.00 of 15.00 USDC");
+    await expect(out).toContainText("50 requests refused with 402");
 
     await page.locator('[data-scene="invoice"]').click();
     await expect(page.locator(".stage .result")).toHaveAttribute("data-verdict", "BLOCK");
 
     await page.locator('[data-scene="mutual"]').click();
     await expect(out).toHaveAttribute("data-outcome", "paid");
-    await expect(out).toContainText("5,000.00 / 4,600.00");
-    await expect(out).toContainText("20,000.00 / 20,000.00");
+    const first = out.locator('[data-payout="1"]');
+    const second = out.locator('[data-payout="2"]');
+    await expect(first).toContainText("Paid by Wardline's stake8.00 USDC");
+    await expect(first).toContainText("Paid by WARD holders0.00 USDC");
+    await expect(first).toContainText("1.0000 to 1.0000 USDC");
+    await expect(second).toContainText("Paid by Wardline's stake12.00 USDC");
+    await expect(second).toContainText("Paid by WARD holders6.00 USDC");
+    await expect(second.locator(".out-row.mismatch")).toContainText("1.0000 to 0.9500 USDC");
 
     const rows = page.locator(".cmp-row");
     await expect(rows.nth(0)).toContainText("5 of 20");
@@ -79,29 +85,36 @@ test.describe("public site", () => {
     await expect(page.locator(".steps li.on")).toHaveCount(3);
   });
 
-  test("mutual: pool numbers, we lose first, and a wallet-signed deposit with the 7-day wait", async ({ page, wallets }) => {
+  test("mutual: WARD price and pitch, we lose first, a wallet-signed USDC deposit for WARD, and a 7-day redemption", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/mutual");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("the pool pays you back");
-    const stats = page.getByTestId("pool-stats");
-    await expect(stats).toContainText("25,000.00");
-    await expect(stats).toContainText("5,000.00");
+    const ward = page.getByTestId("ward-panel");
+    await expect(ward).toContainText("Earn a share of Wardline's fees by backing its proofs.");
+    await expect(ward).toContainText("If Wardline is wrong, WARD holders cover it after Wardline's own stake.");
+    await expect(ward).toContainText("Yield-bearing, loss-sharing.");
+    expect(Number(await page.getByTestId("ward-price").textContent())).toBeGreaterThanOrEqual(1);
+    await expect(page.getByTestId("trade-ward")).toHaveCount(0);
+    await expect(page.getByTestId("pool-stats")).toContainText("20.00");
     await expect(page.locator(".lose-first")).toContainText("We lose first.");
-    await expect(page.locator(".pool-form")).toContainText("Withdrawals unlock 7 days after you ask");
     await page.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
-    await page.getByLabel("Amount (WUSD)").fill("250");
+    await page.getByLabel("Amount (USDC)").fill("20");
     await page.locator('.pool-form [data-wallet="test-wallet"]').click();
-    await expect(page.getByTestId("pool-done")).toContainText("Deposited. sim-deposit-");
-    await expect(page.getByTestId("pool-position")).toContainText("250.00 WUSD");
-    await page.getByRole("tab", { name: "Withdraw" }).click();
-    const text = (await page.getByTestId("pool-position").textContent()) ?? "";
-    const shares = (/WUSD, (\d+) shares/.exec(text) ?? [])[1] ?? "";
-    await page.getByLabel("Shares").fill(shares);
+    await expect(page.getByTestId("pool-done")).toContainText("Received");
+    await expect(page.getByTestId("pool-done")).toContainText("WARD. sim-deposit-");
+    const position = page.getByTestId("pool-position");
+    await expect(position).toContainText(/worth (19.99|20.00) USDC/);
+    await page.getByRole("tab", { name: "Redeem WARD" }).click();
+    await expect(page.locator(".pool-form")).toContainText("locks your WARD for 7 days");
+    const balance = (/Balance ([0-9.,]+) WARD/.exec((await position.textContent()) ?? "") ?? [])[1] ?? "";
+    await page.getByLabel("WARD to redeem").fill(balance.replace(/,/g, ""));
     await page.locator('.pool-form [data-wallet="test-wallet"]').click();
-    await expect(page.getByTestId("pool-done")).toContainText("Withdrawal requested. Unlocks");
-    await expect(page.getByTestId("pool-position")).toContainText("Unlocks");
+    await expect(page.getByTestId("pool-done")).toContainText("WARD locked. Redeemable from");
+    await expect(page.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
+    await expect(position).toContainText("Locked for redemption");
     await expectAccessible(page);
   });
+
 
   test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -253,7 +266,7 @@ test.describe("owner app", () => {
     const fernhill = page.locator(".desk-item", { hasText: "Fernhill Cloud Hosting" });
     await expect(fernhill.locator('[data-countdown="running"]')).toHaveText(/\d+h \d{2}m \d{2}s/);
     await expect(fernhill).toContainText("This account imitates one the vendor linked.");
-    await expect(fernhill).toContainText("800.00 WUSD");
+    await expect(fernhill).toContainText("800.00 USDC");
     await expect(page.getByRole("button", { name: /approve all/i })).toHaveCount(0);
     await expectAccessible(page);
 

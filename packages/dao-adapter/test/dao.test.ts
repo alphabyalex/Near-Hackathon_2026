@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildProposal, createSimDao, createSputnikClient, decodeProposal, type SputnikProposal, type ViewProvider, type WardlineAction, type WardlineContracts } from "../src/index.js";
 
-const contracts: WardlineContracts = { meter: "meter.wardline.testnet", registry: "models.wardline.testnet", pool: "mutual.wardline.testnet", token: "wusd.wardline.testnet", vault: "vault-a.wardline.testnet" };
+const contracts: WardlineContracts = { meter: "meter.wardline.testnet", registry: "models.wardline.testnet", pool: "mutual.wardline.testnet", token: "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af", vault: "vault-a.wardline.testnet" };
 const DAO = "aurora-lab.sputnikv2.testnet";
 
 const ACTIONS: WardlineAction[] = [

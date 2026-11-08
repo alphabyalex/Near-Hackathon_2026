@@ -6,7 +6,9 @@ import { bootstrap } from "../src/bootstrap.js";
 import { signNep413, type NearKeyLookup } from "../src/payee/proofs.js";
 import { LOCAL_AUTH } from "./helpers.js";
 
-const clock = () => BigInt(Date.parse("2026-11-09T12:00:00Z")) * 1_000_000n;
+const START = Date.parse("2026-11-09T12:00:00Z");
+let nowMs = START;
+const clock = () => BigInt(nowMs) * 1_000_000n;
 const lp = (() => {
   const secret = ed25519.utils.randomSecretKey();
   return { account: "lp-new.testnet", secret, publicKey: `ed25519:${base58.encode(ed25519.getPublicKey(secret))}` };
@@ -14,6 +16,7 @@ const lp = (() => {
 const lookupKeys: NearKeyLookup = async (_n, accountId) => (accountId === lp.account ? [{ publicKey: lp.publicKey, fullAccess: true }] : []);
 
 function setup() {
+  nowMs = START;
   const deps = bootstrap(":memory:", clock, { lookupKeys }, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" } });
   return { deps, app: createApp(deps) };
 }
@@ -61,27 +64,61 @@ describe("group page data", () => {
   });
 });
 
-describe("Wardline Mutual", () => {
-  it("publishes TVL, tranches and claims, and takes a wallet-signed deposit and a 7-day withdrawal", async () => {
+describe("Wardline Mutual and WARD", () => {
+  it("publishes WARD's price and supply, mints WARD for a signed USDC deposit, locks it for 7 days, then redeems it", async () => {
     const { app } = setup();
-    const view = (await (await app.request("/v1/pool")).json()) as { pool: { tvl: string; junior: string; senior: string; withdraw_delay_days: number } };
-    expect(view.pool).toMatchObject({ junior: "5000000000", senior: "20000000000", tvl: "25000000000", withdraw_delay_days: 7 });
+    const view = (await (await app.request("/v1/pool")).json()) as { pool: Record<string, unknown> };
+    expect(view.pool).toMatchObject({ junior: "20000000", senior: "120000000", tvl: "140000000", ward_symbol: "WARD", ward_supply: "120000000", ward_price: "1000000", launch_price: "1000000", withdraw_delay_days: 7, trade_url: null });
 
-    const sign = async (action: string, amount: string) => {
-      const ch = (await (await app.request("/v1/pool/challenge", post({ account: lp.account, action, amount }))).json()) as { message: string; nonce: string; recipient: string };
+    const sign = async (body: Record<string, string>) => {
+      const ch = (await (await app.request("/v1/pool/challenge", post({ account: lp.account, ...body }))).json()) as { message: string; nonce: string; recipient: string };
       const signature = signNep413(ch.message, Buffer.from(ch.nonce, "base64"), lp.secret, ch.recipient);
       return app.request("/v1/pool/submit", post({ nonce: ch.nonce, publicKey: lp.publicKey, signature }));
     };
-    const deposit = (await (await sign("deposit", "100000000")).json()) as { position: { value: string; shares: string } };
-    expect(deposit.position.value).toBe("100000000");
-    const withdraw = (await (await sign("withdraw", deposit.position.shares)).json()) as { available_at: string };
-    expect(Date.parse(withdraw.available_at) - Date.parse("2026-11-09T12:00:00Z")).toBe(7 * 86_400_000);
+    const deposit = (await (await sign({ action: "deposit", amount: "10000000" })).json()) as { ward: string; position: { ward: string; value: string } };
+    expect(deposit.ward).toBe("10000000");
+    expect(deposit.position).toMatchObject({ ward: "10000000", value: "10000000" });
+
+    const lock = (await (await sign({ action: "withdraw", amount: "10000000" })).json()) as { id: string; available_at: string; position: { ward: string; ward_locked: string } };
+    expect(Date.parse(lock.available_at) - START).toBe(7 * 86_400_000);
+    expect(lock.position).toMatchObject({ ward: "0", ward_locked: "10000000" });
+    expect((await sign({ action: "withdraw", amount: "1" })).status).toBe(409);
+
+    const early = await sign({ action: "redeem", id: lock.id });
+    expect(early.status).toBe(409);
+    expect(((await early.json()) as { message: string }).message).toContain("7-day wait");
+
+    nowMs = START + 7 * 86_400_000 + 1;
+    const redeemed = (await (await sign({ action: "redeem", id: lock.id })).json()) as { usdc: string; position: { ward: string; ward_locked: string } };
+    expect(redeemed.usdc).toBe("10000000");
+    expect(redeemed.position).toMatchObject({ ward: "0", ward_locked: "0" });
 
     // A signature from the wrong key is refused, and the nonce cannot be reused.
     const ch = (await (await app.request("/v1/pool/challenge", post({ account: lp.account, action: "deposit", amount: "5" }))).json()) as { message: string; nonce: string; recipient: string };
     const forged = signNep413(ch.message, Buffer.from(ch.nonce, "base64"), ed25519.utils.randomSecretKey(), ch.recipient);
     expect((await app.request("/v1/pool/submit", post({ nonce: ch.nonce, publicKey: lp.publicKey, signature: forged }))).status).toBe(401);
     expect((await app.request("/v1/pool/submit", post({ nonce: ch.nonce, publicKey: lp.publicKey, signature: forged }))).status).toBe(401);
+  });
+
+  it("WARD's price: deposits leave it, fees raise it, junior-only payouts leave it, bigger payouts dip it, fees bring it back", async () => {
+    const pool = setup().deps.ai.chain.pool;
+    const price = async () => BigInt((await pool.getPool()).ward_price);
+    await pool.deposit("a.testnet", "25000000");
+    expect(await price()).toBe(1_000_000n);
+    await pool.addFees("2900000");
+    const afterFees = await price();
+    expect(afterFees).toBeGreaterThan(1_000_000n);
+    const small = await pool.fileClaim({ subject: "s", claimant: "c", amount: "15000000", reason: "r" });
+    expect(small).toMatchObject({ status: "paid", paid_from_junior: "15000000", paid_from_senior: "0" });
+    expect(small.ward_price_after).toBe(small.ward_price_before);
+    const big = await pool.fileClaim({ subject: "b", claimant: "c", amount: "20000000", reason: "r" });
+    expect(big).toMatchObject({ status: "paid", paid_from_junior: "5000000", paid_from_senior: "15000000" });
+    expect(BigInt(big.ward_price_after)).toBeLessThan(BigInt(big.ward_price_before));
+    const dipped = await price();
+    await pool.addFees("5000000");
+    expect(await price()).toBeGreaterThan(dipped);
+    const view = await pool.getPool();
+    expect(view.price_history.map((p) => p.event)).toEqual(["launch", "deposit", "fees", "claim", "claim", "fees"]);
   });
 });
 
@@ -103,9 +140,9 @@ describe("demo scenes run the real code paths", () => {
 
   it("3. leaked key: stops at the member allowance, then the budget's hard cap", async () => {
     const s = (await scene("leak")) as { bursts: { paid: number; refused: number; reasons: string[] }[]; spent: string; cap: string; refused: number };
-    expect(s.bursts[0]).toMatchObject({ paid: 10, refused: 30, reasons: ["ALLOWANCE_EXHAUSTED"] });
-    expect(s.bursts[1]).toMatchObject({ paid: 5, refused: 35, reasons: ["BUDGET_EXHAUSTED"] });
-    expect(s.spent).toBe(s.cap);
+    expect(s.bursts[0]).toMatchObject({ paid: 20, refused: 20, reasons: ["ALLOWANCE_EXHAUSTED"] });
+    expect(s.bursts[1]).toMatchObject({ paid: 10, refused: 30, reasons: ["BUDGET_EXHAUSTED"] });
+    expect(s).toMatchObject({ spent: "15000000", cap: "15000000", refused: 50 });
   });
 
   it("4. fake bank details: blocked", async () => {
@@ -113,10 +150,17 @@ describe("demo scenes run the real code paths", () => {
     expect(s.result.verdict).toBe("BLOCK");
   });
 
-  it("5. wrong approval: the Mutual pays at once, junior tranche first", async () => {
-    const s = (await scene("mutual")) as { before: { junior: string; senior: string }; after: { junior: string; senior: string }; claim: { status: string; paid_from_junior: string; paid_from_senior: string } };
-    expect(s.claim).toMatchObject({ status: "paid", paid_from_junior: "400000000", paid_from_senior: "0" });
-    expect(BigInt(s.before.junior) - BigInt(s.after.junior)).toBe(400_000_000n);
-    expect(s.after.senior).toBe(s.before.senior);
+  it("5. wrong approvals: the first payout is all Wardline's stake and WARD holds; the bigger second dips WARD a little", async () => {
+    const s = (await scene("mutual")) as {
+      before: { junior: string; ward_price: string };
+      payouts: { claim: { status: string; paid_from_junior: string; paid_from_senior: string; ward_price_before: string; ward_price_after: string }; pool: { junior: string; ward_price: string } }[];
+    };
+    const [first, second] = s.payouts;
+    expect(first!.claim).toMatchObject({ status: "paid", paid_from_junior: "8000000", paid_from_senior: "0" });
+    expect(first!.pool.ward_price).toBe(s.before.ward_price);
+    expect(second!.claim).toMatchObject({ status: "paid", paid_from_junior: "12000000", paid_from_senior: "6000000" });
+    expect(second!.pool.junior).toBe("0");
+    expect(second!.pool.ward_price).toBe("950000");
   });
+
 });

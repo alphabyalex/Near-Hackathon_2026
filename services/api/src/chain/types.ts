@@ -5,7 +5,7 @@
  * clients once packages/vault-client exports them with these method names.
  * TODO(tharun): confirm names and shapes against SHARED INTERFACES in docs/status/tharun.md.
  *
- * Amounts are atomic WUSD (6 decimals) as decimal strings. Times are ISO 8601.
+ * Amounts are atomic USDC (6 decimals) as decimal strings. Times are ISO 8601.
  */
 
 export type ChainMode = "sim" | "near";
@@ -81,16 +81,35 @@ export interface ModelRegistryClient {
 
 export type Tranche = "junior" | "senior";
 
+/** One point in WARD's price history. */
+export interface WardPricePoint {
+  at: string;
+  /** Atomic USDC per WARD, scaled by 1e6 (1000000 = 1 USDC). */
+  price: string;
+  event: "launch" | "deposit" | "fees" | "claim" | "redeem";
+}
+
+/**
+ * Wardline Mutual. The junior tranche is Wardline's own first-loss stake, in USDC. The senior tranche
+ * is the USDC behind WARD, a NEP-141 share token: price = senior assets / WARD supply. Fees raise the
+ * price; a payout that exceeds the junior stake lowers it. WARD is yield-bearing and loss-sharing.
+ */
 export interface PoolView {
-  /** Total value locked, junior plus senior. */
+  /** Total value locked, junior plus senior, in atomic USDC. */
   tvl: string;
   junior: string;
   senior: string;
   /** Who holds the junior (first-loss) tranche. */
   junior_holder: string;
-  /** Value of one senior share in atomic WUSD, scaled by 1e6 (1000000 = 1.0). */
-  share_price: string;
-  senior_shares: string;
+  ward_symbol: string;
+  ward_name: string;
+  /** WARD in circulation, atomic (6 decimals), including WARD locked for redemption. */
+  ward_supply: string;
+  /** Atomic USDC per WARD, scaled by 1e6. */
+  ward_price: string;
+  /** WARD's price at launch, scaled by 1e6. Always 1000000 (1 USDC). */
+  launch_price: string;
+  price_history: WardPricePoint[];
   fees_earned: string;
   claims_paid: string;
   /** Largest single claim the pool can pay today. */
@@ -98,13 +117,29 @@ export interface PoolView {
   withdraw_delay_days: number;
   /** Claims above this need a DAO vote. */
   large_claim_threshold: string;
+  /** A DEX pool where WARD trades, or null if there is none. */
+  trade_url: string | null;
+}
+
+export interface PendingRedemption {
+  id: string;
+  /** Locked WARD, atomic. */
+  ward: string;
+  /** USDC it would redeem for at today's price. */
+  value: string;
+  requested_at: string;
+  available_at: string;
 }
 
 export interface PoolPosition {
   account: string;
-  shares: string;
+  /** Free WARD, atomic. */
+  ward: string;
+  /** WARD locked in pending redemptions. */
+  ward_locked: string;
+  /** USDC value of free plus locked WARD at today's price. */
   value: string;
-  pending_withdrawals: { id: string; shares: string; value: string; requested_at: string; available_at: string }[];
+  pending_withdrawals: PendingRedemption[];
 }
 
 export interface ClaimView {
@@ -117,6 +152,9 @@ export interface ClaimView {
   status: "paid" | "pending_vote" | "rejected";
   paid_from_junior: string;
   paid_from_senior: string;
+  /** WARD price before and after the payout, scaled by 1e6. */
+  ward_price_before: string;
+  ward_price_after: string;
   filed_at: string;
   tx: string | null;
 }
@@ -125,13 +163,16 @@ export interface CoverPoolClient {
   readonly mode: ChainMode;
   getPool(): Promise<PoolView>;
   getPosition(account: string): Promise<PoolPosition>;
-  deposit(account: string, amount: string): Promise<{ tx: string; shares: string }>;
-  /** Starts the withdrawal wait. Funds become available after withdraw_delay_days. */
-  requestWithdraw(account: string, shares: string): Promise<{ tx: string; id: string; available_at: string }>;
+  /** Deposits USDC and mints WARD at the current price. */
+  deposit(account: string, amount: string): Promise<{ tx: string; ward: string }>;
+  /** Locks WARD for redemption. It can be redeemed after withdraw_delay_days. */
+  requestWithdraw(account: string, ward: string): Promise<{ tx: string; id: string; available_at: string }>;
+  /** Burns the locked WARD and pays USDC at the price on the day, once the wait is over. */
+  redeem(account: string, id: string): Promise<{ tx: string; usdc: string }>;
   listClaims(): Promise<ClaimView[]>;
   /** Pays small claims at once (junior first, then senior). Large ones wait for a DAO vote. */
   fileClaim(args: { subject: string; claimant: string; amount: string; reason: string }): Promise<ClaimView>;
-  /** Adds coverage fees from settled calls. */
+  /** Adds coverage fees from settled calls. They raise WARD's price. */
   addFees(amount: string): Promise<void>;
 }
 

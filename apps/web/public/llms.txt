@@ -25,7 +25,9 @@ Errors: 402 with error.type "spend_limit_reached" and code ALLOWANCE_EXHAUSTED o
 
 SDK: createWardline({ mode: "hosted", baseUrl, meterKey }).openai(OpenAI) returns a configured OpenAI client. getCall(callId) returns the call with its proof, and verifyProof(call, { responseBytes }) re-checks it locally.
 
-Signers attested per model: GET /v1/ai-registry. Wardline Mutual pool: GET /v1/pool.
+Signers attested per model: GET /v1/ai-registry.
+
+Money is Circle's USDC on NEAR (6 decimals). Wardline Mutual (GET /v1/pool) pays customers back when a Wardline approval was wrong. Wardline's own first-loss stake pays first; after that, holders of WARD ("Wardline Mutual share", NEP-141, 6 decimals) cover the rest. WARD is minted for USDC at price = pool assets / WARD supply, starting at 1 USDC. It is yield-bearing and loss-sharing: it rises with fees and falls when a payout goes past Wardline's stake. Redeem with the pool after a 7-day wait, or sell on a DEX.
 
 ## When to use which
 

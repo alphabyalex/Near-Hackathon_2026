@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { EXAMPLES, isBinary, LEGACY_SPANS, listFiles, OLD_NAMES, renamePath, repoRoot, rewrite, skipEntry } from "../scripts/rebrand-wardline.mjs";
+import { EXAMPLES, isBinary, LEGACY_SPANS, RETIRED_TOKEN, RETIRED_TOKEN_ALLOW, listFiles, OLD_NAMES, renamePath, repoRoot, rewrite, skipEntry } from "../scripts/rebrand-wardline.mjs";
 
 const ROOT = repoRoot();
 const FILES = listFiles(ROOT);
@@ -65,4 +65,17 @@ test("the repository URL lives in repo.config.json, and every copy matches it", 
     }
   }
   assert.deepEqual(stale, [], `Update these to ${url}`);
+});
+
+test("the retired test token appears nowhere outside its allowlist; all money is USDC", () => {
+  const hits = [];
+  for (const file of FILES) {
+    if (RETIRED_TOKEN_ALLOW.some((a) => (a.path.endsWith("/") ? file.startsWith(a.path) : file === a.path))) continue;
+    const buf = readFileSync(join(ROOT, file));
+    if (isBinary(file, buf)) continue;
+    buf.toString("utf8").split(/\r?\n/).forEach((line, i) => {
+      if (RETIRED_TOKEN.test(line)) hits.push(`${file}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(hits, [], `Use USDC (WARDLINE_USDC_ACCOUNT) instead.\n${hits.join("\n")}`);
 });

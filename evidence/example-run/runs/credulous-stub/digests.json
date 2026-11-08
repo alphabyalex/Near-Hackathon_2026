@@ -1,11 +1,11 @@
 {
   "schema": "wardline-evidence-digests-v1",
-  "run_id": "run_dev_credulous-stub_20261108T100807Z",
-  "report_digest": "sha256:e906d27e067a24e92bc8a1082945d21ede5ec3588dd51a3fb14a9c6c16e349e6",
-  "run_record_digest": "sha256:e2716e2ba7b5d571cfdfd26167875e0d97ab7c51f05de7ba1fcb673ba13846a3",
+  "run_id": "run_dev_credulous-stub_20261108T221651Z",
+  "report_digest": "sha256:ab94f51ad1e70c1219564cf80512a09275a57680c5332b1899829dcdd42affde",
+  "run_record_digest": "sha256:5a11634b014f6bafc93062c7a1240e519ab205ec84c54ba84491a5b1c1517705",
   "files": {
-    "report.json": "sha256:f00e64169b88da08c3f9d838befd8d6d630d46e3f8b4bf7983ce13087376f4aa",
-    "report.md": "sha256:e18be2aa7f32d3e8fb58981dff7f706995431ff5c49ee7bf6898fffa0289b7e3",
-    "run-record.json": "sha256:28e6d60ca38bf5ca4bcba6c401861d387c5cb55efe032b472c33e8869a38a21d"
+    "report.json": "sha256:9c9cc9472d766d3d9073b1d032adf2966c725a4fb7d395f5552a8dff2986190f",
+    "report.md": "sha256:b1a744d6a2057088934e06690ad14676ceece44e8ded9645e57388758fbf418c",
+    "run-record.json": "sha256:a27cf3690070c43ead24b0422188347949826246de61e96e335df56c67147601"
   }
 }

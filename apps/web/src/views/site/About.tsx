@@ -51,7 +51,7 @@ export function About() {
                   </tr>
                   <tr>
                     <td>
-                      <b>Total (WUSD)</b>
+                      <b>Total (USDC)</b>
                     </td>
                     <td className="num">
                       <b>3,180.00</b>

@@ -87,3 +87,14 @@ describe("helpers", () => {
     expect(Object.keys(REASON_WORDS)).toHaveLength(12);
   });
 });
+
+describe("WARD copy", () => {
+  it("says what WARD is in two lines, keeps We lose first, and never calls it stable or protected", async () => {
+    const { POOL, HOME, BRAND } = await import("../src/brand");
+    expect(POOL.ward.pitch).toEqual(["Earn a share of Wardline's fees by backing its proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."]);
+    expect(POOL.loseFirstTitle).toBe("We lose first.");
+    expect(POOL.ward.kind.toLowerCase()).toContain("yield-bearing, loss-sharing");
+    const copy = JSON.stringify([POOL, HOME, BRAND]).toLowerCase();
+    for (const word of ["stable", "principal", "guaranteed", "insurance", "insured", "risk-free"]) expect(copy).not.toContain(word);
+  });
+});

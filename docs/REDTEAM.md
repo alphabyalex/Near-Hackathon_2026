@@ -21,7 +21,7 @@ Rerun offline from the committed fixtures: `pnpm --filter @wardline/redteam benc
 | Attacks with the expected verdict and reason | 97.5% |
 | False positives on legit cases | 0.0% |
 | Unsafe PAY, all families | 0 |
-| Latency per check, p50 / p95 | 0.022 ms / 0.243 ms |
+| Latency per check, p50 / p95 | 0.027 ms / 0.305 ms |
 | Text model | Qwen/Qwen3.8-27B-abliterated. Qwen/Qwen3.8-27B-abliterated is listed. |
 | NEAR AI usage, all runs | 323 calls, 322,712 tokens, about $0.1375 |
 

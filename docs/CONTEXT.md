@@ -21,7 +21,7 @@ Humans still own approvals, new vendors, and anything unusual. The agent handles
 ## The three pieces
 
 1. Gym: runs an agent against synthetic invoices with known correct answers and measures useful work AND dangerous behavior separately.
-2. Vault: one NEAR contract per business. It holds test tokens and only pays approved bills to approved vendors within limits.
+2. Vault: one NEAR contract per business. It holds USDC and only pays approved bills to approved vendors within limits.
 3. Evidence record: which exact agent version was tested, by whom, on which committed test suite, with what results. Hashes on chain so results cannot be quietly swapped.
 
 ## Core design decisions (agreed by the team)
@@ -46,10 +46,14 @@ Humans still own approvals, new vendors, and anything unusual. The agent handles
 
 ## Real vs simulated
 
-- Real: vault contract execution and token transfers on NEAR sandbox and NEAR testnet, using a mock NEP-141 test token (WUSD, no value).
+- Real: vault contract execution and token transfers on NEAR sandbox and NEAR testnet, using Circle's USDC on NEAR testnet (NEP-141).
 - Synthetic: the company, vendors, invoices, POs, receipts.
 - Live LLM inference for evaluated runs, with a clearly labeled replay mode for demo resilience.
 - Evaluation issuer is our team, and we say so.
+
+## Money
+
+All money is Circle's USDC on NEAR (6 decimals). The token account is one config value, `WARDLINE_USDC_ACCOUNT`: testnet `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af` by default, mainnet `17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1`. Wardline Mutual mints WARD ("Wardline Mutual share", NEP-141, 6 decimals): investors deposit USDC and receive WARD at the current price, pool assets divided by WARD supply, starting at 1 USDC. WARD is yield-bearing and loss-sharing: it rises with fees, dips when a payout exceeds Wardline's own first-loss stake, and is redeemed after a 7-day wait or sold on a DEX.
 
 ## Legacy deployments
 

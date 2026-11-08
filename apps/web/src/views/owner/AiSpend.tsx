@@ -4,7 +4,7 @@ import { SpendChart } from "../../ai/SpendChart";
 import { AI } from "../../brand";
 import { LoadError, Loading } from "../../components/Loading";
 import { Panel } from "../../components/Panel";
-import { formatWusd } from "../../format";
+import { formatUsdc } from "../../format";
 
 /** Dashboard panel: verified calls, refunds and spend over time for metered AI calls. */
 export function AiSpend({ version }: { version: number }) {
@@ -25,13 +25,13 @@ export function AiSpend({ version }: { version: number }) {
         </div>
         <div>
           <div className="l">{AI.spent}</div>
-          <div className="v num">{formatWusd(data.spent)}</div>
-          <div className="s">WUSD</div>
+          <div className="v num">{formatUsdc(data.spent)}</div>
+          <div className="s">USDC</div>
         </div>
         <div>
           <div className="l">{AI.refunded}</div>
-          <div className="v num">{formatWusd(data.refunded)}</div>
-          <div className="s">WUSD</div>
+          <div className="v num">{formatUsdc(data.refunded)}</div>
+          <div className="s">USDC</div>
         </div>
       </div>
       {data.verifiedCalls + data.refusedCalls + data.failedCalls === 0 ? <p className="empty">{AI.empty}</p> : <SpendChart series={data.series} label={AI.series} />}

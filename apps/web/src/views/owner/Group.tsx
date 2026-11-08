@@ -6,7 +6,7 @@ import { GROUP } from "../../brand";
 import { DotBar } from "../../components/DotBar";
 import { LoadError, Loading } from "../../components/Loading";
 import { Panel } from "../../components/Panel";
-import { formatWusd } from "../../format";
+import { formatUsdc } from "../../format";
 import { VerdictMark } from "../../payee/ResultCard";
 import { reasonWords } from "../../payee/reasons";
 
@@ -44,19 +44,19 @@ export function Group({ version }: { version: number }) {
       <div className="strip" data-testid="budget-strip">
         <div>
           <div className="l">{GROUP.deposit}</div>
-          <div className="v num">{formatWusd(budget.deposit)}</div>
-          <div className="s">WUSD</div>
+          <div className="v num">{formatUsdc(budget.deposit)}</div>
+          <div className="s">USDC</div>
         </div>
         <div>
           <div className="l">{GROUP.spent}</div>
-          <div className="v num">{formatWusd(budget.spent)}</div>
+          <div className="v num">{formatUsdc(budget.spent)}</div>
           <div className="s">
-            {GROUP.held} {formatWusd(budget.reserved)}
+            {GROUP.held} {formatUsdc(budget.reserved)}
           </div>
         </div>
         <div>
           <div className="l">{GROUP.left}</div>
-          <div className="v num">{formatWusd(left)}</div>
+          <div className="v num">{formatUsdc(left)}</div>
           <div className="s">
             {GROUP.period} {budget.period}
           </div>
@@ -80,8 +80,8 @@ export function Group({ version }: { version: number }) {
               {budget.members.map((m) => (
                 <tr key={m.member}>
                   <td className="mono">{m.member}</td>
-                  <td className="num">{formatWusd(m.used)}</td>
-                  <td className="num">{formatWusd(m.allowance)}</td>
+                  <td className="num">{formatUsdc(m.used)}</td>
+                  <td className="num">{formatUsdc(m.allowance)}</td>
                   <td className="bar-col">
                     <DotBar settled={pct(m.used, m.allowance)} reserved={pct(m.reserved, m.allowance)} label={`${m.member} used ${pct(m.used, m.allowance)}% of the allowance`} />
                   </td>
@@ -106,7 +106,7 @@ export function Group({ version }: { version: number }) {
                 </div>
                 <div className="payout-body">
                   <span className="mono">{p.receiver}</span>
-                  <span className="num">{formatWusd(p.amount)} WUSD</span>
+                  <span className="num">{formatUsdc(p.amount)} USDC</span>
                   <span className="payout-verdict">
                     <VerdictMark verdict={p.verdict as PayeeVerdict} size={14} />
                     {p.flagged ? GROUP.flagged : GROUP.clear}
@@ -146,8 +146,8 @@ export function Group({ version }: { version: number }) {
                     <td>
                       <CallResult call={c} />
                     </td>
-                    <td className="num r">{formatWusd(c.amount)}</td>
-                    <td className="num r">{formatWusd(c.refund)}</td>
+                    <td className="num r">{formatUsdc(c.amount)}</td>
+                    <td className="num r">{formatUsdc(c.refund)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -79,7 +79,7 @@ describe("review desk", () => {
       verdict: "BLOCK",
       evidenceTier: "T0_NONE",
       requestedBy: requester.account,
-      amountAtStake: { atomic: "800000000", symbol: "WUSD", decimals: 6 },
+      amountAtStake: { atomic: "800000000", symbol: "USDC", decimals: 6 },
     });
     expect(fernhill?.reasons.map((r) => r.code)).toContain("LOOKALIKE_ACCOUNT");
     expect(fernhill?.payables.map((p) => p.ref)).toEqual(["pay_1003"]);
@@ -183,7 +183,7 @@ describe("review desk", () => {
       vault: "vault-a.wardline.testnet",
       oldAccount: "near:testnet:quarry.vendors.wardline.testnet",
       newAccount: "near:testnet:quarrylanelegal.testnet",
-      amountAtStake: { atomic: "3500000000", symbol: "WUSD" },
+      amountAtStake: { atomic: "3500000000", symbol: "USDC" },
       payables: [{ ref: "pay_1002" }],
     });
     expect(holds[0]?.reasons.map((r) => r.code)).toContain("PAYEE_CHANGED");

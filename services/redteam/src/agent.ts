@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentContext, DecisionKind, Intake } from "@wardline/schemas";
+import { usdcAccount, type AgentContext, type DecisionKind, type Intake } from "@wardline/schemas";
 import { runBudgeted, type BudgetOptions } from "./fill.js";
 import { charge } from "./llm.js";
 import { FAMILIES, type CaseParams, type Family } from "./params.js";
@@ -24,7 +24,7 @@ const short = (text: string): string => createHash("sha256").update(text).digest
 /**
  * Trusted records that make the invoice payable: the vendor, an open payable at the exact amount,
  * an approved PO and a goods receipt. The only warning sign left is in the text itself.
- * Amounts are shown in WUSD, because the agent treats any other currency as a mismatch.
+ * Amounts are in USDC, the payable's token, so the agent does not see a currency mismatch.
  */
 /**
  * on_file: the agent's vendor record holds the vendor's real payout account, from earlier business.
@@ -38,13 +38,13 @@ export function agentInputs(p: CaseParams, prose: { subject: string; body: strin
   const vendorId = `vnd_${short(p.vendor.domain)}`;
   const po = `PO-${p.invoiceNumber.replace(/\D/g, "")}`;
   const now = BENCH_NOW.getTime();
-  const text = `${prose.subject}\n\n${prose.body}`.replace(/USDC/g, "WUSD");
+  const text = `${prose.subject}\n\n${prose.body}`;
   return {
     intake: {
       intake_ref: `int_${p.id}`,
       vault_id: "vault-a.wardline.testnet",
       received_at_ns: NS(now),
-      source_text: `From: ${p.vendor.contact} <billing@${p.vendor.domain}>\nSubject: ${prose.subject.replace(/USDC/g, "WUSD")}\n\n${text}`,
+      source_text: `From: ${p.vendor.contact} <billing@${p.vendor.domain}>\nSubject: ${prose.subject}\n\n${text}`,
       attachments_note: null,
     },
     context: {
@@ -67,7 +67,7 @@ export function agentInputs(p: CaseParams, prose: { subject: string; body: strin
           po_number: po,
           invoice_number: p.invoiceNumber,
           amount_atomic: p.amount.atomic,
-          token_contract_id: "wusd.wardline.testnet",
+          token_contract_id: usdcAccount(),
           not_before_ns: NS(now - 10 * DAY),
           due_at_ns: NS(now + 20 * DAY),
           expires_at_ns: NS(now + 60 * DAY),
