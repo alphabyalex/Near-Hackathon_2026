@@ -20,3 +20,8 @@ coverage/
 .vite/
 .DS_Store
 Thumbs.db
+
+# Web end-to-end runs and page screenshots
+apps/web/screenshots/
+apps/web/test-results/
+apps/web/playwright-report/
