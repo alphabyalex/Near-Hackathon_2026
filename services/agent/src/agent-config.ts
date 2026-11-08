@@ -25,7 +25,10 @@ export const TOKEN_DECIMALS = 6;
 export const LLM_SETTINGS = {
   temperature: 0,
   seed: 7,
-  max_tokens: 2000,
+  // Reasoning counts as completion tokens and defaults to an 8,192 token budget on this model, so
+  // 2,000 tokens cut answers off. Cap reasoning, and leave room for the JSON answer.
+  max_tokens: 4000,
+  thinking_token_budget: 1024,
   response_format: "json_schema",
   max_attempts: 2,
   timeout_ms: 60000,
@@ -57,3 +60,22 @@ export function loadRepoEnv(): void {
 
 export const nearAiBaseUrl = (): string => process.env.NEAR_AI_BASE_URL || DEFAULT_BASE_URL;
 export const nearAiApiKey = (): string | null => process.env.NEAR_AI_API_KEY || null;
+
+/**
+ * Checks NEAR AI Cloud answers with this key and lists the model, without running inference.
+ * Returns null when it is usable, otherwise the reason.
+ */
+export async function probeNearAi(fetchImpl: typeof fetch = fetch): Promise<string | null> {
+  const key = nearAiApiKey();
+  if (!key) return "NEAR_AI_API_KEY is not set.";
+  let response: Response;
+  try {
+    response = await fetchImpl(`${nearAiBaseUrl()}/models`, { headers: { authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
+  } catch (error) {
+    return `NEAR AI Cloud is unreachable: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  if (response.status === 401 || response.status === 403) return `NEAR AI Cloud rejected the key (HTTP ${response.status}).`;
+  if (!response.ok) return `NEAR AI Cloud answered HTTP ${response.status}.`;
+  const text = await response.text();
+  return text.includes(MODEL_ID) ? null : `NEAR AI Cloud does not list ${MODEL_ID}.`;
+}

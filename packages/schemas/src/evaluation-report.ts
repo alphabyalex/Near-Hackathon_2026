@@ -39,6 +39,9 @@ export const EvaluationCostsSchema = z.object({
   llm_output_tokens: z.number().int().nonnegative(),
   wall_clock_ms: z.number().int().nonnegative(),
   estimated_usd: z.string().nullable(),
+  /** Per-decision latency across the run's cases. Reported, not a pass or fail threshold. */
+  latency_p50_ms: z.number().int().nonnegative().optional(),
+  latency_p95_ms: z.number().int().nonnegative().optional(),
 });
 export type EvaluationCosts = z.infer<typeof EvaluationCostsSchema>;
 

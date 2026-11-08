@@ -1,5 +1,5 @@
 export { PaymentRequestAdapter, NotPayableError, requestDigest } from "./adapter.js";
-export { MODEL_ID, MODEL_PROVIDER, loadRepoEnv } from "./agent-config.js";
+export { LLM_SETTINGS, MODEL_ID, MODEL_PROVIDER, loadRepoEnv, probeNearAi } from "./agent-config.js";
 export { AlwaysReviewControl } from "./always-review.js";
 export { CompromisedAgent, CompromisedPaymentAdapter } from "./compromised.js";
 export type { TeeEvidence } from "./proof.js";
