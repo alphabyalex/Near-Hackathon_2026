@@ -1,4 +1,5 @@
 import type {
+  EvidenceTier,
   PayeeCheckRequest,
   PayeeCheckResult,
   PayeeResolveRequest,
@@ -10,6 +11,8 @@ import type {
 /** A registry record: the public vendor view plus what the registry keeps next to it. */
 export interface RegistryVendor extends PayeeVendor {
   legalName: string | null;
+  /** The legal name comes from the vendor's own merchant-identity.json, unverified. */
+  legalNameSource: "vendor-claimed" | null;
   evidenceHash: string;
   issuedAt: string;
 }
@@ -17,7 +20,7 @@ export interface RegistryVendor extends PayeeVendor {
 export interface AttestVendorInput {
   domain: string;
   name: string;
-  /** Normalized CAIP-10 accounts, all already proven. */
+  /** Normalized CAIP-10 accounts, each already verified. */
   accounts: string[];
   /** sha256 of the fetched proof file or files, or of "seed" for seeded vendors. */
   evidenceHash: string;
@@ -45,6 +48,8 @@ export interface PayeeHistoryStore {
   record(payment: PaymentRecord): Promise<void>;
   /** The account most recently paid by this payer for this domain on this chain, if any. */
   lastAccount(payer: string, domain: string, chain: string): Promise<string | null>;
+  /** True when this payer has paid this account before, or its owner approved it. Raises a match to T3_RELATIONSHIP. */
+  hasRelationship(payer: string, account: string): Promise<boolean>;
 }
 
 export interface SignalsProvider {
@@ -58,6 +63,8 @@ export interface EngineContext {
   /** NEAR network used to normalize a bare account id. */
   network: string;
 }
+
+export type { EvidenceTier };
 
 export type EngineCheckResult = Omit<PayeeCheckResult, "receipt">;
 export type EngineResolveResult = Omit<PayeeResolveResult, "receipt">;

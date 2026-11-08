@@ -16,6 +16,7 @@ import {
   createRedline,
   createStubSignals,
   hashRequest,
+  meetsTier,
   normalizeAccount,
   normalizeDomain,
   receiptSigningText,
@@ -29,9 +30,9 @@ import {
   type Redline,
 } from "../src/index.js";
 
-const NORTHWIND_EVM = `eip155:84532:${seedEvmAddress("northwind.com")}`;
-const NORTHWIND_SOL = `solana:devnet:${seedSolanaAddress("northwind.com")}`;
-const domain = "northwind.com";
+const NORTHWIND_EVM = `eip155:84532:${seedEvmAddress("northwind.example")}`;
+const NORTHWIND_SOL = `solana:devnet:${seedSolanaAddress("northwind.example")}`;
+const domain = "northwind.example";
 
 const direct = (overrides: Partial<Parameters<typeof createRedline>[0]> = {}): Redline =>
   createRedline({
@@ -55,7 +56,7 @@ describe("normalization", () => {
     expect(() => normalizeAccount(bad)).toThrow();
   });
 
-  it.each(["https://northwind.com", "northwind.com/pay", "localhost", "127.0.0.1", "northwind.com:443", "-bad.com"])("rejects domain %s", (bad) => {
+  it.each(["https://northwind.example", "northwind.example/pay", "localhost", "127.0.0.1", "northwind.example:443", "-bad.example"])("rejects domain %s", (bad) => {
     expect(() => normalizeDomain(bad)).toThrow();
   });
 });
@@ -120,7 +121,7 @@ describe("check verdicts", () => {
 
   it("HOLDs an unknown account and an unknown domain", async () => {
     expect(codes(await direct().check({ payee: "nobody-known.testnet" }))).toEqual(["NOT_IN_REGISTRY"]);
-    const result = await direct().check({ payee: "northwind.testnet", vendor: { domain: "not-listed.com" } });
+    const result = await direct().check({ payee: "northwind.testnet", vendor: { domain: "not-listed.example" } });
     expect(result.verdict).toBe("HOLD");
     expect(codes(result)).toEqual(["NOT_IN_REGISTRY"]);
   });
@@ -199,12 +200,12 @@ describe("resolve", () => {
     ["eip155:84532", NORTHWIND_EVM],
     ["solana:devnet", NORTHWIND_SOL],
   ])("PAYs with the verified account on %s", async (chain, account) => {
-    const result = await direct().resolve({ domain: "NORTHWIND.com", chain });
+    const result = await direct().resolve({ domain: "NORTHWIND.example", chain });
     expect(result).toMatchObject({ verdict: "PAY", domain, account, receipt: null });
   });
 
   it("HOLDs for an unknown domain or an unverified chain", async () => {
-    const unknown = await direct().resolve({ domain: "not-listed.com", chain: "near:testnet" });
+    const unknown = await direct().resolve({ domain: "not-listed.example", chain: "near:testnet" });
     expect(unknown).toMatchObject({ verdict: "HOLD", account: null });
     expect(codes(unknown)).toEqual(["NOT_IN_REGISTRY"]);
     const chain = await direct().resolve({ domain, chain: "eip155:1" });
@@ -219,6 +220,44 @@ describe("resolve", () => {
     const result = await direct({ registry } as never).resolve({ domain, chain: "eip155:1" });
     expect(result).toMatchObject({ verdict: "HOLD", account: null });
     expect(codes(result)).toEqual(["COOLING_OFF"]);
+  });
+});
+
+
+describe("evidence tiers", () => {
+  it("is T2 for a domain-linked match, T0 otherwise, and T3 once this payer has paid the account", async () => {
+    const redline = direct();
+    expect((await redline.check({ payee: "northwind.testnet", vendor: { domain } })).evidenceTier).toBe("T2_DOMAIN_LINKED");
+    expect((await redline.check({ payee: "northw1nd.testnet", vendor: { domain } })).evidenceTier).toBe("T0_NONE");
+    expect((await redline.check({ payee: "nobody-known.testnet" })).evidenceTier).toBe("T0_NONE");
+    await redline.recordPayment({ payer: "acme.testnet", domain, account: NORTHWIND_EVM });
+    expect((await redline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "acme.testnet" })).evidenceTier).toBe("T3_RELATIONSHIP");
+    expect((await redline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "other.testnet" })).evidenceTier).toBe("T2_DOMAIN_LINKED");
+    expect((await redline.resolve({ domain, chain: "eip155:84532", payer: "acme.testnet" })).evidenceTier).toBe("T3_RELATIONSHIP");
+    expect((await redline.resolve({ domain: "not-listed.example", chain: "near:testnet" })).evidenceTier).toBe("T0_NONE");
+  });
+
+  it("does not raise a pending account to T3", async () => {
+    const registry = createMemoryRegistry({ vendors: STUB_VENDORS });
+    const added = `eip155:84532:0x${"9a".repeat(20)}`;
+    await registry.attestVendor({ domain, name: "Northwind Trading", accounts: ["near:testnet:northwind.testnet", added], evidenceHash: "sha256:x", issuedAt: new Date().toISOString() });
+    const redline = direct({ registry } as never);
+    await redline.recordPayment({ payer: "acme.testnet", domain, account: added });
+    expect((await redline.check({ payee: added, vendor: { domain }, payer: "acme.testnet" })).evidenceTier).toBe("T2_DOMAIN_LINKED");
+  });
+
+  it("lists every registry account as T2", async () => {
+    const vendor = await direct().getVendor(domain);
+    expect(vendor?.accounts.every((a) => a.evidenceTier === "T2_DOMAIN_LINKED")).toBe(true);
+  });
+
+  it("assertPayable can require a minimum tier", async () => {
+    const result = await direct().check({ payee: "northwind.testnet", vendor: { domain } });
+    expect(meetsTier(result, "T2_DOMAIN_LINKED")).toBe(true);
+    expect(meetsTier(result, "T3_RELATIONSHIP")).toBe(false);
+    expect(meetsTier({}, "T1_WALLET_CONTROL")).toBe(false);
+    expect(assertPayable(result, { minTier: "T2_DOMAIN_LINKED" })).toBe(result);
+    expect(() => assertPayable(result, { minTier: "T3_RELATIONSHIP" })).toThrow(/below T3_RELATIONSHIP/);
   });
 });
 
@@ -248,6 +287,7 @@ describe("receipts", () => {
       signals: { supported: false, accountExists: null, createdAtBlock: null, ageDays: null, fullAccessKeysAddedLast7d: null, codeChangedLast7d: null, hasContract: null, lookalikeOf: null },
       caseFile: null,
       receipt: null,
+      evidenceTier: "T2_DOMAIN_LINKED",
     };
     const base = { id: "rcpt_1", issuedAt: "2026-11-07T00:00:00.000Z", requestHash: hashRequest(request) };
     const signature = base64.encode(ed25519.sign(utf8ToBytes(receiptSigningText(result, base)), secret));
@@ -263,6 +303,7 @@ describe("receipts", () => {
     expect(verifyReceipt({ ...signed(), verdict: "HOLD" }, publicKey)).toBe(false);
     expect(verifyReceipt({ ...signed(), payee: "near:testnet:evil.testnet" }, publicKey)).toBe(false);
     expect(verifyReceipt({ ...signed(), reasons: [] }, publicKey)).toBe(false);
+    expect(verifyReceipt({ ...signed(), evidenceTier: "T3_RELATIONSHIP" }, publicKey)).toBe(false);
     expect(verifyReceipt(signed(), publicKey, { request: { ...request, context: "other" } })).toBe(false);
   });
 

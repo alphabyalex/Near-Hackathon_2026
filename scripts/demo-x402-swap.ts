@@ -1,6 +1,6 @@
 // A paid API swaps its payTo to a look-alike address and signs the swap with its own website key.
 // The offer's signature is valid. Redline still blocks the payment, because the wallet is not the
-// one the vendor proved. No funds or facilitator are involved.
+// one the vendor linked to its domain. No funds or facilitator are involved.
 //
 //   pnpm demo:x402-swap
 //
@@ -9,7 +9,7 @@ import { createMemoryRegistry, createRedline, RedlineBlockedError, seedEvmAddres
 import { withRedline } from "@redline/x402-guard";
 import { createFakeX402Server, fakePayingFetch } from "@redline/x402-guard/fake-server";
 
-const DOMAIN = "northwind.com";
+const DOMAIN = "northwind.example";
 const verified = seedEvmAddress(DOMAIN);
 
 const apiUrl = process.env.REDLINE_API_URL;
@@ -21,7 +21,7 @@ const server = createFakeX402Server({ mode: "malicious", domain: DOMAIN, realPay
 await server.listen();
 
 console.log(`Request:          GET ${server.resourceUrl}`);
-console.log(`Verified account: eip155:84532:${verified}`);
+console.log(`Linked account:   eip155:84532:${verified}`);
 console.log(`402 asks to pay:  eip155:84532:${server.payTo}`);
 console.log(`Offer signature:  valid, signed by did:web:${DOMAIN}`);
 console.log(`Checked by:       ${apiUrl ?? "local engine"}`);

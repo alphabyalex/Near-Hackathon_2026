@@ -6,7 +6,7 @@ Redline as MCP tools. It calls the API at `REDLINE_API_URL` (default `http://127
 
 | Tool | Use |
 | --- | --- |
-| `resolve_payee` | You know the vendor's website: get its verified account |
+| `resolve_payee` | You know the vendor's website: get the account linked to it |
 | `check_payee` | You have a raw address: check it before paying |
 | `get_vendor` | Read a vendor's record |
 | `how_to_verify` | Steps for a vendor to get verified |
@@ -20,6 +20,6 @@ pnpm --filter @redline/mcp start          # Streamable HTTP at http://127.0.0.1:
 node services/mcp/dist/stdio.js           # stdio
 ```
 
-`MCP_PORT` changes the port. `MCP_ALLOWED_HOSTS` is a comma-separated list of extra Host names to accept.
+Answers include `evidenceTier`. `REDLINE_API_KEY` sends a payer's API key, needed to pass `payer`. `MCP_PORT` changes the port. `MCP_ALLOWED_HOSTS` is a comma-separated list of extra Host names to accept.
 
 `server.json` is ready for the official MCP registry. It is not published.

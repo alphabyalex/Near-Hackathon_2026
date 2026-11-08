@@ -18,6 +18,8 @@ export interface Redline {
 export interface HostedOptions {
   mode: "hosted";
   baseUrl: string;
+  /** An API key from your Redline owner. Needed to pass `payer` or record payments. */
+  apiKey?: string;
   fetch?: typeof globalThis.fetch;
 }
 
@@ -40,8 +42,9 @@ function createHosted(options: HostedOptions): Redline {
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 
   const call = async (path: string, body?: unknown): Promise<{ status: number; json: unknown }> => {
+    const headers: Record<string, string> = options.apiKey ? { authorization: `Bearer ${options.apiKey}` } : {};
     const init: RequestInit =
-      body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
+      body === undefined ? { headers } : { method: "POST", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify(body) };
     const response = await doFetch(`${baseUrl}${path}`, init);
     return { status: response.status, json: await response.json().catch(() => null) };
   };

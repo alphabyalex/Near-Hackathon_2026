@@ -6,7 +6,7 @@
 // never sit in a file:
 //
 //   {
-//     "domain": "northwind.com",
+//     "domain": "northwind.example",
 //     "name": "Northwind Trading",
 //     "accounts": [
 //       { "account": "near:testnet:northwind.testnet", "private_key_env": "NEAR_PAYOUT_KEY" },

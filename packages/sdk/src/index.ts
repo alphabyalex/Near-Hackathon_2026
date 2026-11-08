@@ -1,7 +1,7 @@
 export { chainOf, InvalidPayeeInputError, normalizeAccount, normalizeChain, normalizeDomain, parseAccount, type ParsedAccount } from "./caip.js";
 export { createRedline, type DirectOptions, type HostedOptions, type Redline, type RedlineOptions } from "./client.js";
-export { assertPayable, RedlineApiError, RedlineBlockedError } from "./errors.js";
-export { createIndexedDbHistory, createMemoryHistory, historyKey } from "./history.js";
+export { assertPayable, meetsTier, RedlineApiError, RedlineBlockedError } from "./errors.js";
+export { createIndexedDbHistory, createMemoryHistory, historyKey, paidKey } from "./history.js";
 export type {
   AttestVendorInput,
   EngineCheckResult,

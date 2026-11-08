@@ -165,7 +165,12 @@ function blocked(results: PayeeCheckResult[]): RedlineBlockedError {
   const worst = results.find((r) => r.verdict === "BLOCK") ?? results.find((r) => r.verdict !== "PAY");
   const reasons: PayeeReason[] = results.filter((r) => r.verdict !== "PAY").flatMap((r) => r.reasons);
   const why = reasons.map((r) => r.code).join(", ") || "no reasons";
-  return new RedlineBlockedError(`Redline stopped this x402 payment: ${worst?.verdict ?? "HOLD"} (${why}).`, { verdict: worst?.verdict ?? null, reasons });
+  const evidenceTier = worst?.evidenceTier ?? "T0_NONE";
+  return new RedlineBlockedError(`Redline stopped this x402 payment: ${worst?.verdict ?? "HOLD"} (${why}), evidence tier ${evidenceTier}.`, {
+    verdict: worst?.verdict ?? null,
+    reasons,
+    evidenceTier,
+  });
 }
 
 const failClosed = (error: unknown): RedlineBlockedError =>

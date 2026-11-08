@@ -2,15 +2,20 @@ import { chainOf } from "./caip.js";
 import type { PayeeHistoryStore } from "./interfaces.js";
 
 export const historyKey = (payer: string, domain: string, chain: string): string => JSON.stringify([payer, domain, chain]);
+export const paidKey = (payer: string, account: string): string => JSON.stringify(["paid", payer, account]);
 
 export function createMemoryHistory(): PayeeHistoryStore {
   const last = new Map<string, string>();
   return {
     async record({ payer, domain, account }) {
       last.set(historyKey(payer, domain, chainOf(account)), account);
+      last.set(paidKey(payer, account), account);
     },
     async lastAccount(payer, domain, chain) {
       return last.get(historyKey(payer, domain, chain)) ?? null;
+    },
+    async hasRelationship(payer, account) {
+      return last.has(paidKey(payer, account));
     },
   };
 }
@@ -40,10 +45,14 @@ export function createIndexedDbHistory(options: { name?: string; factory?: IDBFa
   return {
     async record({ payer, domain, account }) {
       await run("readwrite", (store) => store.put(account, historyKey(payer, domain, chainOf(account))));
+      await run("readwrite", (store) => store.put(account, paidKey(payer, account)));
     },
     async lastAccount(payer, domain, chain) {
       const value = await run<unknown>("readonly", (store) => store.get(historyKey(payer, domain, chain)));
       return typeof value === "string" ? value : null;
+    },
+    async hasRelationship(payer, account) {
+      return typeof (await run<unknown>("readonly", (store) => store.get(paidKey(payer, account)))) === "string";
     },
   };
 }

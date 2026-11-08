@@ -1,4 +1,4 @@
-import type { PayeeCheckRequest, PayeeReason, PayeeReasonCode, PayeeSignals, PayeeVendor, PayeeVerdict } from "@redline/schemas";
+import type { EvidenceTier, PayeeCheckRequest, PayeeReason, PayeeReasonCode, PayeeSignals, PayeeVendor, PayeeVerdict } from "@redline/schemas";
 import { chainOf, normalizeChain, normalizeDomain, parseAccount, type ParsedAccount } from "./caip.js";
 import type { EngineCheckResult, EngineContext, EngineResolveResult, PayeeEngine, PayeeRegistry, RegistryVendor } from "./interfaces.js";
 
@@ -28,7 +28,12 @@ const toPublicVendor = (vendor: RegistryVendor): PayeeVendor => ({
   domain: vendor.domain,
   name: vendor.name,
   verifiedAt: vendor.verifiedAt,
-  accounts: vendor.accounts.map((a) => ({ account: a.account, status: a.status, activatesAt: a.activatesAt })),
+  accounts: vendor.accounts.map((a) => ({
+    account: a.account,
+    status: a.status,
+    activatesAt: a.activatesAt,
+    ...(a.evidenceTier ? { evidenceTier: a.evidenceTier } : {}),
+  })),
 });
 
 function editDistance(a: string, b: string): number {
@@ -72,6 +77,20 @@ async function findLookalike(payee: ParsedAccount, registry: PayeeRegistry, only
     }
   }
   return null;
+}
+
+/**
+ * The account's tier in the registry, raised to T3 when this payer has paid it before or its owner
+ * approved it. T3 needs an active T2 account. An account the vendor did not list is T0.
+ */
+async function tierFor(vendor: RegistryVendor | null, caip10: string, payer: string | undefined, context: EngineContext): Promise<EvidenceTier> {
+  const entry = vendor?.accounts.find((a) => a.account === caip10);
+  if (!entry) return "T0_NONE";
+  const tier = entry.evidenceTier ?? "T2_DOMAIN_LINKED";
+  if (tier === "T2_DOMAIN_LINKED" && entry.status === "active" && payer && (await context.history.hasRelationship(payer, caip10))) {
+    return "T3_RELATIONSHIP";
+  }
+  return tier;
 }
 
 async function readSignals(context: EngineContext, caip10: string): Promise<PayeeSignals> {
@@ -123,18 +142,18 @@ async function claimedVendor(request: PayeeCheckRequest, registry: PayeeRegistry
 function matchReasons(payee: ParsedAccount, vendor: RegistryVendor, lookalike: string | null): PayeeReason[] {
   const entry = vendor.accounts.find((a) => a.account === payee.caip10);
   if (entry?.status === "active") {
-    return [{ code: "VERIFIED_MATCH", detail: `Verified account of ${vendor.domain}.` }];
+    return [{ code: "VERIFIED_MATCH", detail: `Account linked to ${vendor.domain}.` }];
   }
   if (entry) {
-    return [{ code: "COOLING_OFF", detail: `Proven for ${vendor.domain}, active from ${entry.activatesAt ?? "a later date"}.` }];
+    return [{ code: "COOLING_OFF", detail: `Linked to ${vendor.domain}, active from ${entry.activatesAt ?? "a later date"}.` }];
   }
   if (lookalike) {
-    return [{ code: "LOOKALIKE_ACCOUNT", detail: `Imitates ${lookalike}, a verified account of ${vendor.domain}.` }];
+    return [{ code: "LOOKALIKE_ACCOUNT", detail: `Imitates ${lookalike}, an account linked to ${vendor.domain}.` }];
   }
   if (!vendor.accounts.some((a) => chainOf(a.account) === payee.chain)) {
-    return [{ code: "CHAIN_NOT_VERIFIED", detail: `${vendor.domain} has no verified account on ${payee.chain}.` }];
+    return [{ code: "CHAIN_NOT_VERIFIED", detail: `${vendor.domain} has no linked account on ${payee.chain}.` }];
   }
-  return [{ code: "ACCOUNT_NOT_VENDORS", detail: `Not a verified account of ${vendor.domain}.` }];
+  return [{ code: "ACCOUNT_NOT_VENDORS", detail: `Not an account linked to ${vendor.domain}.` }];
 }
 
 /** Deterministic engine, used until @redline/payee-check lands. Same inputs give the same verdict. */
@@ -154,7 +173,7 @@ export function createStubEngine(): PayeeEngine {
       if (vendor) {
         reasons.push(...matchReasons(payee, vendor, lookalike));
       } else if (lookalike) {
-        reasons.push({ code: "LOOKALIKE_ACCOUNT", detail: `Imitates ${lookalike}, a verified vendor account.` });
+        reasons.push({ code: "LOOKALIKE_ACCOUNT", detail: `Imitates ${lookalike}, an account linked to a vendor domain.` });
       } else {
         const claimed = claim.domain ?? request.vendor?.name;
         reasons.push({ code: "NOT_IN_REGISTRY", detail: claimed ? `${claimed} is not in the registry.` : "This account is not in the registry." });
@@ -170,6 +189,7 @@ export function createStubEngine(): PayeeEngine {
 
       return {
         verdict: verdictFromReasons(reasons),
+        evidenceTier: await tierFor(vendor, payee.caip10, request.payer, context),
         payee: payee.caip10,
         reasons,
         vendor: vendor ? toPublicVendor(vendor) : null,
@@ -189,6 +209,7 @@ export function createStubEngine(): PayeeEngine {
         account: null,
         reasons: [reason],
         vendor: found ? toPublicVendor(found) : null,
+        evidenceTier: "T0_NONE",
       });
       if (!vendor) return hold({ code: "NOT_IN_REGISTRY", detail: `${domain} is not in the registry.` }, null);
       const onChain = vendor.accounts.filter((a) => chainOf(a.account) === chain);
@@ -199,15 +220,16 @@ export function createStubEngine(): PayeeEngine {
           domain,
           chain,
           account: active.account,
-          reasons: [{ code: "VERIFIED_MATCH", detail: `Verified account of ${domain}.` }],
+          reasons: [{ code: "VERIFIED_MATCH", detail: `Account linked to ${domain}.` }],
           vendor: toPublicVendor(vendor),
+          evidenceTier: await tierFor(vendor, active.account, request.payer, context),
         };
       }
       const pending = onChain[0];
       if (pending) {
-        return hold({ code: "COOLING_OFF", detail: `${domain} proved an account on ${chain}, active from ${pending.activatesAt ?? "a later date"}.` }, vendor);
+        return hold({ code: "COOLING_OFF", detail: `${domain} linked an account on ${chain}, active from ${pending.activatesAt ?? "a later date"}.` }, vendor);
       }
-      return hold({ code: "CHAIN_NOT_VERIFIED", detail: `${domain} has no verified account on ${chain}.` }, vendor);
+      return hold({ code: "CHAIN_NOT_VERIFIED", detail: `${domain} has no linked account on ${chain}.` }, vendor);
     },
   };
 }

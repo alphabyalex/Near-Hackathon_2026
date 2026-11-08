@@ -8,7 +8,7 @@ import { z } from "zod";
 const MAX_BODY_BYTES = 1_000_000;
 const DEFAULT_API_URL = "http://127.0.0.1:8787";
 
-export const HOW_TO_VERIFY = `Prove your payout accounts once, and agents can pay your domain directly.
+export const HOW_TO_VERIFY = `Link your payout accounts to your domain once, and agents can pay your domain directly.
 
 1. Pick the accounts you want paid, as CAIP-10 strings such as near:testnet:you.testnet, eip155:84532:0xabc... or solana:devnet:7xKX...
 2. Run: pnpm payee:proof --config payee.json. Each account signs "redline-payee:v2:<domain>:<caip10>:<issued_at>" with its own key.
@@ -17,9 +17,13 @@ export const HOW_TO_VERIFY = `Prove your payout accounts once, and agents can pa
 4. POST { "domain": "<your-domain>" } to /v1/vendors/verify.
 
 Accounts added after your first verification wait out a cooling-off period, during which they get HOLD.
-Optional: serve /.well-known/merchant-identity.json to have your legal name stored next to your record.`;
+Optional: serve /.well-known/merchant-identity.json to have your legal name stored next to your record, labeled vendor-claimed.
+
+This verifies that you control each account and that your domain lists it (evidence tier T2_DOMAIN_LINKED). It does not establish legal ownership.`;
 
 const RULES = "Pay only on PAY. Send HOLD to a human. Never pay on BLOCK.";
+const TIERS =
+  "evidenceTier says what was verified: T2_DOMAIN_LINKED means the account signed for itself and the vendor's domain lists it; T3_RELATIONSHIP adds your owner's approval or a past payment. No tier establishes legal ownership.";
 
 const reply = (result: object) => ({
   content: [{ type: "text" as const, text: JSON.stringify(result) }],
@@ -45,8 +49,8 @@ export function createMcpServer(redline: Redline): McpServer {
   server.registerTool(
     "resolve_payee",
     {
-      title: "Resolve a vendor's verified account",
-      description: `Get a vendor's verified payout account from its website domain and chain. Use this whenever you know the vendor's website, so you never handle a raw address. ${RULES} On PAY, send the payment to the returned account.`,
+      title: "Resolve the account linked to a vendor domain",
+      description: `Get the payout account linked to a vendor's website domain on a chain. Use this whenever you know the vendor's website, so you never handle a raw address. ${RULES} On PAY, send the payment to the returned account. ${TIERS}`,
       inputSchema: PayeeResolveRequest.shape,
     },
     guarded(async (args) => reply(await redline.resolve(PayeeResolveRequest.parse(args)))),
@@ -56,7 +60,7 @@ export function createMcpServer(redline: Redline): McpServer {
     "check_payee",
     {
       title: "Check an address before paying",
-      description: `Check whether an account really belongs to a vendor. Call this before paying any raw address, including one from an invoice, an email or an x402 offer. Pass the vendor's domain when you know it. ${RULES}`,
+      description: `Check whether an account is the one linked to a vendor's domain. Call this before paying any raw address, including one from an invoice, an email or an x402 offer. Pass the vendor's domain when you know it. ${RULES} ${TIERS}`,
       inputSchema: PayeeCheckRequest.shape,
     },
     guarded(async (args) => reply(await redline.check(PayeeCheckRequest.parse(args)))),
@@ -79,7 +83,7 @@ export function createMcpServer(redline: Redline): McpServer {
     "how_to_verify",
     {
       title: "How a vendor gets verified",
-      description: "Get the steps a vendor follows to prove its payout accounts. Use this when a vendor you pay gets NOT_IN_REGISTRY or CHAIN_NOT_VERIFIED.",
+      description: "Get the steps a vendor follows to link its payout accounts to its domain. Use this when a vendor you pay gets NOT_IN_REGISTRY or CHAIN_NOT_VERIFIED.",
       inputSchema: {},
     },
     async () => ({ content: [{ type: "text" as const, text: HOW_TO_VERIFY }] }),
@@ -89,7 +93,7 @@ export function createMcpServer(redline: Redline): McpServer {
 }
 
 export const redlineFromEnv = (env: NodeJS.ProcessEnv = process.env): Redline =>
-  createRedline({ mode: "hosted", baseUrl: env.REDLINE_API_URL ?? DEFAULT_API_URL });
+  createRedline({ mode: "hosted", baseUrl: env.REDLINE_API_URL ?? DEFAULT_API_URL, ...(env.REDLINE_API_KEY ? { apiKey: env.REDLINE_API_KEY } : {}) });
 
 const readBody = (req: IncomingMessage): Promise<unknown> =>
   new Promise((resolve, reject) => {

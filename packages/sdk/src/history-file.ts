@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { chainOf } from "./caip.js";
-import { historyKey } from "./history.js";
+import { historyKey, paidKey } from "./history.js";
 import type { PayeeHistoryStore } from "./interfaces.js";
 
 /** Node history store: one JSON file, replaced atomically. Import from "@redline/sdk/history-file". */
@@ -22,6 +22,7 @@ export function createFileHistory(path: string): PayeeHistoryStore {
       const write = queue.then(async () => {
         const data = await read();
         data[historyKey(payer, domain, chainOf(account))] = account;
+        data[paidKey(payer, account)] = account;
         await mkdir(dirname(path), { recursive: true });
         const temp = `${path}.tmp`;
         await writeFile(temp, JSON.stringify(data, null, 2));
@@ -33,6 +34,10 @@ export function createFileHistory(path: string): PayeeHistoryStore {
     async lastAccount(payer, domain, chain) {
       await queue;
       return (await read())[historyKey(payer, domain, chain)] ?? null;
+    },
+    async hasRelationship(payer, account) {
+      await queue;
+      return (await read())[paidKey(payer, account)] !== undefined;
     },
   };
 }

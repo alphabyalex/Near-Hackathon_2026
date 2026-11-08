@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFakeX402Server, fakePayingFetch, lookalikeAddress, type FakeServer } from "../src/fake-server.js";
 import { networkToChain, parseDidWeb, verifyDidWebJws, withRedline, type DidDocument } from "../src/index.js";
 
-const DOMAIN = "northwind.com";
+const DOMAIN = "northwind.example";
 const REAL = seedEvmAddress(DOMAIN);
 
 const redline: Redline = createRedline({
@@ -55,6 +55,8 @@ describe("honest and malicious servers", () => {
     expect(error).toBeInstanceOf(RedlineBlockedError);
     expect(error.verdict).toBe("BLOCK");
     expect(error.reasons.map((r) => r.code)).toContain("LOOKALIKE_ACCOUNT");
+    expect(error.evidenceTier).toBe("T0_NONE");
+    expect(error.message).toContain("evidence tier T0_NONE");
     expect(server.payments).toEqual([]);
   });
 
@@ -163,7 +165,7 @@ describe("signed offers", () => {
 
   const encode = (value: unknown) => base64urlnopad.encode(new TextEncoder().encode(JSON.stringify(value)));
   const secret = ed25519.utils.randomSecretKey();
-  const did = "did:web:northwind.com";
+  const did = "did:web:northwind.example";
   const kid = `${did}#key-1`;
   const docFor = (key: Uint8Array = ed25519.getPublicKey(secret)): DidDocument => ({
     id: did,
@@ -180,8 +182,8 @@ describe("signed offers", () => {
 
   it("takes the domain from the offer's did:web key, not the request host", async () => {
     const check = vi.spyOn(redline, "check");
-    const body = required(offerFor({ ...offerPayload, resourceUrl: "https://cdn.fastpay.io/x" }));
-    const response = await request(body, docFor(), "https://cdn.fastpay.io/x");
+    const body = required(offerFor({ ...offerPayload, resourceUrl: "https://cdn.fastpay.example/x" }));
+    const response = await request(body, docFor(), "https://cdn.fastpay.example/x");
     expect(response.status).toBe(402);
     expect(check.mock.calls[0]?.[0]).toMatchObject({ vendor: { domain: DOMAIN }, source: "x402", payee: `eip155:84532:${REAL}` });
     check.mockRestore();
@@ -190,12 +192,12 @@ describe("signed offers", () => {
   it("uses a signed offer's domain only for the option it signed", async () => {
     const check = vi.spyOn(redline, "check");
     const unsigned = { ...requirement, payTo: `0x${"77".repeat(20)}` };
-    const resourceUrl = "https://not-listed.com/x";
+    const resourceUrl = "https://not-listed.example/x";
     const body = required(offerFor({ ...offerPayload, resourceUrl }), [requirement, unsigned]);
     const response = await request(body, docFor(), resourceUrl);
     expect(((await response.json()) as { accepts: unknown[] }).accepts).toEqual([requirement]);
     const domains = Object.fromEntries(check.mock.calls.map(([call]) => [call.payee, call.vendor?.domain]));
-    expect(domains).toEqual({ [`eip155:84532:${REAL}`]: DOMAIN, [`eip155:84532:${unsigned.payTo}`]: "not-listed.com" });
+    expect(domains).toEqual({ [`eip155:84532:${REAL}`]: DOMAIN, [`eip155:84532:${unsigned.payTo}`]: "not-listed.example" });
     check.mockRestore();
   });
 
@@ -210,9 +212,9 @@ describe("signed offers", () => {
     ["a missing kid", () => required(offerFor(offerPayload, secret, { alg: "EdDSA" }))],
     ["a kid that is not did:web", () => required(offerFor(offerPayload, secret, { alg: "EdDSA", kid: "did:pkh:eip155:1:0xabc#key-1" }))],
     ["an expired offer", () => required(offerFor({ ...offerPayload, validUntil: 1 }))],
-    ["an offer replayed from another resource", () => required(offerFor({ ...offerPayload, resourceUrl: "https://elsewhere.com/x" }))],
+    ["an offer replayed from another resource", () => required(offerFor({ ...offerPayload, resourceUrl: "https://elsewhere.example/x" }))],
     ["a malformed offer extension", () => ({ x402Version: 2, accepts: [requirement], extensions: { "offer-receipt": { info: "nope" } } })],
-    ["a DID document for another identifier", () => required(offerFor(offerPayload)), { ...docFor(), id: "did:web:evil.com" }],
+    ["a DID document for another identifier", () => required(offerFor(offerPayload)), { ...docFor(), id: "did:web:evil.example" }],
     ["a DID document without the key", () => required(offerFor(offerPayload)), { id: did, verificationMethod: [] }],
   ])("fails closed on %s", async (_name, body, doc) => {
     await expect(request(body(), doc)).rejects.toBeInstanceOf(RedlineBlockedError);
@@ -237,10 +239,10 @@ describe("signed offers", () => {
   });
 
   it("parses did:web forms", () => {
-    expect(parseDidWeb("did:web:northwind.com#key-1")).toEqual({ did: "did:web:northwind.com", domain: DOMAIN, documentUrl: "https://northwind.com/.well-known/did.json" });
+    expect(parseDidWeb("did:web:northwind.example#key-1")).toEqual({ did: "did:web:northwind.example", domain: DOMAIN, documentUrl: "https://northwind.example/.well-known/did.json" });
     expect(parseDidWeb("did:web:localhost%3A4021#k").documentUrl).toBe("https://localhost:4021/.well-known/did.json");
     expect(parseDidWeb("did:web:localhost%3A4021#k").domain).toBe("localhost");
-    expect(parseDidWeb("did:web:northwind.com:api:v1").documentUrl).toBe("https://northwind.com/api/v1/did.json");
+    expect(parseDidWeb("did:web:northwind.example:api:v1").documentUrl).toBe("https://northwind.example/api/v1/did.json");
     expect(() => parseDidWeb("did:pkh:eip155:1:0xabc")).toThrow();
   });
 });
@@ -273,7 +275,7 @@ describe("fails closed", () => {
   });
 
   it("on a HOLD", async () => {
-    const error = (await guardAgainst(() => respond402({ accepts: [requirement] }))("https://not-listed.com/x").catch((e: unknown) => e)) as RedlineBlockedError;
+    const error = (await guardAgainst(() => respond402({ accepts: [requirement] }))("https://not-listed.example/x").catch((e: unknown) => e)) as RedlineBlockedError;
     expect(error).toBeInstanceOf(RedlineBlockedError);
     expect(error.verdict).toBe("HOLD");
     expect(error.reasons[0]?.code).toBe("NOT_IN_REGISTRY");

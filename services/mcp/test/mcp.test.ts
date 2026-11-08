@@ -10,7 +10,7 @@ import { createApp } from "../../api/src/app.js";
 import { bootstrap } from "../../api/src/bootstrap.js";
 import { createHttpServer, createMcpServer, redlineFromEnv } from "../src/index.js";
 
-const DOMAIN = "northwind.com";
+const DOMAIN = "northwind.example";
 
 function apiBackedRedline(): { redline: Redline; app: ReturnType<typeof createApp> } {
   const app = createApp(bootstrap(":memory:"));
@@ -50,6 +50,8 @@ describe("MCP tools over the in-memory client", () => {
     const describe_ = (name: string) => tools.find((t) => t.name === name)?.description ?? "";
     expect(describe_("resolve_payee")).toContain("whenever you know the vendor's website");
     expect(describe_("check_payee")).toContain("before paying any raw address");
+    expect(describe_("check_payee")).toContain("No tier establishes legal ownership");
+    for (const tool of tools) expect(tool.description ?? "").not.toMatch(/prove|belongs to|owns/i);
     for (const name of ["resolve_payee", "check_payee"]) {
       expect(describe_(name)).toContain("Pay only on PAY");
       expect(describe_(name)).toContain("HOLD to a human");
@@ -68,19 +70,19 @@ describe("MCP tools over the in-memory client", () => {
   it("resolve_payee returns the verified account with a checkable receipt", async () => {
     const result = await client.callTool({ name: "resolve_payee", arguments: { domain: DOMAIN, chain: "eip155:84532" } });
     const body = parse<Parameters<typeof verifyReceipt>[0] & { verdict: string; account: string }>(result);
-    expect(body).toMatchObject({ verdict: "PAY", account: `eip155:84532:${seedEvmAddress(DOMAIN)}` });
+    expect(body).toMatchObject({ verdict: "PAY", account: `eip155:84532:${seedEvmAddress(DOMAIN)}`, evidenceTier: "T2_DOMAIN_LINKED" });
     const { public_key: key } = (await (await app.request("/.well-known/redline-attestor.json")).json()) as { public_key: string };
     expect(verifyReceipt(body, key)).toBe(true);
   });
 
   it("check_payee BLOCKs a look-alike", async () => {
     const result = await client.callTool({ name: "check_payee", arguments: { payee: "northw1nd.testnet", vendor: { domain: DOMAIN } } });
-    expect(parse<{ verdict: string; reasons: { code: string }[] }>(result)).toMatchObject({ verdict: "BLOCK", reasons: [{ code: "LOOKALIKE_ACCOUNT" }] });
+    expect(parse<{ verdict: string; reasons: { code: string }[] }>(result)).toMatchObject({ verdict: "BLOCK", reasons: [{ code: "LOOKALIKE_ACCOUNT" }], evidenceTier: "T0_NONE" });
   });
 
   it("get_vendor finds a vendor and reports one it cannot find", async () => {
     expect(parse(await client.callTool({ name: "get_vendor", arguments: { domain: DOMAIN } }))).toMatchObject({ domain: DOMAIN, name: "Northwind Trading" });
-    expect(parse(await client.callTool({ name: "get_vendor", arguments: { domain: "not-listed.com" } }))).toEqual({ domain: "not-listed.com", found: false });
+    expect(parse(await client.callTool({ name: "get_vendor", arguments: { domain: "not-listed.example" } }))).toEqual({ domain: "not-listed.example", found: false });
   });
 
   it("how_to_verify gives the signed message", async () => {

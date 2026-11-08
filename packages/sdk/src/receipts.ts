@@ -30,6 +30,7 @@ export function receiptPayload(result: PayeeResult, receipt: Pick<PayeeReceipt, 
     requestHash: receipt.requestHash,
     verdict: result.verdict,
     reasonCodes: result.reasons.map((r) => r.code),
+    evidenceTier: result.evidenceTier ?? null,
   };
   return "payee" in result
     ? { ...base, payee: result.payee, domain: result.vendor?.domain ?? null }

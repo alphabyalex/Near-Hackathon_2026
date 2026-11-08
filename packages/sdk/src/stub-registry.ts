@@ -19,21 +19,21 @@ export interface SeedVendor {
 
 /** The registry the stub engine starts with. */
 export const STUB_VENDORS: readonly SeedVendor[] = [
-  { domain: "northwind.com", name: "Northwind Trading", nearId: "northwind.testnet" },
-  { domain: "fernhillcloud.com", name: "Fernhill Cloud Hosting", nearId: "fernhillcloud.testnet" },
-  { domain: "larkspuroffice.com", name: "Larkspur Office Supply", nearId: "larkspuroffice.testnet" },
-  { domain: "quarrylanelegal.com", name: "Quarry Lane Legal", nearId: "quarrylanelegal.testnet" },
+  { domain: "northwind.example", name: "Northwind Trading", nearId: "northwind.testnet" },
+  { domain: "fernhill.example", name: "Fernhill Cloud Hosting", nearId: "fernhillcloud.testnet" },
+  { domain: "larkspur.example", name: "Larkspur Office Supply", nearId: "larkspuroffice.testnet" },
+  { domain: "quarrylane.example", name: "Quarry Lane Legal", nearId: "quarrylanelegal.testnet" },
 ];
 
 /** The stub vendors plus six more, for scripts/seed-payees.ts. */
 export const ALL_SEED_VENDORS: readonly SeedVendor[] = [
   ...STUB_VENDORS,
-  { domain: "aldergatefreight.com", name: "Aldergate Freight", nearId: "aldergatefreight.testnet" },
-  { domain: "brightwatermedia.com", name: "Brightwater Media", nearId: "brightwatermedia.testnet" },
-  { domain: "tollgateanalytics.com", name: "Tollgate Analytics", nearId: "tollgateanalytics.testnet" },
-  { domain: "marrowstonepayroll.com", name: "Marrowstone Payroll", nearId: "marrowstonepayroll.testnet" },
-  { domain: "kestrelfacilities.com", name: "Kestrel Facilities", nearId: "kestrelfacilities.testnet" },
-  { domain: "ostlerprinting.com", name: "Ostler Printing", nearId: "ostlerprinting.testnet" },
+  { domain: "aldergate.example", name: "Aldergate Freight", nearId: "aldergatefreight.testnet" },
+  { domain: "brightwater.example", name: "Brightwater Media", nearId: "brightwatermedia.testnet" },
+  { domain: "tollgate.example", name: "Tollgate Analytics", nearId: "tollgateanalytics.testnet" },
+  { domain: "marrowstone.example", name: "Marrowstone Payroll", nearId: "marrowstonepayroll.testnet" },
+  { domain: "kestrel.example", name: "Kestrel Facilities", nearId: "kestrelfacilities.testnet" },
+  { domain: "ostler.example", name: "Ostler Printing", nearId: "ostlerprinting.testnet" },
 ];
 
 /** Seed EVM and Solana addresses are hashes of the domain: stable across runs, and no key exists for them. */
@@ -70,7 +70,7 @@ interface StoredVendor extends Omit<RegistryVendor, "accounts"> {
 }
 
 /**
- * In-memory registry. A vendor's first proven accounts are active at once. An account added later
+ * In-memory registry. A vendor's first linked accounts are active at once. An account added later
  * waits out the cooling-off period, so a hijacked website cannot redirect payments right away.
  */
 export function createMemoryRegistry(options: MemoryRegistryOptions = {}): PayeeRegistry {
@@ -82,7 +82,13 @@ export function createMemoryRegistry(options: MemoryRegistryOptions = {}): Payee
     ...stored,
     accounts: stored.accounts.map(({ account, activatesAt }) => {
       const pending = activatesAt !== null && new Date(activatesAt).getTime() > now().getTime();
-      return { account, status: pending ? ("pending" as const) : ("active" as const), activatesAt: pending ? activatesAt : null };
+      // Every account here signed for itself and is listed in its domain's file, which is T2.
+      return {
+        account,
+        status: pending ? ("pending" as const) : ("active" as const),
+        activatesAt: pending ? activatesAt : null,
+        evidenceTier: "T2_DOMAIN_LINKED" as const,
+      };
     }),
   });
 
@@ -105,6 +111,7 @@ export function createMemoryRegistry(options: MemoryRegistryOptions = {}): Payee
       verifiedAt: at,
       accounts,
       legalName: input.legalName ?? null,
+      legalNameSource: input.legalName ? "vendor-claimed" : null,
       evidenceHash: input.evidenceHash,
       issuedAt: input.issuedAt,
     };

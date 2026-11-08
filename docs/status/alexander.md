@@ -29,7 +29,7 @@ Root `pnpm test` now builds every package first. Root `pnpm dev` builds the API'
 ### Decisions needed from Alexander
 
 - **AP2 wording.** The brief asked for "AP2 silently drops payee constraints". I could not find a source for it. The AP2 spec defines `payment.allowed_payees` and says the payee MUST be in that list. `docs/PAYEE_SHIELD.md` says what I could support: AP2 identifies a merchant by id, name and website, and nothing proves a payout account belongs to it. If you have a source for "silently drops", send it and I will change the line.
-- **Seed domains.** Seed vendors use realistic domains such as `fernhillcloud.com`, and I did not check whether real companies hold them. They only exist in memory today. Replace them before `seed-payees` ever writes to a public registry.
+- **Seed domains.** Seed vendors use realistic domains such as `fernhill.example`, and I did not check whether real companies hold them. They only exist in memory today. Replace them before `seed-payees` ever writes to a public registry.
 - **Authentication before hosting.** The API has no auth and binds to localhost. Before `/v1` goes public: split it from the owner routes (`/review/*`, `/vault/*`), and add auth to `POST /v1/payments/record`, since today anyone who knows a payer id can write to its history.
 - **npm scope.** `server.json` names `@redline/mcp`. All packages are `private: true`, and I did not check that the `@redline` scope is available.
 - **Repo name.** `server.json` links to the repo, and the URL contains "Hackathon". Consider renaming the repo before publishing.
