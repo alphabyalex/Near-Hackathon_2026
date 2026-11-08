@@ -27,6 +27,8 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | Chain Clients (Meter, Registry, Pool) | `packages/vault-client` | Done, typed NearMeterClient, NearModelRegistryClient, NearCoverPoolClient |
 | Chain Switch-over | `services/api/src/chain/index.ts` | Done, wired createChain for WARDLINE_CHAIN_MODE=near |
 | DAO Governance Spec | `docs/DAO.md` | Done, Sputnik v2 proposal mappings and methods |
+| Live Sandbox Meter and Pool Tests | `tests/sandbox/test/chain-meter-pool.test.ts` | Done, 16/16 tests passing on live sandbox |
+| Testnet Deployment Prep | `scripts/contracts/src/deploy-wardline-chain.ts` | Done, automated deployment and manifest generator |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
 
@@ -42,12 +44,13 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 
 | Suite | Result |
 | --- | --- |
-| Rust unit tests (`cargo test --workspace`) | 53 passed (38 vault, 5 payee-registry, 6 evidence, 4 mock-token) |
+| Rust unit tests (`cargo test --workspace`) | 59 passed across all 8 contract crates (38 vault, 5 payee-registry, 3 meter, 2 model-registry, 1 cover-pool, 10 evidence) |
 | `packages/vault-sim` | 50 passed |
 | `packages/vault-client` | 12 passed |
+| `tests/sandbox/test/chain-meter-pool.test.ts` | 16 passed |
 | `tests/sandbox/test/v2-endpoint-release.test.ts` | 11 passed |
 | `tests/sandbox`, on a real local node | All suites pass |
-| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass |
+| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass (684+ unit and integration tests) |
 
 Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
 

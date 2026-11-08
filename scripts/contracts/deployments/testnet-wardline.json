@@ -1,0 +1,27 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://test.rpc.fastnear.com",
+  "deployed_at": "2026-11-08T21:46:46.671Z",
+  "root": "wardline-labs.testnet",
+  "contracts": {
+    "model_registry": {
+      "account_id": "model-reg.wardline-labs.testnet",
+      "code_hash": "55d9590bc8bdd23f2c01ad997bcf8ebcb280845a2dd9ecaa511f0d2d39da589e"
+    },
+    "cover_pool": {
+      "account_id": "cover-pool.wardline-labs.testnet",
+      "code_hash": "72478b0db801ff0acaf9d6c32c97ebf113f7f2d7bf792dbb5b37ccd3ab1fd465",
+      "junior": "5000000",
+      "large_claim_threshold": "1000000"
+    },
+    "meter": {
+      "account_id": "ai-meter.wardline-labs.testnet",
+      "code_hash": "aa35419bfb8ae99467915fcfc9a4bc6041d9cf3d3cf80dec7d0ed8066f90e22a",
+      "cover_fee_bps": 200
+    },
+    "payee_registry": {
+      "account_id": "payee-reg.wardline-labs.testnet",
+      "code_hash": "070fb4304fde21baf8e1a179d704e9bc5ca8f8620db60382d76e839162a62f2a"
+    }
+  }
+}

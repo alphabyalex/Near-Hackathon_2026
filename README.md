@@ -113,6 +113,30 @@ See: every package passes and the command exits 0. This does not need the API to
 
 Red-team benchmark, offline from committed fixtures: run `pnpm --filter @wardline/redteam bench`, see the catch rates in docs/REDTEAM.md.
 
+## Hackathon Tracks
+
+Wardline spans four tracks of the NEAR Hackathon 2026:
+
+1. **Privacy and Private AI (Lead track)**
+   - Cryptographic verification of TEE inferences from NEAR AI Cloud.
+   - On-chain EIP-191 signature recovery with `env::ecrecover` in `contracts/meter`.
+   - Attested model registry in `contracts/model-registry` binding model IDs to verified hardware keys.
+   - Automatic refund when downstream model swaps or forged completions are detected.
+
+2. **Social Money**
+   - Shared team and DAO AI budgets on NEAR with member allowances and automated rollover.
+   - Wardline Mutual in `contracts/cover-pool`: loss-sharing coverage pool with junior first-loss capital and senior LP yield.
+   - Sputnik DAO v2 integration in `packages/dao-adapter` mapping governance proposals to on-chain pool payouts and cap adjustments.
+
+3. **Autonomous Business**
+   - Payment authority layer for AI agents: agents read invoices and call models, but never pick destinations or bypass vault caps.
+   - Nonce-protected reservations preventing runaway bills or double-spending from stolen keys.
+   - x402 payment protocol guard in `packages/x402-guard` inspecting HTTP 402 payment headers.
+
+4. **Real-World Money**
+   - Accounts payable vaults in `contracts/vault` enforcing human approval, cooldown periods, and two-person separation on vendor destination changes.
+   - Look-alike account blocking in `packages/payee-check`.
+
 ## Where things are
 
 | Path | What it is |
@@ -127,4 +151,5 @@ Red-team benchmark, offline from committed fixtures: run `pnpm --filter @wardlin
 | `apps/web/public/llms.txt` | Onboarding for agents |
 | `docs/skills/wardline-payee-check` | The same as an agent skill |
 | `contracts`, `packages/vault-client`, `packages/vault-sim` | NEAR contracts and clients |
+| `tests/sandbox` | Live NEAR sandbox integration test suite for vaults, meter, and cover pool |
 | `services/agent`, `services/evaluator` | Invoice agent and the Gym |

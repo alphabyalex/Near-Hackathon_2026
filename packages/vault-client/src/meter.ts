@@ -242,6 +242,31 @@ export class NearMeterClient {
     };
   }
 
+  async createBudget(
+    args: {
+      budget_id: string;
+      name: string;
+      owner: string;
+      deposit: string;
+      period: string;
+      members: Array<{ member: string; allowance: string }>;
+    },
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for createBudget");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "create_budget",
+        args,
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
+
   async fund(
     budgetId: string,
     amount: string,

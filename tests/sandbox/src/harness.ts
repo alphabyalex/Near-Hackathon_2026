@@ -34,7 +34,15 @@ export const WEEK_NS = 7n * NS_PER_DAY;
 /** Far enough ahead to never matter during a test. */
 export const FAR_FUTURE_NS = 4_000_000_000_000_000_000n;
 
-export type WasmName = "vault" | "evidence" | "mock-token" | "test-proxy" | "payee-registry";
+export type WasmName =
+  | "vault"
+  | "evidence"
+  | "mock-token"
+  | "test-proxy"
+  | "payee-registry"
+  | "meter"
+  | "model-registry"
+  | "cover-pool";
 
 export function wasm(name: WasmName): Uint8Array {
   try {

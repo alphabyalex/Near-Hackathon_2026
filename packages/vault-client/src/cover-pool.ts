@@ -197,6 +197,43 @@ export class NearCoverPoolClient {
     };
   }
 
+  async approveClaim(
+    claimId: string,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for approveClaim");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "approve_claim",
+        args: { claim_id: claimId },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
+
+  async setParam(
+    name: string,
+    value: string,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for setParam");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "set_param",
+        args: { name, value },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
+
   async addFees(
     amount: string,
     signer: SignerHandle | undefined = this.signer,

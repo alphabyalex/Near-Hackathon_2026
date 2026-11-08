@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "deploy-and-seed": "tsx src/deploy-and-seed.ts",
+    "deploy-wardline": "tsx src/deploy-wardline-chain.ts",
     "malicious-signer": "tsx src/malicious-signer.ts",
     "inspect-keys": "tsx src/inspect-keys.ts"
   },
