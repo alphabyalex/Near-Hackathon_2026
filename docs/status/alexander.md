@@ -1,5 +1,94 @@
 # Status: alexander
 
+## USDC everywhere, WARD for the Mutual (2026-11-08)
+
+Two team decisions applied: all money is Circle's USDC on NEAR, and Wardline Mutual mints WARD. 0 live NEAR AI calls this round (9 of 30 used in total, all earlier). Testnet run (step 3) skipped: nothing is deployed yet. Details below.
+
+### Done
+
+- **USDC is one config value.** `packages/schemas/src/token.ts` holds:
+  - `USDC_TESTNET` (`3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`) and `USDC_MAINNET` (`17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1`);
+  - `USDC` (symbol and 6 decimals), and `usdcAccount()`, which reads `WARDLINE_USDC_ACCOUNT` and defaults to testnet. Switching to mainnet is that one env line.
+  - The API's mock payables and token info, the DAO adapter's token, the red-team agent inputs and the agent's token symbol all read from it. I checked the testnet contract's `ft_metadata`: USDC, 6 decimals.
+- **The retired test token is gone** from code, config, sims, dev fixtures, UI copy, docs, llms.txt, SKILL.md and tests (68 files).
+  - The agent prompt now says "Dollar amounts count as USDC", so manifests A and B were regenerated (A `sha256:075dec44...`, B `sha256:5f201d02...`).
+  - `evidence/example-run` regenerated from stub agents (28 match, 0 mismatch). `evidence/redteam/report.json` regenerated offline; numbers unchanged (AI alone 5 of 20 scams through, 0 with Wardline).
+- **Brand guard extended.** A new test fails on the old token's name anywhere outside `RETIRED_TOKEN_ALLOW` in `scripts/rebrand-wardline.mjs`. The codemod's token constants are now USDC, so teammates' reruns land on USDC directly.
+- **Left as is, and why** (all on the allowlist):
+  - `contracts/`: off-limits to me. The mock-token contract's own name and symbol, plus comments in the vault, meter and cover-pool sources.
+  - `tests/sandbox/`: asserts that mock-token contract's metadata.
+  - `scripts/contracts/`: deploys that mock-token contract.
+  - `docs/status/`: history.
+  - No recorded NEAR AI or red-team fixture contained the old name, so nothing recorded was relabelled or left behind.
+- **Demo amounts at faucet size:**
+  - Pool: Wardline's first-loss stake is 20 USDC; LPs hold 120 WARD bought at 1 USDC.
+  - Large claims (over 30 USDC) need a vote; coverage per claim is 25% of TVL.
+  - The group budget stays at 25 USDC with 5, 5 and 10 allowances.
+  - DAO payouts are now 12.00 and 9.50 USDC.
+  - The sim model costs 0.50 USDC a call. The leaked-key demo prints `spent 15.00 of 15.00 USDC, 50 requests refused`.
+- **WARD in the sim pool** (`services/api/src/chain/sim.ts`):
+  - WARD is minted at the current price (senior assets / supply, starting at 1 USDC), so deposits don't move the price. Fees raise it; payouts go to Wardline's junior stake first and only dip WARD once that stake is gone.
+  - Redemption locks WARD for 7 days, then burns it for USDC at the price on that day.
+  - Tracks `ward_supply`, `ward_price`, `launch_price` and `price_history`. Each claim records the WARD price before and after.
+  - `GET /v1/pool` and the wallet-signed pool actions now cover deposit (USDC for WARD), withdraw (lock) and redeem.
+- **Pool page:**
+  - A WARD panel: price, change since launch, supply, fees earned.
+  - The two-line pitch, "Earn a share of Wardline's fees by backing its proofs." / "If Wardline is wrong, WARD holders cover it after Wardline's own stake.", plus "Yield-bearing, loss-sharing."
+  - "Trade WARD", only when `WARDLINE_WARD_TRADE_URL` is set; otherwise hidden.
+  - "We lose first." stays prominent, with a red rule beside the deposit form.
+  - "Your WARD": balance, USDC value, locked WARD, each redemption's countdown, and "Redeem now" once the wait is over. Claims show the WARD price before and after.
+  - A unit test keeps "stable", "principal", "guaranteed", "insurance" and "risk-free" out of the pool and home copy.
+- **Mutual demo scene** has two payouts:
+  - 8 USDC, all from Wardline's stake; WARD stays at 1.0000.
+  - 18 USDC: 12 from the remaining stake and 6 from WARD holders; WARD goes from 1.0000 to 0.9500.
+- **Port:** `WARDLINE_API_PORT` (default 8787, `API_PORT` still works) sets the API port, and the web dev proxy follows it. The README exports it once per terminal and uses it in every command.
+- Unproven answers are still blocked with 502 by default, and streaming is still refused.
+
+### Step 3 (testnet): skipped, not deployed
+
+Tharun pushed the meter, model-registry and cover-pool contracts, typed clients, sandbox tests, a deploy script, `docs/DAO.md`, and a `createChain` near-mode wiring (merged; `alexander` fast-forwarded to main at `aff1c06`). But:
+- **Nothing is deployed.** `scripts/contracts/deployments/testnet-wardline.json` names `ai-meter`, `model-reg`, `cover-pool` and `payee-reg` under `wardline-labs.testnet`, but RPC views return `UNKNOWN_ACCOUNT` for all of them and for the root. It's the deploy script's manifest, not a live deployment.
+- **No gateway function-call key** has been sent yet, and none is in `.env`.
+- **No token movement in the contracts.** They don't move USDC: the meter's `fund` and the pool's `deposit` are plain methods, with no `ft_on_transfer`. There's no WARD either: the pool has no NEP-141 methods and no redeem. Even deployed, the demo couldn't move real Circle USDC or mint WARD.
+- `docs/DAO.md` uses exactly the method names the DAO adapter already has, so nothing to replace. His `cover_fee_bps` is 200, the same as the sim's `COVER_FEE_BPS`.
+- `createChain` now wraps his `NearCoverPoolClient` in an adapter that maps `share_price` and `senior_shares` onto WARD, until the contract has WARD itself.
+- No testnet tx hashes this round.
+
+### For Tharun
+
+- Deploy, then send the gateway account and function-call key privately (they go in `.env` as `WARDLINE_GATEWAY_ACCOUNT` and `WARDLINE_GATEWAY_KEY`), plus the real account ids for `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT` and `WARDLINE_COVER_POOL_CONTRACT`. Your `createChain` reads all of these.
+- Meter: take USDC through `ft_on_transfer` (msg `{"action":"fund","budget_id"}`) and pay settlements in USDC to the provider's `pay_to`. The token is `WARDLINE_USDC_ACCOUNT`.
+- Cover pool, to match `CoverPoolClient` in `services/api/src/chain/types.ts`:
+  - WARD as NEP-141 ("Wardline Mutual share", symbol WARD, 6 decimals) on the pool or a token contract it controls.
+  - `ft_on_transfer` for USDC deposits, minting at senior / supply.
+  - `request_withdraw` locks WARD; `redeem(id)` after 7 days burns it and pays USDC at the day's price.
+  - Fees go to senior; claims are paid junior first.
+  - Views `ward_supply`, `ward_price`, and `ward_price_before/after` on claims.
+  - Once those exist, the adapter in `createChain` can go.
+- Contract comments and the mock-token contract still use the old token name. Your call whether the mock token stays for sandbox tests; the guard allows `contracts/`, `tests/sandbox/` and `scripts/contracts/`.
+- If you create a Rhea pool for WARD, send the URL; it goes in `WARDLINE_WARD_TRADE_URL`.
+
+### Not done
+
+- **The vault-and-invoice mock still uses its old amounts** (a 48,750 USDC vault, invoices in the hundreds to thousands). They come from shared schema examples that the agent, evaluator and vault-sim tests pin, and the Gym's dev scenarios use the same magnitudes. Scaling them is a cross-team change. Everything in the five scenes, the group and the pool is at faucet size.
+
+### Env vars added
+
+`WARDLINE_USDC_ACCOUNT` (testnet default; the mainnet id is in .env.example), `WARDLINE_WARD_TRADE_URL`, `WARDLINE_API_PORT`. `WARDLINE_TOKEN_CONTRACT` is gone; `WARDLINE_USDC_ACCOUNT` replaces it.
+
+### Tests and checks
+
+- `pnpm test`: 754 package tests and 5 brand-guard tests pass.
+- New tests:
+  - WARD redeem across the 7-day wait;
+  - WARD price mechanics: deposits, fees, junior-only payout, bigger payout, recovery;
+  - both Mutual payouts and the faucet-sized leak;
+  - the port setting;
+  - the WARD copy guard;
+  - the retired-token guard.
+- Playwright: 25 e2e tests and 38 screenshots pass. Every 390px shot is 390 wide. I looked at Pool, Group and the Demo scenes at both sizes.
+- README "Try it", rerun: with 8787 held by an old API from 2026-11-07 (PID 12620) and 8797 held by something Windows doesn't show, `export WARDLINE_API_PORT=18787` ran every step as written. The one-line plug-in call verified and settled, the repeat was refused as `REPLAYED`, the swapped model was refused and refunded, and the leaked keys capped at `spent 15.00 of 15.00 USDC`.
+
 ## AI that only pays on proof (2026-11-08)
 
 The meter gateway, demo adversaries, DAO adapter, new pages, copy, SDK and MCP are built, against simulated contracts. Switching to chain (step 7) is blocked on Tharun's contracts and clients. Everything runs offline from recorded NEAR AI traffic.
