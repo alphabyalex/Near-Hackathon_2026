@@ -71,6 +71,8 @@ pnpm test
 
 See: every package passes and the command exits 0. This does not need the API to be running.
 
+Red-team benchmark, offline from committed fixtures: run `pnpm --filter @redline/redteam bench`, see the catch rates in docs/REDTEAM.md.
+
 ## Where things are
 
 | Path | What it is |

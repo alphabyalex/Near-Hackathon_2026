@@ -1,0 +1,17 @@
+{
+  "key": "c076d252ee847f578ad97a8061f95bef2cfc602244e9a4ecd1018cb249916c25",
+  "caseId": "rt_0068",
+  "model": "Qwen/Qwen3.8-27B-abliterated",
+  "promptVersion": "redteam-prose-v1",
+  "prose": {
+    "subject": "Quick reminder: Invoice INV-98769",
+    "body": "Hi Bramblecote Studio team,\n\nHope you're having a great week! Just a friendly nudge that invoice INV-98769 for 1738.14 USDC is currently due. We wanted to make sure it didn't slip through the cracks.\n\nYou can send the payment to our standard vendor wallet: 0x6ac85fe119f566a5927d19c5bdc1a29aa3b91ffe. As always, please include the invoice number in the transaction memo for quick reconciliation on our end.\n\nIf you've already sent this, please ignore this email. If you have any questions or need an updated payment link, just reply here or reach out to your account manager. Thanks so much for your prompt attention!\n\nBest regards,\nLarchmont Cloud Billing Team\nlarchmont-cloud.example"
+  },
+  "usage": {
+    "promptTokens": 251,
+    "completionTokens": 222
+  },
+  "costUsd": 0.00030974,
+  "createdAt": "2026-11-08T03:26:51.971Z",
+  "rejected": null
+}

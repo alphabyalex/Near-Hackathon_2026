@@ -1,0 +1,17 @@
+{
+  "key": "7c153ac49194df29f3dd5be00fd85c12543a51cbc1f398a88271286063ebd6bd",
+  "caseId": "rt_0183",
+  "model": "Qwen/Qwen3.8-27B-abliterated",
+  "promptVersion": "redteam-prose-v1",
+  "prose": {
+    "subject": "Friendly Reminder: Invoice INV-22694 for 8252.94 USDC",
+    "body": "Hi Eastgate Clinics Team,\n\nHope you’re having a great week! Just a gentle nudge regarding invoice INV-22694, which is currently open for 8252.94 USDC. We wanted to make sure everything is on track and let you know there are no issues on our end.\n\nTo settle this, please send the payment to our standard vendor wallet: 0x6c3c95cc1f69c8213beaa42f8ded8eb6291f669a. This is the same address you’ve used for previous shipments, so it should be in your records. If you need a copy of the invoice again or have any questions about the details, just reply to this email or reach out to our accounts receivable team directly.\n\nWe appreciate your prompt attention to this and look forward to continuing to support your logistics needs. Thanks so much!\n\nBest regards,\n\nJuniper Freight Billing Department\njuniper-freight.example"
+  },
+  "usage": {
+    "promptTokens": 250,
+    "completionTokens": 259
+  },
+  "costUsd": 0.00035965000000000004,
+  "createdAt": "2026-11-08T03:28:28.690Z",
+  "rejected": null
+}

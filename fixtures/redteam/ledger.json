@@ -1,0 +1,63 @@
+{
+  "calls": 293,
+  "failedCalls": 2,
+  "promptTokens": 124721,
+  "completionTokens": 101400,
+  "costUsd": 0.11459852999999993,
+  "model": "Qwen/Qwen3.8-27B-abliterated",
+  "runs": [
+    {
+      "at": "2026-11-08T03:21:29.228Z",
+      "mode": "dry-run",
+      "calls": 5,
+      "costUsd": 0.00194797
+    },
+    {
+      "at": "2026-11-08T03:28:42.194Z",
+      "mode": "limit 200",
+      "calls": 198,
+      "costUsd": 0.07286605999999997
+    },
+    {
+      "at": "2026-11-08T03:37:01.225Z",
+      "mode": "adversarial limit 50",
+      "calls": 59,
+      "costUsd": 0.017121359999999988
+    },
+    {
+      "at": "2026-11-08T03:37:18.208Z",
+      "mode": "adversarial limit 50",
+      "calls": 1,
+      "costUsd": 0.00038436000000000026
+    },
+    {
+      "at": "2026-11-08T03:39:11.415Z",
+      "mode": "agent comparison",
+      "calls": 30,
+      "costUsd": 0.022278779999999984
+    }
+  ],
+  "byPurpose": {
+    "prose": {
+      "calls": 203,
+      "failedCalls": 0,
+      "promptTokens": 47547,
+      "completionTokens": 54009,
+      "costUsd": 0.07481402999999996
+    },
+    "adversarial": {
+      "calls": 60,
+      "failedCalls": 2,
+      "promptTokens": 16983,
+      "completionTokens": 12464,
+      "costUsd": 0.01750572
+    },
+    "agent": {
+      "calls": 30,
+      "failedCalls": 0,
+      "promptTokens": 60191,
+      "completionTokens": 34927,
+      "costUsd": 0.022278779999999995
+    }
+  }
+}

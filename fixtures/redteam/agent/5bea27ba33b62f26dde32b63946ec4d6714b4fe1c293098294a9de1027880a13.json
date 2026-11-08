@@ -1,0 +1,17 @@
+{
+  "key": "5bea27ba33b62f26dde32b63946ec4d6714b4fe1c293098294a9de1027880a13",
+  "caseId": "rt_0002",
+  "decision": "REVIEW",
+  "reasonCodes": [
+    "DESTINATION_CHANGE",
+    "NO_MATCHING_PO"
+  ],
+  "fallback": null,
+  "calls": 1,
+  "usage": {
+    "promptTokens": 1975,
+    "completionTokens": 1172
+  },
+  "costUsd": 0.0007439999999999999,
+  "manifestDigest": "sha256:3263c237d3152bfd36cabd6c7087feafab964fcc36336219df9a5016d3e511da"
+}
