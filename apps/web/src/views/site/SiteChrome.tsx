@@ -1,14 +1,10 @@
+import { useEffect, useState } from "react";
+import { FOOTER, NAV } from "../../brand";
 import { Logo } from "../../components/Logo";
 import type { SitePage } from "../../router";
 
-const LINKS: readonly { page: SitePage; label: string }[] = [
-  { page: "vault", label: "The vault" },
-  { page: "scoring", label: "Scoring" },
-  { page: "about", label: "About" },
-];
-
 function PageLinks({ page }: { page: SitePage }) {
-  return LINKS.map((link) => (
+  return NAV.map((link) => (
     <a key={link.page} href={`#/${link.page}`} {...(link.page === page ? { "aria-current": "page" as const } : {})}>
       {link.label}
     </a>
@@ -16,11 +12,17 @@ function PageLinks({ page }: { page: SitePage }) {
 }
 
 export function SiteHeader({ page }: { page: SitePage }) {
+  const [open, setOpen] = useState(false);
+  // Close the small-screen menu whenever the page changes.
+  useEffect(() => setOpen(false), [page]);
   return (
-    <header className="top sitehead">
+    <header className={open ? "top sitehead open" : "top sitehead"}>
       <div className="wrap">
         <Logo />
-        <nav className="nav" aria-label="Main">
+        <button type="button" className="menu-btn" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((o) => !o)}>
+          {open ? "Close" : "Menu"}
+        </button>
+        <nav className="nav" id="main-nav" aria-label="Main">
           <PageLinks page={page} />
         </nav>
       </div>
@@ -35,7 +37,9 @@ export function SiteFooter({ page }: { page: SitePage }) {
         <Logo markSize={22} textSize={18} />
         <nav className="nav" aria-label="Footer">
           <PageLinks page={page} />
-          <a href="#/app/overview">Dashboard</a>
+          <a href="#/vault">{FOOTER.vault}</a>
+          <a href="/llms.txt">{FOOTER.llms}</a>
+          <a href="#/app/overview">{FOOTER.owner}</a>
         </nav>
       </div>
     </footer>

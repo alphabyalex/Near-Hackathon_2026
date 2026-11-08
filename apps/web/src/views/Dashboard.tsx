@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OverviewView } from "@redline/schemas";
-import { apiPost, useApi } from "../api/client";
+import { apiPost, SIGNED_OUT_EVENT, useApi } from "../api/client";
+import { getSession, signOut, type Session } from "../api/owner";
+import { OWNER } from "../brand";
 import { LoadError, Loading } from "../components/Loading";
 import { Logo } from "../components/Logo";
 import { TokenContext } from "../components/Money";
@@ -11,12 +13,17 @@ import { Controls } from "./Controls";
 import { Evaluation } from "./Evaluation";
 import { Invoices } from "./Invoices";
 import { Overview } from "./Overview";
+import { ApiKeys } from "./owner/ApiKeys";
+import { ReviewDesk } from "./owner/ReviewDesk";
+import { SignIn } from "./owner/SignIn";
 
 const TABS: readonly { tab: DashboardTab; label: string }[] = [
-  { tab: "overview", label: "Overview" },
-  { tab: "invoices", label: "Invoices" },
-  { tab: "evaluation", label: "Evaluation" },
-  { tab: "controls", label: "Controls" },
+  { tab: "overview", label: OWNER.tabs.overview },
+  { tab: "invoices", label: OWNER.tabs.invoices },
+  { tab: "review", label: OWNER.tabs.review },
+  { tab: "keys", label: OWNER.tabs.keys },
+  { tab: "evaluation", label: OWNER.tabs.evaluation },
+  { tab: "controls", label: OWNER.tabs.controls },
 ];
 
 const VAULTS = [
@@ -24,7 +31,40 @@ const VAULTS = [
   { id: "vault-b.redline.testnet", label: "Business B (vault-b)" },
 ] as const;
 
-export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string | null }) {
+type Gate = { state: "checking" } | { state: "signed-out" } | { state: "signed-in"; session: Session };
+
+/** The owner app: sign-in first, then the dashboard. A 401 from any owner call returns here. */
+export function OwnerApp({ tab, invoice }: { tab: DashboardTab; invoice: string | null }) {
+  const [gate, setGate] = useState<Gate>({ state: "checking" });
+  useEffect(() => {
+    let cancelled = false;
+    getSession().then(
+      (session) => !cancelled && setGate({ state: "signed-in", session }),
+      () => !cancelled && setGate({ state: "signed-out" }),
+    );
+    const out = () => setGate({ state: "signed-out" });
+    window.addEventListener(SIGNED_OUT_EVENT, out);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SIGNED_OUT_EVENT, out);
+    };
+  }, []);
+  if (gate.state === "checking") return <main className="signin"><Loading /></main>;
+  if (gate.state === "signed-out") return <SignIn onSignedIn={(session) => setGate({ state: "signed-in", session })} />;
+  return (
+    <Dashboard
+      tab={tab}
+      invoice={invoice}
+      session={gate.session}
+      onSignOut={async () => {
+        await signOut().catch(() => undefined);
+        setGate({ state: "signed-out" });
+      }}
+    />
+  );
+}
+
+export function Dashboard({ tab, invoice, session, onSignOut }: { tab: DashboardTab; invoice: string | null; session: Session; onSignOut: () => void }) {
   // Every view refetches when this changes, so an owner action updates the whole dashboard.
   const [version, setVersion] = useState(0);
   const simulation = useApi<{ enabled: boolean; compromised: boolean }>("/owner/agent/simulation", version);
@@ -134,10 +174,25 @@ export function Dashboard({ tab, invoice }: { tab: DashboardTab; invoice: string
                     {data.vault_id} · agent version {data.manifest.version}
                   </div>
                 </div>
-                <div className="sub">Amounts in {data.token.symbol}</div>
+                <div className="apphead-side">
+                  <div className="whoami">
+                    <span className="mono" title={session.role}>
+                      {session.account}
+                    </span>
+                    <span className="role">{session.role}</span>
+                    {session.account !== "local" && (
+                      <button type="button" className="back" onClick={onSignOut}>
+                        {OWNER.signOut}
+                      </button>
+                    )}
+                  </div>
+                  <div className="sub">Amounts in {data.token.symbol}</div>
+                </div>
               </div>
               {tab === "overview" && <Overview data={data} version={version} onChanged={changed} />}
               {tab === "invoices" && <Invoices selected={invoice} version={version} onChanged={changed} vaultId={vaultId} />}
+              {tab === "review" && <ReviewDesk version={version} onChanged={changed} />}
+              {tab === "keys" && <ApiKeys version={version} onChanged={changed} defaultPayer={vaultId} />}
               {tab === "evaluation" && <Evaluation />}
               {tab === "controls" && <Controls data={data} version={version} />}
             </>

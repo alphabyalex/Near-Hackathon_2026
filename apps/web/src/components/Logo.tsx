@@ -1,3 +1,4 @@
+import { BRAND } from "../brand";
 import { MARK_DOTS } from "./data/dots";
 
 /** The Eclipse mark, inlined so the dots take currentColor. The cut row stays red. */
@@ -14,10 +15,10 @@ export function Mark({ size }: { size: number }) {
 /** Always links home. */
 export function Logo({ markSize = 30, textSize = 23 }: { markSize?: number; textSize?: number }) {
   return (
-    <a className="logo" href="#/" aria-label="Redline home">
+    <a className="logo" href="#/" aria-label={BRAND.homeLabel}>
       <Mark size={markSize} />
       <span className="wordmark" style={{ fontSize: textSize }}>
-        Redline
+        {BRAND.name}
       </span>
     </a>
   );

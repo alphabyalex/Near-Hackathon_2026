@@ -82,30 +82,30 @@ describe("routing", () => {
   it("follows link clicks in JS, with no hashchange event", () => {
     stubApi();
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Every agent has a redline.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Redline decides");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Redline decides where the money may go");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getAllByLabelText("Redline home")[0] as HTMLElement);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Every agent has a redline.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
   });
 
   it("leaves new-tab clicks to the browser", () => {
     stubApi();
     render(<App />);
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"), { ctrlKey: true });
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Every agent has a redline.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
   });
 
-  it("orders the site nav and gives the footer a dashboard link", () => {
+  it("orders the site nav with About rightmost and gives the footer an owner sign-in link", () => {
     stubApi();
     render(<App />);
     const main = within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link");
-    expect(main.map((a) => a.textContent)).toEqual(["The vault", "Scoring", "About"]);
+    expect(main.map((a) => a.textContent)).toEqual(["Try it", "Demo", "Connect", "Verify", "About"]);
     const footer = within(screen.getByRole("navigation", { name: "Footer" })).getAllByRole("link");
     expect(footer.at(-1)?.getAttribute("href")).toBe("#/app/overview");
-    expect(footer.at(-1)?.textContent).toBe("Dashboard");
+    expect(footer.at(-1)?.textContent).toBe("Owner sign-in");
   });
 });
 
@@ -173,8 +173,20 @@ describe("scoring", () => {
 });
 
 describe("dashboard", () => {
-  it("shows a load error, not a blank page, when the API is down", async () => {
+  const SESSION = { "/owner/auth/session": { account: "owner.testnet", role: "owner" } };
+
+  it("asks for sign-in when there is no session", async () => {
     stubApi();
+    navigate("#/app/overview");
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: "Sign in" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Meteor/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /MyNearWallet/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Test wallet/ })).toBeNull();
+  });
+
+  it("shows a load error, not a blank page, when the API is down", async () => {
+    stubApi(SESSION);
     navigate("#/app/overview");
     render(<App />);
     expect((await screen.findByRole("alert")).textContent).toContain("API down.");
@@ -196,6 +208,7 @@ describe("dashboard", () => {
         headroom: { weekly_atomic: "1000000", lifetime_atomic: "5000000" },
         unresolved_payments: [],
       },
+      ...SESSION,
     });
     navigate("#/app/overview");
     render(<App />);
@@ -216,7 +229,8 @@ describe("source rules", () => {
     ["em dash", /—/],
     ["old product name", /spend[ _-]?gym/i],
     ["hackathon copy", /hackathon/i],
-    ["demo copy", /\bdemo\b/i],
+    ["demo disclaimer", /this is a demo|demo only|demo mode|demo data|for demo purposes|play money/i],
+    ["localhost in copy", /localhost|127\.0\.0\.1|port 8787/i],
     ["testnet disclaimer", /testnet only/i],
     ["no value copy", /no value/i],
     ["banned mono font", /plex mono|geist mono|jetbrains|red hat mono|spline sans/i],
