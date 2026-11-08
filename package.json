@@ -18,13 +18,18 @@
     "payee:seed": "tsx scripts/seed-payees.ts",
     "demo:x402-swap": "tsx scripts/demo-x402-swap.ts",
     "test:brand": "node --test tests/brand.test.mjs",
-    "rebrand": "node scripts/rebrand-wardline.mjs"
+    "rebrand": "node scripts/rebrand-wardline.mjs",
+    "demo:leaked-key": "tsx scripts/demo-leaked-key.ts",
+    "demo:providers": "pnpm --filter @wardline/demo-provider start",
+    "nearai:record": "tsx scripts/nearai/record.ts",
+    "demo:swapped-model": "tsx scripts/demo-swapped-model.ts"
   },
   "devDependencies": {
     "@wardline/sdk": "workspace:*",
     "@wardline/x402-guard": "workspace:*",
     "concurrently": "^9.2.5",
     "tsx": "^4.23.15",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@wardline/demo-provider": "workspace:*"
   }
 }

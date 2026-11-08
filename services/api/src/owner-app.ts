@@ -18,6 +18,7 @@ import {
   sha256Hex,
   type OwnerVariables,
 } from "./auth.js";
+import { registerAiOwnerRoutes } from "./ai-routes.js";
 import { VAULT_A } from "./mock/seed.js";
 import { verifyNep413 } from "./payee/proofs.js";
 import {
@@ -291,6 +292,8 @@ export function createOwnerApp(deps: Deps): Hono<{ Variables: OwnerVariables }> 
     if (!result.ok) return c.json({ error: result.error, message: result.message }, result.status);
     return c.json({ ok: true, ...(await reviewDesk(deps)) });
   });
+
+  registerAiOwnerRoutes(app as never, deps, requireOwner as never);
 
   return app;
 }

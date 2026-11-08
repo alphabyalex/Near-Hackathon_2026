@@ -80,6 +80,17 @@ export function createMcpServer(wardline: Wardline): McpServer {
   );
 
   server.registerTool(
+    "get_ai_spend",
+    {
+      title: "Read a shared AI budget",
+      description: "Read-only. Shows a shared AI budget: the deposit that caps all spending, what was spent, each member's allowance, and how many calls were paid on a verified model proof or refused and refunded. Needs WARDLINE_METER_KEY for a member of that budget.",
+      inputSchema: { budget_id: z.string().min(1).max(64) },
+      annotations: { readOnlyHint: true },
+    },
+    guarded(async ({ budget_id }) => reply((await wardline.getAiSpend(budget_id)) as object)),
+  );
+
+  server.registerTool(
     "how_to_verify",
     {
       title: "How a vendor gets verified",
@@ -94,7 +105,8 @@ export function createMcpServer(wardline: Wardline): McpServer {
 
 export const wardlineFromEnv = (env: NodeJS.ProcessEnv = process.env): Wardline => {
   const apiKey = readEnv("WARDLINE_API_KEY", env);
-  return createWardline({ mode: "hosted", baseUrl: readEnv("WARDLINE_API_URL", env) ?? DEFAULT_API_URL, ...(apiKey ? { apiKey } : {}) });
+  const meterKey = readEnv("WARDLINE_METER_KEY", env);
+  return createWardline({ mode: "hosted", baseUrl: readEnv("WARDLINE_API_URL", env) ?? DEFAULT_API_URL, ...(apiKey ? { apiKey } : {}), ...(meterKey ? { meterKey } : {}) });
 };
 
 const readBody = (req: IncomingMessage): Promise<unknown> =>

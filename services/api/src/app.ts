@@ -1,5 +1,8 @@
 import { Hono } from "hono";
 import { VAULT_A } from "./mock/seed.js";
+import { aiOverview, registerAiPublicRoutes } from "./ai-routes.js";
+import { createMeterGateway } from "./meter/gateway.js";
+import { toDateClock } from "./time.js";
 import { createOwnerApp } from "./owner-app.js";
 import { registerPayeeRoutes, type PublicVariables } from "./payee/routes.js";
 import type { Deps } from "./service.js";
@@ -19,6 +22,16 @@ export function createApp(deps: Deps, options: { mountOwner?: boolean } = {}): H
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
 
   registerPayeeRoutes(app, deps.payee, deps.store, deps.auth);
+
+  // OpenAI-compatible, metered: pays for a model call only on a verified TEE proof.
+  app.route(
+    "/v1/ai",
+    createMeterGateway({ store: deps.ai.meter, chain: deps.ai.chain, routes: deps.ai.routes, now: toDateClock(deps.now), env: deps.ai.env, ...(deps.ai.fetch ? { fetch: deps.ai.fetch } : {}), ...(deps.ai.gateway ? { options: deps.ai.gateway } : {}),
+      spend: async (budgetId) => ({ budget: await deps.ai.chain.meter.getBudget(budgetId), spend: aiOverview(deps.ai.meter.listCalls(budgetId, 1000), toDateClock(deps.now)()) }),
+    }),
+  );
+
+  registerAiPublicRoutes(app as never, deps);
 
   app.get("/overview", async (c) => {
     const vaultId = c.req.query("vault_id") ?? VAULT_A;

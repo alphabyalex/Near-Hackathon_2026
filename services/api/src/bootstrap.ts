@@ -1,3 +1,4 @@
+import { createAiDeps, type AiOverrides } from "./ai.js";
 import { ownerAuthFromEnv, type OwnerAuthConfig } from "./auth.js";
 import { createGateways } from "./gateways/index.js";
 import { seedWorld } from "./mock/seed.js";
@@ -7,9 +8,9 @@ import { Store } from "./store.js";
 import { systemClock, type Clock } from "./time.js";
 
 /** Mock gateways keep vault state in memory, so API state is reseeded to match on every start. */
-export function bootstrap(dbPath: string, now: Clock = systemClock, payee: PayeeOverrides = {}, auth: OwnerAuthConfig = ownerAuthFromEnv()): Deps {
+export function bootstrap(dbPath: string, now: Clock = systemClock, payee: PayeeOverrides = {}, auth: OwnerAuthConfig = ownerAuthFromEnv(), ai: AiOverrides = {}): Deps {
   const store = new Store(dbPath);
   store.reset();
   const world = seedWorld(store, now());
-  return { store, world, now, gateways: createGateways(world, now), payee: createPayeeRuntime(store, now, payee), auth };
+  return { store, world, now, gateways: createGateways(world, now), payee: createPayeeRuntime(store, now, payee), auth, ai: createAiDeps(store.database, now, ai) };
 }

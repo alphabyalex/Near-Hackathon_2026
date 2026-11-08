@@ -13,12 +13,15 @@ import { createHttpServer, createMcpServer, wardlineFromEnv } from "../src/index
 const DOMAIN = "northwind.example";
 
 function apiBackedWardline(): { wardline: Wardline; app: ReturnType<typeof createApp> } {
-  const app = createApp(bootstrap(":memory:"));
+  const deps = bootstrap(":memory:", undefined, {}, undefined, { env: { WARDLINE_CHAIN_MODE: "sim" } });
+  const app = createApp(deps);
+  const meterKey = deps.ai.meter.createKey({ budgetId: "bgt_aurora", member: "alice.testnet", label: "mcp", models: null, createdBy: "test", now: new Date() }).key;
   return {
     app,
     wardline: createWardline({
       mode: "hosted",
       baseUrl: "http://api.local",
+      meterKey,
       fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(String(input), init)) as typeof fetch,
     }),
   };
@@ -44,9 +47,18 @@ describe("MCP tools over the in-memory client", () => {
 
   afterEach(() => client.close());
 
-  it("lists the four tools, and their descriptions carry the payment rules", async () => {
+  it("get_ai_spend reads the member's shared budget, read-only", async () => {
+    const spend = parse<{ budget: { budget_id: string; deposit: string; members: unknown[] }; spend: { verifiedCalls: number } }>(await client.callTool({ name: "get_ai_spend", arguments: { budget_id: "bgt_aurora" } }));
+    expect(spend.budget).toMatchObject({ budget_id: "bgt_aurora", deposit: "25000000" });
+    expect(spend.spend.verifiedCalls).toBe(0);
+    const other = (await client.callTool({ name: "get_ai_spend", arguments: { budget_id: "bgt_other" } })) as { isError?: boolean };
+    expect(other.isError).toBe(true);
+  });
+
+  it("lists the five tools, and their descriptions carry the payment rules", async () => {
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["check_payee", "get_vendor", "how_to_verify", "resolve_payee"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["check_payee", "get_ai_spend", "get_vendor", "how_to_verify", "resolve_payee"]);
+    expect(tools.find((t) => t.name === "get_ai_spend")?.annotations?.readOnlyHint).toBe(true);
     const describe_ = (name: string) => tools.find((t) => t.name === name)?.description ?? "";
     expect(describe_("resolve_payee")).toContain("whenever you know the vendor's website");
     expect(describe_("check_payee")).toContain("before paying any raw address");

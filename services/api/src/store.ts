@@ -85,6 +85,11 @@ const DECISION_SELECT =
 export class Store {
   private readonly db: Database.Database;
 
+  /** The shared connection, for modules that keep their own tables (meter keys, AI calls). */
+  get database(): Database.Database {
+    return this.db;
+  }
+
   constructor(path: string) {
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
     this.db = new Database(path);
