@@ -34,6 +34,53 @@ const toInvoice = (raw: RawInvoice): InvoiceRow => ({
   payment_status: raw.payment_status,
 });
 
+export interface PayeeHold {
+  id: string;
+  payer: string;
+  payee: string;
+  domain: string | null;
+  vendorName: string | null;
+  verdict: string;
+  reasons: { code: string; detail: string }[];
+  evidenceTier: string;
+  amount: string | null;
+  asset: string | null;
+  source: string | null;
+  createdAt: string;
+}
+
+interface RawHold {
+  id: string;
+  payer: string;
+  payee: string;
+  domain: string | null;
+  vendor_name: string | null;
+  verdict: string;
+  reasons_json: string;
+  evidence_tier: string;
+  amount: string | null;
+  asset: string | null;
+  source: string | null;
+  created_at: string;
+}
+
+export interface ReviewDecision {
+  itemId: string;
+  kind: string;
+  decision: "approved" | "rejected";
+  /** The item as it was shown when decided. */
+  itemJson: string;
+  decidedBy: string;
+  decidedAt: string;
+  /** The exact text the approver signed, and the key and signature. Null for a rejection. */
+  message: string | null;
+  publicKey: string | null;
+  signature: string | null;
+}
+
+const DECISION_SELECT =
+  "SELECT item_id AS itemId, kind, decision, item_json AS itemJson, decided_by AS decidedBy, decided_at AS decidedAt, message, public_key AS publicKey, signature FROM review_decisions";
+
 /** Persistence for what the API itself owns. Chain state belongs to the vault gateway. */
 export class Store {
   private readonly db: Database.Database;
@@ -118,6 +165,31 @@ export class Store {
         nonce TEXT PRIMARY KEY,
         expires_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS payee_holds (
+        id TEXT PRIMARY KEY,
+        payer TEXT NOT NULL,
+        payee TEXT NOT NULL,
+        domain TEXT,
+        vendor_name TEXT,
+        verdict TEXT NOT NULL,
+        reasons_json TEXT NOT NULL,
+        evidence_tier TEXT NOT NULL,
+        amount TEXT,
+        asset TEXT,
+        source TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS review_decisions (
+        item_id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        decision TEXT NOT NULL,
+        item_json TEXT NOT NULL,
+        decided_by TEXT NOT NULL,
+        decided_at TEXT NOT NULL,
+        message TEXT,
+        public_key TEXT,
+        signature TEXT
+      );
     `);
   }
 
@@ -173,12 +245,13 @@ export class Store {
     return row ? { ...row, scopes: row.scopes.split(",") } : null;
   }
 
-  listApiKeys(): { id: string; payer: string; label: string | null; callsPerDay: number; createdBy: string; createdAt: string; revokedAt: string | null }[] {
-    return this.db
+  listApiKeys(): { id: string; payer: string; label: string | null; callsPerDay: number; scopes: string[]; createdBy: string; createdAt: string; revokedAt: string | null }[] {
+    const rows = this.db
       .prepare(
         "SELECT id, payer, label, calls_per_day AS callsPerDay, scopes, created_by AS createdBy, created_at AS createdAt, revoked_at AS revokedAt FROM api_keys ORDER BY created_at",
       )
-      .all() as ReturnType<Store["listApiKeys"]>;
+      .all() as (Omit<ReturnType<Store["listApiKeys"]>[number], "scopes"> & { scopes: string })[];
+    return rows.map((row) => ({ ...row, scopes: row.scopes.split(",") }));
   }
 
   revokeApiKey(id: string, at: string): boolean {
@@ -217,8 +290,69 @@ export class Store {
     return this.db.prepare("INSERT OR IGNORE INTO used_nonces (nonce, expires_at) VALUES (?, ?)").run(nonce, expiresAt).changes > 0;
   }
 
+  // Review Desk: payee checks that came back HOLD on a payer's key, and signed decisions.
+
+  /** Saves a HOLD, or refreshes the undecided one for the same payer, payee and domain. Returns its id. */
+  saveHold(hold: PayeeHold): string {
+    const open = this.db
+      .prepare(
+        `SELECT h.id FROM payee_holds h LEFT JOIN review_decisions d ON d.item_id = h.id
+         WHERE h.payer = ? AND h.payee = ? AND h.domain IS ? AND d.item_id IS NULL`,
+      )
+      .get(hold.payer, hold.payee, hold.domain) as { id: string } | undefined;
+    const id = open?.id ?? hold.id;
+    this.db
+      .prepare(
+        `INSERT INTO payee_holds (id, payer, payee, domain, vendor_name, verdict, reasons_json, evidence_tier, amount, asset, source, created_at)
+         VALUES (@id, @payer, @payee, @domain, @vendorName, @verdict, @reasonsJson, @evidenceTier, @amount, @asset, @source, @createdAt)
+         ON CONFLICT (id) DO UPDATE SET vendor_name = excluded.vendor_name, verdict = excluded.verdict, reasons_json = excluded.reasons_json,
+           evidence_tier = excluded.evidence_tier, amount = excluded.amount, asset = excluded.asset, source = excluded.source, created_at = excluded.created_at`,
+      )
+      .run({ ...hold, id, reasonsJson: JSON.stringify(hold.reasons) });
+    return id;
+  }
+
+  listHolds(): PayeeHold[] {
+    const rows = this.db.prepare("SELECT * FROM payee_holds ORDER BY created_at DESC").all() as RawHold[];
+    return rows.map((r) => ({
+      id: r.id,
+      payer: r.payer,
+      payee: r.payee,
+      domain: r.domain,
+      vendorName: r.vendor_name,
+      verdict: r.verdict,
+      reasons: JSON.parse(r.reasons_json) as PayeeHold["reasons"],
+      evidenceTier: r.evidence_tier,
+      amount: r.amount,
+      asset: r.asset,
+      source: r.source,
+      createdAt: r.created_at,
+    }));
+  }
+
+  /** Records a decision once. False if the item was already decided. */
+  saveDecision(decision: ReviewDecision): boolean {
+    return (
+      this.db
+        .prepare(
+          `INSERT OR IGNORE INTO review_decisions (item_id, kind, decision, item_json, decided_by, decided_at, message, public_key, signature)
+           VALUES (@itemId, @kind, @decision, @itemJson, @decidedBy, @decidedAt, @message, @publicKey, @signature)`,
+        )
+        .run(decision).changes > 0
+    );
+  }
+
+  getDecision(itemId: string): ReviewDecision | null {
+    const row = this.db.prepare(DECISION_SELECT + " WHERE item_id = ?").get(itemId) as ReviewDecision | undefined;
+    return row ?? null;
+  }
+
+  listDecisions(): ReviewDecision[] {
+    return this.db.prepare(DECISION_SELECT + " ORDER BY decided_at DESC, item_id").all() as ReviewDecision[];
+  }
+
   reset(): void {
-    this.db.exec("DELETE FROM review_items; DELETE FROM invoices; DELETE FROM history;");
+    this.db.exec("DELETE FROM review_items; DELETE FROM invoices; DELETE FROM history; DELETE FROM payee_holds; DELETE FROM review_decisions;");
   }
 
   close(): void {

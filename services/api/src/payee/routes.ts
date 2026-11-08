@@ -10,6 +10,7 @@ import type { Store } from "../store.js";
 import { verifyNep413 } from "./proofs.js";
 import type { PayeeRuntime } from "./runtime.js";
 import { verifyVendor } from "./verify-vendor.js";
+import { holdId } from "../review-desk.js";
 
 const X402_PRICE_ATOMIC = "10000"; // 0.01 USDC, 6 decimals
 
@@ -159,7 +160,27 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
     if (!body.success) return badRequest(c, z.prettifyError(body.error));
     if (body.data.payer !== undefined && c.get("apiKeyPayer") !== body.data.payer) return forbiddenPayer(c);
     const result = { ...(await engine.check(body.data, context)), receipt: null };
-    return c.json({ ...result, receipt: attestor.issueReceipt(body.data, result, runtime.nowDate().toISOString()) });
+    const issuedAt = runtime.nowDate().toISOString();
+    // A HOLD on a payer's key goes to that payer's Review Desk. Anonymous calls never reach it.
+    const keyPayer = c.get("apiKeyPayer");
+    if (result.verdict === "HOLD" && keyPayer !== null) {
+      const domain = body.data.vendor?.domain ? normalizeDomain(body.data.vendor.domain) : (result.vendor?.domain ?? null);
+      store.saveHold({
+        id: holdId(keyPayer, result.payee, domain, issuedAt),
+        payer: keyPayer,
+        payee: result.payee,
+        domain,
+        vendorName: body.data.vendor?.name ?? result.vendor?.name ?? null,
+        verdict: result.verdict,
+        reasons: result.reasons,
+        evidenceTier: result.evidenceTier ?? "T0_NONE",
+        amount: body.data.amount ?? null,
+        asset: body.data.asset ?? null,
+        source: body.data.source ?? null,
+        createdAt: issuedAt,
+      });
+    }
+    return c.json({ ...result, receipt: attestor.issueReceipt(body.data, result, issuedAt) });
   });
 
   app.post("/v1/resolve", async (c) => {

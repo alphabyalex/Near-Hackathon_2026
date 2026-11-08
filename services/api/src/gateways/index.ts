@@ -3,6 +3,7 @@ import { NearVaultGateway } from "@redline/vault-client";
 import { CompromisedPaymentAdapter, PaymentRequestAdapter, createAgent } from "@redline/agent";
 import type { MockWorld } from "../mock/seed.js";
 import type { Clock } from "../time.js";
+import { createMemoryEndpointGateway, type EndpointGateway } from "./endpoint-gateway.js";
 import { MockAgentGateway } from "./mock-agent-gateway.js";
 import { MockEvidenceGateway } from "./mock-evidence-gateway.js";
 import { MockVaultGateway } from "./mock-vault-gateway.js";
@@ -12,6 +13,8 @@ export interface Gateways {
   agent: AgentRunner;
   adapter: DecisionAdapter;
   evidence: EvidenceGateway;
+  /** Vendor endpoint changes held for cooldown and a second signer. */
+  endpoints: EndpointGateway;
   demo?: { compromised: boolean; setCompromised(enabled: boolean): void };
 }
 
@@ -43,6 +46,8 @@ export function createGateways(world: MockWorld, now: Clock): Gateways {
     agent: agentRunner,
     adapter,
     evidence: new MockEvidenceGateway(world.reports),
+    // TODO(tharun): use the vault v2 client here once it exports an EndpointGateway.
+    endpoints: createMemoryEndpointGateway(world, now),
   };
   if (process.env.REDLINE_ENABLE_COMPROMISED_DEMO === "true") {
     const normalAgent = agentRunner;
