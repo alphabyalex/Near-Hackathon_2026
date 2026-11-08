@@ -1,5 +1,61 @@
 # Status: alexander
 
+## Site, owner sign-in and Review Desk (2026-11-08)
+
+Public site and owner app rebuilt around Payee Shield. No NEAR AI calls in this round. Verdicts on the site come from the stub engine and memory registry, behind the same interfaces the real clients will use.
+
+### Done
+
+| Piece | Where | State |
+| --- | --- | --- |
+| One copy module | `apps/web/src/brand.ts` | Product name, tagline, hero, feature rows, page copy, trust levels, owner copy. The page title and meta description are injected from it at build time. A rebrand is a change to this file |
+| Home | `views/site/Home.tsx` | Hero line, sub-line on paying by website name, six feature rows, results strip |
+| Results strip | `vite/redteam.ts`, `src/redteam.ts` | A Vite plugin reads `evidence/redteam/report.json` at build time and exposes only the summary. Labels the engine (stub today). Nothing hardcoded; a unit test compares it with the report |
+| Try it | `views/site/TryIt.tsx`, `payee/ResultCard.tsx` | Resolve (domain + chain) and Check (address + optional domain). The card shows the verdict with an icon, each reason in plain words with its code, a trust badge with what it verifies and does not, and the receipt. "Verify signature" runs the SDK's `verifyReceipt` in the browser against `/.well-known/redline-attestor.json` and the exact request sent |
+| Demo | `views/site/Demo.tsx` | Four scenes: a look-alike NEAR account in a bank-change email (BLOCK), a swapped x402 payTo stopped by the real `withRedline` guard running in the page (BLOCK), a near-identical EVM address (BLOCK), pay northwind.example (PAY with receipt). Each ends in the live API result. Below, the first-payment comparison from the report: 5 of 20 through alone, 0 with Redline. Under reduced motion the steps show at once |
+| Connect | `views/site/Connect.tsx` | MCP URL and client config, curl resolve and check, SDK hosted and direct, x402 guard, llms.txt link, copy buttons. URLs come from `VITE_` vars. Unset: a "Set your API URL" notice and `$REDLINE_API_URL` in the snippets, never a local address |
+| Verify your business | `views/site/Verify.tsx`, `wallets/` | Stepper: domain and name; sign with NEAR (wallet selector, Meteor and MyNearWallet, NEP-413), EVM (injected EIP-1193, personal_sign) and Solana (Phantom signMessage); download `redline-payee.json` with hosting rules; "Check my domain" calls `/v1/vendors/verify` and shows the level reached and what it does not establish |
+| About | `views/site/About.tsx` | Kept, with a payee-check step in the flow, a BLOCK example and the trust-levels table |
+| Nav | `views/site/SiteChrome.tsx` | Try it, Demo, Connect, Verify, About rightmost; the logo goes home; a Menu button under 760px. The footer adds The vault, llms.txt and Owner sign-in |
+| Owner sign-in | `views/owner/SignIn.tsx`, `api/owner.ts` | Account, then wallet, then the existing NEP-413 challenge, then the session cookie. Sign out sits in the page head. Any 401 returns to sign-in. `REDLINE_OWNER_AUTH=off` is no longer needed locally and stays a localhost-only escape hatch |
+| Dashboard | `views/Dashboard.tsx` | The existing views, now through the `/owner` routes, plus Review Desk and API keys tabs. The owner app is lazy-loaded, so public pages never download it |
+| Review Desk | `views/owner/ReviewDesk.tsx`, `services/api/src/review-desk.ts` | HOLD verdicts and vendor endpoint changes. Each shows the old and new account with the differing part marked, trust level, reasons, a live cooldown countdown, the amount at stake and the payables it affects. Approve signs a canonical payload with the approver's wallet; Reject needs only the session. No bulk route. A Decided table shows who, what, when and the signature |
+| API keys | `views/owner/ApiKeys.tsx` | Create (payer, label, check-only or check and record), the key shown once with a copy button, revoke |
+| Endpoint changes | `services/api/src/gateways/endpoint-gateway.ts` | `EndpointGateway` interface with a memory implementation seeded with two changes on vault A, one in cooldown and one past it. The requester cannot approve. An approved change applies once its cooldown ends |
+| HOLD capture | `services/api/src/payee/routes.ts` | A HOLD on a payer's API key goes to the Review Desk, refreshed rather than duplicated. Anonymous calls never reach it |
+
+### Approval signing
+
+`POST /owner/review-desk/:id/challenge` returns the payload `{ action: "approve", item, vault, vendor, revision, account, expiresAt }` (5 minutes), the message `redline-review:v1:` plus the canonical JSON, recipient `redline-review-approval` and a single-use 32-byte nonce. The wallet signs it with NEP-413. `POST .../approve` spends the nonce first, rebuilds the payload from the item's current state and refuses if anything changed, then checks the signature and that the key is a full-access key on the signed-in account. It records the decision with the signed message, key and signature. For an endpoint change it calls `approveEndpoint` on the gateway. For a HOLD on an active domain-linked account it records the payee approval, which raises that payer to T3; otherwise it records a one-time release. Approvals are refused while owner sign-in is off.
+
+### Routes added
+
+All under `/owner`, session required: `GET /review-desk`, `POST /review-desk/:id/challenge`, `POST /review-desk/:id/approve`, `POST /review-desk/:id/reject`. `GET /api-keys` now returns each key's scopes.
+
+### Env vars added
+
+In `.env.example`: `VITE_REDLINE_API_URL`, `VITE_REDLINE_MCP_URL`, `VITE_REDLINE_OWNER_URL`, `VITE_NEAR_NETWORK`, and `REDLINE_DEV_API` for the dev proxy. Vite now reads the repo root `.env`; only `VITE_` names reach the browser. `VITE_REDLINE_TEST_WALLET` is for the end-to-end build only and is not in `.env.example`.
+
+### Tests
+
+- `pnpm test`: 603 passing. API 153 (9 new Review Desk tests), web 70 (11 new).
+- `pnpm --filter @redline/web test:e2e`: 21 Playwright tests against a stub API (`apps/web/e2e/stub-api.ts`: real routes and auth, with NEAR key lookups and vendor website fetches answered locally). Wallet signing is mocked: a scripted NEAR wallet listed only in builds with `VITE_REDLINE_TEST_WALLET=1`, an injected EIP-1193 provider and a Phantom-shaped provider. Covers every public page, the Verify flow end to end, the Review Desk approve flow, API keys, a refused sign-in, axe WCAG A and AA checks, no sideways scroll at 390px, and focus rings for the keyboard only.
+- One test drives the real wallet selector: clicking MyNearWallet loads it and opens a `sign-message` request with recipient `redline-owner-login`, the challenge message and a 32-byte nonce (the wallet site itself is blocked). It caught that the wallet SDKs need `global` and `process`, which are now shimmed when the wallet code loads.
+- Lighthouse accessibility on a production build, mobile and desktop: 100 on Home, Try it, Demo, Connect, Verify and sign-in. About scored 98 for heading order; that was fixed after the run and not re-measured.
+
+### Screenshots
+
+`pnpm --filter @redline/web screenshots` writes them to `apps/web/screenshots/` (gitignored), each at `-desktop` (1440 wide) and `-390`: `home`, `try-it`, `try-it-block`, `demo`, `connect` (URLs set), `connect-unset`, `verify`, `verify-wallets`, `verify-host`, `about`, `owner-sign-in`, `owner-overview`, `owner-review-desk`, `owner-api-keys`. Fixed after looking at them: the limit line crossing the hero heading, a cramped dashboard header (the account moved to the page head), an orphan dot in the comparison at 390px, the About example overflowing by 2px at 390px, and low contrast on upcoming demo steps.
+
+### Blocked
+
+- Real wallets were only exercised up to the hand-off. Signing with real Meteor, MyNearWallet, EVM and Phantom keys needs a person with those wallets.
+- Headless Chromium on this machine never completes blob downloads, even on a bare test page, so the e2e test checks the exact file the Download button hands to the browser instead of a saved file.
+- Vault v2 (Tharun): the Review Desk runs on the memory `EndpointGateway`. His client needs to provide `listChanges`, `approveEndpoint` (maps to `approve_endpoint`; the signed message, key, signature and nonce are passed through) and `rejectEndpoint`. Swap point: `services/api/src/gateways/index.ts`. Vault vendors have no domain yet, so the desk matches them to the registry by name until vault v2 stores it.
+- Release Guard appears as a feature row. It is Tharun's vault v2 work and is not wired into anything here.
+- Hosting (Tharun): the owner routes must be served on the same site as the dashboard so the HttpOnly, SameSite=Strict cookie is sent. Set `VITE_REDLINE_OWNER_URL` if they are not at `<API URL>/owner`.
+- The main bundle is about 500 KB minified, mostly the SDK and zod for Try it and Demo. The wallet SDKs and the owner app are separate lazy chunks.
+
 ## Hardening round (2026-11-08)
 
 Adopts Tharun's review: control and linkage are not legal ownership, approvals happen where the agent cannot reach, an email on the same domain is not independent, and sensitive data stays off chain.
@@ -44,7 +100,7 @@ Candidate digests after this change, not frozen: A `sha256:3263c237d3152bfd36cab
 
 ### Blocked
 
-- The dashboard has no sign-in screen. With auth on, its owner calls get 401, so local use needs `REDLINE_OWNER_AUTH=off`, which only works on localhost. A sign-in screen with a NEAR wallet would be a new surface, so it was not built.
+- ~~The dashboard has no sign-in screen.~~ Resolved in the round above: wallet sign-in, so `REDLINE_OWNER_AUTH=off` is no longer needed locally.
 - Approvals are per deployment: any listed owner or approver can approve for any payer. Tying payers to their own owners needs a tenant model.
 - Everything from the round below still runs on the stub engine and memory registry.
 
