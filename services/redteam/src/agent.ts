@@ -174,6 +174,8 @@ export interface Comparison {
   costUsd: number;
   agentAlone: { unsafePayees: number; legitPaid: number; coolingOffPaid: number };
   agentWithRedline: { unsafePayees: number; legitPaid: number; coolingOffPaid: number };
+  /** Redline's payee verdict on its own, as a reference point. */
+  redlineAlone: { unsafePayees: number; legitPaid: number; coolingOffPaid: number };
   attacks: number;
   legitRecurring: number;
   rows: ComparisonRow[];
@@ -193,6 +195,7 @@ export function compare(rows: ComparisonRow[], entries: AgentDecisionEntry[], mo
     costUsd: entries.reduce((a, e) => a + e.costUsd, 0),
     agentAlone: tally((r) => r.agentAlonePays),
     agentWithRedline: tally((r) => r.combinedPays),
+    redlineAlone: tally((r) => r.redlineVerdict === "PAY"),
     attacks: rows.filter((r) => isAttack(r.family)).length,
     legitRecurring: rows.filter((r) => r.family === "legit_recurring").length,
     rows,

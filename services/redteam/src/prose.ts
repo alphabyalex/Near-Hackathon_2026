@@ -21,6 +21,10 @@ export type Prose = z.infer<typeof ProseSchema>;
 const AdversarialSchema = ProseSchema.extend({ account: z.string().min(2).max(120), strategy: z.string().min(3).max(300) });
 type Adversarial = z.infer<typeof AdversarialSchema>;
 
+/** House style: no em dashes, even in generated test data. */
+const EM_DASH = new RegExp(` *${String.fromCodePoint(0x2014)} *`, "g");
+export const noEmDash = (text: string): string => text.replace(EM_DASH, ", ");
+
 const address = (caip10: string): string => caip10.split(":").slice(2).join(":");
 const hash = (value: unknown): string => createHash("sha256").update(canonicalize(value) ?? "").digest("hex");
 
@@ -169,7 +173,7 @@ export const proseJob: Job<Prose> = {
   prompt: buildPrompt,
   spec: proseSpec,
   validate: validateProse,
-  entry: (p, prose, meta) => ({ ...meta, caseId: p.id, promptVersion: PROMPT_VERSION, prose }),
+  entry: (p, prose, meta) => ({ ...meta, caseId: p.id, promptVersion: PROMPT_VERSION, prose: { subject: noEmDash(prose.subject), body: noEmDash(prose.body) } }),
 };
 
 export const adversarialJob: Job<Adversarial> = {
@@ -182,9 +186,9 @@ export const adversarialJob: Job<Adversarial> = {
     ...meta,
     caseId: p.id,
     promptVersion: ADVERSARIAL_PROMPT_VERSION,
-    prose: { subject: value.subject, body: value.body },
+    prose: { subject: noEmDash(value.subject), body: noEmDash(value.body) },
     account: value.account.trim(),
-    strategy: value.strategy.trim(),
+    strategy: noEmDash(value.strategy.trim()),
   }),
 };
 

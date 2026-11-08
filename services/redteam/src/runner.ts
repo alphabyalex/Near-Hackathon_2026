@@ -122,12 +122,22 @@ async function viaX402(p: CaseParams, engine: PayeeEngine, ctx: EngineContext): 
   return seen;
 }
 
+/** Checks are timed this many times and the median kept, so timer and GC noise do not set p95. */
+export const TIMING_REPEATS = 5;
+
 export async function runCase(p: CaseParams, engine: PayeeEngine, prose?: string): Promise<CaseResult> {
   if (!p.payee) throw new Error(`${p.id}: no payee. Adversarial cases need the model's account first.`);
   const ctx = await contextFor(p);
-  const started = performance.now();
-  const result = p.family === "x402_payto_swap" ? await viaX402(p, engine, ctx) : { ...(await engine.check(requestFor(p, prose), ctx)), receipt: null };
-  const latencyMs = performance.now() - started;
+  const once = () => (p.family === "x402_payto_swap" ? viaX402(p, engine, ctx) : engine.check(requestFor(p, prose), ctx).then((r) => ({ ...r, receipt: null })));
+  const timings: number[] = [];
+  let result: PayeeCheckResult | null = null;
+  for (let i = 0; i < TIMING_REPEATS; i++) {
+    const started = performance.now();
+    result = await once();
+    timings.push(performance.now() - started);
+  }
+  if (!result) throw new Error(`${p.id}: no result.`);
+  const latencyMs = [...timings].sort((x, y) => x - y)[Math.floor(TIMING_REPEATS / 2)] ?? 0;
 
   const reasons = result.reasons.map((r) => r.code);
   const attack = isAttack(p.family);
