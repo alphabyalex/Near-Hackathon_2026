@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { ProseSchema, type Prose } from "./prose.js";
 
 export const NEAR_AI_BASE = "https://cloud-api.near.ai/v1";
 export const PREFERRED_MODEL = "Qwen/Qwen3.8-27B-abliterated";
@@ -34,23 +33,23 @@ export async function chooseModel(fetchImpl: typeof fetch = fetch, baseUrl = NEA
   return { id: fallback.id, fallback: true, price: price(fallback), note: `${PREFERRED_MODEL} is not listed, so the repo default ${FALLBACK_MODEL} wrote the prose.` };
 }
 
-export interface Completion {
-  prose: Prose;
-  usage: { promptTokens: number; completionTokens: number };
+export interface Usage {
+  promptTokens: number;
+  completionTokens: number;
 }
 
-export type ProseClient = (system: string, user: string) => Promise<Completion>;
+/** A JSON reply shape: the schema sent to the model and the check applied to what comes back. */
+export interface JsonSpec<T> {
+  name: string;
+  jsonSchema: Record<string, unknown>;
+  parse(value: unknown): T | null;
+}
 
-const PROSE_JSON_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["subject", "body"],
-  properties: { subject: { type: "string" }, body: { type: "string" } },
-};
+export type JsonClient = <T>(system: string, user: string, spec: JsonSpec<T>) => Promise<{ value: T; usage: Usage }>;
 
-/** One chat completion with reasoning off, since the prose needs none and reasoning is billed. */
-export function nearAiProseClient(model: ModelChoice, apiKey: string, fetchImpl: typeof fetch = fetch, baseUrl = NEAR_AI_BASE): ProseClient {
-  return async (system, user) => {
+/** One chat completion with reasoning off, since the text needs none and reasoning is billed. */
+export function nearAiJsonClient(model: ModelChoice, apiKey: string, fetchImpl: typeof fetch = fetch, baseUrl = NEAR_AI_BASE): JsonClient {
+  return async (system, user, spec) => {
     const response = await fetchImpl(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
@@ -63,7 +62,7 @@ export function nearAiProseClient(model: ModelChoice, apiKey: string, fetchImpl:
         temperature: 0.9,
         max_tokens: MAX_TOKENS,
         chat_template_kwargs: { enable_thinking: false },
-        response_format: { type: "json_schema", json_schema: { name: "redteam_prose", strict: true, schema: PROSE_JSON_SCHEMA } },
+        response_format: { type: "json_schema", json_schema: { name: spec.name, strict: true, schema: spec.jsonSchema } },
       }),
       signal: AbortSignal.timeout(120_000),
     });
@@ -78,29 +77,48 @@ export function nearAiProseClient(model: ModelChoice, apiKey: string, fetchImpl:
     } catch {
       throw Object.assign(new Error("The model did not return JSON."), { usage });
     }
-    const prose = ProseSchema.safeParse(parsed);
-    if (!prose.success) throw Object.assign(new Error("The model's JSON did not match {subject, body}."), { usage });
-    return { prose: prose.data, usage };
+    const value = spec.parse(parsed);
+    if (value === null) throw Object.assign(new Error(`The model's JSON did not match ${spec.name}.`), { usage });
+    return { value, usage };
   };
 }
 
-export interface Ledger {
+export type Purpose = "prose" | "adversarial" | "agent";
+
+export interface Tally {
   calls: number;
   failedCalls: number;
   promptTokens: number;
   completionTokens: number;
   costUsd: number;
+}
+
+export interface Ledger extends Tally {
   model: string | null;
+  byPurpose?: Partial<Record<Purpose, Tally>>;
   runs: { at: string; mode: string; calls: number; costUsd: number }[];
 }
 
-export const emptyLedger = (): Ledger => ({ calls: 0, failedCalls: 0, promptTokens: 0, completionTokens: 0, costUsd: 0, model: null, runs: [] });
+const emptyTally = (): Tally => ({ calls: 0, failedCalls: 0, promptTokens: 0, completionTokens: 0, costUsd: 0 });
+export const emptyLedger = (): Ledger => ({ ...emptyTally(), model: null, runs: [] });
 
 export const readLedger = (path: string): Ledger => (existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as Ledger) : emptyLedger());
 export const writeLedger = (path: string, ledger: Ledger): void => writeFileSync(path, `${JSON.stringify(ledger, null, 2)}\n`);
 
-export const costOf = (usage: { promptTokens: number; completionTokens: number }, price: ModelChoice["price"]): number =>
-  usage.promptTokens * price.input + usage.completionTokens * price.output;
+/** Adds one call to the totals and to its purpose. Calls made before purposes existed count as prose. */
+export function charge(ledger: Ledger, purpose: Purpose, usage: Usage, costUsd: number, ok: boolean): void {
+  if (!ledger.byPurpose) ledger.byPurpose = { prose: { calls: ledger.calls, failedCalls: ledger.failedCalls, promptTokens: ledger.promptTokens, completionTokens: ledger.completionTokens, costUsd: ledger.costUsd } };
+  const bucket = (ledger.byPurpose[purpose] ??= emptyTally());
+  for (const tally of [ledger, bucket]) {
+    tally.calls++;
+    if (!ok) tally.failedCalls++;
+    tally.promptTokens += usage.promptTokens;
+    tally.completionTokens += usage.completionTokens;
+    tally.costUsd += costUsd;
+  }
+}
+
+export const costOf = (usage: Usage, price: ModelChoice["price"]): number => usage.promptTokens * price.input + usage.completionTokens * price.output;
 
 /** The most one call can cost: a generous prompt estimate plus every allowed output token. */
 export const worstCaseCallUsd = (price: ModelChoice["price"]): number => 1_500 * price.input + MAX_TOKENS * price.output;

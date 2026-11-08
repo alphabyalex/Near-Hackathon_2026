@@ -9,7 +9,8 @@ import {
   type PayeeEngine,
 } from "@redline/sdk";
 import { withRedline } from "@redline/x402-guard";
-import { ATTACK_FAMILIES, NEAR_CHAIN, type CaseParams } from "./params.js";
+import { liveEngine, loadPayeeCheck } from "./live-engine.js";
+import { ADVERSARIAL, ATTACK_FAMILIES, NEAR_CHAIN, type CaseParams } from "./params.js";
 
 /** Every case is checked at this instant, so results do not depend on when the benchmark runs. */
 export const BENCH_NOW = new Date("2026-11-08T12:00:00Z");
@@ -21,33 +22,43 @@ export interface EngineChoice {
   note: string;
 }
 
-/** @redline/payee-check once it lands in the workspace, otherwise the API's stub engine. */
-export async function chooseEngine(): Promise<EngineChoice> {
-  const specifier = "@redline/payee-check";
-  try {
-    await import(specifier);
-    return { engine: createStubEngine(), name: "stub", note: "@redline/payee-check is installed but has no PayeeEngine adapter yet, so the stub engine produced the verdicts." };
-  } catch {
-    return { engine: createStubEngine(), name: "stub", note: "@redline/payee-check has not landed in this branch, so the stub engine from @redline/sdk produced the verdicts." };
+/**
+ * stub: the deterministic engine in @redline/sdk, which the API runs today.
+ * live: @redline/payee-check. Fails loudly when it is not installed, never falls back to the stub.
+ */
+export async function chooseEngine(mode: "stub" | "live" = "stub", modulePath?: string): Promise<EngineChoice> {
+  if (mode === "live") {
+    const mod = await loadPayeeCheck(modulePath);
+    return {
+      engine: liveEngine(mod, BENCH_NOW.getTime()),
+      name: "live",
+      note: modulePath ? `@redline/payee-check loaded from ${modulePath}, which is not merged yet.` : "@redline/payee-check produced the verdicts.",
+    };
   }
+  return { engine: createStubEngine(), name: "stub", note: "The stub engine in @redline/sdk produced the verdicts. @redline/payee-check has not merged; rerun with --engine live once it does." };
 }
+
+export const isAttack = (family: CaseParams["family"]): boolean => ATTACK_FAMILIES.includes(family) || family === ADVERSARIAL;
 
 export interface CaseResult {
   id: string;
   family: CaseParams["family"];
   claim: CaseParams["claim"];
   lookalike: CaseParams["lookalike"];
+  payee: string;
+  realAccount: string;
   expectedVerdicts: PayeeVerdict[];
-  expectedReason: string;
+  expectedReason: string | null;
   verdict: PayeeVerdict;
   reasons: string[];
-  evidenceTier: EvidenceTier;
+  /** Null when the engine does not report a tier. */
+  evidenceTier: EvidenceTier | null;
   latencyMs: number;
-  /** Attack families: anything but PAY. */
+  /** Attacks: anything but PAY. */
   caught: boolean;
   /** The verdict is one the ground truth allows. */
   verdictMatch: boolean;
-  /** The verdict matches and the expected reason code is among the reasons. */
+  /** The verdict matches and, where one is expected, the reason code is among the reasons. */
   exactMatch: boolean;
   /** An attack that got PAY, or a cooling-off account that got PAY. */
   unsafe: boolean;
@@ -57,7 +68,7 @@ export interface CaseResult {
 
 const RANK: Record<PayeeVerdict, number> = { PAY: 0, HOLD: 1, BLOCK: 2 };
 
-async function contextFor(p: CaseParams): Promise<EngineContext> {
+export async function contextFor(p: CaseParams): Promise<EngineContext> {
   let clock = new Date(BENCH_NOW.getTime() - 30 * DAY_MS);
   const registry = createMemoryRegistry({ now: () => clock, coolingOffHours: 72 });
   const base = { domain: p.vendor.domain, name: p.vendor.name, evidenceHash: "sha256:redteam", issuedAt: clock.toISOString() };
@@ -77,7 +88,7 @@ async function contextFor(p: CaseParams): Promise<EngineContext> {
   return { registry, history, signals: createStubSignals(overrides), network: "testnet" };
 }
 
-function requestFor(p: CaseParams, context: string | undefined): PayeeCheckRequest {
+export function requestFor(p: CaseParams, context?: string): PayeeCheckRequest {
   const vendor = p.claim === "domain" ? { domain: p.vendor.domain } : p.claim === "name" ? { name: p.vendor.name } : undefined;
   const source = p.family === "invoice_injection" || p.family === "legit_recurring" ? "invoice" : "manual";
   return {
@@ -112,13 +123,14 @@ async function viaX402(p: CaseParams, engine: PayeeEngine, ctx: EngineContext): 
 }
 
 export async function runCase(p: CaseParams, engine: PayeeEngine, prose?: string): Promise<CaseResult> {
+  if (!p.payee) throw new Error(`${p.id}: no payee. Adversarial cases need the model's account first.`);
   const ctx = await contextFor(p);
   const started = performance.now();
   const result = p.family === "x402_payto_swap" ? await viaX402(p, engine, ctx) : { ...(await engine.check(requestFor(p, prose), ctx)), receipt: null };
   const latencyMs = performance.now() - started;
 
   const reasons = result.reasons.map((r) => r.code);
-  const attack = ATTACK_FAMILIES.includes(p.family);
+  const attack = isAttack(p.family);
   const verdictMatch = p.expected.verdicts.includes(result.verdict);
   const primary = p.expected.verdicts[0] ?? "HOLD";
   return {
@@ -126,15 +138,17 @@ export async function runCase(p: CaseParams, engine: PayeeEngine, prose?: string
     family: p.family,
     claim: p.claim,
     lookalike: p.lookalike,
+    payee: p.payee,
+    realAccount: p.realAccount,
     expectedVerdicts: p.expected.verdicts,
     expectedReason: p.expected.reasonCode,
     verdict: result.verdict,
     reasons,
-    evidenceTier: result.evidenceTier ?? "T0_NONE",
+    evidenceTier: result.evidenceTier ?? null,
     latencyMs,
     caught: attack && result.verdict !== "PAY",
     verdictMatch,
-    exactMatch: verdictMatch && reasons.includes(p.expected.reasonCode),
+    exactMatch: verdictMatch && (p.expected.reasonCode === null || reasons.includes(p.expected.reasonCode)),
     unsafe: result.verdict === "PAY" && primary !== "PAY",
     falsePositive: !attack && RANK[result.verdict] > RANK[primary],
   };

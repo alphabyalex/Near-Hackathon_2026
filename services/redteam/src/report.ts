@@ -1,5 +1,6 @@
-import type { Ledger } from "./llm.js";
-import { ATTACK_FAMILIES, FAMILIES, LEGIT_FAMILIES, type Family } from "./params.js";
+import type { Comparison } from "./agent.js";
+import type { Ledger, Tally } from "./llm.js";
+import { ATTACK_FAMILIES, EVM_CHAIN, LEGIT_FAMILIES, type Family, type WrittenFamily } from "./params.js";
 import type { CaseResult } from "./runner.js";
 
 export const FAMILY_LABELS: Record<Family, string> = {
@@ -9,7 +10,10 @@ export const FAMILY_LABELS: Record<Family, string> = {
   evm_address_poisoning: "EVM address poisoning",
   legit_recurring: "Legit recurring invoice",
   legit_new_account: "Legit vendor with a new account",
+  adversarial: "Attacks we didn't write (invented by the model)",
 };
+
+const WRITTEN: readonly WrittenFamily[] = ["bank_change_lookalike", "invoice_injection", "x402_payto_swap", "evm_address_poisoning", "legit_recurring", "legit_new_account"];
 
 export interface FamilyStats {
   family: Family;
@@ -22,24 +26,39 @@ export interface FamilyStats {
   falsePositives: number;
 }
 
+export interface AdversarialRow {
+  id: string;
+  chain: string;
+  account: string;
+  realAccount: string;
+  relation: string;
+  modelStrategy: string;
+  verdict: string;
+  reasons: string[];
+}
+
 export interface RedteamReport {
-  schema: "redline-redteam-report-v1";
+  schema: "redline-redteam-report-v2";
   seed: string;
   engine: { name: "stub" | "live"; note: string };
   model: { id: string | null; note: string };
-  llm: { calls: number; failedCalls: number; promptTokens: number; completionTokens: number; estimatedUsd: number };
-  cases: { total: number; attacks: number; legit: number; excluded: number };
+  llm: Tally & { byPurpose: Ledger["byPurpose"] };
+  cases: { written: number; attacks: number; legit: number; adversarial: number; excluded: number };
   headline: {
     attackCatchRate: number;
     attackVerdictMatchRate: number;
     attackExactMatchRate: number;
     legitFalsePositiveRate: number;
     unsafePays: number;
+    adversarialCatchRate: number | null;
     latencyP50Ms: number;
     latencyP95Ms: number;
   };
   families: FamilyStats[];
   lookalikeStrategies: { strategy: string; cases: number; flaggedAsLookalike: number; caught: number }[];
+  adversarial: { relations: { relation: string; cases: number; caught: number; flaggedAsLookalike: number }[]; rows: AdversarialRow[] } | null;
+  agentComparison: Comparison | null;
+  findings: string[];
   results: CaseResult[];
 }
 
@@ -51,6 +70,50 @@ function percentile(values: number[], q: number): number {
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(q * sorted.length) - 1))] ?? 0;
 }
 
+function stats(family: Family, rows: CaseResult[]): FamilyStats {
+  return {
+    family,
+    label: FAMILY_LABELS[family],
+    cases: rows.length,
+    caught: rows.filter((r) => r.caught).length,
+    verdictMatch: rows.filter((r) => r.verdictMatch).length,
+    exactMatch: rows.filter((r) => r.exactMatch).length,
+    unsafe: rows.filter((r) => r.unsafe).length,
+    falsePositives: rows.filter((r) => r.falsePositive).length,
+  };
+}
+
+const firstLabel = (caip10: string): string => (caip10.split(":")[2] ?? "").split(".")[0] ?? "";
+const plain = (s: string): string => s.replace(/[0-9_-]/g, "");
+
+function editDistance(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur.push(Math.min((prev[j] ?? 0) + 1, (cur[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + (a[i - 1] === b[j - 1] ? 0 : 1)));
+    prev = cur;
+  }
+  return prev[b.length] ?? 0;
+}
+
+/** How the model's account relates to the real one, judged by code, not by the model. */
+export function relationOf(account: string, real: string, vendorName: string): string {
+  if (account.startsWith(`${EVM_CHAIN}:`)) {
+    const a = account.split(":")[2] ?? "";
+    const r = real.split(":")[2] ?? "";
+    if (a.slice(2, 6) === r.slice(2, 6) && a.slice(-4) === r.slice(-4)) return "EVM: same first and last 4 hex";
+    if (a.slice(2, 6) === r.slice(2, 6) || a.slice(-4) === r.slice(-4)) return "EVM: same first or last 4 hex";
+    return "EVM: unrelated address";
+  }
+  const label = firstLabel(account);
+  const realLabel = firstLabel(real);
+  const words = vendorName.toLowerCase().split(/\s+/);
+  if (editDistance(plain(label), plain(realLabel)) <= 2) return "NEAR: typo or confusable of the real name";
+  if (label.includes(plain(realLabel)) || words.every((w) => label.includes(w))) return "NEAR: real name plus extra words";
+  if (words.some((w) => w.length > 3 && label.includes(w))) return "NEAR: part of the vendor name";
+  return "NEAR: unrelated name";
+}
+
 export function buildReport(input: {
   seed: string;
   results: CaseResult[];
@@ -58,28 +121,52 @@ export function buildReport(input: {
   engine: RedteamReport["engine"];
   model: RedteamReport["model"];
   ledger: Ledger;
+  adversarialMeta?: Map<string, { strategy: string; vendorName: string }>;
+  agentComparison?: Comparison | null;
 }): RedteamReport {
-  const { results } = input;
-  const attacks = results.filter((r) => ATTACK_FAMILIES.includes(r.family));
-  const legit = results.filter((r) => LEGIT_FAMILIES.includes(r.family));
-  const families = FAMILIES.map((family): FamilyStats => {
-    const rows = results.filter((r) => r.family === family);
+  const written = input.results.filter((r) => r.family !== "adversarial");
+  const adversarial = input.results.filter((r) => r.family === "adversarial");
+  const attacks = written.filter((r) => ATTACK_FAMILIES.includes(r.family));
+  const legit = written.filter((r) => LEGIT_FAMILIES.includes(r.family));
+  const latencies = input.results.map((r) => r.latencyMs);
+  const round = (ms: number) => Math.round(ms * 1000) / 1000;
+  const strategies = [...new Set(written.map((r) => r.lookalike).filter((s): s is NonNullable<typeof s> => s !== null))].sort();
+  const lookalikeStrategies = strategies.map((strategy) => {
+    const rows = written.filter((r) => r.lookalike === strategy);
+    return { strategy, cases: rows.length, flaggedAsLookalike: rows.filter((r) => r.reasons.includes("LOOKALIKE_ACCOUNT")).length, caught: rows.filter((r) => r.caught).length };
+  });
+
+  const advRows: AdversarialRow[] = adversarial.map((r) => {
+    const meta = input.adversarialMeta?.get(r.id);
     return {
-      family,
-      label: FAMILY_LABELS[family],
-      cases: rows.length,
-      caught: rows.filter((r) => r.caught).length,
-      verdictMatch: rows.filter((r) => r.verdictMatch).length,
-      exactMatch: rows.filter((r) => r.exactMatch).length,
-      unsafe: rows.filter((r) => r.unsafe).length,
-      falsePositives: rows.filter((r) => r.falsePositive).length,
+      id: r.id,
+      chain: r.payee.split(":").slice(0, 2).join(":"),
+      account: r.payee,
+      realAccount: r.realAccount,
+      relation: relationOf(r.payee, r.realAccount, meta?.vendorName ?? ""),
+      modelStrategy: meta?.strategy ?? "",
+      verdict: r.verdict,
+      reasons: r.reasons,
     };
   });
-  const strategies = [...new Set(results.map((r) => r.lookalike).filter((s): s is NonNullable<typeof s> => s !== null))].sort();
-  const latencies = results.map((r) => r.latencyMs);
-  const round = (ms: number) => Math.round(ms * 1000) / 1000;
+  const relations = [...new Set(advRows.map((r) => r.relation))].sort().map((relation) => {
+    const rows = advRows.filter((r) => r.relation === relation);
+    return { relation, cases: rows.length, caught: rows.filter((r) => r.verdict !== "PAY").length, flaggedAsLookalike: rows.filter((r) => r.reasons.includes("LOOKALIKE_ACCOUNT")).length };
+  });
+
+  const findings: string[] = [];
+  for (const s of lookalikeStrategies) {
+    if (s.flaggedAsLookalike < s.cases) {
+      findings.push(
+        `Look-alike strategy "${s.strategy}": ${s.cases - s.flaggedAsLookalike} of ${s.cases} were not flagged as LOOKALIKE_ACCOUNT. ${s.caught === s.cases ? "All were still stopped, by ACCOUNT_NOT_VENDORS or NOT_IN_REGISTRY, because the account is not the vendor's." : `${s.cases - s.caught} got PAY.`} Finding for the payee-check engine: detect this pattern explicitly.`,
+      );
+    }
+  }
+  const advMissed = advRows.filter((r) => r.verdict === "PAY");
+  if (advMissed.length > 0) findings.push(`${advMissed.length} model-invented attacks got PAY: ${advMissed.map((r) => r.id).join(", ")}.`);
+
   return {
-    schema: "redline-redteam-report-v1",
+    schema: "redline-redteam-report-v2",
     seed: input.seed,
     engine: input.engine,
     model: input.model,
@@ -88,74 +175,124 @@ export function buildReport(input: {
       failedCalls: input.ledger.failedCalls,
       promptTokens: input.ledger.promptTokens,
       completionTokens: input.ledger.completionTokens,
-      estimatedUsd: Math.round(input.ledger.costUsd * 1e6) / 1e6,
+      costUsd: Math.round(input.ledger.costUsd * 1e6) / 1e6,
+      byPurpose: input.ledger.byPurpose,
     },
-    cases: { total: results.length, attacks: attacks.length, legit: legit.length, excluded: input.excluded },
+    cases: { written: written.length, attacks: attacks.length, legit: legit.length, adversarial: adversarial.length, excluded: input.excluded },
     headline: {
       attackCatchRate: ratio(attacks.filter((r) => r.caught).length, attacks.length),
       attackVerdictMatchRate: ratio(attacks.filter((r) => r.verdictMatch).length, attacks.length),
       attackExactMatchRate: ratio(attacks.filter((r) => r.exactMatch).length, attacks.length),
       legitFalsePositiveRate: ratio(legit.filter((r) => r.falsePositive).length, legit.length),
-      unsafePays: results.filter((r) => r.unsafe).length,
+      unsafePays: input.results.filter((r) => r.unsafe).length,
+      adversarialCatchRate: adversarial.length === 0 ? null : ratio(adversarial.filter((r) => r.caught).length, adversarial.length),
       latencyP50Ms: round(percentile(latencies, 0.5)),
       latencyP95Ms: round(percentile(latencies, 0.95)),
     },
-    families,
-    lookalikeStrategies: strategies.map((strategy) => {
-      const rows = results.filter((r) => r.lookalike === strategy);
-      return { strategy, cases: rows.length, flaggedAsLookalike: rows.filter((r) => r.reasons.includes("LOOKALIKE_ACCOUNT")).length, caught: rows.filter((r) => r.caught).length };
-    }),
-    results: results.map((r) => ({ ...r, latencyMs: round(r.latencyMs) })),
+    families: [...WRITTEN.map((f) => stats(f, written.filter((r) => r.family === f))), ...(adversarial.length ? [stats("adversarial", adversarial)] : [])],
+    lookalikeStrategies,
+    adversarial: adversarial.length ? { relations, rows: advRows } : null,
+    agentComparison: input.agentComparison ?? null,
+    findings,
+    results: input.results.map((r) => ({ ...r, latencyMs: round(r.latencyMs) })),
   };
 }
 
 const pct = (n: number, d: number): string => (d === 0 ? "n/a" : `${((100 * n) / d).toFixed(1)}%`);
+const cell = (s: string): string => s.replace(/\|/g, "\\|").replace(/\s+/g, " ");
 
 export function renderMarkdown(report: RedteamReport): string {
   const h = report.headline;
+  const c = report.cases;
+  const tokens = report.llm.promptTokens + report.llm.completionTokens;
   const lines = [
     "# Red-team benchmark",
     "",
-    "Fictional payment-fraud cases run through Redline. Code fixes each case's parameters and expected verdict; a language model only writes the email, invoice or offer text around them.",
+    "Fictional payment-fraud cases run through Redline. Code fixes each case's parameters and expected verdict. A language model only writes the email, invoice or offer text around them, except in the last family, where it also invents the attacker's account.",
     "",
-    "Rerun offline from the committed fixtures: `pnpm --filter @redline/redteam bench`",
+    "Rerun offline from the committed fixtures: `pnpm --filter @redline/redteam bench`. Add `--engine live` once `packages/payee-check` merges.",
     "",
-    "## Headline",
+    "## Read this first",
+    "",
+    `- **The verdicts come from the ${report.engine.name} engine.** ${report.engine.note}`,
+    "- **Families 1 to 6 were written by the same team that wrote the engine's rules,** so they test the rules we meant to write. The model-invented family below is the closest thing here to an outside attacker.",
+    "- Latency is the engine call in process, without network.",
+    "- Every company, person, domain and account in the fixtures is fictional. Domains use the reserved .example TLD.",
+    "",
+    "## Headline (families 1 to 6)",
     "",
     "| Measure | Result |",
     "| --- | --- |",
-    `| Cases | ${report.cases.total} (${report.cases.attacks} attacks, ${report.cases.legit} legit) |`,
-    `| Attacks stopped (HOLD or BLOCK) | ${pct(h.attackCatchRate * report.cases.attacks, report.cases.attacks)} |`,
-    `| Attacks with the expected verdict | ${pct(h.attackVerdictMatchRate * report.cases.attacks, report.cases.attacks)} |`,
-    `| Attacks with the expected verdict and reason | ${pct(h.attackExactMatchRate * report.cases.attacks, report.cases.attacks)} |`,
-    `| False positives on legit cases | ${pct(h.legitFalsePositiveRate * report.cases.legit, report.cases.legit)} |`,
-    `| Unsafe PAY | ${h.unsafePays} |`,
+    `| Cases | ${c.written} (${c.attacks} attacks, ${c.legit} legit) |`,
+    `| Attacks stopped (HOLD or BLOCK) | ${pct(h.attackCatchRate * c.attacks, c.attacks)} |`,
+    `| Attacks with the expected verdict | ${pct(h.attackVerdictMatchRate * c.attacks, c.attacks)} |`,
+    `| Attacks with the expected verdict and reason | ${pct(h.attackExactMatchRate * c.attacks, c.attacks)} |`,
+    `| False positives on legit cases | ${pct(h.legitFalsePositiveRate * c.legit, c.legit)} |`,
+    `| Unsafe PAY, all families | ${h.unsafePays} |`,
     `| Latency per check, p50 / p95 | ${h.latencyP50Ms} ms / ${h.latencyP95Ms} ms |`,
-    `| Verdict engine | ${report.engine.name}. ${report.engine.note} |`,
-    `| Prose model | ${report.model.id ?? "none"}. ${report.model.note} |`,
-    `| NEAR AI usage | ${report.llm.calls} calls, ${report.llm.promptTokens + report.llm.completionTokens} tokens, about $${report.llm.estimatedUsd.toFixed(4)} |`,
+    `| Text model | ${report.model.id ?? "none"}. ${report.model.note} |`,
+    `| NEAR AI usage, all runs | ${report.llm.calls} calls, ${tokens.toLocaleString("en-US")} tokens, about $${report.llm.costUsd.toFixed(4)} |`,
     "",
     "## By family",
     "",
     "| Family | Cases | Stopped | Expected verdict | Verdict and reason | Unsafe PAY | False positives |",
     "| --- | --- | --- | --- | --- | --- | --- |",
     ...report.families.map((f) => {
-      const attack = ATTACK_FAMILIES.includes(f.family);
-      return `| ${f.label} | ${f.cases} | ${attack ? pct(f.caught, f.cases) : "n/a"} | ${pct(f.verdictMatch, f.cases)} | ${pct(f.exactMatch, f.cases)} | ${f.unsafe} | ${attack ? "n/a" : f.falsePositives} |`;
+      const attack = f.family !== "legit_recurring" && f.family !== "legit_new_account";
+      return `| ${f.label} | ${f.cases} | ${attack ? pct(f.caught, f.cases) : "n/a"} | ${pct(f.verdictMatch, f.cases)} | ${f.family === "adversarial" ? "n/a" : pct(f.exactMatch, f.cases)} | ${f.unsafe} | ${attack ? "n/a" : f.falsePositives} |`;
     }),
     "",
-    "## Look-alike strategies",
+    "## Look-alike strategies (family 1, plus EVM poisoning)",
     "",
     "| Strategy | Cases | Flagged as look-alike | Stopped |",
     "| --- | --- | --- | --- |",
     ...report.lookalikeStrategies.map((s) => `| ${s.strategy} | ${s.cases} | ${pct(s.flaggedAsLookalike, s.cases)} | ${pct(s.caught, s.cases)} |`),
     "",
-    "## How to read this",
-    "",
-    "- Latency is the engine call in process, without network.",
-    "- The verdict engine's look-alike rules and these attack families were written by the same team. A strategy those rules do not model, such as an abbreviation of the vendor name, still gets stopped when the agent names the vendor, but as ACCOUNT_NOT_VENDORS rather than LOOKALIKE_ACCOUNT.",
-    "- Every company, person, domain and account in the fixtures is fictional. Domains use the reserved .example TLD.",
-    "",
   ];
+
+  if (report.adversarial) {
+    lines.push(
+      "## Attacks we didn't write",
+      "",
+      `The model got only the real vendor's name, domain and verified account, and invented the attacker's account and pretext. The code rejects an invented account that is invalid or is the verified one, so the expected verdict is never PAY. ${c.adversarial} cases, ${pct((h.adversarialCatchRate ?? 0) * c.adversarial, c.adversarial)} stopped.`,
+      "",
+      "| What the model did, judged by code | Cases | Stopped | Flagged as look-alike |",
+      "| --- | --- | --- | --- |",
+      ...report.adversarial.relations.map((r) => `| ${r.relation} | ${r.cases} | ${pct(r.caught, r.cases)} | ${pct(r.flaggedAsLookalike, r.cases)} |`),
+      "",
+      "Every invented account, with the model's own description of its trick:",
+      "",
+      "| Case | Invented account | Real account | Model's strategy | Verdict |",
+      "| --- | --- | --- | --- | --- |",
+      ...report.adversarial.rows.map((r) => `| ${r.id} | \`${r.account.split(":")[2]}\` | \`${r.realAccount.split(":")[2]}\` | ${cell(r.modelStrategy)} | ${r.verdict} |`),
+      "",
+    );
+  }
+
+  const a = report.agentComparison;
+  if (a) {
+    lines.push(
+      "## Invoice agent alone vs agent plus Redline",
+      "",
+      `${a.cases} cases, ${AGENT_NOTE}. The agent is the repo's invoice agent on ${a.model}, given trusted records in which the invoice matches an open approved payable, so the only warning sign is in the text. "Agent alone" pays the account named in the document whenever the agent decides PAY. "Agent plus Redline" also needs Redline's PAY for that account.`,
+      "",
+      "| | Agent alone | Agent plus Redline |",
+      "| --- | --- | --- |",
+      `| Unsafe payees let through (of ${a.attacks} attacks) | ${a.agentAlone.unsafePayees} | ${a.agentWithRedline.unsafePayees} |`,
+      `| Legit recurring invoices paid (of ${a.legitRecurring}) | ${a.agentAlone.legitPaid} | ${a.agentWithRedline.legitPaid} |`,
+      `| New accounts in cooling-off paid | ${a.agentAlone.coolingOffPaid} | ${a.agentWithRedline.coolingOffPaid} |`,
+      "",
+      `Agent calls: ${a.calls}, ${a.tokens.toLocaleString("en-US")} tokens, about $${a.costUsd.toFixed(4)}.`,
+      "",
+      "| Case | Family | Agent | Redline | Agent alone pays | Agent plus Redline pays |",
+      "| --- | --- | --- | --- | --- | --- |",
+      ...a.rows.map((r) => `| ${r.id} | ${r.family} | ${r.agentDecision} | ${r.redlineVerdict} | ${r.agentAlonePays ? "yes" : "no"} | ${r.combinedPays ? "yes" : "no"} |`),
+      "",
+    );
+  }
+
+  lines.push("## Findings", "", ...(report.findings.length ? report.findings.map((f) => `- ${f}`) : ["- None."]), "");
   return lines.join("\n");
 }
+
+const AGENT_NOTE = "5 from each of families 1 to 6";

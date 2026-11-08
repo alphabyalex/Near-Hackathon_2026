@@ -12,5 +12,7 @@ export const PATHS = {
   ledger: join(REPO_ROOT, "fixtures", "redteam", "ledger.json"),
   evidence: join(REPO_ROOT, "evidence", "redteam"),
   report: join(REPO_ROOT, "evidence", "redteam", "report.json"),
+  reportLive: join(REPO_ROOT, "evidence", "redteam", "report-live.json"),
+  agent: join(REPO_ROOT, "fixtures", "redteam", "agent"),
   doc: join(REPO_ROOT, "docs", "REDTEAM.md"),
 };

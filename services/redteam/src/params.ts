@@ -13,8 +13,13 @@ export const FAMILIES = [
   "evm_address_poisoning",
   "legit_recurring",
   "legit_new_account",
+  "adversarial",
 ] as const;
 export type Family = (typeof FAMILIES)[number];
+/** Families 1 to 6, written by the same team that wrote the engine's rules. */
+export type WrittenFamily = Exclude<Family, "adversarial">;
+/** Attacks the model invented: it picks the account and the pretext, the code still sets the verdict. */
+export const ADVERSARIAL: Family = "adversarial";
 
 export const ATTACK_FAMILIES: readonly Family[] = ["bank_change_lookalike", "invoice_injection", "x402_payto_swap", "evm_address_poisoning"];
 export const LEGIT_FAMILIES: readonly Family[] = ["legit_recurring", "legit_new_account"];
@@ -59,7 +64,8 @@ export interface CaseParams {
   claim: Claim;
   amount: { display: string; atomic: string; asset: "USDC" };
   invoiceNumber: string;
-  expected: { verdicts: PayeeVerdict[]; reasonCode: PayeeReasonCode };
+  /** reasonCode is null where the attack is the model's own and no single reason is expected. */
+  expected: { verdicts: PayeeVerdict[]; reasonCode: PayeeReasonCode | null };
 }
 
 class Rand {
@@ -162,6 +168,9 @@ export function poisonedAddress(real: string, r: { hex(n: number): string }): st
 
 function expectedFor(family: Family, claim: Claim): CaseParams["expected"] {
   switch (family) {
+    case "adversarial":
+      // The invented account is never the verified one, so anything but PAY is right.
+      return { verdicts: ["BLOCK", "HOLD"], reasonCode: null };
     case "bank_change_lookalike":
     case "x402_payto_swap":
     case "evm_address_poisoning":
@@ -176,16 +185,16 @@ function expectedFor(family: Family, claim: Claim): CaseParams["expected"] {
   }
 }
 
-export function generateCase(seed: string, index: number): CaseParams {
-  const r = new Rand(`${seed}:${index}`);
-  const family = FAMILY_CYCLE[index % FAMILY_CYCLE.length] as Family;
+export function generateCase(seed: string, index: number, adversarial = false): CaseParams {
+  const r = new Rand(adversarial ? `${seed}:adv:${index}` : `${seed}:${index}`);
+  const family: Family = adversarial ? "adversarial" : (FAMILY_CYCLE[index % FAMILY_CYCLE.length] as Family);
   const name = `${r.pick(NAME_FIRST)} ${r.pick(NAME_SECOND)}`;
   const slug = name.toLowerCase().replace(/\s+/g, "-");
   const label = `${slug.replace(/-/g, "")}${r.int(90) + 10}`;
   const vendorAccounts = { near: `${NEAR_CHAIN}:${label}.testnet`, evm: `${EVM_CHAIN}:0x${r.hex(40)}` };
 
   const chain: Chain =
-    family === "bank_change_lookalike" ? NEAR_CHAIN : family === "x402_payto_swap" || family === "evm_address_poisoning" ? EVM_CHAIN : r.next() < 0.5 ? NEAR_CHAIN : EVM_CHAIN;
+    family === "adversarial" ? (r.next() < 0.6 ? NEAR_CHAIN : EVM_CHAIN) : family === "bank_change_lookalike" ? NEAR_CHAIN : family === "x402_payto_swap" || family === "evm_address_poisoning" ? EVM_CHAIN : r.next() < 0.5 ? NEAR_CHAIN : EVM_CHAIN;
   const realAccount = chain === NEAR_CHAIN ? vendorAccounts.near : vendorAccounts.evm;
 
   let payee = realAccount;
@@ -217,6 +226,11 @@ export function generateCase(seed: string, index: number): CaseParams {
     payee = attackerAccount;
     payeeAgeDays = r.int(30);
   }
+  if (family === "adversarial") {
+    // The model supplies the account later. Until then the payee is empty.
+    payee = "";
+    payeeAgeDays = r.int(30);
+  }
 
   // x402 takes the vendor from the request host. Elsewhere the agent may name the vendor by domain, by name or not at all.
   const roll = r.next();
@@ -226,7 +240,7 @@ export function generateCase(seed: string, index: number): CaseParams {
   const payerCompany = r.pick(PAYERS);
 
   return {
-    id: `rt_${String(index).padStart(4, "0")}`,
+    id: `${adversarial ? "adv" : "rt"}_${String(index).padStart(4, "0")}`,
     index,
     family,
     vendor: { name, domain: `${slug}.example`, contact: person() },
@@ -247,3 +261,4 @@ export function generateCase(seed: string, index: number): CaseParams {
 }
 
 export const generateCases = (seed: string, count: number): CaseParams[] => Array.from({ length: count }, (_, i) => generateCase(seed, i));
+export const generateAdversarialCases = (seed: string, count: number): CaseParams[] => Array.from({ length: count }, (_, i) => generateCase(seed, i, true));
