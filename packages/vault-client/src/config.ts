@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { readEnv } from "@wardline/schemas";
 
 export type VaultNetwork = "sandbox" | "testnet";
 
@@ -43,8 +44,8 @@ export function assertAllowedNetwork(network: string): asserts network is VaultN
  * Reads config from the environment:
  * - `NEAR_NETWORK`: sandbox or testnet. Required.
  * - `NEAR_RPC_URL`: required for sandbox. Defaults to a public RPC on testnet.
- * - `REDLINE_VAULT_SIGNERS_FILE`: path to a JSON file holding `signers`. Keep it outside the repo.
- * - `REDLINE_VAULT_SIGNERS`: the same JSON inline, for hosts that only offer env vars.
+ * - `WARDLINE_VAULT_SIGNERS_FILE`: path to a JSON file holding `signers`. Keep it outside the repo.
+ * - `WARDLINE_VAULT_SIGNERS`: the same JSON inline, for hosts that only offer env vars.
  *
  * With no signers set, views still work, and signing methods throw before sending anything.
  */
@@ -55,10 +56,12 @@ export function configFromEnv(env: Record<string, string | undefined> = process.
   if (!rpc_url) throw new Error("NEAR_RPC_URL is required on sandbox");
 
   let signers: Record<string, VaultSigners> = {};
-  if (env.REDLINE_VAULT_SIGNERS_FILE) {
-    signers = JSON.parse(readFileSync(env.REDLINE_VAULT_SIGNERS_FILE, "utf8")) as Record<string, VaultSigners>;
-  } else if (env.REDLINE_VAULT_SIGNERS) {
-    signers = JSON.parse(env.REDLINE_VAULT_SIGNERS) as Record<string, VaultSigners>;
+  const signersFile = readEnv("WARDLINE_VAULT_SIGNERS_FILE", env);
+  const signersJson = readEnv("WARDLINE_VAULT_SIGNERS", env);
+  if (signersFile) {
+    signers = JSON.parse(readFileSync(signersFile, "utf8")) as Record<string, VaultSigners>;
+  } else if (signersJson) {
+    signers = JSON.parse(signersJson) as Record<string, VaultSigners>;
   }
   return { network, rpc_url, signers };
 }

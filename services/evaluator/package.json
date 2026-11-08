@@ -1,5 +1,5 @@
 {
-  "name": "@redline/evaluator",
+  "name": "@wardline/evaluator",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,9 +16,9 @@
     "verify:evidence": "tsx src/cli.ts verify"
   },
   "dependencies": {
-    "@redline/agent": "workspace:*",
-    "@redline/schemas": "workspace:*",
-    "@redline/vault-sim": "workspace:*",
+    "@wardline/agent": "workspace:*",
+    "@wardline/schemas": "workspace:*",
+    "@wardline/vault-sim": "workspace:*",
     "zod": "^4.6.7"
   },
   "devDependencies": {

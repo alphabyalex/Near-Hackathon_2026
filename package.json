@@ -1,5 +1,5 @@
 {
-  "name": "redline",
+  "name": "wardline",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -9,18 +9,20 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --filter \"@redline/api^...\" build && concurrently -n api,web \"pnpm --filter @redline/api dev\" \"pnpm --filter @redline/web dev\"",
-    "test": "pnpm -r build && pnpm -r test",
-    "eval:dev": "pnpm --filter @redline/evaluator eval:dev",
-    "eval:assessment": "pnpm --filter @redline/evaluator eval:assessment",
-    "verify:evidence": "pnpm --filter @redline/evaluator verify:evidence",
+    "dev": "pnpm --filter \"@wardline/api^...\" build && concurrently -n api,web \"pnpm --filter @wardline/api dev\" \"pnpm --filter @wardline/web dev\"",
+    "test": "node --test tests/brand.test.mjs && pnpm -r build && pnpm -r test",
+    "eval:dev": "pnpm --filter @wardline/evaluator eval:dev",
+    "eval:assessment": "pnpm --filter @wardline/evaluator eval:assessment",
+    "verify:evidence": "pnpm --filter @wardline/evaluator verify:evidence",
     "payee:proof": "tsx scripts/make-payee-proof.ts",
     "payee:seed": "tsx scripts/seed-payees.ts",
-    "demo:x402-swap": "tsx scripts/demo-x402-swap.ts"
+    "demo:x402-swap": "tsx scripts/demo-x402-swap.ts",
+    "test:brand": "node --test tests/brand.test.mjs",
+    "rebrand": "node scripts/rebrand-wardline.mjs"
   },
   "devDependencies": {
-    "@redline/sdk": "workspace:*",
-    "@redline/x402-guard": "workspace:*",
+    "@wardline/sdk": "workspace:*",
+    "@wardline/x402-guard": "workspace:*",
     "concurrently": "^9.2.5",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"

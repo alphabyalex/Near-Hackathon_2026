@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { GAS_ADMIN, GAS_PAYMENT, ONE_YOCTO, callFinal, type SignerHandle } from "@redline/vault-client";
+import { GAS_ADMIN, GAS_PAYMENT, ONE_YOCTO, callFinal, type SignerHandle } from "@wardline/vault-client";
 import { Chain, DIGEST_A, deployMockToken, makeWorld, panicOf, refusalOf, wasm, type World } from "../src/harness.js";
 
 describe("who can call what", () => {

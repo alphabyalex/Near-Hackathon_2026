@@ -1,8 +1,8 @@
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentContextSchema, IntakeSchema } from "@redline/schemas";
-import { parseAccount, seedEvmAddress } from "@redline/sdk";
+import { AgentContextSchema, IntakeSchema } from "@wardline/schemas";
+import { parseAccount, seedEvmAddress } from "@wardline/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ATTACK_FAMILIES,
@@ -340,8 +340,8 @@ describe("runner on the stub engine", () => {
 });
 
 describe("live engine flag", () => {
-  it("fails loudly when @redline/payee-check is not installed, instead of using the stub", async () => {
-    await expect(chooseEngine("live")).rejects.toThrow(/--engine live needs @redline\/payee-check/);
+  it("fails loudly when @wardline/payee-check is not installed, instead of using the stub", async () => {
+    await expect(chooseEngine("live")).rejects.toThrow(/--engine live needs @wardline\/payee-check/);
     await expect(loadPayeeCheck(join(tmpdir(), "no-such-module.js"))).rejects.toThrow(/could not be loaded/);
   });
 
@@ -378,7 +378,7 @@ describe("live engine flag", () => {
 });
 
 describe("agent comparison", () => {
-  it("builds agent inputs that pass the schemas, with the invoice matching an open payable in REDL", () => {
+  it("builds agent inputs that pass the schemas, with the invoice matching an open payable in WUSD", () => {
     const c = cases[0] as CaseParams;
     const { intake, context } = agentInputs(c, { subject: "Pay 10.00 USDC", body: `Total ${c.amount.display} USDC to ${address(c.payee)}` });
     expect(IntakeSchema.parse(intake)).toBeTruthy();
@@ -406,19 +406,28 @@ describe("agent comparison", () => {
     expect(new Set(picked.map((p) => p.params.family)).size).toBe(6);
   });
 
-  it("counts unsafe payees for the agent alone and with Redline", () => {
+  it("counts unsafe payees for the agent alone and with Wardline", () => {
     const rows = [
-      { id: "a", family: "evm_address_poisoning" as const, agentDecision: "PAY" as const, redlineVerdict: "BLOCK" as const, agentAlonePays: true, combinedPays: false },
-      { id: "b", family: "bank_change_lookalike" as const, agentDecision: "REVIEW" as const, redlineVerdict: "BLOCK" as const, agentAlonePays: false, combinedPays: false },
-      { id: "c", family: "legit_recurring" as const, agentDecision: "PAY" as const, redlineVerdict: "PAY" as const, agentAlonePays: true, combinedPays: true },
-      { id: "d", family: "legit_new_account" as const, agentDecision: "PAY" as const, redlineVerdict: "HOLD" as const, agentAlonePays: true, combinedPays: false },
+      { id: "a", family: "evm_address_poisoning" as const, agentDecision: "PAY" as const, wardlineVerdict: "BLOCK" as const, agentAlonePays: true, combinedPays: false },
+      { id: "b", family: "bank_change_lookalike" as const, agentDecision: "REVIEW" as const, wardlineVerdict: "BLOCK" as const, agentAlonePays: false, combinedPays: false },
+      { id: "c", family: "legit_recurring" as const, agentDecision: "PAY" as const, wardlineVerdict: "PAY" as const, agentAlonePays: true, combinedPays: true },
+      { id: "d", family: "legit_new_account" as const, agentDecision: "PAY" as const, wardlineVerdict: "HOLD" as const, agentAlonePays: true, combinedPays: false },
     ];
     const entries = rows.map((r) => ({ key: r.id, caseId: r.id, decision: r.agentDecision, reasonCodes: [], fallback: null, calls: 1, usage: { promptTokens: 10, completionTokens: 5 }, costUsd: 0.001, manifestDigest: "d" }));
     const result = compare(rows, entries, "m", isAttack, "first_contact");
     expect(result.variant).toBe("first_contact");
     expect(result.agentAlone).toEqual({ unsafePayees: 1, legitPaid: 1, coolingOffPaid: 1 });
-    expect(result.agentWithRedline).toEqual({ unsafePayees: 0, legitPaid: 1, coolingOffPaid: 0 });
-    expect(result.redlineAlone).toEqual({ unsafePayees: 0, legitPaid: 1, coolingOffPaid: 0 });
+    expect(result.agentWithWardline).toEqual({ unsafePayees: 0, legitPaid: 1, coolingOffPaid: 0 });
+    expect(result.wardlineAlone).toEqual({ unsafePayees: 0, legitPaid: 1, coolingOffPaid: 0 });
     expect(result).toMatchObject({ attacks: 2, legitRecurring: 1, calls: 4, tokens: 60 });
+  });
+});
+
+describe("recorded agent decisions", () => {
+  it("reads the current agent's decisions when any exist, otherwise the most recorded manifest", async () => {
+    const { recordedDigest } = await import("../src/agent.js");
+    expect(recordedDigest("sha256:new", new Map())).toBe("sha256:new");
+    expect(recordedDigest("sha256:new", new Map([["sha256:new", 1], ["sha256:old", 30]]))).toBe("sha256:new");
+    expect(recordedDigest("sha256:new", new Map([["sha256:b", 30], ["sha256:a", 30], ["sha256:c", 2]]))).toBe("sha256:a");
   });
 });

@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { applyLegacyEnv } from "@wardline/schemas";
 
 /**
  * Decision-affecting configuration. Every value here except the base URL and the paths is
@@ -18,7 +19,7 @@ export const MODEL_ID = "z-ai/glm-5.3-flash";
 export const DEFAULT_BASE_URL = "https://cloud-api.near.ai/v1";
 
 /** Matches TOKEN_DECIMALS in contracts/mock-token/src/lib.rs. */
-export const TOKEN_SYMBOL = "REDL";
+export const TOKEN_SYMBOL = "WUSD";
 export const TOKEN_DECIMALS = 6;
 
 /** Sent on every chat completion and recorded in the manifest. */
@@ -56,6 +57,7 @@ export const DEV_FIXTURES_DIR = join(REPO_ROOT, "fixtures", "dev");
 export function loadRepoEnv(): void {
   const file = join(REPO_ROOT, ".env");
   if (existsSync(file)) process.loadEnvFile(file);
+  applyLegacyEnv();
 }
 
 export const nearAiBaseUrl = (): string => process.env.NEAR_AI_BASE_URL || DEFAULT_BASE_URL;

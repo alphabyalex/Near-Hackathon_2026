@@ -1,4 +1,4 @@
-import type { HistoryEntry, HistoryView, OverviewView } from "@redline/schemas";
+import type { HistoryEntry, HistoryView, OverviewView } from "@wardline/schemas";
 import { useApi } from "../api/client";
 import { Facts } from "../components/Facts";
 import { LoadError, Loading } from "../components/Loading";

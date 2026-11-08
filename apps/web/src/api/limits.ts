@@ -1,4 +1,4 @@
-import type { OverviewView, Policy, VaultUsage } from "@redline/schemas";
+import type { OverviewView, Policy, VaultUsage } from "@wardline/schemas";
 import { formatAtomic, formatShort, percentOf } from "../format";
 
 export interface LimitBar {

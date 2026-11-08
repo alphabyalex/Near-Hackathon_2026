@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { EvaluationDetail, EvaluationSummary } from "@redline/schemas";
+import type { EvaluationDetail, EvaluationSummary } from "@wardline/schemas";
 import { limitsFromOverview, REFERENCE_LIMITS } from "../src/api/limits";
 import { isScoredRun, scoreFrom } from "../src/api/scoring";
 import { App } from "../src/App";
@@ -22,7 +22,7 @@ function stubApi(routes: Record<string, unknown> = {}) {
 
 const summary: EvaluationSummary = {
   run_id: "run_1",
-  issuer: "Redline team (self-issued)",
+  issuer: "Wardline team (self-issued)",
   execution_status: "COMPLETED",
   assessment_outcome: "MET_THRESHOLDS",
   manifest_digest: `sha256:${"a".repeat(64)}`,
@@ -33,7 +33,7 @@ const detail = (onChain: string | null, matches = true): EvaluationDetail =>
   ({
     report: {
       ...summary,
-      schema: "redline-report-v1",
+      schema: "wardline-report-v1",
       metrics: [
         { metric_id: "useful_payments", label: "Paid", numerator: 19, denominator: 20 },
         { metric_id: "unsafe_proposals", label: "Unsafe", numerator: 2, denominator: 20 },
@@ -84,10 +84,10 @@ describe("routing", () => {
     render(<App />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Redline decides where the money may go");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Wardline decides where the money may go");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
-    fireEvent.click(screen.getAllByLabelText("Redline home")[0] as HTMLElement);
+    fireEvent.click(screen.getAllByLabelText("Wardline home")[0] as HTMLElement);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Your agent can read every invoice. It can never choose where the money goes.");
   });
 
@@ -125,7 +125,7 @@ describe("limit bars", () => {
 
   it("read the policy and usage when the overview loads", () => {
     const [exact, vendor, weekly, lifetime] = limitsFromOverview({
-      token: { symbol: "REDL", contract_id: "x", decimals: 6, network: "NEAR testnet" },
+      token: { symbol: "WUSD", contract_id: "x", decimals: 6, network: "NEAR testnet" },
       policy: { weekly_cap_atomic: "20000000000", lifetime_cap_atomic: "100000000000" },
       usage: { weekly_settled_atomic: "1250000000", weekly_reserved_atomic: "1000000000", lifetime_settled_atomic: "1250000000", lifetime_reserved_atomic: "1000000000" },
       vendors: [{ per_payment_cap_atomic: "1000000000" }, { per_payment_cap_atomic: "5000000000" }],
@@ -198,8 +198,8 @@ describe("dashboard", () => {
     stubApi({
       "/overview": {
         data_source: "mock",
-        vault_id: "vault-a.redline.testnet",
-        token: { symbol: "REDL", contract_id: "redl.testnet", decimals: 6, network: "NEAR testnet" },
+        vault_id: "vault-a.wardline.testnet",
+        token: { symbol: "WUSD", contract_id: "wusd.testnet", decimals: 6, network: "NEAR testnet" },
         manifest: { version: "A" },
         binding: { enabled: true, manifest_digest: `sha256:${"a".repeat(64)}` },
         policy: { paused: true, weekly_cap_atomic: "1000000", lifetime_cap_atomic: "5000000" },
@@ -240,9 +240,9 @@ describe("source rules", () => {
     expect(hits).toEqual([]);
   });
 
-  it("names no fallback mono after Redline Mono", () => {
+  it("names no fallback mono after Wardline Mono", () => {
     const tokens = Object.entries(SOURCES).find(([path]) => path.endsWith("theme/tokens.css"))?.[1] ?? "";
-    expect(tokens).toContain('--mono: "Redline Mono", monospace;');
+    expect(tokens).toContain('--mono: "Wardline Mono", monospace;');
   });
 
   it("turns motion off under prefers-reduced-motion", () => {

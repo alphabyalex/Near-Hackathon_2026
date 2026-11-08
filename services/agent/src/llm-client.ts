@@ -1,4 +1,4 @@
-import { DecisionKindSchema, ReasonCodeSchema } from "@redline/schemas";
+import { DecisionKindSchema, ReasonCodeSchema } from "@wardline/schemas";
 import { LLM_SETTINGS, MODEL_ID } from "./agent-config.js";
 import type { ChatMessage } from "./render.js";
 import type { TokenUsage } from "./report.js";
@@ -62,7 +62,7 @@ export class NearAiClient implements ChatClient {
     const requestBody = JSON.stringify({ model: MODEL_ID, messages,
       temperature: LLM_SETTINGS.temperature, seed: LLM_SETTINGS.seed, max_tokens: LLM_SETTINGS.max_tokens,
       thinking_token_budget: LLM_SETTINGS.thinking_token_budget,
-      response_format: { type: "json_schema", json_schema: { name: "redline_decision", strict: true, schema: MODEL_OUTPUT_JSON_SCHEMA } } });
+      response_format: { type: "json_schema", json_schema: { name: "wardline_decision", strict: true, schema: MODEL_OUTPUT_JSON_SCHEMA } } });
     try {
       response = await this.fetchImpl(`${this.options.baseUrl}/chat/completions`, {
         method: "POST",

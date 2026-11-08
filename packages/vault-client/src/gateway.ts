@@ -16,7 +16,7 @@ import {
   type VaultGateway,
   type VaultUsage,
   type Vendor,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { z } from "zod";
 import { VaultAdmin } from "./admin.js";
 import { configFromEnv, type SignerConfig, type VaultClientConfig } from "./config.js";

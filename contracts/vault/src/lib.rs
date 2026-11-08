@@ -1,4 +1,4 @@
-//! Redline vault. One contract per business. The spec is docs/VAULT_RULES.md: if this code
+//! Wardline vault. One contract per business. The spec is docs/VAULT_RULES.md: if this code
 //! and that file disagree, it is a bug. The order of checks in `request_payment` and
 //! `owner_pay` is part of the spec, because packages/vault-sim must match it.
 

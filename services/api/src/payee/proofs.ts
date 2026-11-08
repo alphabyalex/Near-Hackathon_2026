@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { parseAccount } from "@redline/sdk";
+import { parseAccount } from "@wardline/sdk";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
@@ -8,7 +8,7 @@ import { recoverMessageAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 
-export const NEP413_RECIPIENT = "redline-payee-registry";
+export const NEP413_RECIPIENT = "wardline-payee-registry";
 const NEP413_TAG = 2_147_484_061; // 2^31 + 413
 const FUTURE_SKEW_MS = 5 * 60_000;
 const MAX_PROOF_AGE_MS = 365 * 24 * 3_600_000;
@@ -32,7 +32,7 @@ export type PayeeProofFile = z.infer<typeof PayeeProofFile>;
 export type ProofEntry = PayeeProofFile["accounts"][number];
 
 export const payeeMessage = (domain: string, caip10: string, issuedAt: string): string =>
-  `redline-payee:v2:${domain}:${caip10}:${issuedAt}`;
+  `wardline-payee:v2:${domain}:${caip10}:${issuedAt}`;
 
 function borshString(text: string): Uint8Array {
   const bytes = new TextEncoder().encode(text);
@@ -72,7 +72,7 @@ export function createNearKeyLookup(rpcUrl: string, configuredNetwork: string, f
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: "redline",
+        id: "wardline",
         method: "query",
         params: { request_type: "view_access_key_list", finality: "final", account_id: accountId },
       }),

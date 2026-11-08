@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { loadRepoEnv } from "@redline/agent";
+import { loadRepoEnv } from "@wardline/agent";
 import { createApp, OWNER_PREFIX } from "./app.js";
 import { ownerAuthFromEnv } from "./auth.js";
 import { bootstrap } from "./bootstrap.js";
@@ -17,9 +17,9 @@ const deps = bootstrap(process.env.API_DB_PATH ?? ":memory:", undefined, backend
 const ownerAuth = auth.enabled ? `${auth.owners.size} owner(s), ${auth.approvers.size} approver(s)` : "auth off";
 
 serve({ fetch: createApp(deps, { mountOwner: config.ownerPort === null }).fetch, port: config.port, hostname: config.host }, (info) => {
-  const engine = process.env.REDLINE_PAYEE_ENGINE ?? "stub";
-  const registry = process.env.REDLINE_REGISTRY_MODE ?? "memory";
-  console.log(`Redline API on http://${config.host}:${info.port} (payee engine ${engine}, registry ${registry})`);
+  const engine = process.env.WARDLINE_PAYEE_ENGINE ?? "stub";
+  const registry = process.env.WARDLINE_REGISTRY_MODE ?? "memory";
+  console.log(`Wardline API on http://${config.host}:${info.port} (payee engine ${engine}, registry ${registry})`);
   if (config.ownerPort === null) console.log(`Owner routes at ${OWNER_PREFIX} (${ownerAuth})`);
 });
 

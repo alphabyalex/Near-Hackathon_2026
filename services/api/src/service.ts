@@ -1,4 +1,4 @@
-import { DecisionSchema, ReasonCodeSchema } from "@redline/schemas";
+import { DecisionSchema, ReasonCodeSchema } from "@wardline/schemas";
 import type {
   AgentContext,
   Decision,
@@ -8,7 +8,7 @@ import type {
   ReasonCode,
   ReviewItem,
   VaultRejection,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { randomUUID } from "node:crypto";
 import type { OwnerAuthConfig } from "./auth.js";
 import type { Gateways } from "./gateways/index.js";

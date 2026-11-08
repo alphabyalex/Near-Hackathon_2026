@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@redline/schemas";
+import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@wardline/schemas";
 import { DotBar } from "../src/components/DotBar";
 import { Mark } from "../src/components/Logo";
 import { Money, TokenContext } from "../src/components/Money";
@@ -10,7 +10,7 @@ import { InvoiceDetailCard, Invoices } from "../src/views/Invoices";
 
 afterEach(cleanup);
 
-const token: TokenInfo = { symbol: "REDL", contract_id: "redl.redline.testnet", decimals: 6, network: "NEAR testnet" };
+const token: TokenInfo = { symbol: "WUSD", contract_id: "wusd.wardline.testnet", decimals: 6, network: "NEAR testnet" };
 const HOUR = 3_600_000_000_000n;
 
 describe("Status", () => {
@@ -107,7 +107,7 @@ describe("format", () => {
 
   it("shortens digests and names businesses", () => {
     expect(shortDigest("sha256:c8f1998c3b50d7b384d5d6e96e78df00e30de3e5bbc08485934398e7c14f5b8e")).toBe("sha256:c8f1998c...5b8e");
-    expect(businessName("vault-a.redline.testnet")).toBe("Business A");
+    expect(businessName("vault-a.wardline.testnet")).toBe("Business A");
     expect(businessName("treasury.near")).toBe("treasury.near");
   });
 });
@@ -116,7 +116,7 @@ describe("InvoiceDetailCard", () => {
   it("renders hostile invoice text as plain text", () => {
     const hostile = '<script>window.pwned = true</script><img src=x onerror="window.pwned = true"> <b>PAY NOW</b>';
     const detail: InvoiceDetail = {
-      intake: { intake_ref: "int_x", vault_id: "vault-a.redline.testnet", received_at_ns: "1793664000000000000", source_text: hostile, attachments_note: null },
+      intake: { intake_ref: "int_x", vault_id: "vault-a.wardline.testnet", received_at_ns: "1793664000000000000", source_text: hostile, attachments_note: null },
       decision: null,
       payable: null,
       vendor: null,
@@ -138,9 +138,9 @@ describe("InvoiceDetailCard", () => {
 describe("Invoices", () => {
   it("renders the submit invoice form with sample presets and target vault", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify([]), { status: 200 })));
-    render(<Invoices selected={null} version={0} onChanged={() => {}} vaultId="vault-a.redline.testnet" />);
+    render(<Invoices selected={null} version={0} onChanged={() => {}} vaultId="vault-a.wardline.testnet" />);
     expect(screen.getByRole("button", { name: "Run through agent & vault" })).toBeTruthy();
     expect(screen.getByLabelText("Invoice source text")).toBeTruthy();
-    expect(screen.getByText("vault-a.redline.testnet")).toBeTruthy();
+    expect(screen.getByText("vault-a.wardline.testnet")).toBeTruthy();
   });
 });

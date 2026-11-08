@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { API_PORT, SHOTS_PORT, WEB_PORT } from "./e2e/keys";
 
-const testEnv = { VITE_REDLINE_TEST_WALLET: "1", REDLINE_DEV_API: `http://127.0.0.1:${API_PORT}` };
+const testEnv = { VITE_WARDLINE_TEST_WALLET: "1", WARDLINE_DEV_API: `http://127.0.0.1:${API_PORT}` };
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,7 +22,7 @@ export default defineConfig({
     {
       command: `pnpm exec vite --port ${SHOTS_PORT} --strictPort --host 127.0.0.1`,
       port: SHOTS_PORT,
-      env: { ...testEnv, VITE_REDLINE_API_URL: "https://api.redline.example", VITE_REDLINE_MCP_URL: "https://mcp.redline.example/mcp" },
+      env: { ...testEnv, VITE_WARDLINE_API_URL: "https://api.wardline.example", VITE_WARDLINE_MCP_URL: "https://mcp.wardline.example/mcp" },
       reuseExistingServer: false,
       timeout: 60_000,
     },

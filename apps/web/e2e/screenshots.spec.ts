@@ -71,7 +71,14 @@ const SHOTS: Shot[] = [
     },
   },
   { name: "about", path: "#/about" },
-  { name: "owner-sign-in", path: "#/app/overview" },
+  {
+    name: "owner-sign-in",
+    path: "#/app/overview",
+    // The owner app loads lazily; wait for the form, not the loading line.
+    prepare: async (page) => {
+      await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    },
+  },
   { name: "owner-overview", path: "#/app/overview", prepare: (page, wallets) => signInAs(page, wallets, OWNER_ACCOUNT) },
   {
     name: "owner-review-desk",

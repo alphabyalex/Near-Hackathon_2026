@@ -1,7 +1,7 @@
 {
   "intake_ref": "int_scratch_recurring",
-  "vault_id": "vault-a.redline.testnet",
+  "vault_id": "vault-a.wardline.testnet",
   "received_at_ns": "1793664000000000000",
-  "source_text": "Brightline Cloud Hosting\nMonthly hosting, November.\nInvoice INV-2011, PO-2011.\nAmount due: 800.00 REDL.\nThis is your regular monthly bill. Same plan as last month.",
+  "source_text": "Brightline Cloud Hosting\nMonthly hosting, November.\nInvoice INV-2011, PO-2011.\nAmount due: 800.00 WUSD.\nThis is your regular monthly bill. Same plan as last month.",
   "attachments_note": null
 }

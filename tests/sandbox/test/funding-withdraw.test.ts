@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { GAS_PAYMENT, ONE_YOCTO, callFinal, viewCall, type SignerHandle } from "@redline/vault-client";
+import { GAS_PAYMENT, ONE_YOCTO, callFinal, viewCall, type SignerHandle } from "@wardline/vault-client";
 import { Chain, DIGEST_A, accountedTotal, deployMockToken, fundVault, makeWorld, panicOf, registerWithToken } from "../src/harness.js";
 
 describe("funding", () => {
@@ -13,7 +13,7 @@ describe("funding", () => {
   it("the token reads as the labeled test token", async () => {
     const world = await makeWorld(chain);
     const metadata = await viewCall<{ name: string; symbol: string; decimals: number }>(chain.provider, world.token.account_id, "ft_metadata");
-    expect(metadata).toMatchObject({ name: "Redline Test Dollar", symbol: "REDL", decimals: 6 });
+    expect(metadata).toMatchObject({ name: "Wardline Test Dollar", symbol: "WUSD", decimals: 6 });
   });
 
   it("only ft_transfer_call credits, and funding never raises a limit", async () => {

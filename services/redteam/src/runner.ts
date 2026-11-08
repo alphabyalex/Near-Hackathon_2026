@@ -1,14 +1,14 @@
-import type { EvidenceTier, PayeeCheckRequest, PayeeCheckResult, PayeeVerdict } from "@redline/schemas";
+import type { EvidenceTier, PayeeCheckRequest, PayeeCheckResult, PayeeVerdict } from "@wardline/schemas";
 import {
   createMemoryHistory,
   createMemoryRegistry,
   createStubEngine,
   createStubSignals,
-  RedlineBlockedError,
+  WardlineBlockedError,
   type EngineContext,
   type PayeeEngine,
-} from "@redline/sdk";
-import { withRedline } from "@redline/x402-guard";
+} from "@wardline/sdk";
+import { withWardline } from "@wardline/x402-guard";
 import { liveEngine, loadPayeeCheck } from "./live-engine.js";
 import { ADVERSARIAL, ATTACK_FAMILIES, NEAR_CHAIN, type CaseParams } from "./params.js";
 
@@ -23,8 +23,8 @@ export interface EngineChoice {
 }
 
 /**
- * stub: the deterministic engine in @redline/sdk, which the API runs today.
- * live: @redline/payee-check. Fails loudly when it is not installed, never falls back to the stub.
+ * stub: the deterministic engine in @wardline/sdk, which the API runs today.
+ * live: @wardline/payee-check. Fails loudly when it is not installed, never falls back to the stub.
  */
 export async function chooseEngine(mode: "stub" | "live" = "stub", modulePath?: string): Promise<EngineChoice> {
   if (mode === "live") {
@@ -32,10 +32,10 @@ export async function chooseEngine(mode: "stub" | "live" = "stub", modulePath?: 
     return {
       engine: liveEngine(mod, BENCH_NOW.getTime()),
       name: "live",
-      note: modulePath ? `@redline/payee-check loaded from ${modulePath}, which is not merged yet.` : "@redline/payee-check produced the verdicts.",
+      note: modulePath ? `@wardline/payee-check loaded from ${modulePath}, which is not merged yet.` : "@wardline/payee-check produced the verdicts.",
     };
   }
-  return { engine: createStubEngine(), name: "stub", note: "The stub engine in @redline/sdk produced the verdicts. @redline/payee-check has not merged; rerun with --engine live once it does." };
+  return { engine: createStubEngine(), name: "stub", note: "The stub engine in @wardline/sdk produced the verdicts. @wardline/payee-check has not merged; rerun with --engine live once it does." };
 }
 
 export const isAttack = (family: CaseParams["family"]): boolean => ATTACK_FAMILIES.includes(family) || family === ADVERSARIAL;
@@ -105,7 +105,7 @@ export function requestFor(p: CaseParams, context?: string): PayeeCheckRequest {
 /** x402: a 402 response with the case's payTo goes through the real guard, which calls the engine. */
 async function viaX402(p: CaseParams, engine: PayeeEngine, ctx: EngineContext): Promise<PayeeCheckResult> {
   let seen: PayeeCheckResult | null = null;
-  const redline = {
+  const wardline = {
     check: async (request: PayeeCheckRequest) => {
       seen = { ...(await engine.check({ ...request, payer: p.payer.account }, ctx)), receipt: null };
       return seen;
@@ -114,9 +114,9 @@ async function viaX402(p: CaseParams, engine: PayeeEngine, ctx: EngineContext): 
   const offer = { scheme: "exact", network: p.chain, amount: p.amount.atomic, asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", payTo: p.payee.split(":")[2] };
   const server = (async () => new Response(JSON.stringify({ x402Version: 2, accepts: [offer] }), { status: 402 })) as typeof fetch;
   try {
-    await withRedline(server, { redline })(`https://${p.vendor.domain}/paid/report`);
+    await withWardline(server, { wardline })(`https://${p.vendor.domain}/paid/report`);
   } catch (error) {
-    if (!(error instanceof RedlineBlockedError)) throw error;
+    if (!(error instanceof WardlineBlockedError)) throw error;
   }
   if (!seen) throw new Error(`${p.id}: the guard never called the engine.`);
   return seen;

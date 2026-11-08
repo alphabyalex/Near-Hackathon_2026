@@ -6,7 +6,7 @@ export interface InvoiceTotal {
   currency: string | null;
 }
 
-const CURRENCY = String.raw`REDL|USDC|USDT|USD|EUR|GBP|CAD|AUD|JPY|CHF|\$|€|£|¥`;
+const CURRENCY = String.raw`WUSD|USDC|USDT|USD|EUR|GBP|CAD|AUD|JPY|CHF|\$|€|£|¥`;
 const NUMBER = String.raw`\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?`;
 const MONEY = new RegExp(`(?<![\\w.,-])(?:(${CURRENCY})\\s*)?(${NUMBER})(?![\\d-])(?:\\s*(${CURRENCY})(?![a-z]))?`, "gi");
 
@@ -14,8 +14,8 @@ const LABEL_GAP = String.raw`[^0-9\n]{0,24}$`;
 const STRONG_LABEL = new RegExp(`(grand total|total due|amount due|balance due|total amount|amount payable|invoice total|please pay)${LABEL_GAP}`, "i");
 const WEAK_LABEL = new RegExp(`(?<!sub[- ])\\b(total|amount)\\b${LABEL_GAP}`, "i");
 
-/** Dollar-denominated labels are read as the REDL test token. Other currencies are a mismatch. */
-const SAME_UNIT = new Set(["redl", "usd", "$"]);
+/** Dollar-denominated labels are read as the WUSD test token. Other currencies are a mismatch. */
+const SAME_UNIT = new Set(["wusd", "usd", "$"]);
 export const isForeignCurrency = (currency: string | null): boolean => currency !== null && !SAME_UNIT.has(currency.toLowerCase());
 
 /** Returns null when the text has no readable total, or conflicting ones. Callers treat that as a mismatch. */

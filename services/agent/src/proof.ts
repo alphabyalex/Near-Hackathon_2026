@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { Digest } from "@redline/schemas";
+import type { Digest } from "@wardline/schemas";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { REPO_ROOT, MODEL_ID } from "./agent-config.js";
@@ -44,10 +44,10 @@ export async function collectProof(baseUrl: string, apiKey: string, fetchImpl: t
     evidence.error = error instanceof Error ? error.message : "Proof collection failed";
   }
   try {
-    const dir = process.env.REDLINE_PROOF_DIR ?? join(REPO_ROOT, "evidence", "local-ai-proofs");
+    const dir = process.env.WARDLINE_PROOF_DIR ?? join(REPO_ROOT, "evidence", "local-ai-proofs");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `${evidence.response_hash.slice(7)}.json`),
-      JSON.stringify({ schema: "redline-tee-evidence-v1", evidence, request, response }, null, 2), { mode: 0o600 });
+      JSON.stringify({ schema: "wardline-tee-evidence-v1", evidence, request, response }, null, 2), { mode: 0o600 });
   } catch {
     evidence.status = "unavailable";
     evidence.error = "Could not persist proof artifact";

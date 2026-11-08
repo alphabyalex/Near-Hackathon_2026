@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { normalizeAccount, normalizeDomain } from "@redline/sdk";
-import type { EvidenceTier, PayeeVendor } from "@redline/schemas";
+import { normalizeAccount, normalizeDomain } from "@wardline/sdk";
+import type { EvidenceTier, PayeeVendor } from "@wardline/schemas";
 import { errorText } from "../../api/public";
 import { VERIFY } from "../../brand";
 import { CodeBlock } from "../../components/CodeBlock";
@@ -10,8 +10,8 @@ import { connectEvm, hasEvmWallet, signEvm } from "../../wallets/evm";
 import { nearWallets, randomNonce, signNep413, type NearWalletId } from "../../wallets/near";
 import { connectSolana, hasPhantom, signSolana } from "../../wallets/solana";
 
-export const PAYEE_RECIPIENT = "redline-payee-registry";
-export const payeeMessage = (domain: string, caip10: string, issuedAt: string): string => `redline-payee:v2:${domain}:${caip10}:${issuedAt}`;
+export const PAYEE_RECIPIENT = "wardline-payee-registry";
+export const payeeMessage = (domain: string, caip10: string, issuedAt: string): string => `wardline-payee:v2:${domain}:${caip10}:${issuedAt}`;
 
 type Proof = { type: "nep413"; public_key: string; nonce: string; signature: string } | { type: "eip191"; signature: string } | { type: "solana-ed25519"; signature: string };
 interface Entry {
@@ -259,14 +259,14 @@ export function Verify() {
             <div className="host">
               <div className="host-text">
                 <h2>{VERIFY.hostTitle}</h2>
-                <p className="mono host-url">https://{domain}/.well-known/redline-payee.json</p>
+                <p className="mono host-url">https://{domain}/.well-known/wardline-payee.json</p>
                 <ul className="limit-list">
                   {VERIFY.hostRules.map((rule) => (
                     <li key={rule}>{rule}</li>
                   ))}
                 </ul>
                 <div className="form-actions">
-                  <button className="btn" type="button" onClick={() => download("redline-payee.json", fileText)}>
+                  <button className="btn" type="button" onClick={() => download("wardline-payee.json", fileText)}>
                     {VERIFY.download}
                   </button>
                   <button className="link" type="button" onClick={() => setStep(3)}>
@@ -274,14 +274,14 @@ export function Verify() {
                   </button>
                 </div>
               </div>
-              <CodeBlock code={fileText} label="redline-payee.json" language="json" />
+              <CodeBlock code={fileText} label="wardline-payee.json" language="json" />
             </div>
           )}
 
           {step === 3 && (
             <div className="checkstep" aria-live="polite">
               <p>
-                {VERIFY.fetches} <span className="mono">https://{domain}/.well-known/redline-payee.json</span> {VERIFY.fetchesRest}
+                {VERIFY.fetches} <span className="mono">https://{domain}/.well-known/wardline-payee.json</span> {VERIFY.fetchesRest}
               </p>
               <div className="form-actions">
                 <button className="btn" type="button" disabled={outcome.state === "busy"} onClick={() => void check()}>

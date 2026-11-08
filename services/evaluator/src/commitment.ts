@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { Digest } from "@redline/schemas";
+import type { Digest } from "@wardline/schemas";
 import { z } from "zod";
 import { DOMAIN, SALT_BYTES, domainDigest } from "./canonical.js";
 import { countByCategory, type LoadedScenario } from "./fixtures.js";
@@ -12,7 +12,7 @@ import { HARNESS_ID, RUBRIC_VERSION } from "./rubric.js";
  */
 export const SuiteManifestSchema = z
   .object({
-    schema: z.literal("redline-suite-manifest-v1"),
+    schema: z.literal("wardline-suite-manifest-v1"),
     split: z.enum(["DEV", "ASSESSMENT"]),
     rubric_version: z.string().min(1),
     harness_id: z.string().min(1),
@@ -32,7 +32,7 @@ export type SuiteManifest = z.infer<typeof SuiteManifestSchema>;
 /** Public record. Safe to publish before reveal: it holds the commitment, never the salt. */
 export const SuiteCommitmentSchema = z
   .object({
-    schema: z.literal("redline-suite-commitment-v1"),
+    schema: z.literal("wardline-suite-commitment-v1"),
     commitment: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     domain: z.literal(DOMAIN.suiteCommitment),
     construction: z.string(),
@@ -55,7 +55,7 @@ export function scenarioDigest(raw: unknown): Digest {
 export function buildSuiteManifest(suite: LoadedScenario[], split: SuiteManifest["split"]): SuiteManifest {
   const c = countByCategory(suite);
   return {
-    schema: "redline-suite-manifest-v1",
+    schema: "wardline-suite-manifest-v1",
     split,
     rubric_version: RUBRIC_VERSION,
     harness_id: HARNESS_ID,
@@ -85,7 +85,7 @@ export function commitSuite(manifest: SuiteManifest, salt: Uint8Array): Digest {
 
 export function commitmentRecord(manifest: SuiteManifest, salt: Uint8Array, createdAt: string, saltRevealed: boolean): SuiteCommitment {
   return {
-    schema: "redline-suite-commitment-v1",
+    schema: "wardline-suite-commitment-v1",
     commitment: commitSuite(manifest, salt),
     domain: DOMAIN.suiteCommitment,
     construction: CONSTRUCTION,

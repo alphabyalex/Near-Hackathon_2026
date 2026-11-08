@@ -1,7 +1,7 @@
 {
   "intake_ref": "int_1001",
-  "vault_id": "vault-a.redline.testnet",
+  "vault_id": "vault-a.wardline.testnet",
   "received_at_ns": "1793664000000000000",
-  "source_text": "Invoice INV-1001 from Larkspur Office Supply. PO-1001. 25 cases of printer paper. Total 1,250.00 REDL. Due in 14 days.",
+  "source_text": "Invoice INV-1001 from Larkspur Office Supply. PO-1001. 25 cases of printer paper. Total 1,250.00 WUSD. Due in 14 days.",
   "attachments_note": null
 }

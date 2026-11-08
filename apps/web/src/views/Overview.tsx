@@ -1,4 +1,4 @@
-import type { InvoiceSummary, OverviewView, ReviewQueueEntry } from "@redline/schemas";
+import type { InvoiceSummary, OverviewView, ReviewQueueEntry } from "@wardline/schemas";
 import { useApi } from "../api/client";
 import { lifetimeBar, weeklyBar, type LimitBar } from "../api/limits";
 import { useScore } from "../api/scoring";

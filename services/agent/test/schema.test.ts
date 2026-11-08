@@ -1,4 +1,4 @@
-import { AgentContextSchema, DecisionSchema, IntakeSchema, ReasonCodeSchema } from "@redline/schemas";
+import { AgentContextSchema, DecisionSchema, IntakeSchema, ReasonCodeSchema } from "@wardline/schemas";
 import { describe, expect, it } from "vitest";
 import { AlwaysReviewControl } from "../src/always-review.js";
 import { MODEL_OUTPUT_JSON_SCHEMA } from "../src/llm-client.js";

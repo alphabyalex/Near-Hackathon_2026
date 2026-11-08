@@ -1,4 +1,4 @@
-import type { EvidenceTier, PayeeReasonCode, PayeeVerdict } from "@redline/schemas";
+import type { EvidenceTier, PayeeReasonCode, PayeeVerdict } from "@wardline/schemas";
 
 /** Each reason code in plain words. The API's own detail is shown under it. */
 export const REASON_WORDS: Record<PayeeReasonCode, string> = {

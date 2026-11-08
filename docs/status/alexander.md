@@ -1,5 +1,66 @@
 # Status: alexander
 
+## Renamed to Wardline (2026-11-08)
+
+The product is now **Wardline** ("the line between your agent and your money"). The test token is **Wardline Test Dollar (WUSD)**, still 6 decimals. Logo, colors, fonts and layout are unchanged. No NEAR AI calls in this round, nothing deployed, nothing published.
+
+### What changed
+
+- `scripts/rebrand-wardline.mjs`: an idempotent codemod (Node, no dependencies, `--dry-run`, `--list`). It rewrites contents and file names of every file git knows about, in a fixed order, so it gives the same result on any branch. Its first run here changed 257 files and renamed 9; a second run changes nothing.
+  - Redline / redline / REDLINE to Wardline / wardline / WARDLINE, which covers `@wardline/*`, `WARDLINE_*` env vars, `createWardline`, `WardlineBlockedError`, `withWardline`, `/.well-known/wardline-payee.json`, `/.well-known/wardline-attestor.json`, the proof message `wardline-payee:v2:`, NEP-413 recipients (`wardline-payee-registry`, `wardline-owner-login`, `wardline-payment-record`, `wardline-review-approval`), schema ids, the MCP server name, the `wardline` NEP-297 standard and the Rust crate names.
+  - REDL to WUSD and "Redline Test Dollar" to "Wardline Test Dollar". Spend Gym and sgUSD map to Wardline and WUSD, so older teammate branches clean up too.
+  - Renamed files: `wardline-mark*.svg`, `wardline-mono-*.woff2` (same font bytes; the family is now "Wardline Mono"), `design/wardline-reference.html`, `docs/skills/wardline-payee-check/`, `packages/schemas/src/wardline-event.ts` and its example.
+  - The design reference's pun "Every agent has a redline" became "Every agent has a limit".
+- `tests/brand.test.mjs` (first step of `pnpm test`): fails on any old name outside the codemod's allowlist, on old names in file names, on a codemod example that maps wrongly or changes on a second pass, and on a GitHub URL that differs from `repo.config.json`.
+- Env fallback: `readEnv` and `applyLegacyEnv` in `@wardline/schemas` (re-exported by the SDK and vault-client). Every entry point reads `WARDLINE_X` first, then `REDLINE_X`, with one warning per process that names the old variables and never their values. Wired into `loadRepoEnv` (API, evaluator, agent CLI), the MCP server, the contract scripts, the sandbox harness, the root scripts and `vite.config.ts` (which also maps `VITE_REDLINE_*` from .env files).
+- Repo URL: one constant in `repo.config.json` (`url`, with a TODO for the planned name `wardline`), read by `brand.ts` as `BRAND.repoUrl`. `services/mcp/server.json` and `contracts/Cargo.toml` keep a copy, and the brand test fails until they match the config. The GitHub repo itself is not renamed.
+- Regenerated: `pnpm-lock.yaml` (clean install), `evidence/example-run` (stub agents only; verify: 28 match, 0 mismatch), agent manifests A and B (the prompt names the product and the token), `evidence/redteam/report.json` and `docs/REDTEAM.md` (offline `bench`).
+- `bench` now reads recorded AI decisions for the most recorded agent manifest when the current agent has none, and the report says so. Without this, an offline rerun after the rename silently dropped the first-payment comparison. The numbers are unchanged: AI alone 5 of 20 scams through at first contact, 0 with Wardline.
+- index.html gained `og:title`, `og:description`, `og:site_name` and `og:type`, filled from brand.ts. The owner sign-in screenshot now waits for the form instead of catching the loading line.
+- docs/BRAND.md has the name line. docs/CONTEXT.md has a "Legacy deployments" section.
+
+### Remaining old names, all allowed
+
+| Where | Why |
+| --- | --- |
+| `*.redline-labs.testnet` in .env.example, Connect.tsx, the SDK README, vault-client, vault-sim and their tests | The live testnet deployment. NEAR accounts cannot be renamed. |
+| `scripts/contracts/deployments/testnet*` | Records of that deployment, including the on-chain token metadata (name and symbol REDL). |
+| `redline-redteam-v1` in services/redteam/src/cli.ts, fixtures/redteam/cases.json and the report | Seed of the committed red-team cases. The recorded model outputs are keyed to cases built from it. |
+| `fixtures/redteam/**` | Recorded model outputs, keyed by content hash and by the old agent manifest digest. |
+| `packages/schemas/src/legacy-env.ts` and its test | The env var fallback, which must name the old prefix. |
+| `scripts/rebrand-wardline.mjs` | The codemod and its allowlist. |
+| `docs/status/*.md` | History, left as written. The lockfile is clean, and the guard ignores only base64 integrity hashes in it. |
+
+### Env var migration
+
+- Every `REDLINE_*` is now `WARDLINE_*`, and `VITE_REDLINE_*` is now `VITE_WARDLINE_*`. Old names still work, with a one-time deprecation warning. Rename them when convenient.
+- The codemod renamed the keys in my local `.env` in place, one key (`WARDLINE_ATTESTOR_KEY`), without printing values. If both names are already set, it comments the old line out instead of deleting it.
+- The default secrets folder for the contract scripts is now `~/.wardline/<network>`. Move `~/.redline/testnet` there, or set `WARDLINE_SECRETS_DIR=~/.redline/testnet`.
+
+### For Tharun
+
+1. `git pull` on each branch you will merge, with a clean working tree.
+2. `node scripts/rebrand-wardline.mjs --dry-run`, check the counts, then `node scripts/rebrand-wardline.mjs`. If your branch does not have the script yet, merge `alexander` (or main once it lands) first, or copy the file.
+3. `pnpm install` to regenerate `pnpm-lock.yaml`.
+4. `pnpm test`. The brand test names any line the codemod could not handle. If you touched `evidence/example-run`, regenerate it with the command the codemod prints; otherwise take mine on merge.
+5. In WSL, rebuild the contracts (`scripts/contracts/build.sh`): the wasm files are now named `wardline_*`, and sandbox tests read them from `WARDLINE_WASM_DIR` or `contracts/out`.
+6. Redeploy the token and vaults under a new Wardline root, so on-chain names match: the token symbol and name, the `wardline` event standard and the `wardline-payee-registry` NEP-413 recipient. Set `WARDLINE_ROOT_ACCOUNT` before running `deploy-and-seed`; the token account is now `wusd.<root>`. Until then the live contracts under `redline-labs.testnet` still emit the `redline` standard, report REDL, and expect proofs signed for the old recipient and prefix, so payees must be re-proved and reseeded after the redeploy.
+7. After the redeploy, update the defaults that point at `redline-labs.testnet` (vault-client evidence contract, vault-sim token id, Connect page, SDK README, .env.example) and remove them from the codemod's allowlist.
+
+### Not done
+
+- The GitHub repo name and the npm org: yours to change. Nothing was published to npm or the MCP registry.
+- Teammates' status files: not edited, since each person edits only their own. Their history still uses the old names.
+- The agent's manifest digest changed (A is now `sha256:be48e5ff...`, B `sha256:f0b7739e...`). Kristian: please note it in kristian.md. The first-payment comparison was recorded against the old A (`sha256:3263c237...`). Rerunning `pnpm --filter @wardline/redteam agent` records the current agent, which costs NEAR AI calls (about $0.05).
+- My three old local runs in the gitignored `evidence/local/` predate the rename, so `pnpm verify:evidence` fails on them locally. Delete them or rerun; the committed evidence verifies.
+
+### Tests
+
+- `pnpm test`: the 4 brand tests, plus 607 package tests (3 new for the env fallback, 1 for the recorded-digest fallback).
+- Playwright: 21 e2e tests and 28 screenshots pass. I looked at every page at both sizes: the wordmark, titles and copy say Wardline, and amounts are in WUSD.
+- README "Try it", run as written: steps 1 and 3 to 6 pass. Step 2 also passed, but on port 8797 (`API_PORT=8797`), because an older API (PID 12620, running since 2026-11-07 18:32) already holds 8787. I left it running.
+- Contracts: `cargo test --workspace` in WSL (build output in /tmp, not the repo) compiles the renamed crates and passes 40 unit tests, including the event standard test. No wasm build and no sandbox run in this round.
+
 ## Site, owner sign-in and Review Desk (2026-11-08)
 
 Public site and owner app rebuilt around Payee Shield. No NEAR AI calls in this round. Verdicts on the site come from the stub engine and memory registry, behind the same interfaces the real clients will use.
@@ -190,13 +251,15 @@ The API now loads the repo root `.env` at startup. Values already in the shell w
 
 ## Interfaces I expose
 
-- `@redline/schemas`: every schema as `XSchema` with type `X`, plus the `AgentRunner`, `DecisionAdapter`, `VaultGateway`, and `EvidenceGateway` interfaces.
+- `@wardline/schemas`: every schema as `XSchema` with type `X`, plus the `AgentRunner`, `DecisionAdapter`, `VaultGateway`, and `EvidenceGateway` interfaces, and `readEnv` / `applyLegacyEnv` for the env var rename.
 - API on http://127.0.0.1:8787. See services/api/README.md for the routes.
 - Real gateways plug in at one place: `services/api/src/gateways/index.ts`.
 
 ## Blockers
 
 ## Requests
+
+Older requests below use the names from before the Wardline rename. Current names: see the top section.
 
 - Everyone: main is renamed to Redline. After merging main, run `pnpm install`, and move your imports to `@redline/schemas` and your schema ids to `redline-*-v1`.
 - Everyone: the test token is now Redline Test Dollar (REDL), deployed at `redl.redline-labs.testnet` under the new root `redline-labs.testnet`. After merging main, run `pnpm install` and use REDL anywhere you wrote the old symbol.
@@ -219,7 +282,7 @@ The API now loads the repo root `.env` at startup. Values already in the shell w
 
 ## Next
 
-- Connect the API to `NearVaultGateway` on `redline-labs.testnet`. The mock seed still uses `*.redline.testnet` names.
+- Connect the API to `NearVaultGateway` on the Wardline root once Tharun redeploys (today's live deployment is `redline-labs.testnet`). The mock seed uses `*.wardline.testnet` names.
 - Merge teammates' gateways as they land.
 - Add authentication before a real owner key is connected. The API has none today and binds to localhost only.
 - Add a UI for submitting a test invoice (POST /intake works, but no view calls it yet).

@@ -6,7 +6,7 @@ import type {
   Policy,
   RequestResult,
   VaultRejection,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import {
   DEFAULT_CAPACITIES,
   HARD_LIMITS,

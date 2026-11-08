@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Digest } from "@redline/schemas";
+import type { Digest } from "@wardline/schemas";
 import canonicalize from "canonicalize";
 
 /** RFC 8785 canonical JSON: key order and number formatting cannot change the output. */

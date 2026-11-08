@@ -1,5 +1,5 @@
-import { normalizeDomain, RedlineBlockedError, type Redline } from "@redline/sdk";
-import type { PayeeCheckResult, PayeeReason } from "@redline/schemas";
+import { normalizeDomain, WardlineBlockedError, type Wardline } from "@wardline/sdk";
+import type { PayeeCheckResult, PayeeReason } from "@wardline/schemas";
 import { z } from "zod";
 import { verifyDidWebJws, type DidDocument, type DidResolver } from "./did-web.js";
 
@@ -71,7 +71,7 @@ export function networkToChain(network: string): string {
 }
 
 export interface GuardOptions {
-  redline: Pick<Redline, "check">;
+  wardline: Pick<Wardline, "check">;
   /** Payer id passed to the check, so a changed payee raises PAYEE_CHANGED. */
   payer?: string;
   /** How to fetch a DID document. Defaults to HTTPS through the wrapped fetch. */
@@ -126,7 +126,7 @@ async function checkRequirement(requirement: Requirement, requestUrl: string, of
   const chain = networkToChain(requirement.network);
   const domain = offers.find((o) => sameTerms(o.payload, requirement))?.domain ?? hostOf(requestUrl);
   const amount = requirement.amount && /^\d+$/.test(requirement.amount) ? { amount: requirement.amount } : {};
-  return options.redline.check({
+  return options.wardline.check({
     payee: `${chain}:${requirement.payTo}`,
     vendor: { domain },
     source: "x402",
@@ -161,22 +161,22 @@ async function readPaymentRequired(response: Response): Promise<{ header: Paymen
 
 const requirementKey = (r: Requirement): string => JSON.stringify([r.network, r.payTo, r.asset ?? null, r.amount ?? null, r.scheme ?? null]);
 
-function blocked(results: PayeeCheckResult[]): RedlineBlockedError {
+function blocked(results: PayeeCheckResult[]): WardlineBlockedError {
   const worst = results.find((r) => r.verdict === "BLOCK") ?? results.find((r) => r.verdict !== "PAY");
   const reasons: PayeeReason[] = results.filter((r) => r.verdict !== "PAY").flatMap((r) => r.reasons);
   const why = reasons.map((r) => r.code).join(", ") || "no reasons";
   const evidenceTier = worst?.evidenceTier ?? "T0_NONE";
-  return new RedlineBlockedError(`Redline stopped this x402 payment: ${worst?.verdict ?? "HOLD"} (${why}), evidence tier ${evidenceTier}.`, {
+  return new WardlineBlockedError(`Wardline stopped this x402 payment: ${worst?.verdict ?? "HOLD"} (${why}), evidence tier ${evidenceTier}.`, {
     verdict: worst?.verdict ?? null,
     reasons,
     evidenceTier,
   });
 }
 
-const failClosed = (error: unknown): RedlineBlockedError =>
-  error instanceof RedlineBlockedError
+const failClosed = (error: unknown): WardlineBlockedError =>
+  error instanceof WardlineBlockedError
     ? error
-    : new RedlineBlockedError(`Redline could not confirm this x402 payment, so it is stopped: ${error instanceof Error ? error.message : "unknown error"}`, { cause: error });
+    : new WardlineBlockedError(`Wardline could not confirm this x402 payment, so it is stopped: ${error instanceof Error ? error.message : "unknown error"}`, { cause: error });
 
 /**
  * Decides one 402. Any BLOCK stops it. Otherwise the payer only sees options that got PAY, and if
@@ -258,13 +258,13 @@ function guardClient<T extends X402ClientLike>(client: T, options: GuardOptions)
 
 /**
  * Pass a fetch and get a fetch: put it inside your x402 wrapper, for example
- * wrapFetchWithPayment(withRedline(fetch, { redline }), client), so the guard sees each 402 first.
+ * wrapFetchWithPayment(withWardline(fetch, { wardline }), client), so the guard sees each 402 first.
  * Or pass an x402Client and it registers an onBeforePaymentCreation hook. Either way, it pays only on PAY.
  */
-export function withRedline(target: typeof fetch, options: GuardOptions): typeof fetch;
-export function withRedline<T extends X402ClientLike>(target: T, options: GuardOptions): T;
-export function withRedline(target: typeof fetch | X402ClientLike, options: GuardOptions): typeof fetch | X402ClientLike {
+export function withWardline(target: typeof fetch, options: GuardOptions): typeof fetch;
+export function withWardline<T extends X402ClientLike>(target: T, options: GuardOptions): T;
+export function withWardline(target: typeof fetch | X402ClientLike, options: GuardOptions): typeof fetch | X402ClientLike {
   if (typeof target === "function") return guardFetch(target, options);
   if (typeof target?.onBeforePaymentCreation === "function") return guardClient(target, options);
-  throw new TypeError("withRedline needs a fetch function or an x402 client.");
+  throw new TypeError("withWardline needs a fetch function or an x402 client.");
 }

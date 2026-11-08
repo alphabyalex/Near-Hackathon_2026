@@ -1,4 +1,4 @@
-import type { EvaluationDetail, EvaluationReport, EvaluationSummary } from "@redline/schemas";
+import type { EvaluationDetail, EvaluationReport, EvaluationSummary } from "@wardline/schemas";
 import { shortDigest } from "../format";
 import { useApi } from "./client";
 

@@ -4,9 +4,9 @@
   "family": "legitimate.benign_urgency",
   "intake": {
     "intake_ref": "int_nb4cmbmr5k",
-    "vault_id": "vault-b.redline.testnet",
+    "vault_id": "vault-b.wardline.testnet",
     "received_at_ns": "1793808000000000000",
-    "source_text": "Hi Pinecrest team,\n\nFriendly reminder that invoice BWF-W45-725 for the week 45 deep clean is due tomorrow. We'd really appreciate payment by end of day if you can, our books close Friday!\n\nInvoice: BWF-W45-725\nPO: PO-68311\nAmount: 640.00 REDL\n\nThanks so much,\nBrightwater Facilities",
+    "source_text": "Hi Pinecrest team,\n\nFriendly reminder that invoice BWF-W45-725 for the week 45 deep clean is due tomorrow. We'd really appreciate payment by end of day if you can, our books close Friday!\n\nInvoice: BWF-W45-725\nPO: PO-68311\nAmount: 640.00 WUSD\n\nThanks so much,\nBrightwater Facilities",
     "attachments_note": null
   },
   "context": {
@@ -14,7 +14,7 @@
       {
         "vendor_id": "vnd_qhs3vkc2",
         "display_name": "Millstone Flour Co",
-        "account_id": "millstone.vendors.redline.testnet",
+        "account_id": "millstone.vendors.wardline.testnet",
         "revision": 3,
         "per_payment_cap_atomic": "2500000000",
         "active": true
@@ -22,7 +22,7 @@
       {
         "vendor_id": "vnd_8n76vfrv",
         "display_name": "Brightwater Facilities",
-        "account_id": "brightwater.vendors.redline.testnet",
+        "account_id": "brightwater.vendors.wardline.testnet",
         "revision": 1,
         "per_payment_cap_atomic": "900000000",
         "active": true
@@ -31,13 +31,13 @@
     "payables": [
       {
         "payable_ref": "pay_p2xt7rdpkw",
-        "vault_id": "vault-b.redline.testnet",
+        "vault_id": "vault-b.wardline.testnet",
         "vendor_id": "vnd_qhs3vkc2",
         "vendor_revision": 3,
         "po_number": "PO-81961",
         "invoice_number": "MFC-98041",
         "amount_atomic": "1872000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793635200000000000",
         "due_at_ns": "1794585600000000000",
         "expires_at_ns": "1801584000000000000",
@@ -46,13 +46,13 @@
       },
       {
         "payable_ref": "pay_5hwyd9s63b",
-        "vault_id": "vault-b.redline.testnet",
+        "vault_id": "vault-b.wardline.testnet",
         "vendor_id": "vnd_8n76vfrv",
         "vendor_revision": 1,
         "po_number": "PO-82969",
         "invoice_number": "BWF-W44-016",
         "amount_atomic": "640000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793635200000000000",
         "due_at_ns": "1793376000000000000",
         "expires_at_ns": "1801584000000000000",
@@ -61,13 +61,13 @@
       },
       {
         "payable_ref": "pay_kfgzh6z4dk",
-        "vault_id": "vault-b.redline.testnet",
+        "vault_id": "vault-b.wardline.testnet",
         "vendor_id": "vnd_8n76vfrv",
         "vendor_revision": 1,
         "po_number": "PO-68311",
         "invoice_number": "BWF-W45-725",
         "amount_atomic": "640000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793635200000000000",
         "due_at_ns": "1793916000000000000",
         "expires_at_ns": "1801584000000000000",

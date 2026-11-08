@@ -16,20 +16,20 @@ const lookupKeys: NearKeyLookup = async (_network, accountId) =>
   NEAR_ACCOUNTS.includes(accountId) ? [{ publicKey: nearPublicKey(accountId), fullAccess: true }] : [];
 
 const fetchFile: WellKnownFetcher = async (domain, path) => {
-  const body = path === "/.well-known/redline-payee.json" ? hosted.get(domain) : undefined;
+  const body = path === "/.well-known/wardline-payee.json" ? hosted.get(domain) : undefined;
   return body ? { status: 200, body } : { status: 404, body: new Uint8Array() };
 };
 
 const auth = ownerAuthFromEnv({
   NEAR_NETWORK: "testnet",
-  REDLINE_OWNER_ACCOUNTS: OWNER_ACCOUNT,
-  REDLINE_APPROVER_ACCOUNTS: `${APPROVER_ACCOUNT},${REQUESTER_ACCOUNT}`,
+  WARDLINE_OWNER_ACCOUNTS: OWNER_ACCOUNT,
+  WARDLINE_APPROVER_ACCOUNTS: `${APPROVER_ACCOUNT},${REQUESTER_ACCOUNT}`,
 });
 
 const deps = bootstrap(":memory:", undefined, { lookupKeys, fetchFile, freeCallsPerDay: 1_000_000 }, auth);
 const app = createApp(deps);
 
-// Test hook: "host" a redline-payee.json on a domain, as the vendor would on its website.
+// Test hook: "host" a wardline-payee.json on a domain, as the vendor would on its website.
 app.post("/__e2e/host", async (c) => {
   const { domain, file } = (await c.req.json()) as { domain: string; file: string };
   hosted.set(domain, new TextEncoder().encode(file));

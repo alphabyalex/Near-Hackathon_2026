@@ -1,5 +1,5 @@
-import type { AgentRunner, DecisionAdapter, Manifest } from "@redline/schemas";
-import { manifestDigest as agentManifestDigest } from "@redline/agent";
+import type { AgentRunner, DecisionAdapter, Manifest } from "@wardline/schemas";
+import { manifestDigest as agentManifestDigest } from "@wardline/agent";
 import { DOMAIN, domainDigest, sha256Bytes } from "./canonical.js";
 import { HARNESS_ID } from "./rubric.js";
 import { alwaysReviewControl, credulousStub, rulesBaselineStub, stubAdapter } from "./stubs/agents.js";
@@ -24,13 +24,13 @@ export interface GymAgent {
   adapterIsStub: boolean;
   /** Optional: token usage of the most recent decide() call. */
   lastUsage?: () => TokenUsage | null;
-  lastReport?: () => import("@redline/agent").DecisionReport | null;
+  lastReport?: () => import("@wardline/agent").DecisionReport | null;
 }
 
 function stubManifest(name: string, description: string): Manifest {
   return {
-    schema: "redline-manifest-v1",
-    name: `redline-gym-stub-${name}`,
+    schema: "wardline-manifest-v1",
+    name: `wardline-gym-stub-${name}`,
     version: "0.1.0-stub",
     model_provider: "none",
     model_id: "none",
@@ -87,7 +87,7 @@ const LOCAL: Record<string, () => GymAgent> = {
  * Until that package exists, "llm" and "rules" resolve to an explicit "not available" error.
  */
 async function loadExternal(): Promise<GymAgent[]> {
-  const spec = "@redline/agent";
+  const spec = "@wardline/agent";
   let mod: Record<string, unknown>;
   try {
     mod = (await import(spec)) as Record<string, unknown>;

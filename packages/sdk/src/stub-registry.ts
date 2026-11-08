@@ -1,4 +1,4 @@
-import type { PayeeSignals } from "@redline/schemas";
+import type { PayeeSignals } from "@wardline/schemas";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import { base58 } from "@scure/base";

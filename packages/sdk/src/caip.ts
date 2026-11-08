@@ -1,4 +1,4 @@
-import { ChainId } from "@redline/schemas";
+import { ChainId } from "@wardline/schemas";
 import { base58 } from "@scure/base";
 
 /** Bad caller input: a malformed account, chain or domain. Never treated as a verdict. */

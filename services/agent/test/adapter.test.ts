@@ -1,4 +1,4 @@
-import { type Decision, PaymentRequestSchema } from "@redline/schemas";
+import { type Decision, PaymentRequestSchema } from "@wardline/schemas";
 import { describe, expect, it } from "vitest";
 import { NotPayableError, PaymentRequestAdapter, requestDigest } from "../src/adapter.js";
 import { LlmAgent } from "../src/llm-agent.js";
@@ -8,7 +8,7 @@ const adapter = new PaymentRequestAdapter();
 const revisions = { policy_revision: 4, binding_revision: 7 };
 
 const pay: Decision = {
-  schema: "redline-decision-v1",
+  schema: "wardline-decision-v1",
   intake_ref: "int_1",
   decision: "PAY",
   matched_payable_ref: "pay_1001",

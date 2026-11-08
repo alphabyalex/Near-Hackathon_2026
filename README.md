@@ -1,6 +1,6 @@
-# Redline
+# Wardline
 
-Redline checks who an AI agent is about to pay. Vendors link their payout accounts on NEAR, EVM chains or Solana to their website domain. Redline verifies control of each account and its link to the domain, and reports the trust level. Agents resolve a domain to its linked account, or check a raw address before paying. Read [docs/PAYEE_SHIELD.md](docs/PAYEE_SHIELD.md).
+Wardline checks who an AI agent is about to pay. Vendors link their payout accounts on NEAR, EVM chains or Solana to their website domain. Wardline verifies control of each account and its link to the domain, and reports the trust level. Agents resolve a domain to its linked account, or check a raw address before paying. Read [docs/PAYEE_SHIELD.md](docs/PAYEE_SHIELD.md).
 
 ## Try it
 
@@ -22,10 +22,10 @@ See: both commands exit 0.
 Run this in its own terminal and leave it running:
 
 ```sh
-REDLINE_PAYEE_ENGINE=stub REDLINE_REGISTRY_MODE=memory pnpm --filter @redline/api start
+WARDLINE_PAYEE_ENGINE=stub WARDLINE_REGISTRY_MODE=memory pnpm --filter @wardline/api start
 ```
 
-See: `Redline API on http://127.0.0.1:8787 (payee engine stub, registry memory)` and `Owner routes at /owner`. The first run also writes a development signing key to the gitignored `.env`.
+See: `Wardline API on http://127.0.0.1:8787 (payee engine stub, registry memory)` and `Owner routes at /owner`. The first run also writes a development signing key to the gitignored `.env`.
 
 ### 3. Resolve northwind
 
@@ -56,7 +56,7 @@ A paid API swaps its `payTo` to a look-alike address and signs the swap with its
 Run:
 
 ```sh
-REDLINE_API_URL=http://127.0.0.1:8787 pnpm demo:x402-swap
+WARDLINE_API_URL=http://127.0.0.1:8787 pnpm demo:x402-swap
 ```
 
 See: `Offer signature:  valid`, then `Verdict:          BLOCK`, `Reason:           LOOKALIKE_ACCOUNT` and `Payments made:    0`. The command exits 0.
@@ -71,17 +71,17 @@ pnpm test
 
 See: every package passes and the command exits 0. This does not need the API to be running.
 
-Red-team benchmark, offline from committed fixtures: run `pnpm --filter @redline/redteam bench`, see the catch rates in docs/REDTEAM.md.
+Red-team benchmark, offline from committed fixtures: run `pnpm --filter @wardline/redteam bench`, see the catch rates in docs/REDTEAM.md.
 
 ## Where things are
 
 | Path | What it is |
 | --- | --- |
 | `services/api` | API: `/v1/check`, `/v1/resolve`, vendors, receipts |
-| `packages/sdk` | `@redline/sdk`, hosted and direct modes |
-| `packages/x402-guard` | `@redline/x402-guard`, checks each x402 offer before paying |
-| `services/mcp` | `@redline/mcp`, MCP server for agents |
+| `packages/sdk` | `@wardline/sdk`, hosted and direct modes |
+| `packages/x402-guard` | `@wardline/x402-guard`, checks each x402 offer before paying |
+| `services/mcp` | `@wardline/mcp`, MCP server for agents |
 | `apps/web/public/llms.txt` | Onboarding for agents |
-| `docs/skills/redline-payee-check` | The same as an agent skill |
+| `docs/skills/wardline-payee-check` | The same as an agent skill |
 | `contracts`, `packages/vault-client`, `packages/vault-sim` | NEAR contracts and clients |
 | `services/agent`, `services/evaluator` | Invoice agent and the Gym |

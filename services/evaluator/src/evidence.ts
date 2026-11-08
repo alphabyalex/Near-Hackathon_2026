@@ -5,7 +5,7 @@ import {
   type EvaluationReport,
   type EvidenceGateway,
   type ReportVerification,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { z } from "zod";
 import { DOMAIN, domainDigest, sha256Bytes } from "./canonical.js";
 
@@ -21,7 +21,7 @@ import { DOMAIN, domainDigest, sha256Bytes } from "./canonical.js";
 
 export const DigestsSchema = z
   .object({
-    schema: z.literal("redline-evidence-digests-v1"),
+    schema: z.literal("wardline-evidence-digests-v1"),
     run_id: z.string(),
     report_digest: z.string(),
     run_record_digest: z.string(),
@@ -36,7 +36,7 @@ export type Digests = z.infer<typeof DigestsSchema>;
  */
 export const RegistrySchema = z
   .object({
-    schema: z.literal("redline-evidence-registry-stub-v1"),
+    schema: z.literal("wardline-evidence-registry-stub-v1"),
     note: z.string(),
     suites: z.array(z.object({ commitment: z.string(), split: z.string(), registered_at: z.string() })),
     runs: z.array(
@@ -67,7 +67,7 @@ export const readJson = (path: string): unknown => JSON.parse(readFileSync(path,
 
 export function loadRegistry(suiteDir: string): Registry {
   const p = join(suiteDir, REGISTRY_FILE);
-  if (!existsSync(p)) return { schema: "redline-evidence-registry-stub-v1", note: REGISTRY_NOTE, suites: [], runs: [] };
+  if (!existsSync(p)) return { schema: "wardline-evidence-registry-stub-v1", note: REGISTRY_NOTE, suites: [], runs: [] };
   return RegistrySchema.parse(readJson(p));
 }
 
@@ -93,7 +93,7 @@ export function writeRun(runDir: string, f: RunFiles): Digests {
   for (const name of ["report.json", "report.md"]) files[name] = sha256Bytes(readFileSync(join(runDir, name)));
   if (dirname(f.runRecordPath) === runDir) files["run-record.json"] = sha256Bytes(readFileSync(f.runRecordPath));
   const digests: Digests = {
-    schema: "redline-evidence-digests-v1",
+    schema: "wardline-evidence-digests-v1",
     run_id: f.report.run_id,
     report_digest: reportDigest(f.report),
     run_record_digest: runRecordDigest(f.runRecord),

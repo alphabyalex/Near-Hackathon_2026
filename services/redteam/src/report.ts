@@ -38,7 +38,7 @@ export interface AdversarialRow {
 }
 
 export interface RedteamReport {
-  schema: "redline-redteam-report-v2";
+  schema: "wardline-redteam-report-v2";
   seed: string;
   engine: { name: "stub" | "live"; note: string };
   model: { id: string | null; note: string };
@@ -177,7 +177,7 @@ export function buildReport(input: {
   if (advMissed.length > 0) findings.push(`${advMissed.length} model-invented attacks got PAY: ${advMissed.map((r) => r.id).join(", ")}.`);
 
   return {
-    schema: "redline-redteam-report-v2",
+    schema: "wardline-redteam-report-v2",
     seed: input.seed,
     engine: input.engine,
     model: input.model,
@@ -219,9 +219,9 @@ export function renderMarkdown(report: RedteamReport): string {
   const lines = [
     "# Red-team benchmark",
     "",
-    "Fictional payment-fraud cases run through Redline. Code fixes each case's parameters and expected verdict. A language model only writes the email, invoice or offer text around them, except in the last family, where it also invents the attacker's account.",
+    "Fictional payment-fraud cases run through Wardline. Code fixes each case's parameters and expected verdict. A language model only writes the email, invoice or offer text around them, except in the last family, where it also invents the attacker's account.",
     "",
-    "Rerun offline from the committed fixtures: `pnpm --filter @redline/redteam bench`. Add `--engine live` once `packages/payee-check` merges.",
+    "Rerun offline from the committed fixtures: `pnpm --filter @wardline/redteam bench`. Add `--engine live` once `packages/payee-check` merges.",
     "",
     "## Read this first",
     "",
@@ -290,28 +290,31 @@ export function renderMarkdown(report: RedteamReport): string {
     const tokens = shown.reduce((n, x) => n + x.tokens, 0);
     const cost = shown.reduce((n, x) => n + x.costUsd, 0);
     lines.push(
-      "## Invoice agent alone vs agent plus Redline",
+      "## Invoice agent alone vs agent plus Wardline",
       "",
-      `${any.cases} cases per setup, ${AGENT_NOTE}. The agent is the repo's invoice agent on ${any.model}, given trusted records in which the invoice matches an open approved payable. "Agent alone" pays the account named in the document whenever the agent decides PAY. "Agent plus Redline" also needs Redline's PAY for that account.`,
+      `${any.cases} cases per setup, ${AGENT_NOTE}. The agent is the repo's invoice agent on ${any.model}, given trusted records in which the invoice matches an open approved payable. "Agent alone" pays the account named in the document whenever the agent decides PAY. "Agent plus Wardline" also needs Wardline's PAY for that account.`,
       "",
+      ...(any.currentManifest === false
+        ? [`Agent decisions were recorded against agent manifest \`${any.manifestDigest}\`, before the agent's prompt last changed. Rerun \`pnpm --filter @wardline/redteam agent\` to record the current agent.`, ""]
+        : []),
       "- **Account on file:** the agent's vendor record holds the vendor's real payout account from earlier business.",
       "- **First contact:** a first purchase or a first x402 payment. The vendor record was created from this same message, so the only account the agent has on file is the one the message names.",
       "",
-      `| | ${shown.map((x) => `${label(x)}: agent alone | ${label(x)}: agent plus Redline`).join(" | ")} |`,
+      `| | ${shown.map((x) => `${label(x)}: agent alone | ${label(x)}: agent plus Wardline`).join(" | ")} |`,
       `| --- | ${shown.map(() => "--- | ---").join(" | ")} |`,
-      `| Unsafe payees let through (of ${any.attacks} attacks) | ${shown.map((x) => `${x.agentAlone.unsafePayees} | ${x.agentWithRedline.unsafePayees}`).join(" | ")} |`,
-      `| Legit recurring invoices paid (of ${any.legitRecurring}) | ${shown.map((x) => `${x.agentAlone.legitPaid} | ${x.agentWithRedline.legitPaid}`).join(" | ")} |`,
-      `| New accounts in cooling-off paid | ${shown.map((x) => `${x.agentAlone.coolingOffPaid} | ${x.agentWithRedline.coolingOffPaid}`).join(" | ")} |`,
+      `| Unsafe payees let through (of ${any.attacks} attacks) | ${shown.map((x) => `${x.agentAlone.unsafePayees} | ${x.agentWithWardline.unsafePayees}`).join(" | ")} |`,
+      `| Legit recurring invoices paid (of ${any.legitRecurring}) | ${shown.map((x) => `${x.agentAlone.legitPaid} | ${x.agentWithWardline.legitPaid}`).join(" | ")} |`,
+      `| New accounts in cooling-off paid | ${shown.map((x) => `${x.agentAlone.coolingOffPaid} | ${x.agentWithWardline.coolingOffPaid}`).join(" | ")} |`,
       "",
-      `For reference, Redline's payee verdict on its own let ${any.redlineAlone.unsafePayees} unsafe payees through and answered PAY on ${any.redlineAlone.legitPaid} of ${any.legitRecurring} legit recurring invoices. It does not depend on what the agent has on file.`,
+      `For reference, Wardline's payee verdict on its own let ${any.wardlineAlone.unsafePayees} unsafe payees through and answered PAY on ${any.wardlineAlone.legitPaid} of ${any.legitRecurring} legit recurring invoices. It does not depend on what the agent has on file.`,
       "",
       AGENT_CAVEAT,
       "",
       `Agent calls, both setups: ${calls}, ${tokens.toLocaleString("en-US")} tokens, about $${cost.toFixed(4)}.`,
       "",
-      `| Case | Family | Redline | ${shown.map((x) => `${label(x)}: agent`).join(" | ")} |`,
+      `| Case | Family | Wardline | ${shown.map((x) => `${label(x)}: agent`).join(" | ")} |`,
       `| --- | --- | --- | ${shown.map(() => "---").join(" | ")} |`,
-      ...any.rows.map((row) => `| ${row.id} | ${row.family} | ${row.redlineVerdict} | ${shown.map((x) => x.rows.find((y) => y.id === row.id)?.agentDecision ?? "n/a").join(" | ")} |`),
+      ...any.rows.map((row) => `| ${row.id} | ${row.family} | ${row.wardlineVerdict} | ${shown.map((x) => x.rows.find((y) => y.id === row.id)?.agentDecision ?? "n/a").join(" | ")} |`),
       "",
     );
   }

@@ -3,8 +3,8 @@
  * a new suite commitment. The version is inside every suite manifest, so a silent change to
  * thresholds after commitment shows up as a commitment mismatch.
  */
-export const RUBRIC_VERSION = "redline-rubric-0.1-draft";
-export const HARNESS_ID = "redline-evaluator/0.1.0";
+export const RUBRIC_VERSION = "wardline-rubric-0.1-draft";
+export const HARNESS_ID = "wardline-evaluator/0.1.0";
 
 /** Per decide() call. A timeout is an infrastructure error and the case still counts as FAIL. */
 export const DECIDE_TIMEOUT_MS = 150_000;

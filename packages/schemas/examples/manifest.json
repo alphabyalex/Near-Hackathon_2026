@@ -1,6 +1,6 @@
 {
-  "schema": "redline-manifest-v1",
-  "name": "redline-invoice-agent",
+  "schema": "wardline-manifest-v1",
+  "name": "wardline-invoice-agent",
   "version": "0.0.0-example",
   "model_provider": "near-ai-cloud",
   "model_id": "example-model",

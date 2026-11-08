@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { EvaluationReportSchema } from "@redline/schemas";
+import { EvaluationReportSchema } from "@wardline/schemas";
 import { canonicalJson, sha256Bytes } from "./canonical.js";
 import { SuiteCommitmentSchema, SuiteManifestSchema, buildSuiteManifest, commitSuite, saltFromHex, type SuiteManifest } from "./commitment.js";
 import { DigestsSchema, findRunDirs, findSuiteDirs, loadRegistry, readJson, rel, reportDigest, runRecordDigest } from "./evidence.js";

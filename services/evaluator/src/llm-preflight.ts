@@ -1,4 +1,4 @@
-import { probeNearAi } from "@redline/agent";
+import { probeNearAi } from "@wardline/agent";
 
 const isLlm = (name: string): boolean => name === "llm" || name.startsWith("llm-");
 

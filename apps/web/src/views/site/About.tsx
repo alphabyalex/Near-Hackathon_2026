@@ -1,4 +1,4 @@
-import type { EvidenceTier } from "@redline/schemas";
+import type { EvidenceTier } from "@wardline/schemas";
 import { ABOUT, BRAND, TIERS } from "../../brand";
 import { TIER_CODES } from "../../payee/reasons";
 
@@ -51,7 +51,7 @@ export function About() {
                   </tr>
                   <tr>
                     <td>
-                      <b>Total (REDL)</b>
+                      <b>Total (WUSD)</b>
                     </td>
                     <td className="num">
                       <b>3,180.00</b>

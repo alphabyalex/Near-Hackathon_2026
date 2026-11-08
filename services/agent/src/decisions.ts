@@ -1,4 +1,4 @@
-import { type Decision, type DecisionKind, DecisionSchema, type Intake, type ReasonCode } from "@redline/schemas";
+import { type Decision, type DecisionKind, DecisionSchema, type Intake, type ReasonCode } from "@wardline/schemas";
 
 /** Builds and validates a Decision, so no runner can return one that breaks the schema. */
 export function makeDecision(
@@ -10,7 +10,7 @@ export function makeDecision(
   evidenceRefs: string[] = [],
 ): Decision {
   return DecisionSchema.parse({
-    schema: "redline-decision-v1",
+    schema: "wardline-decision-v1",
     intake_ref: intake.intake_ref,
     decision,
     matched_payable_ref: matchedPayableRef,

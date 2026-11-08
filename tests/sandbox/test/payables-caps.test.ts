@@ -81,7 +81,7 @@ describe("payables", () => {
   });
 
   it("views match the shared schemas", async () => {
-    const { PayableSchema, OperationSchema, PolicySchema, VaultUsageSchema, VendorSchema, AgentBindingSchema } = await import("@redline/schemas");
+    const { PayableSchema, OperationSchema, PolicySchema, VaultUsageSchema, VendorSchema, AgentBindingSchema } = await import("@wardline/schemas");
     const payable = await world.addPayable(10n);
     const result = await world.request(payable);
     PayableSchema.parse(await world.payable(payable));

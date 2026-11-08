@@ -1,5 +1,5 @@
 import { pathToFileURL } from "node:url";
-import { makeProvider } from "@redline/vault-client";
+import { makeProvider } from "@wardline/vault-client";
 import { listKeys, manifestPath, networkFromEnv, readManifest, type AccessKeyInfo, type DeploymentManifest } from "./lib.js";
 
 export interface KeyFinding {

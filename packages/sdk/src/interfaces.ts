@@ -6,7 +6,7 @@ import type {
   PayeeResolveResult,
   PayeeSignals,
   PayeeVendor,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 
 /** A registry record: the public vendor view plus what the registry keeps next to it. */
 export interface RegistryVendor extends PayeeVendor {
@@ -69,7 +69,7 @@ export type { EvidenceTier };
 export type EngineCheckResult = Omit<PayeeCheckResult, "receipt">;
 export type EngineResolveResult = Omit<PayeeResolveResult, "receipt">;
 
-/** The deterministic decision step. The stub and @redline/payee-check both sit behind this. */
+/** The deterministic decision step. The stub and @wardline/payee-check both sit behind this. */
 export interface PayeeEngine {
   check(request: PayeeCheckRequest, context: EngineContext): Promise<EngineCheckResult>;
   resolve(request: PayeeResolveRequest, context: EngineContext): Promise<EngineResolveResult>;

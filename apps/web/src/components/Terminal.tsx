@@ -17,7 +17,7 @@ export function Terminal() {
         <span>
           malicious-signer.ts<span className="caret" />
         </span>
-        <span>vault-a.redline.testnet</span>
+        <span>vault-a.wardline.testnet</span>
       </div>
       {ATTEMPTS.map(([attempt, result], index) => (
         <div className="line" style={{ animationDelay: `${index * STEP_SECONDS}s` }} key={attempt}>
@@ -28,7 +28,7 @@ export function Terminal() {
       ))}
       <div className="total" style={{ animationDelay: `${ATTEMPTS.length * STEP_SECONDS}s` }}>
         <span>moved from the vault</span>
-        <b>0.00 REDL</b>
+        <b>0.00 WUSD</b>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ export interface Wallets {
 
 /**
  * Scripted wallets: a NEAR wallet the app lists as "Test wallet" (only in builds with
- * VITE_REDLINE_TEST_WALLET=1), an injected EIP-1193 provider and a Phantom-shaped provider. Keys
+ * VITE_WARDLINE_TEST_WALLET=1), an injected EIP-1193 provider and a Phantom-shaped provider. Keys
  * live in the test process; the page only receives signatures.
  */
 export const test = base.extend<{ wallets: Wallets }>({
@@ -22,7 +22,7 @@ export const test = base.extend<{ wallets: Wallets }>({
       ({ evmAddress, solAddress }) => {
         const w = window as unknown as Record<string, unknown>;
         const call = (name: string, ...args: unknown[]) => (w[name] as (...a: unknown[]) => Promise<unknown>)(...args);
-        w.__redlineTestWallet = {
+        w.__wardlineTestWallet = {
           name: "Test wallet",
           signMessage: (r: { message: string; recipient: string; nonce: string }) => call("__e2eNearSign", r.message, r.recipient, r.nonce),
         };

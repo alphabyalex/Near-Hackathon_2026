@@ -1,10 +1,10 @@
 # Vault rules
 
-Owner: Tharun. This is the plain-language spec of the Redline vault contract (`contracts/vault`).
+Owner: Tharun. This is the plain-language spec of the Wardline vault contract (`contracts/vault`).
 The Rust contract, the TypeScript simulator (`packages/vault-sim`) and the parity tests all implement this file.
 If code and this file disagree, that is a bug: fix one of them and say which in `docs/status/tharun.md`.
 
-Vocabulary comes from `packages/schemas`: `VaultRejection`, `PayableStatus`, `OperationStatus`, `RequestResult`, `Payable`, `Vendor`, `Policy`, `AgentBinding`, `Operation`, `VaultUsage`, `RedlineEvent`.
+Vocabulary comes from `packages/schemas`: `VaultRejection`, `PayableStatus`, `OperationStatus`, `RequestResult`, `Payable`, `Vendor`, `Policy`, `AgentBinding`, `Operation`, `VaultUsage`, `WardlineEvent`.
 
 Amounts are atomic integers (JSON strings, Rust `u128`). Times are nanoseconds since the Unix epoch (JSON strings, Rust `u64`). "Now" is always the block timestamp.
 
@@ -239,19 +239,19 @@ RESERVED for 1 hour with no callback --reconcile_operation--> SETTLED or FAILED_
 
 ## One payment, step by step
 
-1. Owner has approved vendor `vnd_larkspur` (cap 5,000 REDL) and registered `pay_1001` for exactly 1,250 REDL, and the vault is funded and unpaused.
+1. Owner has approved vendor `vnd_larkspur` (cap 5,000 WUSD) and registered `pay_1001` for exactly 1,250 WUSD, and the vault is funded and unpaused.
 2. The API takes a PAY decision from the agent. The adapter builds a `PaymentRequest`: `payable_ref`, `request_digest`, and the three revisions it read.
 3. `vault-client` signs `request_payment` with the agent's function-call key, which NEAR only accepts for this one method on this one vault, with no deposit.
 4. The vault runs checks 1 to 17. Suppose one fails: it returns `{ ok: false, operation_id: null, rejection: "OVER_WEEKLY_CAP" }`, nothing changes, no money moves. The API opens a review item and the owner can `owner_pay`. Otherwise:
 5. Same receipt: A and R change, `pay_1001` becomes PENDING, `op_7` is RESERVED, slots are taken, `payment_reserved` is logged. Then `ft_transfer` and the callback are scheduled. From here on no second payment of `pay_1001` can start.
-6. Next receipt, on the token: 1,250 REDL moves to the locked recipient, or the call reverts.
+6. Next receipt, on the token: 1,250 WUSD moves to the locked recipient, or the call reverts.
 7. Next receipt, on the vault: `on_payment_result("op_7")` reads the real result. Success: `op_7` and `pay_1001` become SETTLED, R moves to S, a rolling entry is added at this block's time.
 8. The final value `{ ok: true, operation_id: "op_7", rejection: null }` comes back. `vault-client` waited for final execution and returns it. The API reads `get_operation` for the outcome and the receipt.
 9. A timeout at any point is not a failure: `vault-client` throws, the API marks "outcome uncertain", and a retry with the same digest returns `op_7` with no second transfer.
 
 ## Events
 
-NEP-297 logs: `EVENT_JSON:{"standard":"redline","version":"1.0.0","event":...,"data":[{...}]}`. Standard name matches `RedlineEventSchema`. Data is typed fields only: ids, refs, amounts, revisions, digests, statuses. Never invoice text.
+NEP-297 logs: `EVENT_JSON:{"standard":"wardline","version":"1.0.0","event":...,"data":[{...}]}`. Standard name matches `WardlineEventSchema`. Data is typed fields only: ids, refs, amounts, revisions, digests, statuses. Never invoice text.
 
 | Event | Data |
 | --- | --- |

@@ -4,15 +4,18 @@
  * account and its link to a domain, at a stated trust level.
  */
 
-import type { EvidenceTier } from "@redline/schemas";
+import type { EvidenceTier } from "@wardline/schemas";
+import repo from "../../../repo.config.json";
 
-const NAME = "Redline";
+const NAME = "Wardline";
 
 export const BRAND = {
   name: NAME,
   tagline: "Payment authority for AI agents.",
   metaDescription: "Your agent can read every invoice. It can never choose where the money goes.",
   homeLabel: `${NAME} home`,
+  /** Source repository. Lives in repo.config.json at the root; the GitHub rename to "wardline" is a one-line change there. */
+  repoUrl: repo.url,
 } as const;
 
 export const NAV = [
@@ -74,7 +77,7 @@ export const RESULT = {
   receipt: "Signed receipt",
   verify: "Verify signature",
   verifying: "Checking",
-  verified: "Signature valid. Signed by the key published at /.well-known/redline-attestor.json.",
+  verified: "Signature valid. Signed by the key published at /.well-known/wardline-attestor.json.",
   notVerified: "Signature does not match the published key. Treat this answer as unsigned.",
   noReceipt: "No receipt. Treat this answer as unsigned.",
   account: "Account",
@@ -143,7 +146,7 @@ export const DEMO = {
   comparisonLabel: "First payment to a vendor",
   comparisonTitle: `No record of the vendor yet. The agent alone, then with ${BRAND.name}.`,
   agentAlone: "AI agent alone",
-  withRedline: `AI agent with ${BRAND.name}`,
+  withWardline: `AI agent with ${BRAND.name}`,
   scamsThrough: "scams paid",
   onFileNote: "When the agent already had the vendor's account on file:",
 } as const;
@@ -153,8 +156,8 @@ export const CONNECT = {
   title: `Put ${BRAND.name} in front of every payment.`,
   lede: "MCP for agents, HTTP for anything, the SDK for TypeScript.",
   unsetTitle: "Set your API URL",
-  unsetBody: "These snippets use $REDLINE_API_URL until the site is built with VITE_REDLINE_API_URL.",
-  unsetMcp: "Set VITE_REDLINE_MCP_URL to show your MCP endpoint here.",
+  unsetBody: "These snippets use $WARDLINE_API_URL until the site is built with VITE_WARDLINE_API_URL.",
+  unsetMcp: "Set VITE_WARDLINE_MCP_URL to show your MCP endpoint here.",
   mcp: "MCP server",
   mcpLine: "Streamable HTTP. Tools: resolve_payee, check_payee, get_vendor, how_to_verify.",
   resolve: "Resolve a domain",
@@ -185,7 +188,7 @@ export const VERIFY = {
   connectSign: "Connect and sign",
   signedCount: (n: number) => (n === 1 ? "1 account signed" : `${n} accounts signed`),
   remove: "Remove",
-  download: "Download redline-payee.json",
+  download: "Download wardline-payee.json",
   hostTitle: "Host it at",
   hostRules: ["Serve it over HTTPS as application/json.", "No redirects. The file must be at this exact path.", "Signatures are valid for a year. Re-sign to add or remove accounts."],
   checkButton: "Check my domain",

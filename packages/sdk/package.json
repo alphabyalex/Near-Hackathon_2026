@@ -1,5 +1,5 @@
 {
-  "name": "@redline/sdk",
+  "name": "@wardline/sdk",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
-    "@redline/schemas": "workspace:*",
+    "@wardline/schemas": "workspace:*",
     "@scure/base": "^2.4.0",
     "canonicalize": "^5.1.0",
     "zod": "^4.6.7"

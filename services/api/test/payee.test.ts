@@ -2,8 +2,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { PayeeCheckResult, PayeeResolveResult } from "@redline/schemas";
-import { createRedline, hashRequest, seedEvmAddress, verifyReceipt } from "@redline/sdk";
+import { PayeeCheckResult, PayeeResolveResult } from "@wardline/schemas";
+import { createWardline, hashRequest, seedEvmAddress, verifyReceipt } from "@wardline/sdk";
 import { base58 } from "@scure/base";
 import { KeyPair, KeyPairSigner } from "near-api-js";
 import { privateKeyToAccount } from "viem/accounts";
@@ -183,7 +183,7 @@ describe("free tier", () => {
   it("does not limit the owner routes or the attestor key", async () => {
     const app = createApp(bootstrap(":memory:", () => NOW_NS, { freeCallsPerDay: 0 }, LOCAL_AUTH));
     expect((await app.request("/owner/review-queue")).status).toBe(200);
-    expect((await app.request("/.well-known/redline-attestor.json")).status).toBe(200);
+    expect((await app.request("/.well-known/wardline-attestor.json")).status).toBe(200);
     expect((await app.request("/v1/vendors")).status).toBe(402);
   });
 });
@@ -209,7 +209,7 @@ describe("timing", () => {
 describe("signed receipts", () => {
   it("verifies with the published key through the SDK, and the signature covers the verdict", async () => {
     const { app } = makeApp();
-    const { public_key: publicKey, alg } = (await (await app.request("/.well-known/redline-attestor.json")).json()) as { public_key: string; alg: string };
+    const { public_key: publicKey, alg } = (await (await app.request("/.well-known/wardline-attestor.json")).json()) as { public_key: string; alg: string };
     expect(alg).toBe("ed25519");
 
     const request = { payee: "near:testnet:northwind.testnet", vendor: { domain: DOMAIN }, context: "Invoice 1001" };
@@ -225,7 +225,7 @@ describe("signed receipts", () => {
 
   it("signs a HOLD too, including a vendor that is not in the registry", async () => {
     const { app } = makeApp();
-    const { public_key: publicKey } = (await (await app.request("/.well-known/redline-attestor.json")).json()) as { public_key: string };
+    const { public_key: publicKey } = (await (await app.request("/.well-known/wardline-attestor.json")).json()) as { public_key: string };
     const result = PayeeCheckResult.parse(await (await post(app, "/v1/check", { payee: "nobody-known.testnet", vendor: { domain: "not-listed.example" } })).json());
     expect(result.vendor).toBeNull();
     expect(verifyReceipt(result, publicKey)).toBe(true);
@@ -248,7 +248,7 @@ describe("signed receipts", () => {
 
   it("never claims TEE signing", async () => {
     const { app } = makeApp();
-    const text = await (await app.request("/.well-known/redline-attestor.json")).text();
+    const text = await (await app.request("/.well-known/wardline-attestor.json")).text();
     expect(text.toLowerCase()).not.toContain("tee");
   });
 
@@ -264,24 +264,24 @@ describe("signed receipts", () => {
 
 describe("attestor key setup", () => {
   it("writes a missing dev key to the env file without logging it, then leaves it alone", () => {
-    const dir = mkdtempSync(join(tmpdir(), "redline-env-"));
+    const dir = mkdtempSync(join(tmpdir(), "wardline-env-"));
     const file = join(dir, ".env");
     writeFileSync(file, "OTHER=1");
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const env: NodeJS.ProcessEnv = {};
     ensureAttestorKey(env, file);
-    const seed = env.REDLINE_ATTESTOR_KEY ?? "";
+    const seed = env.WARDLINE_ATTESTOR_KEY ?? "";
     expect(seed).toMatch(/^[0-9a-f]{64}$/);
-    expect(readFileSync(file, "utf8")).toBe(`OTHER=1\nREDLINE_ATTESTOR_KEY=${seed}\n`);
+    expect(readFileSync(file, "utf8")).toBe(`OTHER=1\nWARDLINE_ATTESTOR_KEY=${seed}\n`);
     expect(JSON.stringify(log.mock.calls)).not.toContain(seed);
     ensureAttestorKey(env, file);
-    expect(readFileSync(file, "utf8").match(/REDLINE_ATTESTOR_KEY/g)).toHaveLength(1);
+    expect(readFileSync(file, "utf8").match(/WARDLINE_ATTESTOR_KEY/g)).toHaveLength(1);
     log.mockRestore();
     rmSync(dir, { recursive: true, force: true });
   });
 
   it("refuses to generate a key in production", () => {
-    const dir = mkdtempSync(join(tmpdir(), "redline-env-"));
+    const dir = mkdtempSync(join(tmpdir(), "wardline-env-"));
     const file = join(dir, ".env");
     expect(() => ensureAttestorKey({ NODE_ENV: "production" }, file)).toThrow(/required/);
     expect(existsSync(file)).toBe(false);
@@ -295,15 +295,15 @@ describe("backend modes", () => {
   });
 
   it("refuses to start in a mode it cannot meet, rather than falling back to the stub", async () => {
-    await expect(loadPayeeBackends({ REDLINE_PAYEE_ENGINE: "live" })).rejects.toThrow(/payee-check/);
-    await expect(loadPayeeBackends({ REDLINE_REGISTRY_MODE: "near" })).rejects.toThrow(/PayeeRegistryClient/);
-    await expect(loadPayeeBackends({ REDLINE_PAYEE_ENGINE: "other" })).rejects.toThrow(/Unknown/);
-    await expect(loadPayeeBackends({ REDLINE_REGISTRY_MODE: "other" })).rejects.toThrow(/Unknown/);
+    await expect(loadPayeeBackends({ WARDLINE_PAYEE_ENGINE: "live" })).rejects.toThrow(/payee-check/);
+    await expect(loadPayeeBackends({ WARDLINE_REGISTRY_MODE: "near" })).rejects.toThrow(/PayeeRegistryClient/);
+    await expect(loadPayeeBackends({ WARDLINE_PAYEE_ENGINE: "other" })).rejects.toThrow(/Unknown/);
+    await expect(loadPayeeBackends({ WARDLINE_REGISTRY_MODE: "other" })).rejects.toThrow(/Unknown/);
   });
 
   it("reads free tier and x402 settings from env", () => {
     const deps = bootstrap(":memory:", () => NOW_NS);
-    const runtime = createPayeeRuntime(deps.store, () => NOW_NS, {}, { REDLINE_FREE_CALLS_PER_DAY: "5", REDLINE_X402_PAY_TO: "0xabc", REDLINE_X402: "off" });
+    const runtime = createPayeeRuntime(deps.store, () => NOW_NS, {}, { WARDLINE_FREE_CALLS_PER_DAY: "5", WARDLINE_X402_PAY_TO: "0xabc", WARDLINE_X402: "off" });
     expect(runtime.freeCallsPerDay).toBe(5);
     expect(runtime.x402).toMatchObject({ enabled: false, payTo: "0xabc", network: "eip155:84532" });
   });
@@ -366,7 +366,7 @@ describe("vendor verification", () => {
     // An independent signer: near-api-js signs a NEP-413 message, and our hash must verify it.
     const nonce = new Uint8Array(32).fill(7);
     const signer = new KeyPairSigner(KeyPair.fromString(nearPrivate as `ed25519:${string}`));
-    const signed = await signer.signNep413Message("newvendor.testnet", { message: "hello", recipient: "redline-payee-registry", nonce });
+    const signed = await signer.signNep413Message("newvendor.testnet", { message: "hello", recipient: "wardline-payee-registry", nonce });
     expect(ed25519.verify(signed.signature, nep413Hash("hello", nonce), ed25519.getPublicKey(nearSecret))).toBe(true);
     expect(ed25519.verify(signed.signature, nep413Hash("other", nonce), ed25519.getPublicKey(nearSecret))).toBe(false);
   });
@@ -504,17 +504,17 @@ describe("vendor verification", () => {
 describe("hosted SDK against the real routes", () => {
   it("resolves, checks, gets a vendor and records a payment", async () => {
     const { app, deps } = makeApp();
-    const redline = createRedline({
+    const wardline = createWardline({
       mode: "hosted",
       baseUrl: "http://api.local",
       apiKey: keyFor(deps, "p"),
       fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(String(input), init)) as typeof fetch,
     });
-    expect((await redline.resolve({ domain: DOMAIN, chain: "near:testnet" })).account).toBe("near:testnet:northwind.testnet");
-    const check = await redline.check({ payee: "northwind.testnet", vendor: { domain: DOMAIN } });
+    expect((await wardline.resolve({ domain: DOMAIN, chain: "near:testnet" })).account).toBe("near:testnet:northwind.testnet");
+    const check = await wardline.check({ payee: "northwind.testnet", vendor: { domain: DOMAIN } });
     expect(check.receipt).not.toBeNull();
-    expect((await redline.getVendor(DOMAIN))?.name).toBe("Northwind Trading");
-    await expect(redline.getVendor("not-listed.example")).resolves.toBeNull();
-    await expect(redline.recordPayment({ payer: "p", domain: DOMAIN, account: "northwind.testnet" })).resolves.toBeUndefined();
+    expect((await wardline.getVendor(DOMAIN))?.name).toBe("Northwind Trading");
+    await expect(wardline.getVendor("not-listed.example")).resolves.toBeNull();
+    await expect(wardline.recordPayment({ payer: "p", domain: DOMAIN, account: "northwind.testnet" })).resolves.toBeUndefined();
   });
 });

@@ -13,7 +13,7 @@ interface Report {
   engine: { name: string; note: string };
   cases: { written: number; attacks: number; legit: number; adversarial: number };
   headline: { attackCatchRate: number; legitFalsePositiveRate: number; unsafePays: number; adversarialCatchRate: number; latencyP50Ms: number; latencyP95Ms: number };
-  agentComparisons: { variant: string; model: string; cases: number; attacks: number; legitRecurring: number; agentAlone: Tally; agentWithRedline: Tally }[];
+  agentComparisons: { variant: string; model: string; cases: number; attacks: number; legitRecurring: number; agentAlone: Tally; agentWithWardline: Tally }[];
 }
 
 /** Only the numbers the site shows, so the full report never ships in the bundle. */
@@ -29,7 +29,7 @@ export function summarize(report: Report) {
       attacks: c.attacks,
       legitRecurring: c.legitRecurring,
       agentAlone: { unsafePayees: c.agentAlone.unsafePayees, legitPaid: c.agentAlone.legitPaid },
-      agentWithRedline: { unsafePayees: c.agentWithRedline.unsafePayees, legitPaid: c.agentWithRedline.legitPaid },
+      agentWithWardline: { unsafePayees: c.agentWithWardline.unsafePayees, legitPaid: c.agentWithWardline.legitPaid },
     })),
   };
 }
@@ -37,7 +37,7 @@ export function summarize(report: Report) {
 /** Reads evidence/redteam/report.json at build time and exposes it as `virtual:redteam-summary`. */
 export function redteamSummary(reportPath: string): Plugin {
   return {
-    name: "redline-redteam-summary",
+    name: "wardline-redteam-summary",
     resolveId(source) {
       return source === ID ? RESOLVED : null;
     },

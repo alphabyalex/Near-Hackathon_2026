@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { PayeeCheckRequest, PayeeCheckResult } from "@redline/schemas";
-import { RedlineBlockedError, seedEvmAddress, type PayeeRequest, type PayeeResult } from "@redline/sdk";
-import { withRedline } from "@redline/x402-guard";
-import { errorText, redline } from "../../api/public";
+import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
+import { WardlineBlockedError, seedEvmAddress, type PayeeRequest, type PayeeResult } from "@wardline/sdk";
+import { withWardline } from "@wardline/x402-guard";
+import { errorText, wardline } from "../../api/public";
 import { DEMO } from "../../brand";
 import { ResultCard } from "../../payee/ResultCard";
 import { firstContact, onFile } from "../../redteam";
@@ -38,14 +38,14 @@ function swappedMerchant(): typeof fetch {
 async function runScene(id: SceneId): Promise<{ result: PayeeResult; request: PayeeRequest; guard?: string }> {
   if (id === "resolve") {
     const request = { domain: "northwind.example", chain: "near:testnet" };
-    return { result: await redline.resolve(request), request };
+    return { result: await wardline.resolve(request), request };
   }
   if (id === "x402") {
     let seen: { result: PayeeCheckResult; request: PayeeCheckRequest } | null = null;
-    const guarded = withRedline(swappedMerchant(), {
-      redline: {
+    const guarded = withWardline(swappedMerchant(), {
+      wardline: {
         check: async (request) => {
-          const result = await redline.check(request);
+          const result = await wardline.check(request);
           seen = { result, request };
           return result;
         },
@@ -55,7 +55,7 @@ async function runScene(id: SceneId): Promise<{ result: PayeeResult; request: Pa
     try {
       await guarded("https://fernhill.example/v1/usage-report");
     } catch (error) {
-      guard = error instanceof RedlineBlockedError ? "Stopped by the x402 guard before anything was signed." : errorText(error);
+      guard = error instanceof WardlineBlockedError ? "Stopped by the x402 guard before anything was signed." : errorText(error);
     }
     const checked = seen as { result: PayeeCheckResult; request: PayeeCheckRequest } | null;
     if (!checked) throw new Error(guard);
@@ -65,7 +65,7 @@ async function runScene(id: SceneId): Promise<{ result: PayeeResult; request: Pa
     id === "bank"
       ? { payee: "near:testnet:northw1nd.testnet", vendor: { domain: "northwind.example", name: "Northwind Trading" }, source: "invoice" }
       : { payee: `eip155:84532:${poisonedAddress(seedEvmAddress("larkspur.example"))}`, vendor: { domain: "larkspur.example" }, source: "manual" };
-  return { result: await redline.check(request), request };
+  return { result: await wardline.check(request), request };
 }
 
 const reducedMotion = (): boolean => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
@@ -129,12 +129,12 @@ export function Comparison() {
         </h2>
         <div className="cmp">
           <DotRow label={DEMO.agentAlone} paid={first.agentAlone.unsafePayees} of={first.attacks} />
-          <DotRow label={DEMO.withRedline} paid={first.agentWithRedline.unsafePayees} of={first.attacks} />
+          <DotRow label={DEMO.withWardline} paid={first.agentWithWardline.unsafePayees} of={first.attacks} />
         </div>
         <p className="engine-note">
-          {first.cases} cases, {first.attacks} of them scams, through the invoice agent on {first.model}. Both paid {first.agentWithRedline.legitPaid} of {first.legitRecurring}{" "}
+          {first.cases} cases, {first.attacks} of them scams, through the invoice agent on {first.model}. Both paid {first.agentWithWardline.legitPaid} of {first.legitRecurring}{" "}
           legitimate invoices.
-          {known && ` ${DEMO.onFileNote} ${known.agentAlone.unsafePayees} and ${known.agentWithRedline.unsafePayees} scams paid.`}
+          {known && ` ${DEMO.onFileNote} ${known.agentAlone.unsafePayees} and ${known.agentWithWardline.unsafePayees} scams paid.`}
         </p>
       </div>
     </section>

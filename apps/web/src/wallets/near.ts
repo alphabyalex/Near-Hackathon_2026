@@ -17,10 +17,10 @@ export interface NearSignRequest {
 
 export type NearWalletId = "meteor-wallet" | "my-near-wallet" | "test-wallet";
 
-/** End-to-end tests define this. Only read when the build sets VITE_REDLINE_TEST_WALLET=1. */
+/** End-to-end tests define this. Only read when the build sets VITE_WARDLINE_TEST_WALLET=1. */
 declare global {
   interface Window {
-    __redlineTestWallet?: { name: string; signMessage(request: { message: string; recipient: string; nonce: string }): Promise<NearSignature> };
+    __wardlineTestWallet?: { name: string; signMessage(request: { message: string; recipient: string; nonce: string }): Promise<NearSignature> };
   }
 }
 
@@ -29,7 +29,7 @@ export function nearWallets(): { id: NearWalletId; name: string }[] {
     { id: "meteor-wallet", name: "Meteor" },
     { id: "my-near-wallet", name: "MyNearWallet" },
   ];
-  if (TEST_WALLET && typeof window !== "undefined" && window.__redlineTestWallet) wallets.push({ id: "test-wallet", name: window.__redlineTestWallet.name });
+  if (TEST_WALLET && typeof window !== "undefined" && window.__wardlineTestWallet) wallets.push({ id: "test-wallet", name: window.__wardlineTestWallet.name });
   return wallets;
 }
 
@@ -73,7 +73,7 @@ export function randomNonce(): Uint8Array {
 export async function signNep413(walletId: NearWalletId, request: NearSignRequest, expectedAccount: string): Promise<NearSignature> {
   let signed: NearSignature | void;
   if (walletId === "test-wallet") {
-    const test = TEST_WALLET ? window.__redlineTestWallet : undefined;
+    const test = TEST_WALLET ? window.__wardlineTestWallet : undefined;
     if (!test) throw new Error("No test wallet in this build.");
     signed = await test.signMessage({ message: request.message, recipient: request.recipient, nonce: toBase64(request.nonce) });
   } else {

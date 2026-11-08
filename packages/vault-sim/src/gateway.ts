@@ -8,7 +8,7 @@ import type {
   VaultGateway,
   VaultUsage,
   Vendor,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { VaultSim } from "./vault-sim.js";
 
 /**

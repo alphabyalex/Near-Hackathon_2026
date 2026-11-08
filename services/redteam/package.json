@@ -1,5 +1,5 @@
 {
-  "name": "@redline/redteam",
+  "name": "@wardline/redteam",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -22,10 +22,10 @@
     "agent": "tsx src/cli.ts agent"
   },
   "dependencies": {
-    "@redline/agent": "workspace:*",
-    "@redline/schemas": "workspace:*",
-    "@redline/sdk": "workspace:*",
-    "@redline/x402-guard": "workspace:*",
+    "@wardline/agent": "workspace:*",
+    "@wardline/schemas": "workspace:*",
+    "@wardline/sdk": "workspace:*",
+    "@wardline/x402-guard": "workspace:*",
     "canonicalize": "^5.1.0",
     "zod": "^4.6.7"
   },

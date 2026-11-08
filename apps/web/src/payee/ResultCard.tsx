@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { EvidenceTier, PayeeVerdict } from "@redline/schemas";
-import type { PayeeRequest, PayeeResult } from "@redline/sdk";
+import type { EvidenceTier, PayeeVerdict } from "@wardline/schemas";
+import type { PayeeRequest, PayeeResult } from "@wardline/sdk";
 import { errorText, verifyInBrowser } from "../api/public";
 import { RESULT, TIERS } from "../brand";
 import { reasonWords, TIER_CODES, verdictClass } from "./reasons";

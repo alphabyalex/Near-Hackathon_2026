@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { OverviewView } from "@redline/schemas";
+import type { OverviewView } from "@wardline/schemas";
 import { apiPost, SIGNED_OUT_EVENT, useApi } from "../api/client";
 import { getSession, signOut, type Session } from "../api/owner";
 import { OWNER } from "../brand";
@@ -27,8 +27,8 @@ const TABS: readonly { tab: DashboardTab; label: string }[] = [
 ];
 
 const VAULTS = [
-  { id: "vault-a.redline.testnet", label: "Business A (vault-a)" },
-  { id: "vault-b.redline.testnet", label: "Business B (vault-b)" },
+  { id: "vault-a.wardline.testnet", label: "Business A (vault-a)" },
+  { id: "vault-b.wardline.testnet", label: "Business B (vault-b)" },
 ] as const;
 
 type Gate = { state: "checking" } | { state: "signed-out" } | { state: "signed-in"; session: Session };
@@ -77,9 +77,9 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
     catch (error) { setSimulationError(error instanceof Error ? error.message : "Could not change simulation mode."); }
     finally { setSimulationBusy(false); }
   };
-  const [vaultId, setVaultId] = useState<string>("vault-a.redline.testnet");
+  const [vaultId, setVaultId] = useState<string>("vault-a.wardline.testnet");
   const changed = () => setVersion((v) => v + 1);
-  const overviewPath = vaultId === "vault-a.redline.testnet" ? "/overview" : `/overview?vault_id=${encodeURIComponent(vaultId)}`;
+  const overviewPath = vaultId === "vault-a.wardline.testnet" ? "/overview" : `/overview?vault_id=${encodeURIComponent(vaultId)}`;
   const overview = useApi<OverviewView>(overviewPath, version);
   const data = overview.data;
   const paused = data?.policy.paused ?? false;

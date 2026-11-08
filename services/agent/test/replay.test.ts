@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DecisionSchema } from "@redline/schemas";
+import { DecisionSchema } from "@wardline/schemas";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LlmAgent } from "../src/llm-agent.js";
 import { buildManifest, manifestDigest } from "../src/manifest.js";
@@ -16,7 +16,7 @@ describe("replay", () => {
   let store: ReplayStore;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "redline-replay-"));
+    dir = mkdtempSync(join(tmpdir(), "wardline-replay-"));
     store = new ReplayStore(dir);
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));

@@ -7,12 +7,12 @@ Pure TypeScript model of [docs/VAULT_RULES.md](../../docs/VAULT_RULES.md), so th
 ## Use it
 
 ```ts
-import { VaultSim, SimVaultGateway } from "@redline/vault-sim";
+import { VaultSim, SimVaultGateway } from "@wardline/vault-sim";
 
 const vault = new VaultSim({
-  vault_id: "vault-a.redline.testnet",
+  vault_id: "vault-a.wardline.testnet",
   owner: "owner.test",
-  token_contract: "redl.test",
+  token_contract: "wusd.test",
   policy: { weekly_cap_atomic: "20000000000", lifetime_cap_atomic: "100000000000", expires_at_ns: "1798848000000000000" },
   now_ns: 1793664000000000000n,
 });
@@ -21,7 +21,7 @@ vault.activateAgent("owner.test", { agent_account_id: "agent.test", public_key: 
 vault.fund(50000000000n);
 vault.unpause("owner.test");
 
-const gateway = new SimVaultGateway([vault]); // implements VaultGateway from @redline/schemas
+const gateway = new SimVaultGateway([vault]); // implements VaultGateway from @wardline/schemas
 ```
 
 - `new VaultSim(config)` mirrors `new(config)`: it starts paused with no agent.
@@ -41,4 +41,4 @@ These depend on the chain, so the sim leaves them out: attached deposits, gas (`
 
 ## Test
 
-`pnpm --filter @redline/vault-sim test`
+`pnpm --filter @wardline/vault-sim test`

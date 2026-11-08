@@ -3,15 +3,15 @@ import { p256 } from "@noble/curves/nist.js";
 import { base64urlnopad } from "@scure/base";
 import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
-import { createMemoryRegistry, createRedline, RedlineBlockedError, seedEvmAddress, STUB_VENDORS, type Redline } from "@redline/sdk";
+import { createMemoryRegistry, createWardline, WardlineBlockedError, seedEvmAddress, STUB_VENDORS, type Wardline } from "@wardline/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFakeX402Server, fakePayingFetch, lookalikeAddress, type FakeServer } from "../src/fake-server.js";
-import { networkToChain, parseDidWeb, verifyDidWebJws, withRedline, type DidDocument } from "../src/index.js";
+import { networkToChain, parseDidWeb, verifyDidWebJws, withWardline, type DidDocument } from "../src/index.js";
 
 const DOMAIN = "northwind.example";
 const REAL = seedEvmAddress(DOMAIN);
 
-const redline: Redline = createRedline({
+const wardline: Wardline = createWardline({
   mode: "direct",
   nearRpcUrl: "https://rpc.invalid",
   registryAccount: "registry.invalid",
@@ -34,13 +34,13 @@ const requirement = { scheme: "exact", network: "eip155:84532", amount: "10000",
 
 const respond402 = (body: unknown, headers: Record<string, string> = {}) => new Response(typeof body === "string" ? body : JSON.stringify(body), { status: 402, headers });
 
-const guardAgainst = (response: () => Response, options: Partial<Parameters<typeof withRedline>[1]> = {}) =>
-  withRedline((async () => response()) as typeof fetch, { redline, ...options });
+const guardAgainst = (response: () => Response, options: Partial<Parameters<typeof withWardline>[1]> = {}) =>
+  withWardline((async () => response()) as typeof fetch, { wardline, ...options });
 
 describe("honest and malicious servers", () => {
   it("lets an honest server get paid", async () => {
     await start({ mode: "honest" });
-    const pay = fakePayingFetch(withRedline(server.fetch, { redline }));
+    const pay = fakePayingFetch(withWardline(server.fetch, { wardline }));
     const response = await pay(server.resourceUrl);
     expect(response.status).toBe(200);
     expect(server.payments).toEqual([{ payTo: REAL }]);
@@ -50,9 +50,9 @@ describe("honest and malicious servers", () => {
     await start({ mode: "malicious" });
     expect(server.payTo).not.toBe(REAL);
     expect(server.payTo.slice(0, 6)).toBe(REAL.slice(0, 6));
-    const pay = fakePayingFetch(withRedline(server.fetch, { redline }));
-    const error = (await pay(server.resourceUrl).catch((e: unknown) => e)) as RedlineBlockedError;
-    expect(error).toBeInstanceOf(RedlineBlockedError);
+    const pay = fakePayingFetch(withWardline(server.fetch, { wardline }));
+    const error = (await pay(server.resourceUrl).catch((e: unknown) => e)) as WardlineBlockedError;
+    expect(error).toBeInstanceOf(WardlineBlockedError);
     expect(error.verdict).toBe("BLOCK");
     expect(error.reasons.map((r) => r.code)).toContain("LOOKALIKE_ACCOUNT");
     expect(error.evidenceTier).toBe("T0_NONE");
@@ -70,7 +70,7 @@ describe("honest and malicious servers", () => {
   it("passes other responses through without a check", async () => {
     await start();
     const check = vi.fn();
-    const guarded = withRedline(server.fetch, { redline: { check } as never });
+    const guarded = withWardline(server.fetch, { wardline: { check } as never });
     expect((await guarded(`https://${DOMAIN}/.well-known/did.json`)).status).toBe(200);
     expect(check).not.toHaveBeenCalled();
   });
@@ -94,7 +94,7 @@ describe("with the real @x402/fetch client", () => {
 
   it.each([[false], [true]])("pays an honest server through a guarded fetch (signed offers: %s)", async (signOffers) => {
     await start({ mode: "honest", signOffers });
-    const pay = wrapFetchWithPayment(withRedline(server.fetch, { redline }), realClient());
+    const pay = wrapFetchWithPayment(withWardline(server.fetch, { wardline }), realClient());
     const response = await pay(server.resourceUrl);
     expect(response.status).toBe(200);
     expect(server.payments).toEqual([{ payTo: REAL }]);
@@ -102,8 +102,8 @@ describe("with the real @x402/fetch client", () => {
 
   it.each([[false], [true]])("blocks a swapped payTo through a guarded fetch (signed offers: %s)", async (signOffers) => {
     await start({ mode: "malicious", signOffers });
-    const pay = wrapFetchWithPayment(withRedline(server.fetch, { redline }), realClient());
-    await expect(pay(server.resourceUrl)).rejects.toMatchObject({ name: "RedlineBlockedError", verdict: "BLOCK" });
+    const pay = wrapFetchWithPayment(withWardline(server.fetch, { wardline }), realClient());
+    await expect(pay(server.resourceUrl)).rejects.toMatchObject({ name: "WardlineBlockedError", verdict: "BLOCK" });
     expect(server.payments).toEqual([]);
   });
 
@@ -117,11 +117,11 @@ describe("with the real @x402/fetch client", () => {
       const both = { ...body, accepts: [unverified, ...body.accepts] };
       return new Response(JSON.stringify(both), { status: 402, headers: { "PAYMENT-REQUIRED": Buffer.from(JSON.stringify(both)).toString("base64") } });
     }) as typeof fetch;
-    const check = vi.spyOn(redline, "check").mockImplementation(async (request) => {
+    const check = vi.spyOn(wardline, "check").mockImplementation(async (request) => {
       const real = request.payee.endsWith(REAL);
       return { verdict: real ? "PAY" : "HOLD", payee: request.payee, reasons: [], vendor: null, signals: {} as never, caseFile: null, receipt: null };
     });
-    const pay = wrapFetchWithPayment(withRedline(wrapped, { redline }), realClient());
+    const pay = wrapFetchWithPayment(withWardline(wrapped, { wardline }), realClient());
     expect((await pay(server.resourceUrl)).status).toBe(200);
     expect(server.payments).toEqual([{ payTo: REAL }]);
     check.mockRestore();
@@ -129,8 +129,8 @@ describe("with the real @x402/fetch client", () => {
 
   it("the hook allows an honest server on a real x402Client", async () => {
     await start({ mode: "honest", signOffers: true });
-    const check = vi.spyOn(redline, "check");
-    const client = withRedline(realClient(), { redline, resolveDid: async () => (await server.fetch(`https://${DOMAIN}/.well-known/did.json`)).json() as Promise<DidDocument> });
+    const check = vi.spyOn(wardline, "check");
+    const client = withWardline(realClient(), { wardline, resolveDid: async () => (await server.fetch(`https://${DOMAIN}/.well-known/did.json`)).json() as Promise<DidDocument> });
     expect((await wrapFetchWithPayment(server.fetch, client)(server.resourceUrl)).status).toBe(200);
     expect(check.mock.calls[0]?.[0]).toMatchObject({ vendor: { domain: DOMAIN }, source: "x402" });
     expect(server.payments).toEqual([{ payTo: REAL }]);
@@ -139,7 +139,7 @@ describe("with the real @x402/fetch client", () => {
 
   it("the hook aborts a swapped payTo on a real x402Client, and nothing is paid", async () => {
     await start({ mode: "malicious" });
-    const client = withRedline(realClient(), { redline });
+    const client = withWardline(realClient(), { wardline });
     await expect(wrapFetchWithPayment(server.fetch, client)(server.resourceUrl)).rejects.toThrow(/LOOKALIKE_ACCOUNT/);
     expect(server.payments).toEqual([]);
   });
@@ -148,15 +148,15 @@ describe("with the real @x402/fetch client", () => {
 describe("signed offers", () => {
   it("pays on a valid did:web offer for the verified account", async () => {
     await start({ mode: "honest", signOffers: true });
-    const response = await fakePayingFetch(withRedline(server.fetch, { redline }))(server.resourceUrl);
+    const response = await fakePayingFetch(withWardline(server.fetch, { wardline }))(server.resourceUrl);
     expect(response.status).toBe(200);
   });
 
   it("still blocks when the website's own key signs the swapped address", async () => {
     await start({ mode: "malicious", signOffers: true });
-    const check = vi.spyOn(redline, "check");
-    const error = (await fakePayingFetch(withRedline(server.fetch, { redline }))(server.resourceUrl).catch((e: unknown) => e)) as RedlineBlockedError;
-    expect(error).toBeInstanceOf(RedlineBlockedError);
+    const check = vi.spyOn(wardline, "check");
+    const error = (await fakePayingFetch(withWardline(server.fetch, { wardline }))(server.resourceUrl).catch((e: unknown) => e)) as WardlineBlockedError;
+    expect(error).toBeInstanceOf(WardlineBlockedError);
     expect(error.verdict).toBe("BLOCK");
     expect(check).toHaveBeenCalled();
     expect(server.payments).toEqual([]);
@@ -181,7 +181,7 @@ describe("signed offers", () => {
     guardAgainst(() => respond402(body), { resolveDid: async () => doc })(url);
 
   it("takes the domain from the offer's did:web key, not the request host", async () => {
-    const check = vi.spyOn(redline, "check");
+    const check = vi.spyOn(wardline, "check");
     const body = required(offerFor({ ...offerPayload, resourceUrl: "https://cdn.fastpay.example/x" }));
     const response = await request(body, docFor(), "https://cdn.fastpay.example/x");
     expect(response.status).toBe(402);
@@ -190,7 +190,7 @@ describe("signed offers", () => {
   });
 
   it("uses a signed offer's domain only for the option it signed", async () => {
-    const check = vi.spyOn(redline, "check");
+    const check = vi.spyOn(wardline, "check");
     const unsigned = { ...requirement, payTo: `0x${"77".repeat(20)}` };
     const resourceUrl = "https://not-listed.example/x";
     const body = required(offerFor({ ...offerPayload, resourceUrl }), [requirement, unsigned]);
@@ -217,12 +217,12 @@ describe("signed offers", () => {
     ["a DID document for another identifier", () => required(offerFor(offerPayload)), { ...docFor(), id: "did:web:evil.example" }],
     ["a DID document without the key", () => required(offerFor(offerPayload)), { id: did, verificationMethod: [] }],
   ])("fails closed on %s", async (_name, body, doc) => {
-    await expect(request(body(), doc)).rejects.toBeInstanceOf(RedlineBlockedError);
+    await expect(request(body(), doc)).rejects.toBeInstanceOf(WardlineBlockedError);
   });
 
   it("fails closed when the DID document cannot be fetched", async () => {
     const guarded = guardAgainst(() => respond402(required(offerFor(offerPayload))), { resolveDid: () => Promise.reject(new Error("offline")) });
-    await expect(guarded(`https://${DOMAIN}/x`)).rejects.toBeInstanceOf(RedlineBlockedError);
+    await expect(guarded(`https://${DOMAIN}/x`)).rejects.toBeInstanceOf(WardlineBlockedError);
   });
 
   it("verifies an ES256 JWS", async () => {
@@ -259,30 +259,30 @@ describe("fails closed", () => {
     ["an unknown network", () => respond402({ accepts: [{ ...requirement, network: "Not A Network" }] })],
     ["an invalid address", () => respond402({ accepts: [{ ...requirement, payTo: "0x123" }] })],
   ])("on %s", async (_name, response) => {
-    await expect(guardAgainst(response)(url)).rejects.toBeInstanceOf(RedlineBlockedError);
+    await expect(guardAgainst(response)(url)).rejects.toBeInstanceOf(WardlineBlockedError);
   });
 
   it("when the check itself throws", async () => {
-    const guarded = withRedline((async () => respond402({ accepts: [requirement] })) as typeof fetch, { redline: { check: () => Promise.reject(new Error("api down")) } });
-    const error = (await guarded(url).catch((e: unknown) => e)) as RedlineBlockedError;
-    expect(error).toBeInstanceOf(RedlineBlockedError);
+    const guarded = withWardline((async () => respond402({ accepts: [requirement] })) as typeof fetch, { wardline: { check: () => Promise.reject(new Error("api down")) } });
+    const error = (await guarded(url).catch((e: unknown) => e)) as WardlineBlockedError;
+    expect(error).toBeInstanceOf(WardlineBlockedError);
     expect(error.verdict).toBeNull();
     expect(error.message).toContain("api down");
   });
 
   it("when the request host is not a usable domain", async () => {
-    await expect(guardAgainst(() => respond402({ accepts: [requirement] }))("http://127.0.0.1:3000/x")).rejects.toBeInstanceOf(RedlineBlockedError);
+    await expect(guardAgainst(() => respond402({ accepts: [requirement] }))("http://127.0.0.1:3000/x")).rejects.toBeInstanceOf(WardlineBlockedError);
   });
 
   it("on a HOLD", async () => {
-    const error = (await guardAgainst(() => respond402({ accepts: [requirement] }))("https://not-listed.example/x").catch((e: unknown) => e)) as RedlineBlockedError;
-    expect(error).toBeInstanceOf(RedlineBlockedError);
+    const error = (await guardAgainst(() => respond402({ accepts: [requirement] }))("https://not-listed.example/x").catch((e: unknown) => e)) as WardlineBlockedError;
+    expect(error).toBeInstanceOf(WardlineBlockedError);
     expect(error.verdict).toBe("HOLD");
     expect(error.reasons[0]?.code).toBe("NOT_IN_REGISTRY");
   });
 
   it("does not catch a network failure as a verdict, since nothing was offered", async () => {
-    const guarded = withRedline((() => Promise.reject(new TypeError("fetch failed"))) as typeof fetch, { redline });
+    const guarded = withWardline((() => Promise.reject(new TypeError("fetch failed"))) as typeof fetch, { wardline });
     await expect(guarded(url)).rejects.toBeInstanceOf(TypeError);
   });
 });
@@ -342,7 +342,7 @@ describe("x402 client hook", () => {
   const paymentRequired = { accepts: [requirement], resource: { url: `https://${DOMAIN}/x` } };
 
   beforeEach(() => {
-    expect(withRedline(client, { redline })).toBe(client);
+    expect(withWardline(client, { wardline })).toBe(client);
   });
 
   it("allows a PAY", async () => {
@@ -360,8 +360,8 @@ describe("x402 client hook", () => {
   });
 });
 
-describe("withRedline", () => {
+describe("withWardline", () => {
   it("rejects anything that is neither a fetch nor a client", () => {
-    expect(() => withRedline({} as never, { redline })).toThrow(TypeError);
+    expect(() => withWardline({} as never, { wardline })).toThrow(TypeError);
   });
 });

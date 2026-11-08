@@ -1,5 +1,5 @@
 {
-  "schema": "redline-decision-v1",
+  "schema": "wardline-decision-v1",
   "intake_ref": "int_1001",
   "decision": "PAY",
   "matched_payable_ref": "pay_1001",

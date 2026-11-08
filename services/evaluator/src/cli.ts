@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { loadRepoEnv } from "@redline/agent";
+import { loadRepoEnv } from "@wardline/agent";
 import { DEFAULT_AGENTS, resolveAgents } from "./agents.js";
 import { requireLlmIfConfigured } from "./llm-preflight.js";
 import { canonicalJson } from "./canonical.js";
@@ -106,7 +106,7 @@ function checkAgainstCommitment(suite: LoadedScenario[]): { commitment: string }
   const privDir = PRIVATE_SUITE();
   const pubPath = join(PUBLIC_ASSESSMENT(), "suite-commitment.json");
   if (!existsSync(join(privDir, "suite-manifest.json")) || !existsSync(pubPath))
-    throw new Error("no suite commitment yet. Run `pnpm --filter @redline/evaluator commit:assessment` first");
+    throw new Error("no suite commitment yet. Run `pnpm --filter @wardline/evaluator commit:assessment` first");
   const committed = SuiteManifestSchema.parse(readJson(join(privDir, "suite-manifest.json")));
   const salt = saltFromHex(readFileSync(join(privDir, "suite-salt.hex"), "utf8"));
   const record = SuiteCommitmentSchema.parse(readJson(pubPath));
@@ -161,7 +161,7 @@ async function cmdRun(flags: Record<string, string | true>): Promise<void> {
     runs.push(run);
     const runDir = join(suiteDir, "runs", split === "dev" ? agent.name : `${agent.name}-${stamp}`);
     const runRecord = {
-      schema: "redline-run-record-v1",
+      schema: "wardline-run-record-v1",
       run_id: runId,
       agent: { name: agent.name, label: agent.label, kind: agent.kind, stub: agent.stub, manifest: agent.manifest },
       suite_commitment: commitment,
@@ -200,7 +200,7 @@ function cmdVerify(): void {
   if (bad > 0) process.exitCode = 1;
 }
 
-const HELP = `redline gym
+const HELP = `wardline gym
 
   validate [--split dev|assessment]      validate fixtures against the schema and lint rules
   run --split dev [--agents a,b] [--out evidence/<dir>] [--publish-salt]

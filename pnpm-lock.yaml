@@ -166,10 +166,10 @@ importers:
 
   .:
     devDependencies:
-      '@redline/sdk':
+      '@wardline/sdk':
         specifier: workspace:*
         version: link:packages/sdk
-      '@redline/x402-guard':
+      '@wardline/x402-guard':
         specifier: workspace:*
         version: link:packages/x402-guard
       concurrently:
@@ -193,15 +193,15 @@ importers:
       '@near-wallet-selector/my-near-wallet':
         specifier: ^10.1.4
         version: 10.1.4(@near-js/keystores@2.2.5(@near-js/crypto@2.5.1(@near-js/types@2.5.1)(@near-js/utils@2.5.1(@near-js/types@2.5.1)))(@near-js/types@2.5.1))(@near-js/signers@2.5.1(@near-js/crypto@2.5.1(@near-js/types@2.5.1)(@near-js/utils@2.5.1(@near-js/types@2.5.1)))(@near-js/keystores@2.2.5(@near-js/crypto@2.5.1(@near-js/types@2.5.1)(@near-js/utils@2.5.1(@near-js/types@2.5.1)))(@near-js/types@2.5.1))(@near-js/transactions@2.5.1(@near-js/crypto@2.5.1(@near-js/types@2.5.1)(@near-js/utils@2.5.1(@near-js/types@2.5.1)))(@near-js/types@2.5.1)(@near-js/utils@2.5.1(@near-js/types@2.5.1))))(@near-js/tokens@2.5.1)(@near-js/types@2.5.1)
-      '@redline/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
-      '@redline/x402-guard':
-        specifier: workspace:*
-        version: link:../../packages/x402-guard
       '@scure/base':
         specifier: ^2.4.0
         version: 2.4.0
+      '@wardline/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@wardline/x402-guard':
+        specifier: workspace:*
+        version: link:../../packages/x402-guard
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
@@ -227,9 +227,6 @@ importers:
       '@playwright/test':
         specifier: ^1.65.0
         version: 1.65.0
-      '@redline/schemas':
-        specifier: workspace:*
-        version: link:../../packages/schemas
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -242,6 +239,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.2.1
         version: 6.2.1(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
+      '@wardline/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0(supports-color@8.1.1)
@@ -285,12 +285,12 @@ importers:
       '@noble/hashes':
         specifier: ^2.4.0
         version: 2.4.0
-      '@redline/schemas':
-        specifier: workspace:*
-        version: link:../schemas
       '@scure/base':
         specifier: ^2.4.0
         version: 2.4.0
+      '@wardline/schemas':
+        specifier: workspace:*
+        version: link:../schemas
       canonicalize:
         specifier: ^5.1.0
         version: 5.1.0
@@ -313,7 +313,7 @@ importers:
 
   packages/vault-client:
     dependencies:
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../schemas
       near-api-js:
@@ -335,7 +335,7 @@ importers:
 
   packages/vault-sim:
     dependencies:
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../schemas
     devDependencies:
@@ -357,15 +357,15 @@ importers:
       '@noble/hashes':
         specifier: ^2.4.0
         version: 2.4.0
-      '@redline/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@redline/sdk':
-        specifier: workspace:*
-        version: link:../sdk
       '@scure/base':
         specifier: ^2.4.0
         version: 2.4.0
+      '@wardline/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@wardline/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       canonicalize:
         specifier: ^5.1.0
         version: 5.1.0
@@ -391,7 +391,7 @@ importers:
 
   scripts/contracts:
     dependencies:
-      '@redline/vault-client':
+      '@wardline/vault-client':
         specifier: workspace:*
         version: link:../../packages/vault-client
       near-api-js:
@@ -410,7 +410,7 @@ importers:
 
   services/agent:
     dependencies:
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
       canonicalize:
@@ -444,21 +444,21 @@ importers:
       '@noble/hashes':
         specifier: ^2.4.0
         version: 2.4.0
-      '@redline/agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@redline/schemas':
-        specifier: workspace:*
-        version: link:../../packages/schemas
-      '@redline/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
-      '@redline/vault-client':
-        specifier: workspace:*
-        version: link:../../packages/vault-client
       '@scure/base':
         specifier: ^2.4.0
         version: 2.4.0
+      '@wardline/agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@wardline/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+      '@wardline/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@wardline/vault-client':
+        specifier: workspace:*
+        version: link:../../packages/vault-client
       better-sqlite3:
         specifier: 12.9.0
         version: 12.9.0
@@ -493,13 +493,13 @@ importers:
 
   services/evaluator:
     dependencies:
-      '@redline/agent':
+      '@wardline/agent':
         specifier: workspace:*
         version: link:../agent
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
-      '@redline/vault-sim':
+      '@wardline/vault-sim':
         specifier: workspace:*
         version: link:../../packages/vault-sim
       zod:
@@ -524,10 +524,10 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.2
         version: 1.32.2(supports-color@8.1.1)(zod@4.6.7)
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
-      '@redline/sdk':
+      '@wardline/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       zod:
@@ -546,16 +546,16 @@ importers:
 
   services/redteam:
     dependencies:
-      '@redline/agent':
+      '@wardline/agent':
         specifier: workspace:*
         version: link:../agent
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
-      '@redline/sdk':
+      '@wardline/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@redline/x402-guard':
+      '@wardline/x402-guard':
         specifier: workspace:*
         version: link:../../packages/x402-guard
       canonicalize:
@@ -580,13 +580,13 @@ importers:
 
   tests/sandbox:
     dependencies:
-      '@redline/schemas':
+      '@wardline/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
-      '@redline/vault-client':
+      '@wardline/vault-client':
         specifier: workspace:*
         version: link:../../packages/vault-client
-      '@redline/vault-sim':
+      '@wardline/vault-sim':
         specifier: workspace:*
         version: link:../../packages/vault-sim
       near-api-js:

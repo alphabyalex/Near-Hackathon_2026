@@ -56,7 +56,7 @@ export function shortDigest(digest: string): string {
   return `${algorithm}:${hex.slice(0, 8)}...${hex.slice(-4)}`;
 }
 
-/** vault-a.redline.testnet is Business A. Other accounts show as they are. */
+/** vault-a.wardline.testnet is Business A. Other accounts show as they are. */
 export function businessName(vaultId: string): string {
   const match = /^vault-([a-z0-9]+)\./.exec(vaultId);
   return match?.[1] ? `Business ${match[1].toUpperCase()}` : vaultId;

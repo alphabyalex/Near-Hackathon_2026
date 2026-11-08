@@ -1,13 +1,13 @@
 {
-  "manifest_digest": "sha256:3263c237d3152bfd36cabd6c7087feafab964fcc36336219df9a5016d3e511da",
+  "manifest_digest": "sha256:be48e5ff9385a61bed08dfd3c12801a7b5edd90394b70c43171a47e70f74c877",
   "manifest": {
-    "schema": "redline-manifest-v1",
-    "name": "redline-invoice-agent",
+    "schema": "wardline-manifest-v1",
+    "name": "wardline-invoice-agent",
     "version": "A",
     "model_provider": "near-ai-cloud",
     "model_id": "z-ai/glm-5.3-flash",
-    "prompt_digest": "sha256:7adac5eae615e3c08471883b4545fa4b230e4f2dc400f6e8785c2d8fc5b47655",
-    "harness_digest": "sha256:e48b6cef752f42b91fe35f1fd9f7aefeb8a4c5af8ec3a96722228db2acc5c0fb",
+    "prompt_digest": "sha256:224e7d4889b99d95d5f0c0270305d74bd6cf0df384643b9c6ea40fc984ea2750",
+    "harness_digest": "sha256:82c6ca5f959f80461e7593d4034cd427e094c4a77d0e233112335b85cb9bd67f",
     "tools": [],
     "settings": {
       "temperature": 0,
@@ -17,7 +17,7 @@
       "response_format": "json_schema",
       "max_attempts": 2,
       "timeout_ms": 60000,
-      "token_symbol": "REDL",
+      "token_symbol": "WUSD",
       "token_decimals": 6
     },
     "created_at": "2026-11-05T00:00:00Z"

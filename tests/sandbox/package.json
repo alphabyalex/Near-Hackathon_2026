@@ -1,17 +1,17 @@
 {
-  "name": "@redline/sandbox-tests",
+  "name": "@wardline/sandbox-tests",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "MIT",
   "main": "./src/harness.ts",
   "scripts": {
-    "test:sandbox": "pnpm --filter @redline/schemas --filter @redline/vault-sim --filter @redline/vault-client build && vitest run"
+    "test:sandbox": "pnpm --filter @wardline/schemas --filter @wardline/vault-sim --filter @wardline/vault-client build && vitest run"
   },
   "dependencies": {
-    "@redline/schemas": "workspace:*",
-    "@redline/vault-client": "workspace:*",
-    "@redline/vault-sim": "workspace:*",
+    "@wardline/schemas": "workspace:*",
+    "@wardline/vault-client": "workspace:*",
+    "@wardline/vault-sim": "workspace:*",
     "near-api-js": "7.4.0",
     "near-sandbox": "0.3.5"
   },

@@ -1,4 +1,4 @@
-import type { AgentContext, Decision, Intake, Payable, ReasonCode, Vendor } from "@redline/schemas";
+import type { AgentContext, Decision, Intake, Payable, ReasonCode, Vendor } from "@wardline/schemas";
 import { findInvoiceTotal, isForeignCurrency } from "./amounts.js";
 import { checkPayable, checkWindow, isPaidStatus, scopeContext } from "./checks.js";
 import { makeDecision } from "./decisions.js";

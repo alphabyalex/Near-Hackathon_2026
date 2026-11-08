@@ -1,4 +1,4 @@
-import type { EvidenceTier, PayeeReason, PayeeVerdict } from "@redline/schemas";
+import type { EvidenceTier, PayeeReason, PayeeVerdict } from "@wardline/schemas";
 import { fromBase64, signNep413, type NearWalletId } from "../wallets/near";
 import { apiGet, apiPost } from "./client";
 
@@ -80,7 +80,7 @@ export interface ApiKeyRow {
 export const createKey = (input: { payer: string; label?: string; scopes: string[] }): Promise<ApiKeyRow & { key: string }> => apiPost("/owner/api-keys", input);
 export const revokeKey = (id: string): Promise<unknown> => apiPost(`/owner/api-keys/${encodeURIComponent(id)}/revoke`);
 
-const LAST_WALLET = "redline.lastNearWallet";
+const LAST_WALLET = "wardline.lastNearWallet";
 
 /** Per-viewer convenience: the wallet used last, offered first. */
 export function lastWallet(): NearWalletId | null {

@@ -1,24 +1,24 @@
-import { PayeeCheckRequest, PayeeCheckResult, PayeeResolveRequest, PayeeResolveResult, PayeeVendor } from "@redline/schemas";
+import { PayeeCheckRequest, PayeeCheckResult, PayeeResolveRequest, PayeeResolveResult, PayeeVendor } from "@wardline/schemas";
 import { normalizeAccount, normalizeDomain } from "./caip.js";
-import { RedlineApiError } from "./errors.js";
+import { WardlineApiError } from "./errors.js";
 import { createMemoryHistory } from "./history.js";
 import type { EngineContext, PayeeEngine, PayeeHistoryStore, PayeeRegistry, RegistryVendor, SignalsProvider } from "./interfaces.js";
 import { createStubEngine } from "./stub-engine.js";
 import { createMemoryRegistry, createStubSignals, STUB_VENDORS } from "./stub-registry.js";
 
-export interface Redline {
+export interface Wardline {
   readonly mode: "hosted" | "direct";
   resolve(request: PayeeResolveRequest): Promise<PayeeResolveResult>;
   check(request: PayeeCheckRequest): Promise<PayeeCheckResult>;
   getVendor(domain: string): Promise<PayeeVendor | null>;
-  /** Tells Redline a payment happened, so a later account change raises PAYEE_CHANGED. */
+  /** Tells Wardline a payment happened, so a later account change raises PAYEE_CHANGED. */
   recordPayment(payment: { payer: string; domain: string; account: string }): Promise<void>;
 }
 
 export interface HostedOptions {
   mode: "hosted";
   baseUrl: string;
-  /** An API key from your Redline owner. Needed to pass `payer` or record payments. */
+  /** An API key from your Wardline owner. Needed to pass `payer` or record payments. */
   apiKey?: string;
   fetch?: typeof globalThis.fetch;
 }
@@ -35,9 +35,9 @@ export interface DirectOptions {
   network?: string;
 }
 
-export type RedlineOptions = HostedOptions | DirectOptions;
+export type WardlineOptions = HostedOptions | DirectOptions;
 
-function createHosted(options: HostedOptions): Redline {
+function createHosted(options: HostedOptions): Wardline {
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 
@@ -52,7 +52,7 @@ function createHosted(options: HostedOptions): Redline {
   const expectOk = (status: number, json: unknown): unknown => {
     if (status >= 200 && status < 300) return json;
     const { error, message } = (json ?? {}) as { error?: string; message?: string };
-    throw new RedlineApiError(status, error ?? "API_ERROR", message ?? `The Redline API answered ${status}.`);
+    throw new WardlineApiError(status, error ?? "API_ERROR", message ?? `The Wardline API answered ${status}.`);
   };
 
   return {
@@ -81,10 +81,10 @@ const publicVendor = (vendor: RegistryVendor): PayeeVendor => PayeeVendor.parse(
 
 let sampleRegistryWarned = false;
 
-function createDirect(options: DirectOptions): Redline {
+function createDirect(options: DirectOptions): Wardline {
   if (!options.registry && !sampleRegistryWarned) {
     sampleRegistryWarned = true;
-    console.warn("@redline/sdk: no registry passed, so direct mode is reading the built-in sample registry, not NEAR.");
+    console.warn("@wardline/sdk: no registry passed, so direct mode is reading the built-in sample registry, not NEAR.");
   }
   const network = options.network ?? "testnet";
   const engine = options.engine ?? createStubEngine();
@@ -112,6 +112,6 @@ function createDirect(options: DirectOptions): Redline {
   };
 }
 
-export function createRedline(options: RedlineOptions): Redline {
+export function createWardline(options: WardlineOptions): Wardline {
   return options.mode === "hosted" ? createHosted(options) : createDirect(options);
 }

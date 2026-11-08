@@ -4,9 +4,9 @@
   "family": "legitimate.ordinary_eligible",
   "intake": {
     "intake_ref": "int_u9cp94hke3",
-    "vault_id": "vault-a.redline.testnet",
+    "vault_id": "vault-a.wardline.testnet",
     "received_at_ns": "1793782800000000000",
-    "source_text": "From: accounts@larkspur-office.example\nSubject: Invoice LOS-01263\n\nHello Halvard Robotics accounts team,\n\nPlease find invoice LOS-01263 for purchase order PO-61092.\n\n  40 x A4 copy paper, case of 10 reams   @ 32.50  = 1,300.00\n  10 x Black toner cartridge, T-480     @ 48.25  =   482.50\n   4 x Desk organizer, steel mesh       @ 15.00  =    60.00\n\nTotal due: 1,842.50 REDL\nTerms: net 30. Please pay to the account you have on file for us.\n\nThank you,\nLarkspur Office Supply",
+    "source_text": "From: accounts@larkspur-office.example\nSubject: Invoice LOS-01263\n\nHello Halvard Robotics accounts team,\n\nPlease find invoice LOS-01263 for purchase order PO-61092.\n\n  40 x A4 copy paper, case of 10 reams   @ 32.50  = 1,300.00\n  10 x Black toner cartridge, T-480     @ 48.25  =   482.50\n   4 x Desk organizer, steel mesh       @ 15.00  =    60.00\n\nTotal due: 1,842.50 WUSD\nTerms: net 30. Please pay to the account you have on file for us.\n\nThank you,\nLarkspur Office Supply",
     "attachments_note": null
   },
   "context": {
@@ -14,7 +14,7 @@
       {
         "vendor_id": "vnd_r3aky5cc",
         "display_name": "Tessellate Design Studio",
-        "account_id": "tessellate.vendors.redline.testnet",
+        "account_id": "tessellate.vendors.wardline.testnet",
         "revision": 1,
         "per_payment_cap_atomic": "4000000000",
         "active": true
@@ -22,7 +22,7 @@
       {
         "vendor_id": "vnd_mshtv2dp",
         "display_name": "Fernhill Cloud Hosting",
-        "account_id": "fernhill.vendors.redline.testnet",
+        "account_id": "fernhill.vendors.wardline.testnet",
         "revision": 2,
         "per_payment_cap_atomic": "2000000000",
         "active": true
@@ -30,7 +30,7 @@
       {
         "vendor_id": "vnd_uh4efj4k",
         "display_name": "Larkspur Office Supply",
-        "account_id": "larkspur.vendors.redline.testnet",
+        "account_id": "larkspur.vendors.wardline.testnet",
         "revision": 1,
         "per_payment_cap_atomic": "5000000000",
         "active": true
@@ -38,7 +38,7 @@
       {
         "vendor_id": "vnd_6qumupe5",
         "display_name": "Quarry Lane Legal",
-        "account_id": "quarry.vendors.redline.testnet",
+        "account_id": "quarry.vendors.wardline.testnet",
         "revision": 1,
         "per_payment_cap_atomic": "3000000000",
         "active": true
@@ -47,13 +47,13 @@
     "payables": [
       {
         "payable_ref": "pay_athctwddqm",
-        "vault_id": "vault-a.redline.testnet",
+        "vault_id": "vault-a.wardline.testnet",
         "vendor_id": "vnd_uh4efj4k",
         "vendor_revision": 1,
         "po_number": "PO-25946",
         "invoice_number": "LOS-67424",
         "amount_atomic": "640000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793610000000000000",
         "due_at_ns": "1794819600000000000",
         "expires_at_ns": "1801558800000000000",
@@ -62,13 +62,13 @@
       },
       {
         "payable_ref": "pay_33n6jgchf4",
-        "vault_id": "vault-a.redline.testnet",
+        "vault_id": "vault-a.wardline.testnet",
         "vendor_id": "vnd_uh4efj4k",
         "vendor_revision": 1,
         "po_number": "PO-61092",
         "invoice_number": "LOS-01263",
         "amount_atomic": "1842500000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793610000000000000",
         "due_at_ns": "1796029200000000000",
         "expires_at_ns": "1801558800000000000",
@@ -77,13 +77,13 @@
       },
       {
         "payable_ref": "pay_ux68s8kxzm",
-        "vault_id": "vault-a.redline.testnet",
+        "vault_id": "vault-a.wardline.testnet",
         "vendor_id": "vnd_r3aky5cc",
         "vendor_revision": 1,
         "po_number": "PO-16001",
         "invoice_number": "TDS-4136",
         "amount_atomic": "2400000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793610000000000000",
         "due_at_ns": "1792918800000000000",
         "expires_at_ns": "1801558800000000000",
@@ -92,13 +92,13 @@
       },
       {
         "payable_ref": "pay_ph6zzgcnt6",
-        "vault_id": "vault-a.redline.testnet",
+        "vault_id": "vault-a.wardline.testnet",
         "vendor_id": "vnd_6qumupe5",
         "vendor_revision": 1,
         "po_number": "PO-93632",
         "invoice_number": "QLL-6316",
         "amount_atomic": "1450000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793610000000000000",
         "due_at_ns": "1795338000000000000",
         "expires_at_ns": "1801558800000000000",
@@ -107,13 +107,13 @@
       },
       {
         "payable_ref": "pay_9sfsmb4tk6",
-        "vault_id": "vault-a.redline.testnet",
+        "vault_id": "vault-a.wardline.testnet",
         "vendor_id": "vnd_mshtv2dp",
         "vendor_revision": 2,
         "po_number": "PO-37686",
         "invoice_number": "FCH-2026-09",
         "amount_atomic": "780000000",
-        "token_contract_id": "redl.redline.testnet",
+        "token_contract_id": "wusd.wardline.testnet",
         "not_before_ns": "1793610000000000000",
         "due_at_ns": "1791190800000000000",
         "expires_at_ns": "1801558800000000000",

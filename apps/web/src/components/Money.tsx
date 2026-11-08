@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { TokenInfo } from "@redline/schemas";
+import type { TokenInfo } from "@wardline/schemas";
 import { formatAtomic } from "../format";
 
 export const TokenContext = createContext<TokenInfo | null>(null);

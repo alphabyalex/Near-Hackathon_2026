@@ -14,7 +14,7 @@ afterEach(cleanup);
 
 describe("brand module", () => {
   it("holds the product name and hero line", () => {
-    expect(BRAND.name).toBe("Redline");
+    expect(BRAND.name).toBe("Wardline");
     expect(BRAND.homeLabel).toBe(`${BRAND.name} home`);
     expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("Your agent can read every invoice. It can never choose where the money goes.");
   });
@@ -50,8 +50,8 @@ describe("connect snippets", () => {
 
   it("fall back to a variable, never a local address, when no URL is set", () => {
     const s = snippets(null, null);
-    expect(s.resolve).toContain("$REDLINE_API_URL/v1/resolve");
-    expect(s.hosted).toContain("process.env.REDLINE_API_URL!");
+    expect(s.resolve).toContain("$WARDLINE_API_URL/v1/resolve");
+    expect(s.hosted).toContain("process.env.WARDLINE_API_URL!");
     expect(s.mcp).toBeNull();
     expect(JSON.stringify(s)).not.toMatch(/127\.0\.0\.1|localhost/);
   });
@@ -68,7 +68,7 @@ describe("helpers", () => {
   });
 
   it("builds the proof message and file the API verifies", () => {
-    expect(payeeMessage("acme.example", "near:testnet:acme.testnet", "2026-11-08T00:00:00.000Z")).toBe("redline-payee:v2:acme.example:near:testnet:acme.testnet:2026-11-08T00:00:00.000Z");
+    expect(payeeMessage("acme.example", "near:testnet:acme.testnet", "2026-11-08T00:00:00.000Z")).toBe("wardline-payee:v2:acme.example:near:testnet:acme.testnet:2026-11-08T00:00:00.000Z");
     expect(proofFile("acme.example", "Acme", "t", [])).toEqual({ version: 2, domain: "acme.example", name: "Acme", issued_at: "t", accounts: [] });
   });
 

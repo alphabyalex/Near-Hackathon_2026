@@ -1,4 +1,4 @@
-import type { AgentContext, Payable, PayableStatus, ReasonCode } from "@redline/schemas";
+import type { AgentContext, Payable, PayableStatus, ReasonCode } from "@wardline/schemas";
 
 /**
  * Checks on trusted data only. Nothing here reads invoice text, so nothing here can be talked

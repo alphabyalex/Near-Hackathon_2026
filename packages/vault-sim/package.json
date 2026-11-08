@@ -1,5 +1,5 @@
 {
-  "name": "@redline/vault-sim",
+  "name": "@wardline/vault-sim",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@redline/schemas": "workspace:*"
+    "@wardline/schemas": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

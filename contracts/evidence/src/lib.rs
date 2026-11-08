@@ -1,4 +1,4 @@
-//! Redline evidence registry. Records which exact agent version was tested, by whom, on which
+//! Wardline evidence registry. Records which exact agent version was tested, by whom, on which
 //! committed suite, with what result. Hashes only. Nothing here is ever edited or deleted.
 //! See contracts/evidence/README.md.
 
@@ -321,7 +321,7 @@ fn run_view(run_id: &str, run: &StoredRun) -> RunView {
 
 fn emit(event: &str, data: near_sdk::serde_json::Value) {
     let envelope = json!({
-        "standard": "redline",
+        "standard": "wardline",
         "version": "1.0.0",
         "event": event,
         "data": [data],

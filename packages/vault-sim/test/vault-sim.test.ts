@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { PaymentRequest, VaultRejection } from "@redline/schemas";
+import type { PaymentRequest, VaultRejection } from "@wardline/schemas";
 import { RECONCILE_AFTER_NS, ROLLING_WINDOW_NS, SimVaultGateway, createGymVaultSim, VaultPanic, VaultSim, type AgentCaller, type VaultSimConfig, type VaultSimInit } from "../src/index.js";
 
 const OWNER = "owner.test";

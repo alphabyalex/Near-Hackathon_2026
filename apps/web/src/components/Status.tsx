@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { PaymentStatus } from "@redline/schemas";
+import type { PaymentStatus } from "@wardline/schemas";
 
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.5 } as const;
 const ring = <circle cx="8" cy="8" r="6.5" {...stroke} />;

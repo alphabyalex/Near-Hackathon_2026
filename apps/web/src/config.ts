@@ -8,13 +8,13 @@ const clean = (value: string | undefined): string | null => {
 const env = import.meta.env;
 
 /** The public API URL, shown in snippets. Null when the site was built without one. */
-export const API_URL = clean(env.VITE_REDLINE_API_URL);
+export const API_URL = clean(env.VITE_WARDLINE_API_URL);
 /** The MCP endpoint, shown on Connect. */
-export const MCP_URL = clean(env.VITE_REDLINE_MCP_URL);
+export const MCP_URL = clean(env.VITE_WARDLINE_MCP_URL);
 /** What the browser calls. Without a URL, the same origin's /api, which the dev server proxies. */
 export const API_BASE = API_URL ?? "/api";
 /** Owner routes. Serve them on the same site as this app, so the session cookie is sent. */
-export const OWNER_BASE = clean(env.VITE_REDLINE_OWNER_URL) ?? `${API_BASE}/owner`;
+export const OWNER_BASE = clean(env.VITE_WARDLINE_OWNER_URL) ?? `${API_BASE}/owner`;
 export const NEAR_NETWORK = env.VITE_NEAR_NETWORK?.trim() || "testnet";
 /** End-to-end tests only: a scripted NEAR wallet. Never set in a real build. */
-export const TEST_WALLET = env.VITE_REDLINE_TEST_WALLET === "1";
+export const TEST_WALLET = env.VITE_WARDLINE_TEST_WALLET === "1";

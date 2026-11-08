@@ -1,6 +1,6 @@
 [package]
-name = "redline-evidence"
-description = "Redline evidence registry: append-only suite commitments and evaluation run results."
+name = "wardline-evidence"
+description = "Wardline evidence registry: append-only suite commitments and evaluation run results."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

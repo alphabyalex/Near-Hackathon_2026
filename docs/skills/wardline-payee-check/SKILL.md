@@ -1,11 +1,11 @@
 ---
-name: redline-payee-check
+name: wardline-payee-check
 description: Confirm who you are paying before any payment. Use before sending money to a vendor, paying an invoice, paying an x402 offer, or using an address from an email or message. Resolves a vendor's verified account from its website domain, or checks a raw address, across NEAR, EVM chains and Solana.
 ---
 
-# Redline payee check
+# Wardline payee check
 
-Vendors link their payout accounts to their website domain. Redline verifies control of each account and its link to the domain, and reports the trust level. Read that record before money moves.
+Vendors link their payout accounts to their website domain. Wardline verifies control of each account and its link to the domain, and reports the trust level. Read that record before money moves.
 
 ## Choose
 
@@ -79,23 +79,23 @@ curl -s http://127.0.0.1:8787/v1/check -H 'content-type: application/json' \
 **SDK:**
 
 ```ts
-import { createRedline, assertPayable } from "@redline/sdk";
-const redline = createRedline({ mode: "hosted", baseUrl: "http://127.0.0.1:8787" });
-const result = await redline.resolve({ domain: "northwind.example", chain: "near:testnet" });
+import { createWardline, assertPayable } from "@wardline/sdk";
+const wardline = createWardline({ mode: "hosted", baseUrl: "http://127.0.0.1:8787" });
+const result = await wardline.resolve({ domain: "northwind.example", chain: "near:testnet" });
 assertPayable(result);
 pay(result.account);
 ```
 
-Use `createRedline({ mode: "direct", nearRpcUrl, registryAccount })` to run checks locally, so Redline never sees who you pay.
+Use `createWardline({ mode: "direct", nearRpcUrl, registryAccount })` to run checks locally, so Wardline never sees who you pay.
 
-**x402:** wrap your fetch so each 402 is checked first: `wrapFetchWithPayment(withRedline(fetch, { redline }), x402Client)`.
+**x402:** wrap your fetch so each 402 is checked first: `wrapFetchWithPayment(withWardline(fetch, { wardline }), x402Client)`.
 
 ## After paying
 
 Record the payment so a later account change raises `PAYEE_CHANGED`. This needs the payer's API key with the `record` scope, which the system that settles payments should hold, not the agent:
 
 ```sh
-curl -s http://127.0.0.1:8787/v1/payments/record -H 'content-type: application/json' -H "authorization: Bearer $REDLINE_RECORD_KEY" \
+curl -s http://127.0.0.1:8787/v1/payments/record -H 'content-type: application/json' -H "authorization: Bearer $WARDLINE_RECORD_KEY" \
   -d '{"payer":"acme.testnet","domain":"northwind.example","account":"near:testnet:northwind.testnet"}'
 ```
 

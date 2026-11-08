@@ -4,19 +4,19 @@ import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createRedline, seedEvmAddress, verifyReceipt, type Redline } from "@redline/sdk";
+import { createWardline, seedEvmAddress, verifyReceipt, type Wardline } from "@wardline/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../api/src/app.js";
 import { bootstrap } from "../../api/src/bootstrap.js";
-import { createHttpServer, createMcpServer, redlineFromEnv } from "../src/index.js";
+import { createHttpServer, createMcpServer, wardlineFromEnv } from "../src/index.js";
 
 const DOMAIN = "northwind.example";
 
-function apiBackedRedline(): { redline: Redline; app: ReturnType<typeof createApp> } {
+function apiBackedWardline(): { wardline: Wardline; app: ReturnType<typeof createApp> } {
   const app = createApp(bootstrap(":memory:"));
   return {
     app,
-    redline: createRedline({
+    wardline: createWardline({
       mode: "hosted",
       baseUrl: "http://api.local",
       fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(String(input), init)) as typeof fetch,
@@ -34,10 +34,10 @@ describe("MCP tools over the in-memory client", () => {
   let app: ReturnType<typeof createApp>;
 
   beforeEach(async () => {
-    const backed = apiBackedRedline();
+    const backed = apiBackedWardline();
     app = backed.app;
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-    await createMcpServer(backed.redline).connect(serverSide);
+    await createMcpServer(backed.wardline).connect(serverSide);
     client = new Client({ name: "test", version: "1.0.0" });
     await client.connect(clientSide);
   });
@@ -71,7 +71,7 @@ describe("MCP tools over the in-memory client", () => {
     const result = await client.callTool({ name: "resolve_payee", arguments: { domain: DOMAIN, chain: "eip155:84532" } });
     const body = parse<Parameters<typeof verifyReceipt>[0] & { verdict: string; account: string }>(result);
     expect(body).toMatchObject({ verdict: "PAY", account: `eip155:84532:${seedEvmAddress(DOMAIN)}`, evidenceTier: "T2_DOMAIN_LINKED" });
-    const { public_key: key } = (await (await app.request("/.well-known/redline-attestor.json")).json()) as { public_key: string };
+    const { public_key: key } = (await (await app.request("/.well-known/wardline-attestor.json")).json()) as { public_key: string };
     expect(verifyReceipt(body, key)).toBe(true);
   });
 
@@ -87,7 +87,7 @@ describe("MCP tools over the in-memory client", () => {
 
   it("how_to_verify gives the signed message", async () => {
     const result = await client.callTool({ name: "how_to_verify", arguments: {} });
-    expect(JSON.stringify(result)).toContain("redline-payee:v2:");
+    expect(JSON.stringify(result)).toContain("wardline-payee:v2:");
   });
 
   it("gives an error and no verdict when the API refuses", async () => {
@@ -98,7 +98,7 @@ describe("MCP tools over the in-memory client", () => {
   });
 
   it("gives an error and no verdict when the API is down", async () => {
-    const down = createRedline({ mode: "hosted", baseUrl: "http://api.local", fetch: (() => Promise.reject(new Error("connection refused"))) as typeof fetch });
+    const down = createWardline({ mode: "hosted", baseUrl: "http://api.local", fetch: (() => Promise.reject(new Error("connection refused"))) as typeof fetch });
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
     await createMcpServer(down).connect(serverSide);
     const other = new Client({ name: "test", version: "1.0.0" });
@@ -114,7 +114,7 @@ describe("Streamable HTTP at /mcp", () => {
   let base: string;
 
   beforeEach(async () => {
-    http = createHttpServer(apiBackedRedline().redline);
+    http = createHttpServer(apiBackedWardline().wardline);
     await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
     base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
   });
@@ -147,8 +147,8 @@ describe("Streamable HTTP at /mcp", () => {
 });
 
 describe("configuration", () => {
-  it("reads the API URL from REDLINE_API_URL", async () => {
-    expect(redlineFromEnv({ REDLINE_API_URL: "http://127.0.0.1:9" }).mode).toBe("hosted");
+  it("reads the API URL from WARDLINE_API_URL", async () => {
+    expect(wardlineFromEnv({ WARDLINE_API_URL: "http://127.0.0.1:9" }).mode).toBe("hosted");
   });
 
   it("has a server.json the MCP registry can read, matching the package", () => {

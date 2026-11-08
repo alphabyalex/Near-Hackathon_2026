@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { viewCall, type SignerHandle, type VaultNetwork, type VaultSigners } from "@redline/vault-client";
+import { viewCall, type SignerHandle, type VaultNetwork, type VaultSigners } from "@wardline/vault-client";
 import {
   CredentialStore,
   Deployer,
@@ -10,7 +10,7 @@ import {
   NEAR,
   NS_PER_DAY,
   NS_PER_HOUR,
-  REDL,
+  WUSD,
   createFromFaucet,
   defaultSecretsDir,
   listKeys,
@@ -71,13 +71,13 @@ const BUSINESSES: BusinessSeed[] = [
     owner: "owner-a",
     agent: "agent.vault-a",
     guardian: "guardian-a",
-    weekly: 20_000n * REDL,
-    lifetime: 100_000n * REDL,
-    funded: 50_000n * REDL,
+    weekly: 20_000n * WUSD,
+    lifetime: 100_000n * WUSD,
+    funded: 50_000n * WUSD,
     vendors: [
-      { vendor_id: "vnd_larkspur", display_name: "Larkspur Office Supply", name: "larkspur", cap: 5_000n * REDL },
-      { vendor_id: "vnd_fernhill", display_name: "Fernhill Cloud Hosting", name: "fernhill", cap: 2_000n * REDL },
-      { vendor_id: "vnd_quarry", display_name: "Quarry Lane Legal", name: "quarry", cap: 1_000n * REDL },
+      { vendor_id: "vnd_larkspur", display_name: "Larkspur Office Supply", name: "larkspur", cap: 5_000n * WUSD },
+      { vendor_id: "vnd_fernhill", display_name: "Fernhill Cloud Hosting", name: "fernhill", cap: 2_000n * WUSD },
+      { vendor_id: "vnd_quarry", display_name: "Quarry Lane Legal", name: "quarry", cap: 1_000n * WUSD },
     ],
     payables: [
       { ref: "pay_1001", vendor_id: "vnd_larkspur", whole: 1_250n, due: 14n * NS_PER_DAY },
@@ -89,7 +89,7 @@ const BUSINESSES: BusinessSeed[] = [
       { ref: "pay_1007", vendor_id: "vnd_larkspur", whole: 2_400n, due: 5n * NS_PER_DAY },
       // For malicious-signer. Not payable for 30 days.
       { ref: "pay_future", vendor_id: "vnd_larkspur", whole: 100n, due: 40n * NS_PER_DAY, not_before: 30n * NS_PER_DAY },
-      // For malicious-signer's replay. A real, approved 1 REDL bill: the key can pay what is approved.
+      // For malicious-signer's replay. A real, approved 1 WUSD bill: the key can pay what is approved.
       { ref: "pay_replay", vendor_id: "vnd_larkspur", whole: 1n, due: 20n * NS_PER_DAY },
     ],
   },
@@ -98,10 +98,10 @@ const BUSINESSES: BusinessSeed[] = [
     vault: "vault-b",
     owner: "owner-b",
     agent: "agent.vault-b",
-    weekly: 5_000n * REDL,
-    lifetime: 50_000n * REDL,
-    funded: 10_000n * REDL,
-    vendors: [{ vendor_id: "vnd_aldergate", display_name: "Aldergate Couriers", name: "aldergate", cap: 500n * REDL }],
+    weekly: 5_000n * WUSD,
+    lifetime: 50_000n * WUSD,
+    funded: 10_000n * WUSD,
+    vendors: [{ vendor_id: "vnd_aldergate", display_name: "Aldergate Couriers", name: "aldergate", cap: 500n * WUSD }],
     payables: [
       { ref: "pay_2001", vendor_id: "vnd_aldergate", whole: 300n, due: 7n * NS_PER_DAY },
       { ref: "pay_2002", vendor_id: "vnd_aldergate", whole: 450n, due: 12n * NS_PER_DAY },
@@ -152,7 +152,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   }
   const root = deployer.signer(options.root);
   // Contracts cost their size in storage, and the two vaults are the bulk of this. A rerun needs far less.
-  const alreadyDeployed = await viewAccount(deployer.provider, account("redl"));
+  const alreadyDeployed = await viewAccount(deployer.provider, account("wusd"));
   if (options.network === "testnet" && !alreadyDeployed) await topUpFromFaucet(deployer.provider, options.root, ROOT_BUDGET, log);
   const rootState = await viewAccount(deployer.provider, options.root);
   log(`Root ${options.root} holds ${BigInt(rootState?.amount ?? 0) / MILLINEAR} mN`);
@@ -164,7 +164,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
   };
 
   log("Token");
-  const token = await deployer.ensureAccount(account("redl"), root, 2_500n * MILLINEAR);
+  const token = await deployer.ensureAccount(account("wusd"), root, 2_500n * MILLINEAR);
   await deployer.ensureContract(token, wasm.token, { method: "new", args: { owner: options.root } });
 
   log("Evidence registry");
@@ -256,7 +256,7 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
       const notBefore = (now + (seed.not_before ?? -NS_PER_DAY)).toString();
       const po = `PO-${seed.ref.replace("pay_", "")}`;
       const invoice = `INV-${seed.ref.replace("pay_", "")}`;
-      const amount = (seed.whole * REDL).toString();
+      const amount = (seed.whole * WUSD).toString();
       if ((await viewCall<unknown>(deployer.provider, vault.account_id, "get_payable", { payable_ref: seed.ref })) === null) {
         await deployer.call(
           owner,
@@ -403,9 +403,9 @@ export async function deployAndSeed(options: DeployOptions): Promise<DeploymentM
 
 async function main(): Promise<void> {
   const { network, rpcUrl } = networkFromEnv();
-  const root = process.env.REDLINE_ROOT_ACCOUNT;
-  if (!root) throw new Error("Set REDLINE_ROOT_ACCOUNT, for example redline-demo.testnet. It is created from the faucet if it does not exist.");
-  const rootKey = process.env.REDLINE_ROOT_KEY;
+  const root = process.env.WARDLINE_ROOT_ACCOUNT;
+  if (!root) throw new Error("Set WARDLINE_ROOT_ACCOUNT, for example wardline-demo.testnet. It is created from the faucet if it does not exist.");
+  const rootKey = process.env.WARDLINE_ROOT_KEY;
   await deployAndSeed({
     network,
     rpcUrl,
@@ -413,8 +413,8 @@ async function main(): Promise<void> {
     ...(rootKey ? { rootKey } : {}),
     secretsDir: defaultSecretsDir(network),
     manifestFile: manifestPath(network),
-    manifestDigest: process.env.REDLINE_MANIFEST_DIGEST ?? sha256Digest("redline-agent-not-yet-frozen"),
-    assessmentRef: process.env.REDLINE_ASSESSMENT_REF ?? "not_yet_assessed",
+    manifestDigest: process.env.WARDLINE_MANIFEST_DIGEST ?? sha256Digest("wardline-agent-not-yet-frozen"),
+    assessmentRef: process.env.WARDLINE_ASSESSMENT_REF ?? "not_yet_assessed",
   });
 }
 

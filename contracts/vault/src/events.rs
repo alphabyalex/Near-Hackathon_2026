@@ -1,4 +1,4 @@
-//! NEP-297 events, matching `RedlineEventSchema`. Typed fields only: ids, refs, amounts,
+//! NEP-297 events, matching `WardlineEventSchema`. Typed fields only: ids, refs, amounts,
 //! revisions, digests and statuses. Never invoice text.
 
 use near_sdk::serde_json::{json, Value};
@@ -8,7 +8,7 @@ use crate::types::Origin;
 
 fn emit(event: &str, data: Value) {
     let envelope = json!({
-        "standard": "redline",
+        "standard": "wardline",
         "version": "1.0.0",
         "event": event,
         "data": [data],

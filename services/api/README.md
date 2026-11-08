@@ -8,7 +8,7 @@ All gateways are mocks for now. To swap one for the real implementation, change 
 
 While the gateways are mocks, state is reseeded on every start, so a restart also clears a paused vault.
 
-The API binds to 127.0.0.1. `REDLINE_BIND_PUBLIC=true` binds the main port to all interfaces.
+The API binds to 127.0.0.1. `WARDLINE_BIND_PUBLIC=true` binds the main port to all interfaces.
 
 ## Public routes
 
@@ -20,13 +20,13 @@ The API binds to 127.0.0.1. `REDLINE_BIND_PUBLIC=true` binds the main port to al
 
 ## Owner routes
 
-Everything that changes vault or review state, plus the private dashboard reads, is a separate app in `src/owner-app.ts`. It is mounted at `/owner`, or served on its own port with `REDLINE_OWNER_PORT`, which binds to localhost unless `REDLINE_OWNER_BIND_PUBLIC=true`.
+Everything that changes vault or review state, plus the private dashboard reads, is a separate app in `src/owner-app.ts`. It is mounted at `/owner`, or served on its own port with `WARDLINE_OWNER_PORT`, which binds to localhost unless `WARDLINE_OWNER_BIND_PUBLIC=true`.
 
 Every owner route needs a session. To get one:
 
-1. `POST /owner/auth/challenge { account }` returns a message, a nonce and the recipient `redline-owner-login`. It expires in 5 minutes.
+1. `POST /owner/auth/challenge { account }` returns a message, a nonce and the recipient `wardline-owner-login`. It expires in 5 minutes.
 2. The account signs it with NEP-413 (wallet `signMessage`).
-3. `POST /owner/auth/login { account, publicKey, signature, nonce }` checks the signature, that the key is a current full-access key, and that the account is in `REDLINE_OWNER_ACCOUNTS` or `REDLINE_APPROVER_ACCOUNTS`. It returns a token and sets an HttpOnly, SameSite=Strict cookie. Each challenge works once, even when the attempt fails.
+3. `POST /owner/auth/login { account, publicKey, signature, nonce }` checks the signature, that the key is a current full-access key, and that the account is in `WARDLINE_OWNER_ACCOUNTS` or `WARDLINE_APPROVER_ACCOUNTS`. It returns a token and sets an HttpOnly, SameSite=Strict cookie. Each challenge works once, even when the attempt fails.
 4. Send the cookie or `Authorization: Bearer rs_...`. `POST /owner/auth/logout` ends the session.
 
 | Method | Path | Who | Purpose |
@@ -44,7 +44,7 @@ Every owner route needs a session. To get one:
 | POST | /owner/api-keys/:id/revoke | owner | Revoke a key |
 | POST | /owner/payees/approve | owner, approver | Approve an active account for a payer, which raises it to T3 |
 
-`REDLINE_OWNER_AUTH=off` makes every caller a local owner, for the dashboard on your own machine, which has no sign-in screen yet. The API refuses to start that way when owner routes are reachable from outside.
+`WARDLINE_OWNER_AUTH=off` makes every caller a local owner, for the dashboard on your own machine, which has no sign-in screen yet. The API refuses to start that way when owner routes are reachable from outside.
 
 ## Payee API
 
@@ -56,14 +56,14 @@ Every owner route needs a session. To get one:
 | GET | /v1/vendors | All vendors |
 | GET | /v1/vendors/:domain | One vendor |
 | POST | /v1/vendors/verify | `{ domain }`. Fetches and verifies the vendor's proof file, then attests it |
-| GET | /.well-known/redline-attestor.json | The public key receipts verify against |
+| GET | /.well-known/wardline-attestor.json | The public key receipts verify against |
 
-API keys (`Authorization: Bearer rk_...`) belong to one payer and have their own daily limit, 10,000 by default. Passing `payer` to `/v1/check` or `/v1/resolve` needs that payer's key. `/v1/payments/record` needs a key with the `record` scope, or a NEP-413 signature by the payer's NEAR account over `redline-payment-record:v1:<timestamp>:<canonical body>` with recipient `redline-payment-record`, sent as `x-redline-public-key`, `x-redline-signature`, `x-redline-nonce` and `x-redline-timestamp`. Signatures are good for 5 minutes and once.
+API keys (`Authorization: Bearer rk_...`) belong to one payer and have their own daily limit, 10,000 by default. Passing `payer` to `/v1/check` or `/v1/resolve` needs that payer's key. `/v1/payments/record` needs a key with the `record` scope, or a NEP-413 signature by the payer's NEAR account over `wardline-payment-record:v1:<timestamp>:<canonical body>` with recipient `wardline-payment-record`, sent as `x-wardline-public-key`, `x-wardline-signature`, `x-wardline-nonce` and `x-wardline-timestamp`. Signatures are good for 5 minutes and once.
 
-Calls without a key allow 200 per day per IP. Past that it answers 402 with x402 payment requirements. `REDLINE_TRUST_PROXY=1` takes the IP from `X-Forwarded-For`; leave it off unless a proxy sets that header.
+Calls without a key allow 200 per day per IP. Past that it answers 402 with x402 payment requirements. `WARDLINE_TRUST_PROXY=1` takes the IP from `X-Forwarded-For`; leave it off unless a proxy sets that header.
 
-`REDLINE_PAYEE_ENGINE` is `stub` or `live`, and `REDLINE_REGISTRY_MODE` is `memory` or `near`. A mode that cannot be met stops the API at startup, rather than falling back to stub verdicts. Backends are chosen in `src/payee/runtime.ts`. The interfaces are in `@redline/sdk`.
+`WARDLINE_PAYEE_ENGINE` is `stub` or `live`, and `WARDLINE_REGISTRY_MODE` is `memory` or `near`. A mode that cannot be met stops the API at startup, rather than falling back to stub verdicts. Backends are chosen in `src/payee/runtime.ts`. The interfaces are in `@wardline/sdk`.
 
-Receipts are signed by `REDLINE_ATTESTOR_KEY`, a 32-byte ed25519 seed in hex. Outside production, a missing key is generated into the gitignored `.env`. In production it is required.
+Receipts are signed by `WARDLINE_ATTESTOR_KEY`, a 32-byte ed25519 seed in hex. Outside production, a missing key is generated into the gitignored `.env`. In production it is required.
 
 `better-sqlite3` is pinned to exactly 12.9.0. It is the newest npm release with prebuilt binaries for Node 20, 22, and 24. Later 12.x releases dropped Node 20 binaries, so installing them on Node 20 needs a C++ compiler.

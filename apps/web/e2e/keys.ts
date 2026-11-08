@@ -4,15 +4,15 @@ import { base58, base64 } from "@scure/base";
 import { privateKeyToAccount } from "viem/accounts";
 
 /** Test-only keys, derived from fixed labels so the stub API and the browser mocks agree. Never real funds. */
-const secretFor = (label: string): Uint8Array => sha256(new TextEncoder().encode(`redline-e2e:${label}`));
+const secretFor = (label: string): Uint8Array => sha256(new TextEncoder().encode(`wardline-e2e:${label}`));
 
 export const API_PORT = 8799;
 export const WEB_PORT = 5199;
 export const SHOTS_PORT = 5198;
 
-export const OWNER_ACCOUNT = "owner.redline-e2e.testnet";
-export const APPROVER_ACCOUNT = "approver.redline-e2e.testnet";
-export const REQUESTER_ACCOUNT = "ops.vault-a.redline.testnet";
+export const OWNER_ACCOUNT = "owner.wardline-e2e.testnet";
+export const APPROVER_ACCOUNT = "approver.wardline-e2e.testnet";
+export const REQUESTER_ACCOUNT = "ops.vault-a.wardline.testnet";
 export const VENDOR_NEAR_ACCOUNT = "acme-payouts.testnet";
 export const NEAR_ACCOUNTS = [OWNER_ACCOUNT, APPROVER_ACCOUNT, REQUESTER_ACCOUNT, VENDOR_NEAR_ACCOUNT];
 

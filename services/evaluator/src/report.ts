@@ -1,4 +1,4 @@
-import { EvaluationReportSchema, type EvaluationReport } from "@redline/schemas";
+import { EvaluationReportSchema, type EvaluationReport } from "@wardline/schemas";
 import { manifestDigest, type GymAgent } from "./agents.js";
 import type { LoadedScenario } from "./fixtures.js";
 import { assessmentOutcome, checkThresholds, computeCosts, computeMetrics, executionStatus, latencyPercentiles, type ThresholdResult } from "./metrics.js";
@@ -6,7 +6,7 @@ import { scoreCase, type ScoredCase } from "./oracle.js";
 import { HARNESS_ID, RUBRIC_VERSION } from "./rubric.js";
 import type { CaseRecord } from "./runner.js";
 
-export const ISSUER = "Redline team (self-issued; the issuer also built the agent)";
+export const ISSUER = "Wardline team (self-issued; the issuer also built the agent)";
 
 export interface AgentRun {
   agent: GymAgent;
@@ -36,11 +36,11 @@ export function buildRun(a: BuildArgs): AgentRun {
   const thresholds = checkThresholds(metrics);
 
   const limitations = [
-    "The evaluation issuer is the Redline team, which also built the agent and the vault. This is self-assessment, not an independent audit.",
+    "The evaluation issuer is the Wardline team, which also built the agent and the vault. This is self-assessment, not an independent audit.",
     a.split === "dev"
       ? "Development split: these scenarios are public and agents may be tuned against them. Scores here say little about unseen invoices."
       : "Assessment split: scenarios were committed before this run and hidden from the agent author. They are still written by one person on our team.",
-    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in REDL, a test token with no value.",
+    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in WUSD, a test token with no value.",
     "Scoring is a deterministic comparison against fixture labels. A label can itself be wrong; each scenario's rationale is published at reveal so labels can be checked.",
   ];
   if (a.simIsStub) limitations.push("Vault outcomes come from a local stub simulator in services/evaluator, not from Tharun's packages/vault-sim or the deployed contract. Settlement is instant and the 7 day window does not age out during a run.");
@@ -50,7 +50,7 @@ export function buildRun(a: BuildArgs): AgentRun {
   if (status !== "COMPLETED") limitations.push("Some cases hit errors or timeouts. They are kept in every denominator and counted as failures.");
 
   const report: EvaluationReport = {
-    schema: "redline-report-v1",
+    schema: "wardline-report-v1",
     run_id: a.runId,
     issuer: ISSUER,
     manifest_digest: manifestDigest(a.agent.manifest) as EvaluationReport["manifest_digest"],
@@ -87,7 +87,7 @@ export function renderMarkdown(run: AgentRun): string {
   const r = run.report;
   const lat = latencyPercentiles(run.scored);
   const lines: string[] = [];
-  lines.push(`# Redline evaluation report: ${run.agent.label}`, "");
+  lines.push(`# Wardline evaluation report: ${run.agent.label}`, "");
   lines.push("| Field | Value |", "| --- | --- |");
   lines.push(`| Run id | \`${r.run_id}\` |`);
   lines.push(`| Issuer | ${r.issuer} |`);

@@ -2,31 +2,31 @@
 
 Owner: Tharun
 
-The real `VaultGateway` from `@redline/schemas`, against NEAR sandbox or testnet. Mainnet is refused in code.
+The real `VaultGateway` from `@wardline/schemas`, against NEAR sandbox or testnet. Mainnet is refused in code.
 
 ## Use it
 
 ```ts
-import { NearVaultGateway } from "@redline/vault-client";
+import { NearVaultGateway } from "@wardline/vault-client";
 
 const gateway = NearVaultGateway.fromEnv();
-const result = await gateway.requestPayment("vault-a.redline.testnet", paymentRequest);
+const result = await gateway.requestPayment("vault-a.wardline.testnet", paymentRequest);
 ```
 
 | Env var | Meaning |
 | --- | --- |
 | `NEAR_NETWORK` | `sandbox` or `testnet`. Required. |
 | `NEAR_RPC_URL` | Required on sandbox. Defaults to a public RPC on testnet. |
-| `REDLINE_VAULT_SIGNERS_FILE` | Path to a JSON file of signers. Keep it outside the repo. |
-| `REDLINE_VAULT_SIGNERS` | The same JSON inline. |
+| `WARDLINE_VAULT_SIGNERS_FILE` | Path to a JSON file of signers. Keep it outside the repo. |
+| `WARDLINE_VAULT_SIGNERS` | The same JSON inline. |
 
 The signers JSON maps each vault to the keys this process may use:
 
 ```json
 {
-  "vault-a.redline.testnet": {
-    "agent": { "account_id": "agent-a.redline.testnet", "private_key": "ed25519:..." },
-    "owner": { "account_id": "owner-a.redline.testnet", "private_key": "ed25519:..." }
+  "vault-a.wardline.testnet": {
+    "agent": { "account_id": "agent-a.wardline.testnet", "private_key": "ed25519:..." },
+    "owner": { "account_id": "owner-a.wardline.testnet", "private_key": "ed25519:..." }
   }
 }
 ```
@@ -59,4 +59,4 @@ A timeout is never reported as a failure. The client signs once, computes the ha
 
 ## Test
 
-`pnpm --filter @redline/vault-client test` covers config and outcome reading. The real chain path is covered by `tests/sandbox`.
+`pnpm --filter @wardline/vault-client test` covers config and outcome reading. The real chain path is covered by `tests/sandbox`.

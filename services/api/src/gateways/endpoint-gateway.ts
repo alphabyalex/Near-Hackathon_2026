@@ -65,7 +65,7 @@ export function createMemoryEndpointGateway(world: MockWorld, clock: Clock): End
       revision: vendor.revision + 1,
       oldAccount: vendor.account_id,
       newAccount,
-      requestedBy: "ops.vault-a.redline.testnet",
+      requestedBy: "ops.vault-a.wardline.testnet",
       requestedAt: iso(requested),
       cooldownEndsAt: iso(requested + ENDPOINT_COOLDOWN_HOURS * HOUR_MS),
       status: "pending",

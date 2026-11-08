@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent } from "react";
-import type { PayeeCheckRequest, PayeeResolveRequest } from "@redline/schemas";
-import type { PayeeRequest, PayeeResult } from "@redline/sdk";
-import { errorText, redline } from "../../api/public";
+import type { PayeeCheckRequest, PayeeResolveRequest } from "@wardline/schemas";
+import type { PayeeRequest, PayeeResult } from "@wardline/sdk";
+import { errorText, wardline } from "../../api/public";
 import { TRY } from "../../brand";
 import { ResultCard } from "../../payee/ResultCard";
 
@@ -38,7 +38,7 @@ export function TryIt() {
   const run = async (request: { kind: "resolve"; body: PayeeResolveRequest } | { kind: "check"; body: PayeeCheckRequest }) => {
     setOutcome({ state: "busy" });
     try {
-      const result = request.kind === "resolve" ? await redline.resolve(request.body) : await redline.check(request.body);
+      const result = request.kind === "resolve" ? await wardline.resolve(request.body) : await wardline.check(request.body);
       setOutcome({ state: "done", result, request: request.body });
     } catch (error) {
       setOutcome({ state: "error", message: errorText(error) });

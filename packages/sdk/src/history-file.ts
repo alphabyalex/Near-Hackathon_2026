@@ -4,7 +4,7 @@ import { chainOf } from "./caip.js";
 import { historyKey, paidKey } from "./history.js";
 import type { PayeeHistoryStore } from "./interfaces.js";
 
-/** Node history store: one JSON file, replaced atomically. Import from "@redline/sdk/history-file". */
+/** Node history store: one JSON file, replaced atomically. Import from "@wardline/sdk/history-file". */
 export function createFileHistory(path: string): PayeeHistoryStore {
   let queue: Promise<unknown> = Promise.resolve();
 

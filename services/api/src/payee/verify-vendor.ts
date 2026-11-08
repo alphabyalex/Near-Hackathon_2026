@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { normalizeDomain, type PayeeRegistry, type RegistryVendor } from "@redline/sdk";
+import { normalizeDomain, type PayeeRegistry, type RegistryVendor } from "@wardline/sdk";
 import { verifyProofFile, type NearKeyLookup, type ProofCheck } from "./proofs.js";
 import type { WellKnownFetcher } from "./well-known.js";
 
-export const PAYEE_FILE_PATH = "/.well-known/redline-payee.json";
+export const PAYEE_FILE_PATH = "/.well-known/wardline-payee.json";
 export const MERCHANT_IDENTITY_PATH = "/.well-known/merchant-identity.json";
 
 export interface VerifyVendorDeps {

@@ -1,4 +1,4 @@
-/** Generated from public/brand/redline-mark.svg and design/redline-reference.html. Do not edit by hand. */
+/** Generated from public/brand/wardline-mark.svg and design/wardline-reference.html. Do not edit by hand. */
 
 export type MarkDot = readonly [cx: number, cy: number, r: number, kind: "g" | "c" | "n"];
 export type HeroDot =

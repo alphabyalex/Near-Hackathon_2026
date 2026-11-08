@@ -17,7 +17,7 @@ test.describe("public site", () => {
     await expect(nav).toHaveText(["Try it", "Demo", "Connect", "Verify", "About"]);
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#\/about$/);
-    await page.getByLabel("Redline home").first().click();
+    await page.getByLabel("Wardline home").first().click();
     await expect(page).toHaveURL(/#\/$/);
   });
 
@@ -71,7 +71,7 @@ test.describe("public site", () => {
     await expect(page.locator('[data-unset="mcp"]')).toBeVisible();
     await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
-    await expect(page.locator("pre").first()).toContainText("$REDLINE_API_URL/v1/resolve");
+    await expect(page.locator("pre").first()).toContainText("$WARDLINE_API_URL/v1/resolve");
     await page.getByRole("button", { name: "Copy curl resolve example" }).click();
     await expect(page.getByRole("button", { name: "Copy curl resolve example" })).toHaveText("Copied");
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");
@@ -81,8 +81,8 @@ test.describe("public site", () => {
   test("connect: with VITE_ URLs set, snippets use them", async ({ page }) => {
     await page.goto(`http://127.0.0.1:5198/#/connect`);
     await expect(page.locator('[data-unset="api"]')).toHaveCount(0);
-    await expect(page.locator("main")).toContainText("https://mcp.redline.example/mcp");
-    await expect(page.locator("main")).toContainText("https://api.redline.example/v1/check");
+    await expect(page.locator("main")).toContainText("https://mcp.wardline.example/mcp");
+    await expect(page.locator("main")).toContainText("https://api.wardline.example/v1/check");
   });
 
   test("verify: sign with NEAR, EVM and Solana wallets, host the file, reach domain linked", async ({ page, wallets, request }) => {
@@ -104,7 +104,7 @@ test.describe("public site", () => {
     await expect(page.locator(".signed")).toContainText("solana:devnet:");
     await page.getByRole("button", { name: "Next" }).click();
 
-    await expect(page.locator(".host-url")).toHaveText(`https://${domain}/.well-known/redline-payee.json`);
+    await expect(page.locator(".host-url")).toHaveText(`https://${domain}/.well-known/wardline-payee.json`);
     // Headless Chromium on this machine never completes blob downloads, so capture the blob and anchor the button hands to the browser.
     await page.evaluate(() => {
       const w = window as unknown as { __dl?: { name: string; text: Promise<string> } };
@@ -119,12 +119,12 @@ test.describe("public site", () => {
         return url;
       };
     });
-    await page.getByRole("button", { name: "Download redline-payee.json" }).click();
+    await page.getByRole("button", { name: "Download wardline-payee.json" }).click();
     const captured = await page.evaluate(async () => {
       const dl = (window as unknown as { __dl?: { name: string; text: Promise<string> } }).__dl;
       return dl ? { name: dl.name, text: await dl.text } : null;
     });
-    expect(captured?.name).toBe("redline-payee.json");
+    expect(captured?.name).toBe("wardline-payee.json");
     const text = captured?.text ?? "";
     const json = JSON.parse(text) as { version: number; domain: string; accounts: { proof: { type: string } }[] };
     expect(json).toMatchObject({ version: 2, domain });
@@ -208,7 +208,7 @@ test.describe("owner app", () => {
     const fernhill = page.locator(".desk-item", { hasText: "Fernhill Cloud Hosting" });
     await expect(fernhill.locator('[data-countdown="running"]')).toHaveText(/\d+h \d{2}m \d{2}s/);
     await expect(fernhill).toContainText("This account imitates one the vendor linked.");
-    await expect(fernhill).toContainText("800.00 REDL");
+    await expect(fernhill).toContainText("800.00 WUSD");
     await expect(page.getByRole("button", { name: /approve all/i })).toHaveCount(0);
     await expectAccessible(page);
 
@@ -255,8 +255,8 @@ test.describe("owner app", () => {
     await expect.poll(() => signRequest?.href ?? "", { timeout: 30_000 }).toContain("/sign-message");
     const url = signRequest as unknown as URL;
     expect(url.pathname).toBe("/sign-message");
-    expect(url.searchParams.get("recipient")).toBe("redline-owner-login");
-    expect(url.searchParams.get("message")).toContain(`redline-owner-login:v1:${APPROVER_ACCOUNT}:`);
+    expect(url.searchParams.get("recipient")).toBe("wardline-owner-login");
+    expect(url.searchParams.get("message")).toContain(`wardline-owner-login:v1:${APPROVER_ACCOUNT}:`);
     expect(Buffer.from(url.searchParams.get("nonce") ?? "", "base64")).toHaveLength(32);
   });
 
