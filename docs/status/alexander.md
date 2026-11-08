@@ -1,5 +1,66 @@
 # Status: alexander
 
+## Hardening round (2026-11-08)
+
+Adopts Tharun's review: control and linkage are not legal ownership, approvals happen where the agent cannot reach, an email on the same domain is not independent, and sensitive data stays off chain.
+
+### Done
+
+| Piece | Where | State |
+| --- | --- | --- |
+| Owner routes split from `/v1` | `services/api/src/owner-app.ts`, mounted at `/owner` or on `REDLINE_OWNER_PORT` | Done. Covers intake, review actions, vault pause and unpause, agent simulation, API keys, payee approvals and the private dashboard reads. `/overview` and `/evaluations` stay public for the site |
+| Owner sign-in | `services/api/src/auth.ts` | NEP-413 challenge, 5 minute expiry, single use even on a failed attempt, recipient `redline-owner-login`. Listed owner or approver accounts only, with a current full-access key. HttpOnly, SameSite=Strict cookie or bearer token, 30 minute session, logout. Only token hashes are stored |
+| Roles | `owner-app.ts` | Approvers can pause, review and approve payees. Unpause, simulation and API keys need an owner |
+| Payer API keys | `POST /owner/api-keys` | Stored hashed, one payer each, own daily limit (default 10,000) next to the per-IP free tier. Scopes: `check` by default, `record` only when asked for, so an agent's key cannot record payments to clear `PAYEE_CHANGED` |
+| Authenticated payment records | `/v1/payments/record` | A record-scoped key for that payer, or the payer's NEP-413 signature over timestamp and canonical body (5 minutes, single use). Passing `payer` to check or resolve also needs that payer's key, so nobody reads another payer's relationships |
+| Binding | `services/api/src/server-config.ts` | Localhost unless `REDLINE_BIND_PUBLIC=true` or `REDLINE_OWNER_BIND_PUBLIC=true`. Refuses to start with owner routes public and auth off, or with nobody listed |
+| Evidence tiers | Schema on main; engine, receipts, SDK, MCP, guard | T2 for a domain-linked account, T3 after an owner approval or past payment by that payer, T0 otherwise. Signed into receipts. `assertPayable(result, { minTier })`. T1 and T4 are never issued today |
+| Wording | `docs/PAYEE_SHIELD.md`, `llms.txt`, `SKILL.md`, READMEs, tool descriptions, reason details | We verify account control and the domain link at a stated tier. Trust-levels table says what each tier does not establish. AP2 wording as given, with the Aviv et al. citation, checked against the paper's scenario AM1 |
+| Merchant legal name | `legalNameSource: "vendor-claimed"` | Not verified. A self-issued signature only shows the domain made the claim, and draft -01 leaves third-party issuance open |
+| Billing email | | No such path existed. The brief now says same-domain email is never extra evidence |
+| Seed and test domains | everywhere | Reserved `.example` names. `REDLINE_DEMO_VERIFY_DOMAIN` added, empty |
+| Agent truncation | `services/agent/src/agent-config.ts` | `thinking_token_budget: 1024`, `max_tokens: 4000`. NEAR AI documents the reasoning budget for this model as 8,192 by default, which used up the old 2,000 limit. Manifests regenerated |
+| Gym timeout | `services/evaluator/src/rubric.ts` | Already 150 s from Kristian's merge, above 2 attempts of 60 s. A test now pins it |
+| `eval:dev` | `services/evaluator/src/llm-preflight.ts` | Loads `.env`. Stops when an LLM agent is configured or named but did not load, or NEAR AI Cloud cannot be reached (checked by listing models, no inference). Without a key it warns and runs the rest |
+| `lastUsage` in gym-export | | Already done in Kristian's branch, merged here |
+| Latency | report JSON and markdown | p50 and p95 per run are reported. `within_latency_budget` (30 s) stays a count, not a threshold |
+| Kristian's branch | merged into `alexander` | His `/agent/simulation` route now sits behind owner auth |
+
+Tests: 548 passing. The README "Try it" steps were rerun against a live API and match.
+
+### Live NEAR AI calls used
+
+3 completion calls on 3 dev cases, all correct on the first attempt, no fallback, none cut off. About $0.0023 in total, computed from token counts. Each call also made 2 reads from NEAR AI's signature and attestation endpoints through Kristian's proof collection, which run no inference.
+
+| Case | Expected | Got | Latency | Completion tokens |
+| --- | --- | --- | --- | --- |
+| `scn_gj2naksauv`, over vendor cap | REVIEW | REVIEW | 23.6 s | 1,212 |
+| `scn_z3494rz5dx`, look-alike vendor | FLAG | FLAG | 49.3 s | 1,192 |
+| `scn_vx3nu49juj`, ordinary | PAY | PAY | 20.8 s | 684 |
+
+The look-alike answer cited evidence not in the records, which the guard removed. The decision itself was right. The automated tests make no live calls.
+
+Candidate digests after this change, not frozen: A `sha256:3263c237d3152bfd36cabd6c7087feafab964fcc36336219df9a5016d3e511da`, B `sha256:ae32339465c439322ae9d5e221468da169a99e3dbfa3571366052689c2d057e1`. A full LLM Gym run has not been redone, to save credits.
+
+### Blocked
+
+- The dashboard has no sign-in screen. With auth on, its owner calls get 401, so local use needs `REDLINE_OWNER_AUTH=off`, which only works on localhost. A sign-in screen with a NEAR wallet would be a new surface, so it was not built.
+- Approvals are per deployment: any listed owner or approver can approve for any payer. Tying payers to their own owners needs a tenant model.
+- Everything from the round below still runs on the stub engine and memory registry.
+
+### Env vars added
+
+In `.env.example` only: `REDLINE_BIND_PUBLIC`, `REDLINE_OWNER_PORT`, `REDLINE_OWNER_BIND_PUBLIC`, `REDLINE_OWNER_ACCOUNTS`, `REDLINE_APPROVER_ACCOUNTS`, `REDLINE_OWNER_AUTH`, `REDLINE_SESSION_TTL_MINUTES`, `REDLINE_API_KEY_CALLS_PER_DAY`, `REDLINE_DEMO_VERIFY_DOMAIN`, `REDLINE_API_KEY`. From Kristian's merge: `REDLINE_ENABLE_COMPROMISED_DEMO`, `REDLINE_AGENT_PROMPT`, `REDLINE_PROOF_DIR`.
+
+### Interface notes for Tharun: hosting the owner routes
+
+- Serve `createOwnerApp(deps)` from `services/api/src/owner-app.ts` on its own port (`REDLINE_OWNER_PORT`), behind HTTPS. Set `REDLINE_OWNER_BIND_PUBLIC=true` only behind your proxy. Cookies are marked Secure when either public flag is on.
+- List the signers: `REDLINE_OWNER_ACCOUNTS=owner-a.redline-labs.testnet` and approvers in `REDLINE_APPROVER_ACCOUNTS`. Sign-in needs a full-access key on that account, checked over RPC (`NEAR_RPC_URL`).
+- Sign-in from a wallet: `POST /auth/challenge { account }`, then `signMessage({ message, recipient: "redline-owner-login", nonce })` with the returned nonce bytes, then `POST /auth/login { account, publicKey, signature, nonce }`. Send the cookie, or `Authorization: Bearer rs_...` from scripts.
+- Use one SQLite file (`API_DB_PATH`) for both apps if they run in separate processes, since sessions, keys and approvals live there.
+- Recipients are separate on purpose: `redline-owner-login`, `redline-payment-record` and `redline-payee-registry`. A signature for one is refused by the others. Please keep that if the contract adds its own NEP-413 messages.
+- Owner keys never go to the agent. The agent's NEAR key stays limited to `request_payment`, and its Redline API key should be check-only.
+
 ## Payee Shield (2026-11-07)
 
 Brief: [docs/PAYEE_SHIELD.md](../PAYEE_SHIELD.md). Everything below runs on the stub engine and memory registry. Nothing reads a registry contract yet.
@@ -28,9 +89,7 @@ Root `pnpm test` now builds every package first. Root `pnpm dev` builds the API'
 
 ### Decisions needed from Alexander
 
-- **AP2 wording.** The brief asked for "AP2 silently drops payee constraints". I could not find a source for it. The AP2 spec defines `payment.allowed_payees` and says the payee MUST be in that list. `docs/PAYEE_SHIELD.md` says what I could support: AP2 identifies a merchant by id, name and website, and nothing proves a payout account belongs to it. If you have a source for "silently drops", send it and I will change the line.
-- **Seed domains.** Seed vendors use realistic domains such as `fernhill.example`, and I did not check whether real companies hold them. They only exist in memory today. Replace them before `seed-payees` ever writes to a public registry.
-- **Authentication before hosting.** The API has no auth and binds to localhost. Before `/v1` goes public: split it from the owner routes (`/review/*`, `/vault/*`), and add auth to `POST /v1/payments/record`, since today anyone who knows a payer id can write to its history.
+- AP2 wording, seed domains and authentication: resolved in the hardening round above.
 - **npm scope.** `server.json` names `@redline/mcp`. All packages are `private: true`, and I did not check that the `@redline` scope is available.
 - **Repo name.** `server.json` links to the repo, and the URL contains "Hackathon". Consider renaming the repo before publishing.
 
