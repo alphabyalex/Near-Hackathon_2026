@@ -11,7 +11,7 @@ Needs Linux, macOS or WSL (`near-sandbox` has no Windows build), plus the wasm f
 ```bash
 pnpm install
 bash scripts/contracts/build.sh
-pnpm --filter @redline/sandbox-tests test:sandbox              # everything, about 20 minutes
+pnpm --filter @wardline/sandbox-tests test:sandbox              # everything, about 20 minutes
 cd tests/sandbox && npx vitest run test/gate.test.ts           # one file, after building the TS packages once
 ```
 
@@ -21,7 +21,7 @@ Root `pnpm test` does not run these. It stays fast and works on Windows.
 
 | File | Covers |
 | --- | --- |
-| `gate.test.ts` | The first gate: the restricted key moves REDL, a forbidden request does not. |
+| `gate.test.ts` | The first gate: the restricted key moves WUSD, a forbidden request does not. |
 | `access.test.ts` | Wrong caller, wrong key, proxy caller, revoked and expired binding, agent calling owner methods, guardian limits, deposits, low gas, tenant A against vault B. |
 | `payables-caps.test.ts` | Unknown, early, expired, already paid and stale payables. Exact cap and cap plus one atomic unit for vendor, weekly, lifetime and balance. Capacities. `owner_pay` on an over-cap item. |
 | `money.test.ts` | Two concurrent requests for one payable. Distinct payables racing for the last budget. Missing recipient registration. Token failure releasing once. Uncertain results. Forged callbacks. Pause, vendor change, revoke and policy change while pending. A client timeout that is not a failure. |

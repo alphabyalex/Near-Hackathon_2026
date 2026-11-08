@@ -1,5 +1,197 @@
 # Status: alexander
 
+## AI that only pays on proof (2026-11-08)
+
+The meter gateway, demo adversaries, DAO adapter, new pages, copy, SDK and MCP are built, against simulated contracts. Switching to chain (step 7) is blocked on Tharun's contracts and clients. Everything runs offline from recorded NEAR AI traffic.
+
+### Live NEAR AI calls: 9 of 30
+
+All went through `scripts/nearai/live.ts`, which logs each call to `fixtures/nearai/ledger.json` and refuses call 31. Automated tests make zero live calls.
+
+| # | Call | Result |
+| --- | --- | --- |
+| 1 | GET /models | Saved as `models.json`, used to pick models |
+| 2, 3 | z-ai/glm-5.3 completion and signature | `gateway` signature only, not `provider_tee`. Kept as the "gateway-only" fixture, which the gateway refuses |
+| 4, 5 | z-ai/glm-5.3-flash completion and signature | `provider_tee`, verifies. The cheap model cheapai passes off |
+| 6, 7 | deepseek-ai/DeepSeek-V4.1-Flash-1017 completion and signature | `provider_tee`, verifies. The model the demo pays for |
+| 8, 9 | Model attestation reports for both | Each names exactly the signer that signed its response |
+
+Finding: models listed as `attested 3p` (GLM-5.3, DeepSeek V3.2, Qwen 3.5, Kimi) answered with gateway signatures. Only the models NEAR AI serves itself (`owned_by: nearai`) gave `provider_tee` signatures. Default routes only use those.
+
+### Done
+
+- **Meter gateway** (`services/api/src/meter`). `POST /v1/ai/chat/completions` and `GET /v1/ai/models` are OpenAI-compatible; the official `openai` npm client works unchanged (tested). Each call:
+  1. Resolves the key's budget, member and model.
+  2. `meter.reserve(max)`, where max is the prompt bytes plus `max_tokens`, at NEAR AI list prices.
+  3. Serializes the body once and sends those exact bytes, with `x-no-aliasing: true` and `accept-encoding: identity`.
+  4. Hashes the exact response bytes.
+  5. Fetches the signature, retrying while it is 404 (0, 400, 800, 1600, 3200 ms).
+  6. Verifies: `provider_tee`, `ecdsa`, the signed text equals `<model>:<req>:<res>`, the EIP-191 signer (viem) matches `signing_address`, and that signer is attested for that model.
+  7. `meter.settle(proof)`, or `meter.release` on any failure.
+  - Settlement uses the provider-reported usage, capped at the reservation. We do not claim to prove token counts.
+  - Headers: `X-Wardline-Proof`, `-Call`, `-Settlement`, `-Model-Proven`, `-Amount`, `-Refund`.
+  - Errors: 402 `spend_limit_reached` (ALLOWANCE_EXHAUSTED or BUDGET_EXHAUSTED), sent before anything reaches the model. 502 `proof_refused` with the reason. 504 on timeout, refunded.
+  - Per-key token-bucket rate limit (120 a minute). Every call is logged to sqlite with its hashes, signature, signer and settlement or release id.
+  - Unproven responses are blocked by default. Setting `unproven: "deliver"` returns them unpaid instead.
+  - Streaming is refused with 400 for now. To add it, hash the exact SSE bytes including framing, as NEAR AI's docs describe.
+- **Replay protection.** A signed response (by chat id) settles at most once. The sim meter re-verifies the proof itself before paying, as the contract should.
+- **Meter keys.** Owner routes create, scope (all models or a list) and revoke keys per (budget, member). Keys are stored as sha256 and shown once.
+- **Chain interfaces** (`services/api/src/chain/types.ts`): `MeterClient`, `ModelRegistryClient` and `CoverPoolClient`, with simulations behind `WARDLINE_CHAIN_MODE=sim`. The sim registry holds only the two signers from the recorded attestation reports, plus a published test key for `wardline/sim-echo-1`, labelled simulated. `near` refuses to start until the clients exist.
+- **Demo adversaries** (`services/demo-provider`, offline):
+  - `replay` serves recorded NEAR AI traffic for its exact request bytes.
+  - `cheapai` claims DeepSeek and returns GLM-5.3 Flash's real answer and signature. Variants send no signature, or canned text.
+  - `simtee` is a local test TEE.
+  - `hang` never answers, for the timeout test.
+  - `demoFetch` refuses every other host.
+  - Scripts: `pnpm demo:swapped-model` (refused, 0 paid, 0.000739 refunded), `pnpm demo:leaked-key` ("spent 0.030000 of 0.030000 WUSD, 65 requests refused": the first key stops at its allowance, the second at the budget's deposit). Run the providers locally with `pnpm demo:providers`.
+- **DAO adapter** (`packages/dao-adapter`): the six decisions (fund budget, set allowance, add provider, approve payout change, change pool parameter, approve claim) as Sputnik v2 proposals, and back.
+  - Funding is a Transfer with `msg`, which Sputnik runs as `ft_transfer_call` to the meter.
+  - Reads go through near-api-js view calls. Writes return the `add_proposal` (with the policy's bond) and `act_proposal` transactions for a wallet to sign.
+  - Includes an in-memory Sputnik for sim mode. Tested against mocked RPC. No new multisig.
+- **Pages:**
+  - Group (`#/app/group`): shared budget, members, every call with model claimed and proven, DAO proposals, and payouts awaiting a vote, each run through the payee check. The look-alike payout is flagged BLOCK.
+  - Wardline Mutual (`#/mutual`): TVL, first-loss and senior, share price, fees, claims, coverage per claim, a wallet-signed deposit and withdrawal (NEP-413, recipient `wardline-mutual`) with the 7-day wait, the claims history, and "We lose first."
+  - Overview: an AI spend panel (verified calls, refunds, spend per day).
+  - API keys: a meter keys section.
+  - Demo: the five scenes on the real code paths, then the red-team numbers.
+  - Connect: the OpenAI base URL in JS and Python.
+- **Copy** (`brand.ts` only): "AI that only pays on proof." and "The right party, for the model you actually got, up to what you allowed. And if we're wrong, the Mutual pays you back." The pool is called protocol-backed coverage everywhere.
+- **SDK:**
+  - `createWardline({ mode: "hosted", baseUrl, meterKey }).openai(OpenAI)` returns a configured official client; `.openai()` with no argument returns a small built-in one.
+  - Also `openaiConfig()`, `getCall(id)`, `verifyProof(call, { responseBytes, isAttested })` and `getAiSpend(budgetId)`.
+  - `verifyProviderProof` is exported for anyone checking proofs.
+- **MCP:** `get_ai_spend(budget_id)`, read-only, alongside the existing tools.
+- **Docs:** llms.txt, SKILL.md and the README "Try it", which now covers the plug-in call, the swapped model and the leaked key, run as written.
+- **Fix:** absolutely positioned screen-reader labels inside scrolling tables widened owner pages at 390px.
+
+### Routes added
+
+| Route | Who |
+| --- | --- |
+| `POST /v1/ai/chat/completions`, `GET /v1/ai/models`, `GET /v1/ai/calls/:id`, `GET /v1/ai/budgets/:id` | Meter key |
+| `GET /v1/ai-registry`, `GET /v1/pool`, `GET /v1/pool/positions/:account` | Public |
+| `POST /v1/pool/challenge`, `POST /v1/pool/submit` | Public, NEP-413 signed |
+| `POST /v1/demo/:scene` (plugin, swap, leak, invoice, mutual) | Public, sim only |
+| `GET /owner/group`, `GET /owner/ai/overview`, `GET/POST /owner/meter-keys`, `POST /owner/meter-keys/:id/revoke` | Owner session |
+
+### Env vars added
+
+`WARDLINE_CHAIN_MODE` (sim or near), `WARDLINE_AI_PROVIDER_URL`, `WARDLINE_SIMTEE_URL`, `WARDLINE_MODEL_ROUTES`, `WARDLINE_SEED_METER_KEYS`, `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`, `WARDLINE_TOKEN_CONTRACT`, `WARDLINE_GROUP_VAULT`, `WARDLINE_DAO_ACCOUNT`, `WARDLINE_METER_KEY` (MCP), `WARDLINE_NEARAI_FIXTURES`, `DEMO_PROVIDER_PORT`, `CHEAPAI_MODE`. All are documented in .env.example. The gateway reads `NEAR_AI_API_KEY` from .env for live upstream calls.
+
+### Tests
+
+- `pnpm test`: 684 package tests and the brand guard. New tests:
+  - gateway: 18, covering verified, wrong model, missing signature, tampered response, replay, gateway-only signature, signature retry, re-check by call id, over allowance, over budget, timeout release, unattested signer, key, scope and streaming checks, rate limit, the official OpenAI client, a 402 through the OpenAI client, and the SDK.
+  - routes and scenes: 9
+  - DAO adapter: 13
+  - demo providers: 5
+  - SDK proof: 3
+  - MCP: 1
+- Playwright: 25 e2e tests, adding the five scenes, Mutual deposit and withdrawal, Group with no sideways scroll at 390px, and meter keys with the AI panel. 38 screenshots.
+
+### Screenshots
+
+`pnpm --filter @wardline/web screenshots` writes desktop (1440) and 390px versions of each to `apps/web/screenshots/` (gitignored). New this round: `demo-*`, `demo-swap-*`, `demo-leak-*`, `demo-mutual-*`, `mutual-*`, `owner-overview-*` (with the AI panel) and `owner-group-*`. Every 390px shot is exactly 390 wide. Fixed after looking at them:
+- Group overflowed sideways at 390px.
+- The chart's tick labels were stretched.
+- The pool stats were cramped.
+- The pool's TVL shares showed as 19.99%.
+- Proposals showed atomic amounts.
+- The AI panel sat flush against the vault strip.
+
+### Blocked
+
+- **Step 7, switch to chain:** Tharun's meter, model registry and cover pool clients, his deploy and docs/DAO.md have not landed (origin/tharun was last pushed with Vault v2 and the payee registry). No `WARDLINE_CHAIN_MODE=near` run, so no testnet tx hashes yet. Settlement ids are `sim-...`.
+- **Real wallet deposit** into the cover pool (`ft_transfer_call` from the wallet) needs the pool contract. Sim mode takes a NEP-413 signed request instead.
+- The README's API port 8787 was held on this machine by a listener Windows does not show (probably forwarded from WSL), so I ran the walkthrough with `API_PORT=8797`. Every step matched.
+
+### For Tharun
+
+- **Interfaces.** Please implement or confirm these in `packages/vault-client`, then swap them in at `createChain` in `services/api/src/chain/index.ts`:
+  - `MeterClient`: `listBudgets`, `getBudget`, `reserve({budget_id, member, call_id, model_id, max_amount})`, `settle({call_id, amount, proof})`, `release({call_id, reason})`, `fund`, `setAllowance`.
+  - `ModelRegistryClient`: `isAttested(model, signer)`, `listModels`.
+  - `CoverPoolClient`: `getPool`, `getPosition`, `deposit`, `requestWithdraw`, `listClaims`, `fileClaim`, `addFees`.
+  - Shapes are in `services/api/src/chain/types.ts`. Amounts are atomic WUSD strings.
+- **Settle must re-verify the proof on chain.** Recover the EIP-191 signer of `text` with `env::ecrecover` over keccak256("\x19Ethereum Signed Message:\n" + len + text). Check that text is `<model_id>:<request_hash>:<response_hash>` for the reserved model, that the signer is in the registry for that model, and that `chat_id` was never settled. The proof object carries all of these. Reject `amount` above the reservation.
+- **Model registry seeds.** From the recorded attestation reports:
+  - deepseek-ai/DeepSeek-V4.1-Flash-1017 → `0xfe0071895500a9755c18044948ab4f4e1a7f337e`
+  - z-ai/glm-5.3-flash → `0x3b753b4406613c5e70ae640508632b600424fa0c`
+  - The attestor should verify the TDX and GPU quotes in `fixtures/nearai/attestation-*.json` before registering them. I did not verify quotes.
+- **DAO method names**, used until docs/DAO.md lands. All live in `CONTRACT_METHODS` in `packages/dao-adapter/src/actions.ts`:
+  - `meter.set_allowance({budget_id, member, allowance})`
+  - `registry.add_provider({provider_id, pay_to, model_ids})`
+  - `vault.approve_endpoint({vendor_id, revision, account})`
+  - `pool.set_param({name, value})`
+  - `pool.approve_claim({claim_id})`
+  - Funding is `ft_transfer_call` to the meter with `msg {"action":"fund","budget_id"}`.
+- **Coverage fee.** The sim meter sends 2% of each settlement to the pool (`COVER_FEE_BPS`). Tell me your number.
+- **Gateway key.** Send the function-call key and account ids privately. They go in .env only.
+
+### Merging
+
+Five commits on `alexander`, not merged to main: sdk proof and fixtures, demo providers and DAO adapter, the API gateway, the web pages, and docs. `fixtures/nearai/attestation-*.json` are about 400 KB each.
+
+## Renamed to Wardline (2026-11-08)
+
+The product is now **Wardline** ("the line between your agent and your money"). The test token is **Wardline Test Dollar (WUSD)**, still 6 decimals. Logo, colors, fonts and layout are unchanged. No NEAR AI calls in this round, nothing deployed, nothing published.
+
+### What changed
+
+- `scripts/rebrand-wardline.mjs`: an idempotent codemod (Node, no dependencies, `--dry-run`, `--list`). It rewrites contents and file names of every file git knows about, in a fixed order, so it gives the same result on any branch. Its first run here changed 257 files and renamed 9; a second run changes nothing.
+  - Redline / redline / REDLINE to Wardline / wardline / WARDLINE, which covers `@wardline/*`, `WARDLINE_*` env vars, `createWardline`, `WardlineBlockedError`, `withWardline`, `/.well-known/wardline-payee.json`, `/.well-known/wardline-attestor.json`, the proof message `wardline-payee:v2:`, NEP-413 recipients (`wardline-payee-registry`, `wardline-owner-login`, `wardline-payment-record`, `wardline-review-approval`), schema ids, the MCP server name, the `wardline` NEP-297 standard and the Rust crate names.
+  - REDL to WUSD and "Redline Test Dollar" to "Wardline Test Dollar". Spend Gym and sgUSD map to Wardline and WUSD, so older teammate branches clean up too.
+  - Renamed files: `wardline-mark*.svg`, `wardline-mono-*.woff2` (same font bytes; the family is now "Wardline Mono"), `design/wardline-reference.html`, `docs/skills/wardline-payee-check/`, `packages/schemas/src/wardline-event.ts` and its example.
+  - The design reference's pun "Every agent has a redline" became "Every agent has a limit".
+- `tests/brand.test.mjs` (first step of `pnpm test`): fails on any old name outside the codemod's allowlist, on old names in file names, on a codemod example that maps wrongly or changes on a second pass, and on a GitHub URL that differs from `repo.config.json`.
+- Env fallback: `readEnv` and `applyLegacyEnv` in `@wardline/schemas` (re-exported by the SDK and vault-client). Every entry point reads `WARDLINE_X` first, then `REDLINE_X`, with one warning per process that names the old variables and never their values. Wired into `loadRepoEnv` (API, evaluator, agent CLI), the MCP server, the contract scripts, the sandbox harness, the root scripts and `vite.config.ts` (which also maps `VITE_REDLINE_*` from .env files).
+- Repo URL: one constant in `repo.config.json` (`url`, with a TODO for the planned name `wardline`), read by `brand.ts` as `BRAND.repoUrl`. `services/mcp/server.json` and `contracts/Cargo.toml` keep a copy, and the brand test fails until they match the config. The GitHub repo itself is not renamed.
+- Regenerated: `pnpm-lock.yaml` (clean install), `evidence/example-run` (stub agents only; verify: 28 match, 0 mismatch), agent manifests A and B (the prompt names the product and the token), `evidence/redteam/report.json` and `docs/REDTEAM.md` (offline `bench`).
+- `bench` now reads recorded AI decisions for the most recorded agent manifest when the current agent has none, and the report says so. Without this, an offline rerun after the rename silently dropped the first-payment comparison. The numbers are unchanged: AI alone 5 of 20 scams through at first contact, 0 with Wardline.
+- index.html gained `og:title`, `og:description`, `og:site_name` and `og:type`, filled from brand.ts. The owner sign-in screenshot now waits for the form instead of catching the loading line.
+- docs/BRAND.md has the name line. docs/CONTEXT.md has a "Legacy deployments" section.
+
+### Remaining old names, all allowed
+
+| Where | Why |
+| --- | --- |
+| `*.redline-labs.testnet` in .env.example, Connect.tsx, the SDK README, vault-client, vault-sim and their tests | The live testnet deployment. NEAR accounts cannot be renamed. |
+| `scripts/contracts/deployments/testnet*` | Records of that deployment, including the on-chain token metadata (name and symbol REDL). |
+| `redline-redteam-v1` in services/redteam/src/cli.ts, fixtures/redteam/cases.json and the report | Seed of the committed red-team cases. The recorded model outputs are keyed to cases built from it. |
+| `fixtures/redteam/**` | Recorded model outputs, keyed by content hash and by the old agent manifest digest. |
+| `packages/schemas/src/legacy-env.ts` and its test | The env var fallback, which must name the old prefix. |
+| `scripts/rebrand-wardline.mjs` | The codemod and its allowlist. |
+| `docs/status/*.md` | History, left as written. The lockfile is clean, and the guard ignores only base64 integrity hashes in it. |
+
+### Env var migration
+
+- Every `REDLINE_*` is now `WARDLINE_*`, and `VITE_REDLINE_*` is now `VITE_WARDLINE_*`. Old names still work, with a one-time deprecation warning. Rename them when convenient.
+- The codemod renamed the keys in my local `.env` in place, one key (`WARDLINE_ATTESTOR_KEY`), without printing values. If both names are already set, it comments the old line out instead of deleting it.
+- The default secrets folder for the contract scripts is now `~/.wardline/<network>`. Move `~/.redline/testnet` there, or set `WARDLINE_SECRETS_DIR=~/.redline/testnet`.
+
+### For Tharun
+
+1. `git pull` on each branch you will merge, with a clean working tree.
+2. `node scripts/rebrand-wardline.mjs --dry-run`, check the counts, then `node scripts/rebrand-wardline.mjs`. If your branch does not have the script yet, merge `alexander` (or main once it lands) first, or copy the file.
+3. `pnpm install` to regenerate `pnpm-lock.yaml`.
+4. `pnpm test`. The brand test names any line the codemod could not handle. If you touched `evidence/example-run`, regenerate it with the command the codemod prints; otherwise take mine on merge.
+5. In WSL, rebuild the contracts (`scripts/contracts/build.sh`): the wasm files are now named `wardline_*`, and sandbox tests read them from `WARDLINE_WASM_DIR` or `contracts/out`.
+6. Redeploy the token and vaults under a new Wardline root, so on-chain names match: the token symbol and name, the `wardline` event standard and the `wardline-payee-registry` NEP-413 recipient. Set `WARDLINE_ROOT_ACCOUNT` before running `deploy-and-seed`; the token account is now `wusd.<root>`. Until then the live contracts under `redline-labs.testnet` still emit the `redline` standard, report REDL, and expect proofs signed for the old recipient and prefix, so payees must be re-proved and reseeded after the redeploy.
+7. After the redeploy, update the defaults that point at `redline-labs.testnet` (vault-client evidence contract, vault-sim token id, Connect page, SDK README, .env.example) and remove them from the codemod's allowlist.
+
+### Not done
+
+- The GitHub repo name and the npm org: yours to change. Nothing was published to npm or the MCP registry.
+- Teammates' status files: not edited, since each person edits only their own. Their history still uses the old names.
+- The agent's manifest digest changed (A is now `sha256:be48e5ff...`, B `sha256:f0b7739e...`). Kristian: please note it in kristian.md. The first-payment comparison was recorded against the old A (`sha256:3263c237...`). Rerunning `pnpm --filter @wardline/redteam agent` records the current agent, which costs NEAR AI calls (about $0.05).
+- My three old local runs in the gitignored `evidence/local/` predate the rename, so `pnpm verify:evidence` fails on them locally. Delete them or rerun; the committed evidence verifies.
+
+### Tests
+
+- `pnpm test`: the 4 brand tests, plus 607 package tests (3 new for the env fallback, 1 for the recorded-digest fallback).
+- Playwright: 21 e2e tests and 28 screenshots pass. I looked at every page at both sizes: the wordmark, titles and copy say Wardline, and amounts are in WUSD.
+- README "Try it", run as written: steps 1 and 3 to 6 pass. Step 2 also passed, but on port 8797 (`API_PORT=8797`), because an older API (PID 12620, running since 2026-11-07 18:32) already holds 8787. I left it running.
+- Contracts: `cargo test --workspace` in WSL (build output in /tmp, not the repo) compiles the renamed crates and passes 40 unit tests, including the event standard test. No wasm build and no sandbox run in this round.
+
 ## Site, owner sign-in and Review Desk (2026-11-08)
 
 Public site and owner app rebuilt around Payee Shield. No NEAR AI calls in this round. Verdicts on the site come from the stub engine and memory registry, behind the same interfaces the real clients will use.
@@ -190,13 +382,15 @@ The API now loads the repo root `.env` at startup. Values already in the shell w
 
 ## Interfaces I expose
 
-- `@redline/schemas`: every schema as `XSchema` with type `X`, plus the `AgentRunner`, `DecisionAdapter`, `VaultGateway`, and `EvidenceGateway` interfaces.
+- `@wardline/schemas`: every schema as `XSchema` with type `X`, plus the `AgentRunner`, `DecisionAdapter`, `VaultGateway`, and `EvidenceGateway` interfaces, and `readEnv` / `applyLegacyEnv` for the env var rename.
 - API on http://127.0.0.1:8787. See services/api/README.md for the routes.
 - Real gateways plug in at one place: `services/api/src/gateways/index.ts`.
 
 ## Blockers
 
 ## Requests
+
+Older requests below use the names from before the Wardline rename. Current names: see the top section.
 
 - Everyone: main is renamed to Redline. After merging main, run `pnpm install`, and move your imports to `@redline/schemas` and your schema ids to `redline-*-v1`.
 - Everyone: the test token is now Redline Test Dollar (REDL), deployed at `redl.redline-labs.testnet` under the new root `redline-labs.testnet`. After merging main, run `pnpm install` and use REDL anywhere you wrote the old symbol.
@@ -219,7 +413,7 @@ The API now loads the repo root `.env` at startup. Values already in the shell w
 
 ## Next
 
-- Connect the API to `NearVaultGateway` on `redline-labs.testnet`. The mock seed still uses `*.redline.testnet` names.
+- Connect the API to `NearVaultGateway` on the Wardline root once Tharun redeploys (today's live deployment is `redline-labs.testnet`). The mock seed uses `*.wardline.testnet` names.
 - Merge teammates' gateways as they land.
 - Add authentication before a real owner key is connected. The API has none today and binds to localhost only.
 - Add a UI for submitting a test invoice (POST /intake works, but no view calls it yet).

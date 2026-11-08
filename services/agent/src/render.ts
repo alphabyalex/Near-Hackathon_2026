@@ -1,4 +1,4 @@
-import type { AgentContext, Intake } from "@redline/schemas";
+import type { AgentContext, Intake } from "@wardline/schemas";
 import { sha256Hex } from "./canonical.js";
 import { formatAtomic, nsToIso } from "./money.js";
 import { PROMPTS, type PromptVersion } from "./prompts.js";

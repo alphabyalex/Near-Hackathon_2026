@@ -2,7 +2,7 @@
 
 Owner: Alexander
 
-Redline as MCP tools. It calls the API at `REDLINE_API_URL` (default `http://127.0.0.1:8787`).
+Wardline as MCP tools. It calls the API at `WARDLINE_API_URL` (default `http://127.0.0.1:8787`).
 
 | Tool | Use |
 | --- | --- |
@@ -16,10 +16,10 @@ Pay only on PAY. Send HOLD to a human. Never pay on BLOCK. If a tool returns an 
 ## Run
 
 ```sh
-pnpm --filter @redline/mcp start          # Streamable HTTP at http://127.0.0.1:8790/mcp
+pnpm --filter @wardline/mcp start          # Streamable HTTP at http://127.0.0.1:8790/mcp
 node services/mcp/dist/stdio.js           # stdio
 ```
 
-Answers include `evidenceTier`. `REDLINE_API_KEY` sends a payer's API key, needed to pass `payer`. `MCP_PORT` changes the port. `MCP_ALLOWED_HOSTS` is a comma-separated list of extra Host names to accept.
+Answers include `evidenceTier`. `WARDLINE_API_KEY` sends a payer's API key, needed to pass `payer`. `MCP_PORT` changes the port. `MCP_ALLOWED_HOSTS` is a comma-separated list of extra Host names to accept.
 
 `server.json` is ready for the official MCP registry. It is not published.

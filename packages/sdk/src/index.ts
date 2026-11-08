@@ -1,6 +1,8 @@
+export { applyLegacyEnv, readEnv } from "@wardline/schemas";
 export { chainOf, InvalidPayeeInputError, normalizeAccount, normalizeChain, normalizeDomain, parseAccount, type ParsedAccount } from "./caip.js";
-export { createRedline, type DirectOptions, type HostedOptions, type Redline, type RedlineOptions } from "./client.js";
-export { assertPayable, meetsTier, RedlineApiError, RedlineBlockedError } from "./errors.js";
+export { builtInClient, proofHeaders, verifyCall, WardlineAiError, type AiCall, type AttestedModel, type OpenAIConfig, type ProofHeaders, type VerifyCallOptions, type WardlineAiClient } from "./ai.js";
+export { createWardline, type DirectOptions, type HostedOptions, type Wardline, type WardlineOptions } from "./client.js";
+export { assertPayable, meetsTier, WardlineApiError, WardlineBlockedError } from "./errors.js";
 export { createIndexedDbHistory, createMemoryHistory, historyKey, paidKey } from "./history.js";
 export type {
   AttestVendorInput,
@@ -14,6 +16,7 @@ export type {
   RegistryVendor,
   SignalsProvider,
 } from "./interfaces.js";
+export { expectedProofText, parseProofText, sha256Hex, verifyProviderProof, type ProofCheck, type ProofInput, type ProofProblem, type ProviderSignature } from "./proof.js";
 export { hashRequest, receiptPayload, receiptSigningText, verifyReceipt, type PayeeRequest, type PayeeResult } from "./receipts.js";
 export { createStubEngine, looksLike, verdictFromReasons } from "./stub-engine.js";
 export {

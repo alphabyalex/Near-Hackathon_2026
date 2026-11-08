@@ -1,4 +1,4 @@
-/* Layout and component styles, from design/redline-reference.html. Colors and fonts live in tokens.css. */
+/* Layout and component styles, from design/wardline-reference.html. Colors and fonts live in tokens.css. */
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:inherit}
@@ -245,7 +245,7 @@ section{border-bottom:1px solid var(--rule)}
   .lim{grid-template-columns:minmax(0,1fr)}
 }
 
-/* Redline rules on top of the reference sheet */
+/* Wardline rules on top of the reference sheet */
 .tabs a{border-bottom:1.5px solid transparent;transition:color .2s,border-color .2s}
 .tabs a:hover{color:var(--ink);border-bottom-color:var(--rule)}
 .tabs a[aria-current],.tabs a[aria-current]:hover{color:var(--ink);border-bottom-color:var(--red)}

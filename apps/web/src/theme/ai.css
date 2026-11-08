@@ -1,0 +1,108 @@
+/* Metered AI, the group page, Wardline Mutual and the five demo scenes. Tokens from tokens.css. */
+
+/* AI spend panel */
+.ai-strip{margin-bottom:18px}
+.spend-chart{margin:0}
+.spend-plot{position:relative}
+.spend-plot svg{display:block;width:100%;height:140px;overflow:visible}
+.spend-plot .axis{stroke:var(--rule-strong);stroke-width:1}
+.spend-plot .bar{fill:var(--ink)}
+.spend-plot .bar.on{fill:var(--red)}
+.spend-plot .hit{fill:transparent;outline:none}
+.spend-plot .hit:focus-visible{fill:var(--red-wash)}
+.spend-ticks{position:relative;height:18px;margin-top:6px}
+.spend-ticks span{position:absolute;transform:translateX(-50%);font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.ai-panel{margin-bottom:28px}
+.spend-tip{position:absolute;top:0;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 10px;border-radius:4px;font:12px/1.35 var(--mono);display:flex;flex-direction:column;gap:2px;pointer-events:none;white-space:nowrap;z-index:2}
+.spend-tip b{font-weight:500}
+
+/* Group page */
+/* Screen-reader labels are absolutely positioned; keep them inside the scroll box so they cannot widen the page. */
+.scrollx{position:relative}
+.group .desk-intro{margin-bottom:24px}
+.group .strip{grid-template-columns:repeat(3,minmax(0,1fr))}
+.group .panel,.keys .panel{margin-bottom:22px}
+.panel-lede{margin:12px 20px 0;color:var(--muted);font-size:14px}
+.bar-col{width:34%;min-width:140px}
+.bar-col .dots{margin:0}
+.call-result{display:flex;flex-direction:column;gap:2px}
+.call-result b{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.04em}
+.call-result.verified b{color:var(--green)}
+.call-result.refused b,.call-result.failed b{color:var(--red-ink)}
+.call-result .muted{font-size:12px}
+td.mismatch{color:var(--red-ink);font-weight:600}
+th.r,td.r{text-align:right}
+.payouts,.proposals{list-style:none;margin:0;padding:8px 20px 16px}
+.payouts li{border-top:1px solid var(--rule-soft);padding:14px 0;display:flex;flex-direction:column;gap:6px}
+.payouts li:first-child{border-top:0}
+.payouts li.flagged{border-left:3px solid var(--red);padding-left:12px;background:var(--red-wash)}
+.payout-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.payout-body{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px}
+.payout-verdict{display:inline-flex;gap:6px;align-items:center;font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.04em}
+.payouts li.flagged .payout-verdict{color:var(--red-ink)}
+.payouts .muted{margin:0;font-size:13px}
+.proposals li{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:14px;align-items:baseline;border-top:1px solid var(--rule-soft);padding:12px 0;font-size:14px}
+.proposals li:first-child{border-top:0}
+.prop-desc,.payout-head b{overflow-wrap:anywhere;min-width:0}
+.prop-status{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.04em}
+.prop-status.s-inprogress{color:var(--amber)}
+.prop-status.s-approved{color:var(--green)}
+.prop-status.s-rejected,.prop-status.s-failed{color:var(--red-ink)}
+.meter-keys select{font:inherit;padding:10px 12px;border:1px solid var(--rule-strong);border-radius:4px;background:var(--panel);color:var(--ink);min-width:0;width:100%}
+
+/* Wardline Mutual */
+.pool-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pool-stats>div:nth-child(n+5){border-top:1px solid var(--rule-soft)}
+.pool-stats>div:nth-child(5){padding-left:0;border-left:0}
+.pool-stats .v{font-size:22px}
+.pool-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:48px;align-items:start;margin-top:12px}
+.tranche{margin:0 0 32px}
+.tranche-bar{display:flex;gap:2px;height:18px;margin:12px 0 10px}
+.tranche-bar>div{min-width:4px}
+.t-junior{background:var(--red);border-radius:4px 0 0 4px}
+.t-senior{background:var(--ink);border-radius:0 4px 4px 0}
+.tranche-keys{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13px;color:var(--ink-2)}
+.tranche-keys i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.k-junior{background:var(--red)}
+.k-senior{background:var(--ink)}
+.lose-first h2{margin:0 0 12px}
+.lose-first p{margin:0 0 10px;max-width:52ch;color:var(--ink-2)}
+.pool-form{display:flex;flex-direction:column;gap:14px}
+.tabs-mini{display:flex;gap:4px;border-bottom:1px solid var(--rule)}
+.tabs-mini button{font:inherit;font-size:14px;background:none;border:0;border-bottom:2px solid transparent;padding:8px 2px;margin-right:16px;color:var(--muted);cursor:pointer}
+.tabs-mini button.on{color:var(--ink);border-bottom-color:var(--red)}
+.pool-form .hint{margin:0;font-size:13px;color:var(--muted)}
+.ok-line{margin:0;font:13px/1.4 var(--mono);color:var(--green);overflow-wrap:anywhere}
+.position{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--rule-soft);padding-top:12px;font-size:14px}
+
+/* Demo scene outcomes */
+.scene-n{display:inline-block;min-width:1.4em;color:var(--red)}
+.scene-out{display:flex;flex-direction:column;gap:14px}
+.out-card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.out-card.refused{border-color:var(--red-edge)}
+.out-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.badge{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:3px;border:1px solid currentColor}
+.badge.ok{color:var(--green)}
+.badge.bad{color:var(--red-ink)}
+.out-reply{margin:0;font-size:14px;color:var(--ink-2);border-left:2px solid var(--rule);padding-left:10px}
+.out-row{display:flex;justify-content:space-between;gap:16px;font-size:13px;border-top:1px solid var(--rule-soft);padding-top:6px;min-width:0}
+.out-row span{color:var(--muted)}
+.out-row b{font-weight:500;text-align:right;overflow-wrap:anywhere;min-width:0}
+.out-row.mismatch b{color:var(--red-ink)}
+.out-foot{margin:4px 0 0;font:12px var(--mono);color:var(--muted)}
+
+@media (max-width:980px){
+  .pool-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pool-stats>div:nth-child(odd){padding-left:0;border-left:0}
+  .pool-stats>div{border-top:1px solid var(--rule-soft)}
+  .pool-grid{grid-template-columns:minmax(0,1fr);gap:28px}
+}
+@media (max-width:640px){
+  .proposals li{grid-template-columns:auto minmax(0,1fr);gap:4px 12px}
+  .group .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .group .strip>div:nth-child(3){padding-left:0;border-left:0;border-top:1px solid var(--rule-soft)}
+  .proposals li .prop-status,.proposals li .muted{grid-column:2}
+  .out-row{flex-direction:column;gap:2px}
+  .out-row b{text-align:left}
+  .bar-col{min-width:110px}
+}

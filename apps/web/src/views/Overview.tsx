@@ -1,5 +1,6 @@
-import type { InvoiceSummary, OverviewView, ReviewQueueEntry } from "@redline/schemas";
+import type { InvoiceSummary, OverviewView, ReviewQueueEntry } from "@wardline/schemas";
 import { useApi } from "../api/client";
+import { AiSpend } from "./owner/AiSpend";
 import { lifetimeBar, weeklyBar, type LimitBar } from "../api/limits";
 import { useScore } from "../api/scoring";
 import { DecisionTable } from "../components/DecisionTable";
@@ -143,6 +144,7 @@ export function Overview({ data, version, onChanged }: { data: OverviewView; ver
 
   return (
     <>
+      <AiSpend version={version} />
       <div className="strip">
         <div>
           <div className="l">In the vault</div>

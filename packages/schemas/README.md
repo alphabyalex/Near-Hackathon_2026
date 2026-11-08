@@ -11,10 +11,10 @@ Shared zod schemas and TS types everyone uses. One file per concept in `src/`, e
 - Amounts are integer strings in atomic units (`amount_atomic`).
 - Timestamps are nanosecond integer strings (`*_ns`).
 - Every schema is exported as `XSchema`, with its TS type exported as `X`.
-- `pnpm --filter @redline/schemas test` checks every example against its schema.
+- `pnpm --filter @wardline/schemas test` checks every example against its schema.
 
 ## Usage
 
 ```ts
-import { DecisionSchema, type Decision } from "@redline/schemas";
+import { DecisionSchema, type Decision } from "@wardline/schemas";
 ```

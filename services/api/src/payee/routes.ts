@@ -1,7 +1,7 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { PayeeCheckRequest, PayeeResolveRequest } from "@redline/schemas";
-import { canonicalJson } from "@redline/agent";
-import { InvalidPayeeInputError, normalizeAccount, normalizeDomain, parseAccount, type RegistryVendor } from "@redline/sdk";
+import { PayeeCheckRequest, PayeeResolveRequest } from "@wardline/schemas";
+import { canonicalJson } from "@wardline/agent";
+import { InvalidPayeeInputError, normalizeAccount, normalizeDomain, parseAccount, type RegistryVendor } from "@wardline/sdk";
 import type { Context, Hono } from "hono";
 import { apiKeyFrom, PAYMENT_RECORD_RECIPIENT, paymentRecordMessage, sha256Hex, SIGNED_REQUEST_WINDOW_MS, type OwnerAuthConfig } from "../auth.js";
 import { cors } from "hono/cors";
@@ -49,7 +49,7 @@ function paymentRequired(c: Context, runtime: PayeeRuntime) {
     x402Version: 2,
     error: "FREE_TIER_EXCEEDED",
     message: `Free tier is ${runtime.freeCallsPerDay} calls per day. Further calls are 0.01 USDC each.`,
-    resource: { url: c.req.url, description: "Redline payee check", mimeType: "application/json" },
+    resource: { url: c.req.url, description: "Wardline payee check", mimeType: "application/json" },
     accepts: payTo
       ? [{ scheme: "exact", network, amount: X402_PRICE_ATOMIC, asset, payTo, maxTimeoutSeconds: 60, extra: { name: "USDC", version: "2" } }]
       : [],
@@ -72,8 +72,8 @@ const forbiddenPayer = (c: Context) =>
 
 /**
  * A payment record is accepted from that payer's API key, or with a NEP-413 signature by the payer's
- * NEAR account over the timestamp and canonical body. Headers: x-redline-public-key,
- * x-redline-signature, x-redline-nonce (32 bytes, base64) and x-redline-timestamp (ISO 8601).
+ * NEAR account over the timestamp and canonical body. Headers: x-wardline-public-key,
+ * x-wardline-signature, x-wardline-nonce (32 bytes, base64) and x-wardline-timestamp (ISO 8601).
  */
 async function recordAuthorized(c: PublicContext, payer: string, body: unknown, runtime: PayeeRuntime, store: Store, auth: OwnerAuthConfig): Promise<Response | null> {
   const keyPayer = c.get("apiKeyPayer");
@@ -84,10 +84,10 @@ async function recordAuthorized(c: PublicContext, payer: string, body: unknown, 
     }
     return null;
   }
-  const publicKey = c.req.header("x-redline-public-key");
-  const signature = c.req.header("x-redline-signature");
-  const nonceText = c.req.header("x-redline-nonce");
-  const timestamp = c.req.header("x-redline-timestamp");
+  const publicKey = c.req.header("x-wardline-public-key");
+  const signature = c.req.header("x-wardline-signature");
+  const nonceText = c.req.header("x-wardline-nonce");
+  const timestamp = c.req.header("x-wardline-timestamp");
   if (!publicKey || !signature || !nonceText || !timestamp) {
     return c.json({ error: "UNAUTHORIZED", message: "Send the payer's API key, or sign the request with the payer's NEAR account." }, 401);
   }
@@ -118,7 +118,7 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
   const { context, engine, attestor } = runtime;
 
   app.use("/v1/*", cors());
-  app.use("/.well-known/redline-attestor.json", cors());
+  app.use("/.well-known/wardline-attestor.json", cors());
 
   app.use("/v1/*", async (c, next) => {
     c.set("apiKeyPayer", null);
@@ -140,7 +140,7 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
     }
     const calls = store.countCall(clientIp(c, runtime.trustProxy), day);
     if (calls > runtime.freeCallsPerDay) {
-      // TODO(x402): when REDLINE_X402=on, accept a PAYMENT-SIGNATURE header here: verify and settle it
+      // TODO(x402): when WARDLINE_X402=on, accept a PAYMENT-SIGNATURE header here: verify and settle it
       // through a facilitator, then call next(). Until then every call over the limit gets this 402.
       return paymentRequired(c, runtime);
     }
@@ -231,7 +231,7 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
     return vendor ? c.json(vendorView(vendor)) : c.json({ error: "NOT_FOUND", message: "No such vendor." }, 404);
   });
 
-  app.get("/.well-known/redline-attestor.json", (c) =>
-    c.json({ version: 1, alg: "ed25519", public_key: attestor.publicKey, signs: "Redline payee receipts: the canonical JSON of id, issuedAt, requestHash, verdict, reasonCodes, payee or account, and domain." }),
+  app.get("/.well-known/wardline-attestor.json", (c) =>
+    c.json({ version: 1, alg: "ed25519", public_key: attestor.publicKey, signs: "Wardline payee receipts: the canonical JSON of id, issuedAt, requestHash, verdict, reasonCodes, payee or account, and domain." }),
   );
 }

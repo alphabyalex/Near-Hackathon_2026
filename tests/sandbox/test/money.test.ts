@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { actions } from "near-api-js";
-import { GAS_PAYMENT, NearVaultGateway, ONE_YOCTO, VaultOutcomeUnknownError, callFinal, readFinalOutcome, type SignerHandle } from "@redline/vault-client";
-import type { RequestResult } from "@redline/schemas";
+import { GAS_PAYMENT, NearVaultGateway, ONE_YOCTO, VaultOutcomeUnknownError, callFinal, readFinalOutcome, type SignerHandle } from "@wardline/vault-client";
+import type { RequestResult } from "@wardline/schemas";
 import { Chain, DIGEST_A, DIGEST_B, accountedTotal, makeWorld, panicOf, registerWithToken, wasm, type World } from "../src/harness.js";
 
 /** Signs requests one after another, then sends them all at once, so they race on chain. */

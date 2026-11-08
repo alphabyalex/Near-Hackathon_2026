@@ -1,5 +1,5 @@
 {
-  "name": "@redline/agent",
+  "name": "@wardline/agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
     "models": "tsx src/cli.ts models"
   },
   "dependencies": {
-    "@redline/schemas": "workspace:*",
+    "@wardline/schemas": "workspace:*",
     "canonicalize": "^5.1.0",
     "zod": "^4.6.7"
   },

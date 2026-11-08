@@ -25,7 +25,7 @@ describe("network rule", () => {
 
   it("reads inline signers", () => {
     const signers = { "v.testnet": { agent: { account_id: "a.testnet", private_key: "ed25519:x" } } };
-    expect(configFromEnv({ NEAR_NETWORK: "testnet", REDLINE_VAULT_SIGNERS: JSON.stringify(signers) }).signers).toEqual(signers);
+    expect(configFromEnv({ NEAR_NETWORK: "testnet", WARDLINE_VAULT_SIGNERS: JSON.stringify(signers) }).signers).toEqual(signers);
   });
 });
 

@@ -1,14 +1,15 @@
-# Redline brand
+# Wardline brand
 
-Redline is the product name, in the UI and in the code.
-The visual source of truth is `apps/web/design/redline-reference.html`. Open it in a browser before changing any UI.
+Wardline is the product name, in the UI and in the code.
+Wardline: the line between your agent and your money.
+The visual source of truth is `apps/web/design/wardline-reference.html`. Open it in a browser before changing any UI.
 
 ## Logo
 - Mark: the Eclipse sphere. A halftone dot sphere cut flat by a red row of dots; dots above the cut are faded.
-  - `apps/web/public/brand/redline-mark.svg` uses `currentColor` for the dots (inline it to recolor)
-  - `redline-mark-ink.svg` for light backgrounds, `redline-mark-paper.svg` for dark backgrounds
+  - `apps/web/public/brand/wardline-mark.svg` uses `currentColor` for the dots (inline it to recolor)
+  - `wardline-mark-ink.svg` for light backgrounds, `wardline-mark-paper.svg` for dark backgrounds
   - `favicon.svg` is the mark on a black rounded tile
-- Wordmark: "Redline" in Geist 600, letter-spacing -0.055em, set next to the mark (gap about 10px at nav size).
+- Wordmark: "Wardline" in Geist 600, letter-spacing -0.055em, set next to the mark (gap about 10px at nav size).
 - Clicking the logo always goes home.
 
 ## Color
@@ -30,7 +31,7 @@ Light first. Dark is only for sections that earn it (the attack terminal, the va
 
 ## Type
 - UI and headings: IBM Plex Sans (400/500/600). Headings weight 500, tight tracking (-0.035em to -0.045em).
-- Codes, numbers, hashes: Redline Mono = Spline Sans Mono, self-hosted from `public/fonts` (plain zero). Never use IBM Plex Mono, Geist Mono, JetBrains Mono, Red Hat Mono or any font with a dotted or slashed zero.
+- Codes, numbers, hashes: Wardline Mono = Spline Sans Mono, self-hosted from `public/fonts` (plain zero). Never use IBM Plex Mono, Geist Mono, JetBrains Mono, Red Hat Mono or any font with a dotted or slashed zero.
 - Numbers always `font-variant-numeric: tabular-nums`.
 
 ## Components

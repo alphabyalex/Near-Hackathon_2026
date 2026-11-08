@@ -1,6 +1,6 @@
 [package]
-name = "redline-payee-registry"
-description = "Redline public payee registry: verified vendor domain to payout accounts."
+name = "wardline-payee-registry"
+description = "Wardline public payee registry: verified vendor domain to payout accounts."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

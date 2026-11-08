@@ -11,7 +11,7 @@ describe("first gate: restricted key in sandbox", () => {
   });
   afterAll(() => chain?.stop());
 
-  it("request_payment signed by the restricted function-call key moves REDL to the vendor", async () => {
+  it("request_payment signed by the restricted function-call key moves WUSD to the vendor", async () => {
     const payable = await world.addPayable(1_250n);
     const before = await world.tokenBalance(world.vendor.account_id);
 

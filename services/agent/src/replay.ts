@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { type AgentContext, type Decision, DecisionSchema, DigestSchema, type Digest, type Intake } from "@redline/schemas";
+import { type AgentContext, type Decision, DecisionSchema, DigestSchema, type Digest, type Intake } from "@wardline/schemas";
 import { z } from "zod";
 import { DEFAULT_REPLAY_DIR } from "./agent-config.js";
 import { digestOf } from "./canonical.js";
@@ -19,7 +19,7 @@ export const intakeHash = (intake: Intake): Digest =>
   digestOf({ vault_id: intake.vault_id, source_text: intake.source_text, attachments_note: intake.attachments_note });
 
 const ReplayRecordSchema = z.object({
-  schema: z.literal("redline-replay-record-v1"),
+  schema: z.literal("wardline-replay-record-v1"),
   manifest_digest: DigestSchema,
   intake_hash: DigestSchema,
   context_digest: DigestSchema,
@@ -73,7 +73,7 @@ export class RecordingAgent implements ReportingAgent {
     const { manifest_digest: manifest, fallback, model_id: modelId } = result.report;
     if (manifest !== null && fallback === null) {
       this.store.put({
-        schema: "redline-replay-record-v1",
+        schema: "wardline-replay-record-v1",
         manifest_digest: manifest,
         intake_hash: intakeHash(intake),
         context_digest: digestOf(scopeContext(ctx, intake.vault_id)),

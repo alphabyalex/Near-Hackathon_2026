@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { PayeeVendor } from "@redline/schemas";
+import type { PayeeVendor } from "@wardline/schemas";
 import { describe, expect, it } from "vitest";
 import { replayFetch, type Recording } from "../scripts/fixture-format.js";
 import { parseAccount } from "../src/caip.js";
@@ -12,7 +12,7 @@ import { NearSignalsProvider } from "../src/signals/near-signals.js";
 /** Real NEAR testnet responses recorded once by scripts/record-payee-fixtures.ts. No network here. */
 const REC = JSON.parse(readFileSync(join(import.meta.dirname, "..", "fixtures", "testnet-recording.json"), "utf8")) as Recording;
 const VAULT = "vault-a.redline-labs.testnet";
-const MISSING = "redline-payee-missing-q7x2.testnet";
+const MISSING = "wardline-payee-missing-q7x2.testnet";
 
 const replayProvider = () => {
   const fetch = replayFetch(REC);
@@ -21,7 +21,7 @@ const replayProvider = () => {
 
 /** Synthetic registry entry pointing at a real testnet account. */
 const VENDORS: PayeeVendor[] = [
-  { domain: "redline-labs.com", name: "Redline Labs (synthetic)", verifiedAt: "2026-11-06T05:00:00Z", accounts: [{ account: `near:testnet:${VAULT}`, status: "active", activatesAt: null }] },
+  { domain: "redline-labs.com", name: "Wardline Labs (synthetic)", verifiedAt: "2026-11-06T05:00:00Z", accounts: [{ account: `near:testnet:${VAULT}`, status: "active", activatesAt: null }] },
 ];
 const deps = (provider: NearSignalsProvider) => ({ registry: new InMemoryPayeeRegistry(VENDORS, () => Date.parse("2026-11-08T00:00:00Z")), signals: provider, now: () => Date.parse("2026-11-08T00:00:00Z") });
 

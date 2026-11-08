@@ -1,6 +1,6 @@
-// Run by a vendor, on their own machine, to produce /.well-known/redline-payee.json.
+// Run by a vendor, on their own machine, to produce /.well-known/wardline-payee.json.
 //
-//   pnpm payee:proof --config payee.json --out redline-payee.json
+//   pnpm payee:proof --config payee.json --out wardline-payee.json
 //
 // payee.json names each account and the environment variable that holds its private key, so keys
 // never sit in a file:
@@ -18,7 +18,7 @@
 // Key formats: NEAR ed25519:<base58>. EVM 0x<hex>. Solana base58 secret key.
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { normalizeDomain } from "@redline/sdk";
+import { normalizeDomain } from "@wardline/sdk";
 import { z } from "zod";
 import { buildProofFile } from "../services/api/src/payee/proofs.js";
 
@@ -31,12 +31,12 @@ const Config = z.object({
 const { values } = parseArgs({
   options: {
     config: { type: "string" },
-    out: { type: "string", default: "redline-payee.json" },
+    out: { type: "string", default: "wardline-payee.json" },
   },
 });
 
 if (!values.config) {
-  console.error("Usage: pnpm payee:proof --config payee.json [--out redline-payee.json]");
+  console.error("Usage: pnpm payee:proof --config payee.json [--out wardline-payee.json]");
   process.exit(2);
 }
 
@@ -53,6 +53,6 @@ const file = await buildProofFile({
   }),
 });
 
-writeFileSync(values.out ?? "redline-payee.json", `${JSON.stringify(file, null, 2)}\n`);
+writeFileSync(values.out ?? "wardline-payee.json", `${JSON.stringify(file, null, 2)}\n`);
 console.log(`Wrote ${values.out} with ${file.accounts.length} signed account(s).`);
-console.log(`Serve it at https://${domain}/.well-known/redline-payee.json, then POST { "domain": "${domain}" } to /v1/vendors/verify.`);
+console.log(`Serve it at https://${domain}/.well-known/wardline-payee.json, then POST { "domain": "${domain}" } to /v1/vendors/verify.`);

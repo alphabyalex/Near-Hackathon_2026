@@ -2,7 +2,7 @@
 
 ## Overview
 
-Release Guard ties on-chain payment authority in Redline directly to the exact release manifest of the deployed AI agent. When an agent requests a payment from its vault, it supplies a manifest digest. If the supplied digest does not match the active binding enrolled by the business owner, the vault rejects the payment immediately with `RELEASE_MISMATCH` and emits a structured NEP-297 event.
+Release Guard ties on-chain payment authority in Wardline directly to the exact release manifest of the deployed AI agent. When an agent requests a payment from its vault, it supplies a manifest digest. If the supplied digest does not match the active binding enrolled by the business owner, the vault rejects the payment immediately with `RELEASE_MISMATCH` and emits a structured NEP-297 event.
 
 ## Manifest Scope
 
@@ -59,7 +59,7 @@ When a payment request provides a manifest digest that contradicts the active bi
 
 ```json
 {
-  "standard": "redline",
+  "standard": "wardline",
   "version": "1.0.0",
   "event": "release_mismatch",
   "data": [{

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { KeyPair, actions, type KeyPairString } from "near-api-js";
 import { DEFAULT_ACCOUNT_ID, DEFAULT_PRIVATE_KEY, Sandbox } from "near-sandbox";
 import {
+  applyLegacyEnv,
   GAS_ADMIN,
   GAS_PAYMENT,
   ONE_YOCTO,
@@ -17,11 +18,13 @@ import {
   viewCall,
   type FinalOutcome,
   type SignerHandle,
-} from "@redline/vault-client";
-import type { Operation, Payable, PaymentRequest, Policy, RequestResult, VaultUsage } from "@redline/schemas";
+} from "@wardline/vault-client";
+import type { Operation, Payable, PaymentRequest, Policy, RequestResult, VaultUsage } from "@wardline/schemas";
+
+applyLegacyEnv();
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const WASM_DIR = process.env.REDLINE_WASM_DIR ?? resolve(HERE, "../../../contracts/out");
+const WASM_DIR = process.env.WARDLINE_WASM_DIR ?? resolve(HERE, "../../../contracts/out");
 
 export const NEAR = 10n ** 24n;
 export const DIGEST_A = `sha256:${"a".repeat(64)}`;
@@ -53,7 +56,7 @@ export class Chain {
   static async start(): Promise<Chain> {
     // near-sandbox downloads to the temp dir and renames into node_modules, which fails with EXDEV
     // when /tmp is another filesystem (common on Linux and WSL). Keep temp on the home filesystem.
-    const tmp = process.env.REDLINE_SANDBOX_TMP ?? join(homedir(), ".cache", "redline-sandbox");
+    const tmp = process.env.WARDLINE_SANDBOX_TMP ?? join(homedir(), ".cache", "wardline-sandbox");
     mkdirSync(tmp, { recursive: true });
     process.env.TMPDIR = tmp;
     const sandbox = await Sandbox.start({});
@@ -203,7 +206,7 @@ export interface WorldOptions {
   funded?: bigint;
   policy_expires_at_ns?: bigint;
   capacities?: { max_vendors: number; max_payables: number; max_pending: number; max_rolling: number; max_operations: number };
-  /** Use the scriptable fake token instead of real REDL. */
+  /** Use the scriptable fake token instead of real WUSD. */
   fake_token?: boolean;
   /** Register the vendor with the token. Default true. */
   register_vendor?: boolean;
@@ -346,7 +349,7 @@ export async function registerWithToken(token: SignerHandle, payer: SignerHandle
 }
 
 export async function deployMockToken(chain: Chain, owner: SignerHandle): Promise<SignerHandle> {
-  const token = await chain.account("redl");
+  const token = await chain.account("wusd");
   await chain.deploy(token, wasm("mock-token"), { method: "new", args: { owner: owner.account_id } });
   return token;
 }

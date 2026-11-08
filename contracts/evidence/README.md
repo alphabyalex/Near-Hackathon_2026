@@ -19,8 +19,8 @@ Views: `get_suite`, `get_run`, `get_runs(from_index, limit)`, `get_issuers`.
 
 **Every registered run reaches a terminal state:** the issuer publishes one, or anyone closes it after the deadline. A failed or unflattering run cannot just disappear.
 
-Statuses use the same strings as `EvaluationReportSchema`, plus `REGISTERED` for the one non-terminal state. Bounds: 256 suites, 1024 runs. Events use the NEP-297 standard `redline`: `suite_committed`, `run_registered`, `result_published`, `run_expired`.
+Statuses use the same strings as `EvaluationReportSchema`, plus `REGISTERED` for the one non-terminal state. Bounds: 256 suites, 1024 runs. Events use the NEP-297 standard `wardline`: `suite_committed`, `run_registered`, `result_published`, `run_expired`.
 
 ## Testing
 
-`cargo test -p redline-evidence` and `tests/sandbox/test/evidence.test.ts`.
+`cargo test -p wardline-evidence` and `tests/sandbox/test/evidence.test.ts`.

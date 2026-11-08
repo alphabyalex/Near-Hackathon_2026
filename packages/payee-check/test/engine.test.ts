@@ -1,4 +1,4 @@
-import { PayeeCheckResult, PayeeResolveResult, type PayeeReasonCode } from "@redline/schemas";
+import { PayeeCheckResult, PayeeResolveResult, type PayeeReasonCode } from "@wardline/schemas";
 import { describe, expect, it } from "vitest";
 import { AccountParseError, DomainParseError } from "../src/caip.js";
 import { checkPayee, resolvePayee } from "../src/engine.js";

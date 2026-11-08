@@ -4,20 +4,22 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { KeyPair, PublicKey, actions, baseEncode, type KeyPairString, type Provider } from "near-api-js";
-import { assertAllowedNetwork, callFinal, makeProvider, makeSigner, type SignerHandle, type VaultNetwork, type VaultSigners } from "@redline/vault-client";
+import { applyLegacyEnv, assertAllowedNetwork, callFinal, makeProvider, makeSigner, type SignerHandle, type VaultNetwork, type VaultSigners } from "@wardline/vault-client";
+
+applyLegacyEnv();
 
 export const HERE = dirname(fileURLToPath(import.meta.url));
 export const NEAR = 10n ** 24n;
 export const MILLINEAR = NEAR / 1000n;
 export const NS_PER_HOUR = 3_600_000_000_000n;
 export const NS_PER_DAY = 24n * NS_PER_HOUR;
-export const REDL = 1_000_000n;
+export const WUSD = 1_000_000n;
 
 export function repoPath(...parts: string[]): string {
   return resolve(HERE, "../../..", ...parts);
 }
 
-export function readWasm(name: string, dir = process.env.REDLINE_WASM_DIR ?? repoPath("contracts", "out")): Uint8Array {
+export function readWasm(name: string, dir = process.env.WARDLINE_WASM_DIR ?? repoPath("contracts", "out")): Uint8Array {
   const path = join(dir, `${name}.wasm`);
   if (!existsSync(path)) throw new Error(`Missing ${path}. Run scripts/contracts/build.sh first.`);
   return readFileSync(path);
@@ -61,7 +63,7 @@ export class CredentialStore {
 }
 
 export function defaultSecretsDir(network: VaultNetwork): string {
-  return process.env.REDLINE_SECRETS_DIR ?? join(homedir(), ".redline", network);
+  return process.env.WARDLINE_SECRETS_DIR ?? join(homedir(), ".wardline", network);
 }
 
 export interface AccessKeyInfo {
@@ -219,7 +221,7 @@ export class Deployer {
  * when nobody supplies one.
  */
 export async function createFromFaucet(accountId: string, publicKey: string): Promise<void> {
-  const url = process.env.REDLINE_FAUCET_URL ?? "https://helper.nearprotocol.com/account";
+  const url = process.env.WARDLINE_FAUCET_URL ?? "https://helper.nearprotocol.com/account";
   const response = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },

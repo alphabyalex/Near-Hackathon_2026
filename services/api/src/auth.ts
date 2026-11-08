@@ -1,14 +1,14 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { parseAccount } from "@redline/sdk";
+import { parseAccount } from "@wardline/sdk";
 import type { Context, MiddlewareHandler } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Store } from "./store.js";
 
 export type OwnerRole = "owner" | "approver";
 
-export const OWNER_LOGIN_RECIPIENT = "redline-owner-login";
-export const PAYMENT_RECORD_RECIPIENT = "redline-payment-record";
-export const SESSION_COOKIE = "redline_session";
+export const OWNER_LOGIN_RECIPIENT = "wardline-owner-login";
+export const PAYMENT_RECORD_RECIPIENT = "wardline-payment-record";
+export const SESSION_COOKIE = "wardline_session";
 export const CHALLENGE_TTL_MS = 5 * 60_000;
 export const SIGNED_REQUEST_WINDOW_MS = 5 * 60_000;
 const DEFAULT_SESSION_MINUTES = 30;
@@ -36,14 +36,14 @@ const accountList = (value: string | undefined, network: string): Set<string> =>
 
 export function ownerAuthFromEnv(env: NodeJS.ProcessEnv = process.env): OwnerAuthConfig {
   const network = env.NEAR_NETWORK ?? "testnet";
-  const minutes = Number(env.REDLINE_SESSION_TTL_MINUTES ?? DEFAULT_SESSION_MINUTES);
-  const keyCalls = Number(env.REDLINE_API_KEY_CALLS_PER_DAY ?? DEFAULT_KEY_CALLS_PER_DAY);
+  const minutes = Number(env.WARDLINE_SESSION_TTL_MINUTES ?? DEFAULT_SESSION_MINUTES);
+  const keyCalls = Number(env.WARDLINE_API_KEY_CALLS_PER_DAY ?? DEFAULT_KEY_CALLS_PER_DAY);
   return {
-    enabled: env.REDLINE_OWNER_AUTH !== "off",
-    owners: accountList(env.REDLINE_OWNER_ACCOUNTS, network),
-    approvers: accountList(env.REDLINE_APPROVER_ACCOUNTS, network),
+    enabled: env.WARDLINE_OWNER_AUTH !== "off",
+    owners: accountList(env.WARDLINE_OWNER_ACCOUNTS, network),
+    approvers: accountList(env.WARDLINE_APPROVER_ACCOUNTS, network),
     sessionTtlMs: (Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_SESSION_MINUTES) * 60_000,
-    secureCookie: env.REDLINE_OWNER_BIND_PUBLIC === "true" || env.REDLINE_BIND_PUBLIC === "true",
+    secureCookie: env.WARDLINE_OWNER_BIND_PUBLIC === "true" || env.WARDLINE_BIND_PUBLIC === "true",
     network,
     keyCallsPerDay: Number.isSafeInteger(keyCalls) && keyCalls > 0 ? keyCalls : DEFAULT_KEY_CALLS_PER_DAY,
   };
@@ -54,9 +54,9 @@ export const sha256Hex = (text: string): string => createHash("sha256").update(t
 export const roleOf = (config: OwnerAuthConfig, account: string): OwnerRole | null =>
   config.owners.has(account) ? "owner" : config.approvers.has(account) ? "approver" : null;
 
-export const challengeMessage = (account: string, expiresAt: string): string => `redline-owner-login:v1:${account}:${expiresAt}`;
+export const challengeMessage = (account: string, expiresAt: string): string => `wardline-owner-login:v1:${account}:${expiresAt}`;
 
-export const paymentRecordMessage = (timestamp: string, canonicalBody: string): string => `redline-payment-record:v1:${timestamp}:${canonicalBody}`;
+export const paymentRecordMessage = (timestamp: string, canonicalBody: string): string => `wardline-payment-record:v1:${timestamp}:${canonicalBody}`;
 
 export function issueChallenge(store: Store, account: string, now: number) {
   const nonce = randomBytes(32).toString("base64");

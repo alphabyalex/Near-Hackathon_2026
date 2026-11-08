@@ -1,9 +1,9 @@
 import { pathToFileURL } from "node:url";
-import type { PayeeCheckRequest, PayeeSignals, PayeeVendor } from "@redline/schemas";
-import { chainOf, normalizeAccount, type EngineContext, type PayeeEngine, type RegistryVendor } from "@redline/sdk";
+import type { PayeeCheckRequest, PayeeSignals, PayeeVendor } from "@wardline/schemas";
+import { chainOf, normalizeAccount, type EngineContext, type PayeeEngine, type RegistryVendor } from "@wardline/sdk";
 
 /**
- * Adapts @redline/payee-check (Lucy's engine) to the benchmark. The benchmark builds each case's
+ * Adapts @wardline/payee-check (Lucy's engine) to the benchmark. The benchmark builds each case's
  * registry, signals and history with the SDK's in-memory pieces; this maps them onto the
  * interfaces checkPayee expects. Nothing here changes how payee-check decides.
  */
@@ -56,14 +56,14 @@ export function liveEngine(mod: PayeeCheckModule, nowMs: number): PayeeEngine {
   };
 }
 
-/** Loads @redline/payee-check, or a built module at `modulePath` to try an unmerged checkout. */
+/** Loads @wardline/payee-check, or a built module at `modulePath` to try an unmerged checkout. */
 export async function loadPayeeCheck(modulePath?: string): Promise<PayeeCheckModule> {
-  const specifier = modulePath ? pathToFileURL(modulePath).href : "@redline/payee-check";
+  const specifier = modulePath ? pathToFileURL(modulePath).href : "@wardline/payee-check";
   let mod: Partial<PayeeCheckModule>;
   try {
     mod = (await import(specifier)) as Partial<PayeeCheckModule>;
   } catch (error) {
-    throw new Error(`--engine live needs @redline/payee-check, which could not be loaded (${error instanceof Error ? error.message : String(error)}). Merge packages/payee-check and run pnpm install, or pass --payee-check <path to its dist/index.js>.`);
+    throw new Error(`--engine live needs @wardline/payee-check, which could not be loaded (${error instanceof Error ? error.message : String(error)}). Merge packages/payee-check and run pnpm install, or pass --payee-check <path to its dist/index.js>.`);
   }
   if (typeof mod.checkPayee !== "function" || typeof mod.formatAccount !== "function") {
     throw new Error("The payee-check module does not export checkPayee and formatAccount.");

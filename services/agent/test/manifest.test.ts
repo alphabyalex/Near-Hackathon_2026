@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ManifestSchema } from "@redline/schemas";
+import { ManifestSchema } from "@wardline/schemas";
 import { describe, expect, it } from "vitest";
 import { AGENT_TOOLS, MANIFEST_DIR, MODEL_ID } from "../src/agent-config.js";
 import { canonicalJson, digestOf } from "../src/canonical.js";

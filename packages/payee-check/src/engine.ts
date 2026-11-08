@@ -1,4 +1,4 @@
-import { PayeeCheckRequest, PayeeResolveRequest, type PayeeReason, type PayeeReasonCode, type PayeeVendor, type PayeeVerdict } from "@redline/schemas";
+import { PayeeCheckRequest, PayeeResolveRequest, type PayeeReason, type PayeeReasonCode, type PayeeVendor, type PayeeVerdict } from "@wardline/schemas";
 import { AccountParseError, formatAccount, normalizeDomain, parseAccount, parseChainId, tryParseAccount, type ParsedAccount } from "./caip.js";
 import { PAYEE_CHECK_CONFIG } from "./config.js";
 import { detectLookalike, verifiedEntries } from "./lookalike.js";
@@ -101,7 +101,7 @@ export async function checkPayee(rawReq: PayeeCheckRequest, deps: CheckDeps): Pr
   if (domain === null) {
     reasons.push({ code: "NOT_IN_REGISTRY", detail: `${payee} is not registered to any verified vendor and no vendor domain was given.` });
   } else if (vendor === null) {
-    reasons.push({ code: "NOT_IN_REGISTRY", detail: `${domain} has not verified any payout accounts with Redline.` });
+    reasons.push({ code: "NOT_IN_REGISTRY", detail: `${domain} has not verified any payout accounts with Wardline.` });
   } else {
     const verified = await dep("registry", () => deps.registry.isVerifiedPayee(payee, vendor!.domain));
     const entries = vendor.accounts.map((a) => ({ ...a, parsed: tryParseAccount(a.account, opts) }));
@@ -165,7 +165,7 @@ export async function resolvePayee(rawReq: PayeeResolveRequest, deps: CheckDeps)
 
   const vendor = await dep("registry", () => deps.registry.getVendor(domain));
   const hold = (reasons: PayeeReason[]): ResolveOutcome => ({ verdict: verdictFor(reasons), domain, chain, account: null, reasons: sortReasons(reasons), vendor });
-  if (!vendor) return hold([{ code: "NOT_IN_REGISTRY", detail: `${domain} has not verified any payout accounts with Redline.` }]);
+  if (!vendor) return hold([{ code: "NOT_IN_REGISTRY", detail: `${domain} has not verified any payout accounts with Wardline.` }]);
 
   const resolved = await dep("registry", () => deps.registry.resolve(domain, chain));
   const onChain = vendor.accounts.filter((a) => tryParseAccount(a.account, opts)?.chainId === chain);

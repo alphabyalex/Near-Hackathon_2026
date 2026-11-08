@@ -609,7 +609,7 @@ fn fresh_withdrawal_cannot_be_reconciled() {
 // ---------- Inputs and events ----------
 
 #[test]
-fn events_use_the_redline_standard_and_carry_no_free_text() {
+fn events_use_the_wardline_standard_and_carry_no_free_text() {
     let mut vault = funded_vault(None);
     pay(&mut vault, "a", 100, START);
     let settled = get_logs();
@@ -620,7 +620,7 @@ fn events_use_the_redline_standard_and_carry_no_free_text() {
     assert!(log.starts_with("EVENT_JSON:{"));
     let parsed: near_sdk::serde_json::Value =
         near_sdk::serde_json::from_str(log.trim_start_matches("EVENT_JSON:")).unwrap();
-    assert_eq!(parsed["standard"], "redline");
+    assert_eq!(parsed["standard"], "wardline");
     assert_eq!(parsed["version"], "1.0.0");
     assert_eq!(parsed["data"][0]["amount_atomic"], "100");
     assert_eq!(parsed["data"][0]["origin"], "AGENT");
@@ -940,7 +940,7 @@ fn test_release_guard_manifest_check() {
 #[test]
 fn test_conservative_caps_and_raise() {
     let mut vault = funded_vault_v2();
-    // Conservative weekly cap is 500 REDL
+    // Conservative weekly cap is 500 WUSD
     as_owner(START);
     vault.register_payable(PayableInput {
         payable_ref: "p_large".to_string(),

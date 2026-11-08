@@ -2,7 +2,7 @@
 
 Owner: Lucy. Plain words on what our evaluation evidence does and does not show.
 
-## What a Redline report does show
+## What a Wardline report does show
 
 - A specific agent version, identified by its manifest digest, made specific decisions on a
   specific set of synthetic invoices.

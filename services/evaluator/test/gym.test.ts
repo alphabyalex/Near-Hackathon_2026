@@ -1,9 +1,9 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentRunner, Decision } from "@redline/schemas";
+import type { AgentRunner, Decision } from "@wardline/schemas";
 import { afterAll, describe, expect, it } from "vitest";
 import { manifestDigest, resolveAgents, type GymAgent } from "../src/agents.js";
-import { buildManifest, manifestDigest as enrollmentDigest } from "@redline/agent";
+import { buildManifest, manifestDigest as enrollmentDigest } from "@wardline/agent";
 import { DOMAIN, canonicalJson, domainDigest } from "../src/canonical.js";
 import { buildSuiteManifest, commitSuite, commitmentRecord, newSalt } from "../src/commitment.js";
 import { loadRegistry, saveRegistry, writeJson, writeRun } from "../src/evidence.js";
@@ -76,7 +76,7 @@ describe("stub vault sim", () => {
     expect((await sim.requestPayment(v, req(settled.payable_ref, settled.vendor_revision))).rejection).toBe("ALREADY_PAID");
     const open = sc.scenario.context.payables.find((p) => p.status === "OPEN" && p.payable_ref !== sc.scenario.expected_payable_ref)!;
     expect((await sim.requestPayment(v, req(open.payable_ref, open.vendor_revision + 5))).rejection).toBe("STALE_REVISION");
-    expect((await sim.requestPayment("vault-z.redline.testnet", req(open.payable_ref))).rejection).toBe("BAD_CALLER");
+    expect((await sim.requestPayment("vault-z.wardline.testnet", req(open.payable_ref))).rejection).toBe("BAD_CALLER");
   });
 });
 
@@ -120,7 +120,7 @@ describe("oracle", () => {
         if (i === 1) throw new Error("model unavailable");
         if (i === 2) return new Promise<Decision>(() => {});
         if (i === 3) return { nonsense: true } as unknown as Decision;
-        return { schema: "redline-decision-v1", intake_ref: intake.intake_ref, decision: "REVIEW", matched_payable_ref: null, reason_codes: ["OTHER"], evidence_refs: [], summary: "" };
+        return { schema: "wardline-decision-v1", intake_ref: intake.intake_ref, decision: "REVIEW", matched_payable_ref: null, reason_codes: ["OTHER"], evidence_refs: [], summary: "" };
       },
     };
     const r = await run(withRunner(base, flaky), legit, { timeoutMs: 50 });

@@ -8,23 +8,23 @@ commits and verifies evidence.
 
 ## Commands
 
-Run from the repo root (`pnpm` here means `pnpm --filter @redline/evaluator`; root aliases
+Run from the repo root (`pnpm` here means `pnpm --filter @wardline/evaluator`; root aliases
 `pnpm eval:dev` and friends are requested from Alexander).
 
 | Do | See |
 | --- | --- |
-| `pnpm --filter @redline/evaluator test` | Fixture validation, oracle, sim, commitment and tamper tests pass |
-| `pnpm --filter @redline/evaluator validate:fixtures` | `OK: 12 dev scenarios valid (5 legitimate, 5 adversarial, 2 exception).` |
-| `pnpm --filter @redline/evaluator eval:dev` | Metrics per agent in the terminal; full output in `evidence/local/dev-<time>/` (gitignored) |
-| `pnpm --filter @redline/evaluator eval:example` | Regenerates the committed `evidence/example-run/` |
-| `pnpm --filter @redline/evaluator verify:evidence` | Every digest under `evidence/` recomputed: `N match, 0 mismatch` |
-| `pnpm --filter @redline/evaluator commit:assessment` | Commits `fixtures/private/assessment/` (local only) |
-| `pnpm --filter @redline/evaluator eval:assessment` | Runs the hidden set; refuses if the files differ from the commitment |
+| `pnpm --filter @wardline/evaluator test` | Fixture validation, oracle, sim, commitment and tamper tests pass |
+| `pnpm --filter @wardline/evaluator validate:fixtures` | `OK: 12 dev scenarios valid (5 legitimate, 5 adversarial, 2 exception).` |
+| `pnpm --filter @wardline/evaluator eval:dev` | Metrics per agent in the terminal; full output in `evidence/local/dev-<time>/` (gitignored) |
+| `pnpm --filter @wardline/evaluator eval:example` | Regenerates the committed `evidence/example-run/` |
+| `pnpm --filter @wardline/evaluator verify:evidence` | Every digest under `evidence/` recomputed: `N match, 0 mismatch` |
+| `pnpm --filter @wardline/evaluator commit:assessment` | Commits `fixtures/private/assessment/` (local only) |
+| `pnpm --filter @wardline/evaluator eval:assessment` | Runs the hidden set; refuses if the files differ from the commitment |
 
 Pick agents with `-- --agents rules-stub,always-review`. Available today: `always-review`,
 `rules-stub`, `credulous-stub`. `llm` and `rules` resolve once services/agent exports them.
 
-The schemas package must be built first (`pnpm --filter @redline/schemas build`; the root
+The schemas package must be built first (`pnpm --filter @wardline/schemas build`; the root
 `pnpm test` does this).
 
 ## How a case is scored
@@ -63,5 +63,5 @@ The schemas package must be built first (`pnpm --filter @redline/schemas build`;
 - `FileEvidenceGateway` implements `EvidenceGateway` from packages/schemas.
 - `VaultSim` / `VaultSimFactory` in src/sim.ts: what the Gym needs from packages/vault-sim.
 - Digest constructions (src/canonical.ts): `SHA-256(utf8(domain) || 0x00 || [salt32] || canonical_json(value))`
-  with domains `redline/scenario/v1`, `redline/suite-commitment/v1` (salted), `redline/report/v1`,
-  `redline/run-record/v1`, `redline/manifest/v1`.
+  with domains `wardline/scenario/v1`, `wardline/suite-commitment/v1` (salted), `wardline/report/v1`,
+  `wardline/run-record/v1`, `wardline/manifest/v1`.

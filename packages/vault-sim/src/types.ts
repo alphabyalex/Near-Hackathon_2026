@@ -1,4 +1,4 @@
-import type { Operation, Payable, Vendor, VaultUsage } from "@redline/schemas";
+import type { Operation, Payable, Vendor, VaultUsage } from "@wardline/schemas";
 
 export const ROLLING_WINDOW_NS = 7n * 24n * 60n * 60n * 1_000_000_000n;
 export const RECONCILE_AFTER_NS = 60n * 60n * 1_000_000_000n;

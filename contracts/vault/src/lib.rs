@@ -1,4 +1,4 @@
-//! Redline vault. One contract per business. The spec is docs/VAULT_RULES.md: if this code
+//! Wardline vault. One contract per business. The spec is docs/VAULT_RULES.md: if this code
 //! and that file disagree, it is a bug. The order of checks in `request_payment` and
 //! `owner_pay` is part of the spec, because packages/vault-sim must match it.
 
@@ -1384,7 +1384,7 @@ pub fn compute_approval_digest(
     expiry_ns: u64,
 ) -> String {
     let payload = format!(
-        "redline:endpoint-approval:{}:{}:{}:{}:{}",
+        "wardline:endpoint-approval:{}:{}:{}:{}:{}",
         vault, vendor_id, revision, account, expiry_ns
     );
     let hash = env::sha256(payload.as_bytes());

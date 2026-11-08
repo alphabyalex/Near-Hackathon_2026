@@ -2,7 +2,7 @@
 
 ## Overview
 
-Redline Payee Registry (`contracts/payee-registry`) is a public directory contract deployed on NEAR. Vendors can opt in to publish verified domain-to-account bindings so that any AI agent or accounts-payable workflow across the ecosystem can resolve or verify payout destinations.
+Wardline Payee Registry (`contracts/payee-registry`) is a public directory contract deployed on NEAR. Vendors can opt in to publish verified domain-to-account bindings so that any AI agent or accounts-payable workflow across the ecosystem can resolve or verify payout destinations.
 
 By default, vendor records inside a tenant's vault remain strictly private to that vault. The public payee registry provides a shared, decentralized directory for vendors who explicitly choose to be publicly discoverable.
 
@@ -43,10 +43,10 @@ By default, vendor records inside a tenant's vault remain strictly private to th
 
 ## Client Integration
 
-`@redline/vault-client` exports `PayeeRegistryClient`, which implements the browser-safe `PayeeRegistry` interface. It performs view calls directly via NEAR RPC without requiring Node filesystem modules or secret keys for reads:
+`@wardline/vault-client` exports `PayeeRegistryClient`, which implements the browser-safe `PayeeRegistry` interface. It performs view calls directly via NEAR RPC without requiring Node filesystem modules or secret keys for reads:
 
 ```typescript
-import { PayeeRegistryClient } from "@redline/vault-client";
+import { PayeeRegistryClient } from "@wardline/vault-client";
 
 const registry = new PayeeRegistryClient({
   registryId: "payee-registry.redline-labs.testnet",

@@ -11,14 +11,14 @@ target_dir="${CARGO_TARGET_DIR:-target}"
 if command -v cargo-near >/dev/null 2>&1; then
   for crate in vault evidence mock-token test-proxy payee-registry; do
     (cd "$crate" && cargo near build non-reproducible-wasm --no-abi --locked)
-    name="redline_$(echo "$crate" | tr '-' '_')"
+    name="wardline_$(echo "$crate" | tr '-' '_')"
     cp "${target_dir}/near/$name/$name.wasm" "out/$crate.wasm" 2>/dev/null \
       || cp "${target_dir}/near/$name.wasm" "out/$crate.wasm"
   done
 else
   cargo build --workspace --target wasm32-unknown-unknown --release --locked
   for crate in vault evidence mock-token test-proxy payee-registry; do
-    name="redline_$(echo "$crate" | tr '-' '_')"
+    name="wardline_$(echo "$crate" | tr '-' '_')"
     cp "${target_dir}/wasm32-unknown-unknown/release/$name.wasm" "out/$crate.wasm"
   done
 fi

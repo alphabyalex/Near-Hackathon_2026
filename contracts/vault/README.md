@@ -2,7 +2,7 @@
 
 Owner: Tharun
 
-Redline's payment vault, one contract per business. It only pays approved bills to approved vendors within hard limits, and those limits hold even if the agent is fully compromised.
+Wardline's payment vault, one contract per business. It only pays approved bills to approved vendors within hard limits, and those limits hold even if the agent is fully compromised.
 
 **The spec is [docs/VAULT_RULES.md](../../docs/VAULT_RULES.md).** Read that first: every rule, method, caller check, status change and rejection code is there. This file only covers building and code layout.
 
@@ -36,7 +36,7 @@ cd contracts && cargo test --workspace
 bash scripts/contracts/build.sh
 
 # Real chain tests: see tests/sandbox
-pnpm --filter @redline/sandbox-tests test:sandbox
+pnpm --filter @wardline/sandbox-tests test:sandbox
 ```
 
 Use `cargo near build`, not plain `cargo build`: it runs `wasm-opt` with the features the NEAR runtime expects.
@@ -47,7 +47,7 @@ Use `cargo near build`, not plain `cargo build`: it runs `wasm-opt` with the fea
 | --- | --- |
 | [src/lib.rs](src/lib.rs) | State and every method. `decide_request` and `decide_owner_pay` are read-only and hold the checks in spec order. |
 | [src/types.rs](src/types.rs) | Stored records, inputs and JSON views, named to match `packages/schemas`. |
-| [src/events.rs](src/events.rs) | NEP-297 events, standard `redline`. |
+| [src/events.rs](src/events.rs) | NEP-297 events, standard `wardline`. |
 | [src/tests.rs](src/tests.rs) | Unit tests for what a sandbox cannot do exactly. |
 
 ## Changing a rule
@@ -60,5 +60,5 @@ Use `cargo near build`, not plain `cargo build`: it runs `wasm-opt` with the fea
 ## Other contracts in this workspace
 
 - [contracts/evidence](../evidence): the evidence registry.
-- `contracts/mock-token`: Redline Test Dollar (REDL, 6 decimals), a NEP-141 test token with no value, built on `near-contract-standards`. Its only addition is an owner-only `mint`.
+- `contracts/mock-token`: Wardline Test Dollar (WUSD, 6 decimals), a NEP-141 test token with no value, built on `near-contract-standards`. Its only addition is an owner-only `mint`.
 - `contracts/test-proxy`: test only, and never deployed to testnet. A call forwarder and a scriptable fake token that can hold a transfer open, fail it, or return an unexpected value.

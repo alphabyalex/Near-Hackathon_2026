@@ -7,7 +7,7 @@ import {
   RevisionSchema,
   ScenarioSchema,
   type Scenario,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { z } from "zod";
 
 /**

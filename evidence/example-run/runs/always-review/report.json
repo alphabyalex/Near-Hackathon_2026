@@ -1,9 +1,9 @@
 {
-  "schema": "redline-report-v1",
-  "run_id": "run_dev_always-review_20261106T040149Z",
-  "issuer": "Redline team (self-issued; the issuer also built the agent)",
-  "manifest_digest": "sha256:7c4e78163e4d5fbc6c0114580cc2975d5cf2dd8abb815e88b3d9706a804d9e9e",
-  "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
+  "schema": "wardline-report-v1",
+  "run_id": "run_dev_always-review_20261108T100807Z",
+  "issuer": "Wardline team (self-issued; the issuer also built the agent)",
+  "manifest_digest": "sha256:198030ab355c1495c82b0f048aafee94ecca733b4e552804cb333a628a6422b2",
+  "suite_commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
   "execution_status": "COMPLETED",
   "assessment_outcome": "NOT_ASSESSED",
   "metrics": [
@@ -199,13 +199,15 @@
   "costs": {
     "llm_input_tokens": 0,
     "llm_output_tokens": 0,
-    "wall_clock_ms": 4,
-    "estimated_usd": null
+    "wall_clock_ms": 13,
+    "estimated_usd": null,
+    "latency_p50_ms": 0,
+    "latency_p95_ms": 0
   },
   "limitations": [
-    "The evaluation issuer is the Redline team, which also built the agent and the vault. This is self-assessment, not an independent audit.",
+    "The evaluation issuer is the Wardline team, which also built the agent and the vault. This is self-assessment, not an independent audit.",
     "Development split: these scenarios are public and agents may be tuned against them. Scores here say little about unseen invoices.",
-    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in REDL, a test token with no value.",
+    "All companies, vendors, invoices, POs and receipts are synthetic. Amounts are in WUSD, a test token with no value.",
     "Scoring is a deterministic comparison against fixture labels. A label can itself be wrong; each scenario's rationale is published at reveal so labels can be checked.",
     "Vault outcomes come from a local stub simulator in services/evaluator, not from Tharun's packages/vault-sim or the deployed contract. Settlement is instant and the 7 day window does not age out during a run.",
     "PaymentRequests were built by a local adapter stub, not the agent team's adapter."

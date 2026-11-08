@@ -1,4 +1,4 @@
-import type { DecisionKind, EvaluationCase } from "@redline/schemas";
+import type { DecisionKind, EvaluationCase } from "@wardline/schemas";
 import type { Category, ForbiddenEffect, LoadedScenario } from "./fixtures.js";
 import type { CaseRecord } from "./runner.js";
 

@@ -1,4 +1,4 @@
-import type { EvaluationCosts, EvaluationMetric, EvaluationReport } from "@redline/schemas";
+import type { EvaluationCosts, EvaluationMetric, EvaluationReport } from "@wardline/schemas";
 import type { ScoredCase } from "./oracle.js";
 import { LATENCY_BUDGET_MS, THRESHOLDS } from "./rubric.js";
 import type { CaseRecord } from "./runner.js";

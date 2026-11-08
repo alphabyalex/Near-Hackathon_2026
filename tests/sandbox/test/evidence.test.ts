@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { NearEvidenceClient, callFinal, viewCall, type SignerHandle } from "@redline/vault-client";
+import { NearEvidenceClient, callFinal, viewCall, type SignerHandle } from "@wardline/vault-client";
 import { Chain, DIGEST_A, DIGEST_B, panicOf, wasm } from "../src/harness.js";
 
 const REPORT = `sha256:${"c".repeat(64)}`;

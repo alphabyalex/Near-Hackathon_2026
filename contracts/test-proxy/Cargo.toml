@@ -1,5 +1,5 @@
 [package]
-name = "redline-test-proxy"
+name = "wardline-test-proxy"
 description = "Test only. A call forwarder and a scriptable fake token, to exercise vault paths a real token never takes."
 version.workspace = true
 edition.workspace = true

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ApiError } from "@redline/schemas";
+import type { ApiError } from "@wardline/schemas";
 import { API_BASE, OWNER_BASE } from "../config";
 
 export class ApiRequestError extends Error {
@@ -13,7 +13,7 @@ export class ApiRequestError extends Error {
 }
 
 /** Fired when an owner call comes back 401, so the dashboard can show sign-in again. */
-export const SIGNED_OUT_EVENT = "redline:signed-out";
+export const SIGNED_OUT_EVENT = "wardline:signed-out";
 
 const OWNER_PREFIX = "/owner";
 

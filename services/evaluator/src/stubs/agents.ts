@@ -7,7 +7,7 @@ import type {
   Payable,
   PaymentRequest,
   ReasonCode,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { DOMAIN, domainDigest } from "../canonical.js";
 
 /**
@@ -17,7 +17,7 @@ import { DOMAIN, domainDigest } from "../canonical.js";
  */
 
 const decision = (intake: Intake, d: Decision["decision"], ref: string | null, codes: ReasonCode[], summary: string, evidence: string[] = []): Decision => ({
-  schema: "redline-decision-v1",
+  schema: "wardline-decision-v1",
   intake_ref: intake.intake_ref,
   decision: d,
   matched_payable_ref: ref,

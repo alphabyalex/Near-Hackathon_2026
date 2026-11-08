@@ -1,4 +1,4 @@
-import type { AgentRunner, DecisionAdapter, Manifest } from "@redline/schemas";
+import type { AgentRunner, DecisionAdapter, Manifest } from "@wardline/schemas";
 import { PaymentRequestAdapter } from "./adapter.js";
 import { loadRepoEnv } from "./agent-config.js";
 import { createAgent } from "./factory.js";
@@ -22,12 +22,12 @@ export function createDecisionAdapter(): DecisionAdapter {
 
 function rulesManifest(): Manifest {
   return {
-    schema: "redline-manifest-v1",
-    name: "redline-rules-baseline",
+    schema: "wardline-manifest-v1",
+    name: "wardline-rules-baseline",
     version: "1.0.0",
     model_provider: "rules",
     model_id: "regex-3way-match",
-    prompt_digest: sha256Digest("Deterministic rules baseline from @redline/agent"),
+    prompt_digest: sha256Digest("Deterministic rules baseline from @wardline/agent"),
     harness_digest: harnessDigest(),
     tools: [],
     settings: { deterministic: true },
@@ -42,7 +42,7 @@ export async function createGymAgents(): Promise<GymAgentExport[]> {
   const rulesAgent = createAgent("rules");
   agents.push({
     name: "rules",
-    label: "RulesBaseline (@redline/agent)",
+    label: "RulesBaseline (@wardline/agent)",
     kind: "baseline",
     manifest: rulesManifest(),
     runner: rulesAgent,

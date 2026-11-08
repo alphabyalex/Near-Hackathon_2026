@@ -1,5 +1,5 @@
 {
-  "name": "@redline/contract-scripts",
+  "name": "@wardline/contract-scripts",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "inspect-keys": "tsx src/inspect-keys.ts"
   },
   "dependencies": {
-    "@redline/vault-client": "workspace:*",
+    "@wardline/vault-client": "workspace:*",
     "near-api-js": "7.4.0"
   },
   "devDependencies": {

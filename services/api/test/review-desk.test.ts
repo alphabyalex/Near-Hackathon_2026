@@ -18,7 +18,7 @@ type Signer = ReturnType<typeof signer>;
 
 const owner = signer("owner-a.testnet");
 const approver = signer("approver-a.testnet");
-const requester = signer("ops.vault-a.redline.testnet");
+const requester = signer("ops.vault-a.wardline.testnet");
 const lookupKeys: NearKeyLookup = async (_network, accountId) =>
   [owner, approver, requester].filter((s) => s.account === accountId).map((s) => ({ publicKey: s.publicKey, fullAccess: true }));
 
@@ -73,13 +73,13 @@ describe("review desk", () => {
     const quarry = items.find((i) => i.vendor.id === "vnd_quarry");
     expect(fernhill).toMatchObject({
       kind: "endpoint_change",
-      vault: "vault-a.redline.testnet",
-      oldAccount: "near:testnet:fernhill.vendors.redline.testnet",
+      vault: "vault-a.wardline.testnet",
+      oldAccount: "near:testnet:fernhill.vendors.wardline.testnet",
       newAccount: "near:testnet:fernhill-cloud.testnet",
       verdict: "BLOCK",
       evidenceTier: "T0_NONE",
       requestedBy: requester.account,
-      amountAtStake: { atomic: "800000000", symbol: "REDL", decimals: 6 },
+      amountAtStake: { atomic: "800000000", symbol: "WUSD", decimals: 6 },
     });
     expect(fernhill?.reasons.map((r) => r.code)).toContain("LOOKALIKE_ACCOUNT");
     expect(fernhill?.payables.map((p) => p.ref)).toEqual(["pay_1003"]);
@@ -100,7 +100,7 @@ describe("review desk", () => {
     expect(result.challenge?.payload).toEqual({
       action: "approve",
       item: item.id,
-      vault: "vault-a.redline.testnet",
+      vault: "vault-a.wardline.testnet",
       vendor: "vnd_quarry",
       revision: 2,
       account: "near:testnet:quarrylanelegal.testnet",
@@ -121,7 +121,7 @@ describe("review desk", () => {
     const result = await signApproval(app, headers, item.id, approver);
     expect(result.status).toBe(200);
     expect((result.body as { note: string }).note).toContain("when the cooldown ends");
-    expect(deps.world.vendors.get("vnd_fernhill")?.account_id).toBe("fernhill.vendors.redline.testnet");
+    expect(deps.world.vendors.get("vnd_fernhill")?.account_id).toBe("fernhill.vendors.wardline.testnet");
     now = Date.parse(item.cooldownEndsAt as string) + 1;
     // The session has expired by now; the vault applies the change on its next read.
     await deps.gateways.endpoints.listChanges();
@@ -141,8 +141,8 @@ describe("review desk", () => {
     const { app } = setup();
     const headers = await session(app, approver);
     const item = (await desk(app, headers)).items[0] as DeskItem;
-    expect((await signApproval(app, headers, item.id, approver, { recipient: "redline-owner-login" })).status).toBe(401);
-    expect((await signApproval(app, headers, item.id, approver, { message: "redline-review:v1:{}" })).status).toBe(401);
+    expect((await signApproval(app, headers, item.id, approver, { recipient: "wardline-owner-login" })).status).toBe(401);
+    expect((await signApproval(app, headers, item.id, approver, { message: "wardline-review:v1:{}" })).status).toBe(401);
     expect((await signApproval(app, headers, item.id, owner)).status).toBe(401);
 
     const ch = (await (await app.request(`/owner/review-desk/${item.id}/challenge`, json({}, headers))).json()) as { message: string; nonce: string; recipient: string };
@@ -166,10 +166,10 @@ describe("review desk", () => {
   it("queues a HOLD from a payer's key, not from an anonymous call, and approving it raises the account to T3", async () => {
     const { app, deps } = setup();
     const headers = await session(app, owner);
-    const { key } = createApiKey(deps.store, { payer: "vault-a.redline.testnet", label: null, callsPerDay: 100, createdBy: owner.account, createdAt: new Date(START).toISOString() });
-    const request = { payee: "near:testnet:quarrylanelegal.testnet", vendor: { domain: "quarrylane.example" }, payer: "vault-a.redline.testnet", amount: "3500000000" };
+    const { key } = createApiKey(deps.store, { payer: "vault-a.wardline.testnet", label: null, callsPerDay: 100, createdBy: owner.account, createdAt: new Date(START).toISOString() });
+    const request = { payee: "near:testnet:quarrylanelegal.testnet", vendor: { domain: "quarrylane.example" }, payer: "vault-a.wardline.testnet", amount: "3500000000" };
     // Paid one account before, so the domain's current account raises PAYEE_CHANGED.
-    deps.store.recordPayment({ payer: "vault-a.redline.testnet", domain: "quarrylane.example", chain: "near:testnet", account: "near:testnet:quarry.vendors.redline.testnet", at: new Date(START).toISOString() });
+    deps.store.recordPayment({ payer: "vault-a.wardline.testnet", domain: "quarrylane.example", chain: "near:testnet", account: "near:testnet:quarry.vendors.wardline.testnet", at: new Date(START).toISOString() });
     const anonymous = await app.request("/v1/check", json({ ...request, payer: undefined }));
     expect(anonymous.status).toBe(200);
     expect((await desk(app, headers)).items.filter((i) => i.kind === "payee_hold")).toEqual([]);
@@ -180,16 +180,16 @@ describe("review desk", () => {
     const holds = (await desk(app, headers)).items.filter((i) => i.kind === "payee_hold");
     expect(holds).toHaveLength(1);
     expect(holds[0]).toMatchObject({
-      vault: "vault-a.redline.testnet",
-      oldAccount: "near:testnet:quarry.vendors.redline.testnet",
+      vault: "vault-a.wardline.testnet",
+      oldAccount: "near:testnet:quarry.vendors.wardline.testnet",
       newAccount: "near:testnet:quarrylanelegal.testnet",
-      amountAtStake: { atomic: "3500000000", symbol: "REDL" },
+      amountAtStake: { atomic: "3500000000", symbol: "WUSD" },
       payables: [{ ref: "pay_1002" }],
     });
     expect(holds[0]?.reasons.map((r) => r.code)).toContain("PAYEE_CHANGED");
 
     expect((await signApproval(app, headers, holds[0]?.id as string, owner)).status).toBe(200);
-    expect(deps.store.hasRelationship("vault-a.redline.testnet", "near:testnet:quarrylanelegal.testnet")).toBe(true);
+    expect(deps.store.hasRelationship("vault-a.wardline.testnet", "near:testnet:quarrylanelegal.testnet")).toBe(true);
   });
 
   it("does not approve with owner sign-in off", async () => {

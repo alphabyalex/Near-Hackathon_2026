@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PayeeReasonCode, PayeeVerdict } from "@redline/schemas";
+import type { PayeeReasonCode, PayeeVerdict } from "@wardline/schemas";
 
 /**
  * Ground truth comes from here, never from the model. Every case is a function of (seed, index),
@@ -28,7 +28,7 @@ export const NEAR_CHAIN = "near:testnet";
 export const EVM_CHAIN = "eip155:84532";
 export type Chain = typeof NEAR_CHAIN | typeof EVM_CHAIN;
 
-/** How the paying agent names the vendor when it asks Redline. */
+/** How the paying agent names the vendor when it asks Wardline. */
 export type Claim = "domain" | "name" | "none";
 
 export type LookalikeStrategy =

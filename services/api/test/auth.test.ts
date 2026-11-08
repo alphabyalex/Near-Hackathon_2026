@@ -1,7 +1,7 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { canonicalJson } from "@redline/agent";
-import { PayeeCheckResult, PayeeResolveResult } from "@redline/schemas";
-import { createRedline, seedEvmAddress } from "@redline/sdk";
+import { canonicalJson } from "@wardline/agent";
+import { PayeeCheckResult, PayeeResolveResult } from "@wardline/schemas";
+import { createWardline, seedEvmAddress } from "@wardline/sdk";
 import { base58 } from "@scure/base";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
@@ -89,11 +89,11 @@ describe("owner sign-in", () => {
     const body = (await res.json()) as { token: string; role: string; account: string };
     expect(body).toMatchObject({ role: "owner", account: owner.account });
     const cookie = res.headers.get("set-cookie") ?? "";
-    expect(cookie).toMatch(/redline_session=rs_/);
+    expect(cookie).toMatch(/wardline_session=rs_/);
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Strict/i);
     expect((await app.request("/owner/invoices", { headers: bearer(body.token) })).status).toBe(200);
-    expect((await app.request("/owner/invoices", { headers: { cookie: `redline_session=${body.token}` } })).status).toBe(200);
+    expect((await app.request("/owner/invoices", { headers: { cookie: `wardline_session=${body.token}` } })).status).toBe(200);
     expect(await (await app.request("/owner/auth/session", { headers: bearer(body.token) })).json()).toEqual({ account: owner.account, role: "owner" });
   });
 
@@ -193,11 +193,11 @@ describe("owner routes", () => {
 
   it.each(ROUTES)("%s %s needs a session", async (method, path) => {
     const { app, deps } = setup();
-    const before = deps.world.vaults.get("vault-a.redline.testnet")?.balance_atomic;
-    const body = { source_text: "Invoice INV-1003 from Fernhill. Total 800.00 REDL.", payer: "acme.testnet", account: "northwind.testnet", compromised: true };
+    const before = deps.world.vaults.get("vault-a.wardline.testnet")?.balance_atomic;
+    const body = { source_text: "Invoice INV-1003 from Fernhill. Total 800.00 WUSD.", payer: "acme.testnet", account: "northwind.testnet", compromised: true };
     const res = await app.request(path, method === "POST" ? json(body) : {});
     expect(res.status).toBe(401);
-    expect(deps.world.vaults.get("vault-a.redline.testnet")?.balance_atomic).toBe(before);
+    expect(deps.world.vaults.get("vault-a.wardline.testnet")?.balance_atomic).toBe(before);
   });
 
   it("removes the old unprefixed owner paths from the public app", async () => {
@@ -301,10 +301,10 @@ describe("payment records", () => {
     const nonce = Buffer.from(ed25519.utils.randomSecretKey());
     const signature = signNep413(paymentRecordMessage(timestamp, canonicalJson(signedBody)), nonce, who.secret, PAYMENT_RECORD_RECIPIENT);
     return json(options.sent ?? signedBody, {
-      "x-redline-public-key": who.publicKey,
-      "x-redline-signature": signature,
-      "x-redline-nonce": (options.sentNonce ?? nonce).toString("base64"),
-      "x-redline-timestamp": timestamp,
+      "x-wardline-public-key": who.publicKey,
+      "x-wardline-signature": signature,
+      "x-wardline-nonce": (options.sentNonce ?? nonce).toString("base64"),
+      "x-wardline-timestamp": timestamp,
     });
   };
 
@@ -383,14 +383,14 @@ describe("payer-scoped checks and T3", () => {
   it("sends the hosted SDK's API key", async () => {
     const { app, deps } = setup();
     const key = keyFor(deps, payerA.account);
-    const redline = createRedline({
+    const wardline = createWardline({
       mode: "hosted",
       baseUrl: "http://api.local",
       apiKey: key,
       fetch: ((input: string | URL | Request, init?: RequestInit) => app.request(String(input), init)) as typeof fetch,
     });
-    await redline.recordPayment({ payer: payerA.account, domain: DOMAIN, account: evm });
-    expect((await redline.check({ payee: evm, vendor: { domain: DOMAIN }, payer: payerA.account })).evidenceTier).toBe("T3_RELATIONSHIP");
+    await wardline.recordPayment({ payer: payerA.account, domain: DOMAIN, account: evm });
+    expect((await wardline.check({ payee: evm, vendor: { domain: DOMAIN }, payer: payerA.account })).evidenceTier).toBe("T3_RELATIONSHIP");
   });
 });
 
@@ -399,14 +399,14 @@ describe("binding", () => {
 
   it("binds to localhost by default and to all interfaces only with the flag", () => {
     expect(serverConfigFromEnv({}, auth)).toEqual({ port: 8787, host: "127.0.0.1", ownerPort: null, ownerHost: "127.0.0.1" });
-    expect(serverConfigFromEnv({ REDLINE_BIND_PUBLIC: "true" }, auth).host).toBe("0.0.0.0");
-    expect(serverConfigFromEnv({ REDLINE_BIND_PUBLIC: "true", REDLINE_OWNER_PORT: "8788" }, auth)).toMatchObject({ host: "0.0.0.0", ownerPort: 8788, ownerHost: "127.0.0.1" });
+    expect(serverConfigFromEnv({ WARDLINE_BIND_PUBLIC: "true" }, auth).host).toBe("0.0.0.0");
+    expect(serverConfigFromEnv({ WARDLINE_BIND_PUBLIC: "true", WARDLINE_OWNER_PORT: "8788" }, auth)).toMatchObject({ host: "0.0.0.0", ownerPort: 8788, ownerHost: "127.0.0.1" });
   });
 
   it("refuses public owner routes with auth off or nobody listed, and a clashing port", () => {
-    expect(() => serverConfigFromEnv({ REDLINE_BIND_PUBLIC: "true" }, LOCAL_AUTH)).toThrow(/only allowed/);
-    expect(() => serverConfigFromEnv({ REDLINE_OWNER_PORT: "8788", REDLINE_OWNER_BIND_PUBLIC: "true" }, authWith({}))).toThrow(/empty/);
-    expect(() => serverConfigFromEnv({ REDLINE_OWNER_PORT: "8787" }, auth)).toThrow(/differ/);
-    expect(serverConfigFromEnv({ REDLINE_BIND_PUBLIC: "true", REDLINE_OWNER_PORT: "8788" }, LOCAL_AUTH).ownerHost).toBe("127.0.0.1");
+    expect(() => serverConfigFromEnv({ WARDLINE_BIND_PUBLIC: "true" }, LOCAL_AUTH)).toThrow(/only allowed/);
+    expect(() => serverConfigFromEnv({ WARDLINE_OWNER_PORT: "8788", WARDLINE_OWNER_BIND_PUBLIC: "true" }, authWith({}))).toThrow(/empty/);
+    expect(() => serverConfigFromEnv({ WARDLINE_OWNER_PORT: "8787" }, auth)).toThrow(/differ/);
+    expect(serverConfigFromEnv({ WARDLINE_BIND_PUBLIC: "true", WARDLINE_OWNER_PORT: "8788" }, LOCAL_AUTH).ownerHost).toBe("127.0.0.1");
   });
 });

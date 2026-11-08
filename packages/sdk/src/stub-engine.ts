@@ -1,4 +1,4 @@
-import type { EvidenceTier, PayeeCheckRequest, PayeeReason, PayeeReasonCode, PayeeSignals, PayeeVendor, PayeeVerdict } from "@redline/schemas";
+import type { EvidenceTier, PayeeCheckRequest, PayeeReason, PayeeReasonCode, PayeeSignals, PayeeVendor, PayeeVerdict } from "@wardline/schemas";
 import { chainOf, normalizeChain, normalizeDomain, parseAccount, type ParsedAccount } from "./caip.js";
 import type { EngineCheckResult, EngineContext, EngineResolveResult, PayeeEngine, PayeeRegistry, RegistryVendor } from "./interfaces.js";
 
@@ -156,7 +156,7 @@ function matchReasons(payee: ParsedAccount, vendor: RegistryVendor, lookalike: s
   return [{ code: "ACCOUNT_NOT_VENDORS", detail: `Not an account linked to ${vendor.domain}.` }];
 }
 
-/** Deterministic engine, used until @redline/payee-check lands. Same inputs give the same verdict. */
+/** Deterministic engine, used until @wardline/payee-check lands. Same inputs give the same verdict. */
 export function createStubEngine(): PayeeEngine {
   return {
     async check(request, context): Promise<EngineCheckResult> {

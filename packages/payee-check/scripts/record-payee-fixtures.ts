@@ -2,7 +2,7 @@
  * Records real NEAR testnet RPC responses ONCE into fixtures/testnet-recording.json.
  * Tests replay that file and never touch the network.
  *
- *   QUICKNODE_NEAR_RPC_URL=... pnpm --filter @redline/payee-check record-fixtures
+ *   QUICKNODE_NEAR_RPC_URL=... pnpm --filter @wardline/payee-check record-fixtures
  *   (or NEAR_RPC_URL=...; the endpoint must be archival, or set NEAR_ARCHIVE_RPC_URL)
  *
  * Hard budget: at most MAX_LIVE_CALLS HTTP requests, counted including retries. An account is
@@ -23,7 +23,7 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "tes
 
 /** Accounts to record, cheapest first, with a worst-case call estimate for the budget check. */
 const TARGETS: Array<{ id: string; why: string; worstCase: number }> = [
-  { id: "redline-payee-missing-q7x2.testnet", why: "does not exist: ACCOUNT_MISSING", worstCase: 2 },
+  { id: "wardline-payee-missing-q7x2.testnet", why: "does not exist: ACCOUNT_MISSING", worstCase: 2 },
   { id: "vault-a.redline-labs.testnet", why: "created this week with a contract: NEW_ACCOUNT, RECENT_CODE_CHANGE", worstCase: 32 },
   { id: "owner-a.redline-labs.testnet", why: "created this week with a full-access key: RECENT_FULL_ACCESS_KEY", worstCase: 28 },
 ];
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
   const dedup = new Map<string, RecordedCall>();
   for (const c of calls) dedup.set(JSON.stringify(c.request), c);
   const out: Recording = {
-    schema: "redline-payee-rpc-recording-v1",
+    schema: "wardline-payee-rpc-recording-v1",
     recorded_at: new Date().toISOString(),
     network: "testnet",
     endpoint_source: source,

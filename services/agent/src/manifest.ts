@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, type Manifest, ManifestSchema } from "@redline/schemas";
+import { type Digest, type Manifest, ManifestSchema } from "@wardline/schemas";
 import { AGENT_TOOLS, LLM_SETTINGS, MODEL_ID, MODEL_PROVIDER, PACKAGE_ROOT } from "./agent-config.js";
 import { digestOf, sha256Digest } from "./canonical.js";
 import { type PromptVersion, promptDigest } from "./prompts.js";
@@ -28,8 +28,8 @@ const CREATED_AT: Record<PromptVersion, string> = {
 
 export function buildManifest(version: PromptVersion): Manifest {
   return ManifestSchema.parse({
-    schema: "redline-manifest-v1",
-    name: "redline-invoice-agent",
+    schema: "wardline-manifest-v1",
+    name: "wardline-invoice-agent",
     version,
     model_provider: MODEL_PROVIDER,
     model_id: MODEL_ID,

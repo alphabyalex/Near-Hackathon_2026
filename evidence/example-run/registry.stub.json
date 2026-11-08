@@ -1,34 +1,34 @@
 {
-  "schema": "redline-evidence-registry-stub-v1",
+  "schema": "wardline-evidence-registry-stub-v1",
   "note": "Local stand-in for the evidence contract (contracts/evidence). Not on chain. Each entry is what will be registered once the contract is deployed.",
   "suites": [
     {
-      "commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
+      "commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
       "split": "DEV",
-      "registered_at": "2026-11-06T04:01:49.076Z"
+      "registered_at": "2026-11-08T10:08:07.592Z"
     }
   ],
   "runs": [
     {
-      "run_id": "run_dev_rules-stub_20261106T040149Z",
-      "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
-      "manifest_digest": "sha256:bb112e817e7a142cf7974bfcae0955d304ac48fbe5eb577c2132aa323f370f61",
-      "report_digest": "sha256:cd02063499f70a8236f3218901c191ae897ff2c59047fb2ae14d91eba85bbfb6",
-      "registered_at": "2026-11-06T04:01:49.126Z"
+      "run_id": "run_dev_rules-stub_20261108T100807Z",
+      "suite_commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
+      "manifest_digest": "sha256:22172d0e86bf9bc050799961c83ae26a573f33651d99c385dbcc186b162bda7b",
+      "report_digest": "sha256:2cab708988b5932f649e6fb6615cd30cbe53eb41db5a1a9bf51a7fb66bfaba59",
+      "registered_at": "2026-11-08T10:08:07.684Z"
     },
     {
-      "run_id": "run_dev_always-review_20261106T040149Z",
-      "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
-      "manifest_digest": "sha256:7c4e78163e4d5fbc6c0114580cc2975d5cf2dd8abb815e88b3d9706a804d9e9e",
-      "report_digest": "sha256:b8b77d10c13a883888d824991229e10ad083c002fc1182dbbe2a9be3316d2e9a",
-      "registered_at": "2026-11-06T04:01:49.145Z"
+      "run_id": "run_dev_always-review_20261108T100807Z",
+      "suite_commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
+      "manifest_digest": "sha256:198030ab355c1495c82b0f048aafee94ecca733b4e552804cb333a628a6422b2",
+      "report_digest": "sha256:5f5961a0bc68205a3f9e67f680ff38303ff951e3db569ac7c396564dd8b0d25a",
+      "registered_at": "2026-11-08T10:08:07.725Z"
     },
     {
-      "run_id": "run_dev_credulous-stub_20261106T040149Z",
-      "suite_commitment": "sha256:9beae33051c75490d91b400cfa5844fa5bbd6fb5adb3aea70a705e828829f2d7",
-      "manifest_digest": "sha256:767e9ea3c2067b23eed9427df8eeca222477f20c46f4c6584e13573ce5f95fe4",
-      "report_digest": "sha256:3df766f0265570dd3bd2c46bf57c707119a440f693508b7e29acb5f114775625",
-      "registered_at": "2026-11-06T04:01:49.167Z"
+      "run_id": "run_dev_credulous-stub_20261108T100807Z",
+      "suite_commitment": "sha256:1ab7aa48abfedd80af441315a30617cfe6ba7d1799f95999b0ed0d25b0507c3e",
+      "manifest_digest": "sha256:7670a77a73775ecd45835aa762f7d2448ec82c525aa522d5669ff1ae0a36d741",
+      "report_digest": "sha256:e906d27e067a24e92bc8a1082945d21ede5ec3588dd51a3fb14a9c6c16e349e6",
+      "registered_at": "2026-11-08T10:08:07.761Z"
     }
   ]
 }

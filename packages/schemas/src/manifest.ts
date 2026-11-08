@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DigestSchema } from "./common.js";
 
 export const ManifestSchema = z.object({
-  schema: z.literal("redline-manifest-v1"),
+  schema: z.literal("wardline-manifest-v1"),
   name: z.string().min(1),
   version: z.string().min(1),
   model_provider: z.string().min(1),

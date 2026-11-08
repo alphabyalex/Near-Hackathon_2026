@@ -8,7 +8,7 @@ export interface RecordedCall {
 }
 
 export interface Recording {
-  schema: "redline-payee-rpc-recording-v1";
+  schema: "wardline-payee-rpc-recording-v1";
   recorded_at: string;
   network: string;
   /** Which env var supplied the endpoint, never the URL itself. */

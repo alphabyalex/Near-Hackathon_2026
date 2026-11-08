@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { canonicalJson } from "@redline/agent";
-import type { EvidenceTier, Payable, PayeeReason, PayeeVerdict } from "@redline/schemas";
-import { chainOf, normalizeAccount, type RegistryVendor } from "@redline/sdk";
+import { canonicalJson } from "@wardline/agent";
+import type { EvidenceTier, Payable, PayeeReason, PayeeVerdict } from "@wardline/schemas";
+import { chainOf, normalizeAccount, type RegistryVendor } from "@wardline/sdk";
 import type { EndpointChange } from "./gateways/endpoint-gateway.js";
 import type { Deps } from "./service.js";
 import type { PayeeHold, ReviewDecision } from "./store.js";
@@ -12,9 +12,9 @@ import type { PayeeHold, ReviewDecision } from "./store.js";
  * bound to (vault, vendor, revision, account, expiry). Rejecting needs a session only.
  */
 
-export const REVIEW_APPROVAL_RECIPIENT = "redline-review-approval";
+export const REVIEW_APPROVAL_RECIPIENT = "wardline-review-approval";
 export const APPROVAL_TTL_MS = 5 * 60_000;
-const MESSAGE_PREFIX = "redline-review:v1:";
+const MESSAGE_PREFIX = "wardline-review:v1:";
 
 export type DeskKind = "endpoint_change" | "payee_hold";
 

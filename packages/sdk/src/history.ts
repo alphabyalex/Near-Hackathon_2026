@@ -27,7 +27,7 @@ export function createIndexedDbHistory(options: { name?: string; factory?: IDBFa
   const factory = options.factory ?? globalThis.indexedDB;
   if (!factory) throw new Error("IndexedDB is not available here.");
   const opened = new Promise<IDBDatabase>((resolve, reject) => {
-    const request = factory.open(options.name ?? "redline-history", 1);
+    const request = factory.open(options.name ?? "wardline-history", 1);
     request.onupgradeneeded = () => request.result.createObjectStore(STORE);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

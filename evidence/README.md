@@ -3,7 +3,7 @@
 Owner: Lucy
 
 Published evaluation evidence. Every folder with a `suite-commitment.json` is checked by
-`pnpm --filter @redline/evaluator verify:evidence`, which recomputes every digest from the files.
+`pnpm --filter @wardline/evaluator verify:evidence`, which recomputes every digest from the files.
 
 | Path | What |
 | --- | --- |

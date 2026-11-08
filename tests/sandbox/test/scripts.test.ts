@@ -20,7 +20,7 @@ describe("deploy, attack and inspect scripts", () => {
 
   beforeAll(async () => {
     chain = await Chain.start();
-    dir = mkdtempSync(join(tmpdir(), "redline-scripts-"));
+    dir = mkdtempSync(join(tmpdir(), "wardline-scripts-"));
     manifest = await deployAndSeed({
       network: "sandbox",
       rpcUrl: chain.sandbox.rpcUrl,
@@ -47,7 +47,7 @@ describe("deploy, attack and inspect scripts", () => {
   it("the manifest records two vaults, code hashes and key permissions, and no private keys", () => {
     expect(manifest.vaults).toHaveLength(2);
     expect(manifest.vaults[0]?.code_hash).toBe(manifest.vaults[1]?.code_hash);
-    expect(manifest.token).toMatchObject({ name: "Redline Test Dollar", symbol: "REDL", decimals: 6 });
+    expect(manifest.token).toMatchObject({ name: "Wardline Test Dollar", symbol: "WUSD", decimals: 6 });
     expect(manifest.vaults[0]?.vendors.map((v) => v.per_payment_cap_atomic)).toEqual(["5000000000", "2000000000", "1000000000"]);
     const text = readFileSync(join(dir, "manifest.json"), "utf8");
     expect(text).not.toContain(DEFAULT_PRIVATE_KEY);
@@ -107,7 +107,7 @@ describe("deploy, attack and inspect scripts", () => {
     expect(kindOf("Pay it as the owner")?.kind).toBe("KEY_NOT_PERMITTED");
   });
 
-  it("the attack moved only the approved 1 REDL bill", () => {
+  it("the attack moved only the approved 1 WUSD bill", () => {
     expect(report.vendor_balance_change_atomic).toBe("1000000");
     expect(report.vault_available_change_atomic).toBe("-1000000");
     expect(report.attempts.filter((attempt) => attempt.kind === "PAID")).toHaveLength(1);

@@ -35,8 +35,43 @@ const SHOTS: Shot[] = [
     name: "demo",
     path: "#/demo",
     prepare: async (page) => {
-      await page.locator('[data-scene="x402"]').click();
-      await expect(page.locator(".stage .result")).toBeVisible();
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.locator('[data-scene="plugin"]').click();
+      await expect(page.locator(".stage .scene-out")).toBeVisible();
+    },
+  },
+  {
+    name: "demo-swap",
+    path: "#/demo",
+    prepare: async (page) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.locator('[data-scene="swap"]').click();
+      await expect(page.locator(".stage .scene-out")).toBeVisible();
+    },
+  },
+  {
+    name: "demo-leak",
+    path: "#/demo",
+    prepare: async (page) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.locator('[data-scene="leak"]').click();
+      await expect(page.locator(".stage .scene-out")).toBeVisible();
+    },
+  },
+  {
+    name: "demo-mutual",
+    path: "#/demo",
+    prepare: async (page) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.locator('[data-scene="mutual"]').click();
+      await expect(page.locator(".stage .scene-out")).toBeVisible();
+    },
+  },
+  {
+    name: "mutual",
+    path: "#/mutual",
+    prepare: async (page) => {
+      await expect(page.getByTestId("pool-stats")).toBeVisible();
     },
   },
   { name: "connect", path: "#/connect", base: `http://127.0.0.1:${SHOTS_PORT}/` },
@@ -71,8 +106,30 @@ const SHOTS: Shot[] = [
     },
   },
   { name: "about", path: "#/about" },
-  { name: "owner-sign-in", path: "#/app/overview" },
-  { name: "owner-overview", path: "#/app/overview", prepare: (page, wallets) => signInAs(page, wallets, OWNER_ACCOUNT) },
+  {
+    name: "owner-sign-in",
+    path: "#/app/overview",
+    // The owner app loads lazily; wait for the form, not the loading line.
+    prepare: async (page) => {
+      await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    },
+  },
+  {
+    name: "owner-overview",
+    path: "#/app/overview",
+    prepare: async (page, wallets) => {
+      await signInAs(page, wallets, OWNER_ACCOUNT);
+      await expect(page.locator(".spend-chart svg")).toBeVisible();
+    },
+  },
+  {
+    name: "owner-group",
+    path: "#/app/group",
+    prepare: async (page, wallets) => {
+      await signInAs(page, wallets, OWNER_ACCOUNT);
+      await expect(page.locator("table.calls tbody tr").first()).toBeVisible();
+    },
+  },
   {
     name: "owner-review-desk",
     path: "#/app/review",
@@ -86,7 +143,7 @@ const SHOTS: Shot[] = [
     path: "#/app/keys",
     prepare: async (page, wallets) => {
       await signInAs(page, wallets, OWNER_ACCOUNT);
-      await expect(page.getByRole("button", { name: "Create key" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Create key", exact: true })).toBeVisible();
     },
   },
 ];

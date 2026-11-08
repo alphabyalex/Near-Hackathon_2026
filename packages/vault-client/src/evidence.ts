@@ -47,7 +47,7 @@ export interface PublishRunParams {
 }
 
 /**
- * Client for Redline's evidence registry contract (contracts/evidence).
+ * Client for Wardline's evidence registry contract (contracts/evidence).
  *
  * Provides read-only views accessible to anyone, plus transaction methods
  * for designated issuers to commit suites, register runs, and publish digests.

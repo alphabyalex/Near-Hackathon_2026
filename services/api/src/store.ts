@@ -8,7 +8,7 @@ import type {
   Intake,
   PaymentStatus,
   ReviewItem,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 
 export interface InvoiceRow {
   intake: Intake;
@@ -84,6 +84,11 @@ const DECISION_SELECT =
 /** Persistence for what the API itself owns. Chain state belongs to the vault gateway. */
 export class Store {
   private readonly db: Database.Database;
+
+  /** The shared connection, for modules that keep their own tables (meter keys, AI calls). */
+  get database(): Database.Database {
+    return this.db;
+  }
 
   constructor(path: string) {
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });

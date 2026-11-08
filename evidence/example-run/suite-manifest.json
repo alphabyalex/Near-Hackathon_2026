@@ -1,8 +1,8 @@
 {
-  "schema": "redline-suite-manifest-v1",
+  "schema": "wardline-suite-manifest-v1",
   "split": "DEV",
-  "rubric_version": "redline-rubric-0.1-draft",
-  "harness_id": "redline-evaluator/0.1.0",
+  "rubric_version": "wardline-rubric-0.1-draft",
+  "harness_id": "wardline-evaluator/0.1.0",
   "counts": {
     "total": 12,
     "legitimate": 5,
@@ -14,51 +14,51 @@
   "scenario_hashes": [
     {
       "scenario_id": "scn_9jjr3qnbmn",
-      "digest": "sha256:6f6f3fcb9b709bc2734e77243178bd519a86f18cc6370c04774a8e869d3c2e13"
+      "digest": "sha256:f6a773f29a57c11b7d7f839aaa2f14b5f53369fa2414dbe7814db33d8099d5db"
     },
     {
       "scenario_id": "scn_evk9eugxrd",
-      "digest": "sha256:68ae62fb368d7735aaef529924ff431586997c973ff74961a576b531968e161a"
+      "digest": "sha256:d43cbf665c7c53b5d08ac389786aa1876cf7bffaabde67942b1b96948317854f"
     },
     {
       "scenario_id": "scn_gj2naksauv",
-      "digest": "sha256:9f09adb0bc50c072dde46f7b6185b78ed02f559b9a438f304c064f1645d0e9f0"
+      "digest": "sha256:ea29f925e59851ff0f5c3d3d5ca0721a5a2b688089401226753be11185385d63"
     },
     {
       "scenario_id": "scn_jf2qb7uxyt",
-      "digest": "sha256:2df663126b9ee2f206c7fe554ef5e429919eba05c161e5591044aa84949059ca"
+      "digest": "sha256:69ef7d08eb2045dfa23afdaf8d2ca878f0c77343aebf9755877f773a0dd1fabe"
     },
     {
       "scenario_id": "scn_k26xa4bgd5",
-      "digest": "sha256:e55d66027b51d439a279378058c485a793e2115daa41ea1df375714a042d870a"
+      "digest": "sha256:3df0f54cc3a73c7de5bea066deee9f53629b434e3a8851d85beed23593c79b44"
     },
     {
       "scenario_id": "scn_nbmv5ey9cg",
-      "digest": "sha256:f3bb7db05442ba9c7a12251cc4c7a18af2961b6c02cc755dd99dbf20fa0d03bc"
+      "digest": "sha256:86adf9ef24f6f974db6aeef515d9fb694190d11a1fbf7b59ccf29d2df2fb5cff"
     },
     {
       "scenario_id": "scn_vx3nu49juj",
-      "digest": "sha256:281dc977b02870e8990c22b40c33a14404e2ba45b40b64c33be2874f993414f7"
+      "digest": "sha256:f5a558d20c035c40b139fac910706fd18ebe06cff9fae93d84eee25308f208ad"
     },
     {
       "scenario_id": "scn_w864fcvtva",
-      "digest": "sha256:e53a8381d307ea04a62b97d23e219861c15a6c808c80b6f495a9b8cefee12033"
+      "digest": "sha256:50a9d16620194984455abdb54588d1e84cf6d05e61feaaad0f10eb4063e5ea6c"
     },
     {
       "scenario_id": "scn_wmb6pddqws",
-      "digest": "sha256:b132be4c00eb29e935ccdefc15f2ccc805b8f9a9f836a144c8178e9816cd8282"
+      "digest": "sha256:47118b6f0617d311bae222c01020e93040b206b00509718dd2414c59ba526dfc"
     },
     {
       "scenario_id": "scn_x9avzzjane",
-      "digest": "sha256:59759d465ef398219979ad28aaf7946aad56b48e3c6be4b3f291d7da8244b3de"
+      "digest": "sha256:0bfa6598c1d6177131c29d39486f76416289eec095b6d44ad76b8693eeca5dd5"
     },
     {
       "scenario_id": "scn_z3494rz5dx",
-      "digest": "sha256:545ba0bf0cbf7c6762a03847eae6a26eb7d0d992b4c00dc36e0f8fd302b405c1"
+      "digest": "sha256:979e0ca1629e83b68be02af2b7822028925264347d09c439af8f51ef12c87489"
     },
     {
       "scenario_id": "scn_z4d2z2nuk3",
-      "digest": "sha256:dd5289fc2392edb31cfa1b9849d34c155ab18a62398f8528c9ce53ac72265994"
+      "digest": "sha256:276c55f2e1a8dd36fa27fbb0b7185169d04569e18a44311acd28586f32e5fc30"
     }
   ]
 }

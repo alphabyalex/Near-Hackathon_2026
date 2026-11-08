@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { PayeeCheckRequest, PayeeResolveRequest } from "@redline/schemas";
-import { createRedline, type Redline } from "@redline/sdk";
+import { PayeeCheckRequest, PayeeResolveRequest, readEnv } from "@wardline/schemas";
+import { createWardline, type Wardline } from "@wardline/sdk";
 import { z } from "zod";
 
 const MAX_BODY_BYTES = 1_000_000;
@@ -11,9 +11,9 @@ const DEFAULT_API_URL = "http://127.0.0.1:8787";
 export const HOW_TO_VERIFY = `Link your payout accounts to your domain once, and agents can pay your domain directly.
 
 1. Pick the accounts you want paid, as CAIP-10 strings such as near:testnet:you.testnet, eip155:84532:0xabc... or solana:devnet:7xKX...
-2. Run: pnpm payee:proof --config payee.json. Each account signs "redline-payee:v2:<domain>:<caip10>:<issued_at>" with its own key.
-   NEAR uses NEP-413 with recipient "redline-payee-registry" and a current full-access key. EVM uses EIP-191. Solana uses ed25519.
-3. Serve the output at https://<your-domain>/.well-known/redline-payee.json.
+2. Run: pnpm payee:proof --config payee.json. Each account signs "wardline-payee:v2:<domain>:<caip10>:<issued_at>" with its own key.
+   NEAR uses NEP-413 with recipient "wardline-payee-registry" and a current full-access key. EVM uses EIP-191. Solana uses ed25519.
+3. Serve the output at https://<your-domain>/.well-known/wardline-payee.json.
 4. POST { "domain": "<your-domain>" } to /v1/vendors/verify.
 
 Accounts added after your first verification wait out a cooling-off period, during which they get HOLD.
@@ -43,8 +43,8 @@ const guarded = <A>(run: (args: A) => Promise<ReturnType<typeof reply>>) => asyn
   }
 };
 
-export function createMcpServer(redline: Redline): McpServer {
-  const server = new McpServer({ name: "redline", version: "0.1.0" });
+export function createMcpServer(wardline: Wardline): McpServer {
+  const server = new McpServer({ name: "wardline", version: "0.1.0" });
 
   server.registerTool(
     "resolve_payee",
@@ -53,7 +53,7 @@ export function createMcpServer(redline: Redline): McpServer {
       description: `Get the payout account linked to a vendor's website domain on a chain. Use this whenever you know the vendor's website, so you never handle a raw address. ${RULES} On PAY, send the payment to the returned account. ${TIERS}`,
       inputSchema: PayeeResolveRequest.shape,
     },
-    guarded(async (args) => reply(await redline.resolve(PayeeResolveRequest.parse(args)))),
+    guarded(async (args) => reply(await wardline.resolve(PayeeResolveRequest.parse(args)))),
   );
 
   server.registerTool(
@@ -63,7 +63,7 @@ export function createMcpServer(redline: Redline): McpServer {
       description: `Check whether an account is the one linked to a vendor's domain. Call this before paying any raw address, including one from an invoice, an email or an x402 offer. Pass the vendor's domain when you know it. ${RULES} ${TIERS}`,
       inputSchema: PayeeCheckRequest.shape,
     },
-    guarded(async (args) => reply(await redline.check(PayeeCheckRequest.parse(args)))),
+    guarded(async (args) => reply(await wardline.check(PayeeCheckRequest.parse(args)))),
   );
 
   server.registerTool(
@@ -74,9 +74,20 @@ export function createMcpServer(redline: Redline): McpServer {
       inputSchema: { domain: z.string().max(253) },
     },
     guarded(async ({ domain }) => {
-      const vendor = await redline.getVendor(domain);
+      const vendor = await wardline.getVendor(domain);
       return reply(vendor ?? { domain, found: false });
     }),
+  );
+
+  server.registerTool(
+    "get_ai_spend",
+    {
+      title: "Read a shared AI budget",
+      description: "Read-only. Shows a shared AI budget: the deposit that caps all spending, what was spent, each member's allowance, and how many calls were paid on a verified model proof or refused and refunded. Needs WARDLINE_METER_KEY for a member of that budget.",
+      inputSchema: { budget_id: z.string().min(1).max(64) },
+      annotations: { readOnlyHint: true },
+    },
+    guarded(async ({ budget_id }) => reply((await wardline.getAiSpend(budget_id)) as object)),
   );
 
   server.registerTool(
@@ -92,8 +103,11 @@ export function createMcpServer(redline: Redline): McpServer {
   return server;
 }
 
-export const redlineFromEnv = (env: NodeJS.ProcessEnv = process.env): Redline =>
-  createRedline({ mode: "hosted", baseUrl: env.REDLINE_API_URL ?? DEFAULT_API_URL, ...(env.REDLINE_API_KEY ? { apiKey: env.REDLINE_API_KEY } : {}) });
+export const wardlineFromEnv = (env: NodeJS.ProcessEnv = process.env): Wardline => {
+  const apiKey = readEnv("WARDLINE_API_KEY", env);
+  const meterKey = readEnv("WARDLINE_METER_KEY", env);
+  return createWardline({ mode: "hosted", baseUrl: readEnv("WARDLINE_API_URL", env) ?? DEFAULT_API_URL, ...(apiKey ? { apiKey } : {}), ...(meterKey ? { meterKey } : {}) });
+};
 
 const readBody = (req: IncomingMessage): Promise<unknown> =>
   new Promise((resolve, reject) => {
@@ -122,7 +136,7 @@ const readBody = (req: IncomingMessage): Promise<unknown> =>
  * Streamable HTTP at /mcp, stateless: one server and transport per request. The Host check stops
  * a web page from reaching a local server through DNS rebinding.
  */
-export function createHttpServer(redline: Redline, options: { allowedHosts?: readonly string[] } = {}): Server {
+export function createHttpServer(wardline: Wardline, options: { allowedHosts?: readonly string[] } = {}): Server {
   const allowed = new Set(["127.0.0.1", "localhost", ...(options.allowedHosts ?? [])]);
   return createServer(async (req, res) => {
     const fail = (status: number, message: string) => {
@@ -139,7 +153,7 @@ export function createHttpServer(redline: Redline, options: { allowedHosts?: rea
     } catch {
       return fail(400, "The body must be JSON, up to 1 MB.");
     }
-    const server = createMcpServer(redline);
+    const server = createMcpServer(wardline);
     // No sessionIdGenerator means stateless mode.
     const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
     res.on("close", () => {

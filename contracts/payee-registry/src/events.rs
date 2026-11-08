@@ -3,7 +3,7 @@ use near_sdk::env;
 
 fn emit(event: &str, data: Value) {
     let envelope = json!({
-        "standard": "redline",
+        "standard": "wardline",
         "version": "1.0.0",
         "event": event,
         "data": [data],

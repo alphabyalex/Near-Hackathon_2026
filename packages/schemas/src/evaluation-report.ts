@@ -46,7 +46,7 @@ export const EvaluationCostsSchema = z.object({
 export type EvaluationCosts = z.infer<typeof EvaluationCostsSchema>;
 
 export const EvaluationReportSchema = z.object({
-  schema: z.literal("redline-report-v1"),
+  schema: z.literal("wardline-report-v1"),
   run_id: z.string().min(1),
   issuer: z.string().min(1),
   manifest_digest: DigestSchema,

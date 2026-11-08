@@ -1,19 +1,19 @@
-/* Redline tokens. See docs/BRAND.md. All colors and fonts live here. */
+/* Wardline tokens. See docs/BRAND.md. All colors and fonts live here. */
 
 @font-face {
-  font-family: "Redline Mono";
+  font-family: "Wardline Mono";
   font-style: normal;
   font-weight: 400;
   font-display: block;
-  src: url("/fonts/redline-mono-400.woff2") format("woff2");
+  src: url("/fonts/wardline-mono-400.woff2") format("woff2");
 }
 
 @font-face {
-  font-family: "Redline Mono";
+  font-family: "Wardline Mono";
   font-style: normal;
   font-weight: 500;
   font-display: block;
-  src: url("/fonts/redline-mono-500.woff2") format("woff2");
+  src: url("/fonts/wardline-mono-500.woff2") format("woff2");
 }
 
 :root {
@@ -57,6 +57,6 @@
   --night-green: #7fd1a4;
 
   --sans: "IBM Plex Sans", system-ui, sans-serif;
-  --mono: "Redline Mono", monospace;
+  --mono: "Wardline Mono", monospace;
   --wordmark: "Geist", var(--sans);
 }

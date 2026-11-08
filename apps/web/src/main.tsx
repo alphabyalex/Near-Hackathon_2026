@@ -4,6 +4,7 @@ import { App } from "./App";
 import "./theme/tokens.css";
 import "./theme/base.css";
 import "./theme/site.css";
+import "./theme/ai.css";
 import { trackInputModality } from "./modality";
 
 trackInputModality();

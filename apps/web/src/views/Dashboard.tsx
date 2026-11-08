@@ -1,5 +1,7 @@
+import { Group } from "./owner/Group";
+import { MeterKeys } from "./owner/MeterKeys";
 import { useEffect, useState } from "react";
-import type { OverviewView } from "@redline/schemas";
+import type { OverviewView } from "@wardline/schemas";
 import { apiPost, SIGNED_OUT_EVENT, useApi } from "../api/client";
 import { getSession, signOut, type Session } from "../api/owner";
 import { OWNER } from "../brand";
@@ -19,6 +21,7 @@ import { SignIn } from "./owner/SignIn";
 
 const TABS: readonly { tab: DashboardTab; label: string }[] = [
   { tab: "overview", label: OWNER.tabs.overview },
+  { tab: "group", label: OWNER.tabs.group },
   { tab: "invoices", label: OWNER.tabs.invoices },
   { tab: "review", label: OWNER.tabs.review },
   { tab: "keys", label: OWNER.tabs.keys },
@@ -27,8 +30,8 @@ const TABS: readonly { tab: DashboardTab; label: string }[] = [
 ];
 
 const VAULTS = [
-  { id: "vault-a.redline.testnet", label: "Business A (vault-a)" },
-  { id: "vault-b.redline.testnet", label: "Business B (vault-b)" },
+  { id: "vault-a.wardline.testnet", label: "Business A (vault-a)" },
+  { id: "vault-b.wardline.testnet", label: "Business B (vault-b)" },
 ] as const;
 
 type Gate = { state: "checking" } | { state: "signed-out" } | { state: "signed-in"; session: Session };
@@ -77,9 +80,9 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
     catch (error) { setSimulationError(error instanceof Error ? error.message : "Could not change simulation mode."); }
     finally { setSimulationBusy(false); }
   };
-  const [vaultId, setVaultId] = useState<string>("vault-a.redline.testnet");
+  const [vaultId, setVaultId] = useState<string>("vault-a.wardline.testnet");
   const changed = () => setVersion((v) => v + 1);
-  const overviewPath = vaultId === "vault-a.redline.testnet" ? "/overview" : `/overview?vault_id=${encodeURIComponent(vaultId)}`;
+  const overviewPath = vaultId === "vault-a.wardline.testnet" ? "/overview" : `/overview?vault_id=${encodeURIComponent(vaultId)}`;
   const overview = useApi<OverviewView>(overviewPath, version);
   const data = overview.data;
   const paused = data?.policy.paused ?? false;
@@ -190,9 +193,15 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
                 </div>
               </div>
               {tab === "overview" && <Overview data={data} version={version} onChanged={changed} />}
+              {tab === "group" && <Group version={version} />}
               {tab === "invoices" && <Invoices selected={invoice} version={version} onChanged={changed} vaultId={vaultId} />}
               {tab === "review" && <ReviewDesk version={version} onChanged={changed} />}
-              {tab === "keys" && <ApiKeys version={version} onChanged={changed} defaultPayer={vaultId} />}
+              {tab === "keys" && (
+                <>
+                  <MeterKeys version={version} onChanged={changed} />
+                  <ApiKeys version={version} onChanged={changed} defaultPayer={vaultId} />
+                </>
+              )}
               {tab === "evaluation" && <Evaluation />}
               {tab === "controls" && <Controls data={data} version={version} />}
             </>

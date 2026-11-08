@@ -1,23 +1,23 @@
 import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
 
-const PAGES = ["#/", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
+const PAGES = ["#/", "#/try", "#/demo", "#/mutual", "#/connect", "#/verify", "#/about"];
 
 test.describe("public site", () => {
   test("home: hero, feature rows and results read from the red-team report", async ({ page }) => {
     await page.goto("/#/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Your agent can read every invoice.");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("AI that only pays on proof.");
     await expect(page.locator(".spec")).toHaveCount(6);
-    await expect(page.locator(".spec b")).toHaveText(["Pay by reference", "Payee Proof", "Vendor change control", "Release Guard", "x402 guard", "Private mode"]);
+    await expect(page.locator(".spec b")).toHaveText(["Proof of delivery", "Proof of payee", "Hard cap", "Wardline Mutual", "Social Money", "One-line plug-in"]);
     const strip = page.locator(".strip.results");
     await expect(strip).toContainText("100%");
     await expect(strip).toContainText("0%");
     await expect(page.locator(".engine-note")).toContainText("stub rules engine");
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
-    await expect(nav).toHaveText(["Try it", "Demo", "Connect", "Verify", "About"]);
+    await expect(nav).toHaveText(["Try it", "Demo", "Mutual", "Connect", "Verify", "About"]);
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/#\/about$/);
-    await page.getByLabel("Redline home").first().click();
+    await page.getByLabel("Wardline home").first().click();
     await expect(page).toHaveURL(/#\/$/);
   });
 
@@ -38,19 +38,34 @@ test.describe("public site", () => {
     await expect(card.locator(".tier")).toContainText("Not verified");
   });
 
-  test("demo: four scenes end in real API results, and the first-payment comparison comes from the report", async ({ page }) => {
+  test("demo: five scenes end in real results from the gateway, payee check and pool, then the red-team numbers", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/demo");
-    const expected: Record<string, string> = { bank: "BLOCK", x402: "BLOCK", poison: "BLOCK", resolve: "PAY" };
-    for (const [scene, verdict] of Object.entries(expected)) {
-      await page.locator(`[data-scene="${scene}"]`).click();
-      await expect(page.locator(".stage .result")).toHaveAttribute("data-verdict", verdict);
-    }
-    await page.locator('[data-scene="x402"]').click();
-    await expect(page.locator(".guard-line")).toContainText("Stopped by the x402 guard");
-    await expect(page.locator(".stage .result")).toContainText("ACCOUNT_NOT_VENDORS");
-    await page.locator('[data-scene="poison"]').click();
-    await expect(page.locator(".stage .result")).toContainText("LOOKALIKE_ACCOUNT");
+    const out = page.locator(".stage .scene-out");
+
+    await page.locator('[data-scene="plugin"]').click();
+    await expect(out).toHaveAttribute("data-outcome", "verified");
+    await expect(out.locator(".out-card")).toHaveCount(2);
+    await expect(out).toContainText("DeepSeek-V4.1-Flash-1017");
+    await expect(out).toContainText("sim-settle-");
+
+    await page.locator('[data-scene="swap"]').click();
+    await expect(out).toHaveAttribute("data-outcome", "refused");
+    await expect(out).toContainText("The signature names a different model.");
+    await expect(out.locator(".out-row.mismatch")).toContainText("glm-5.3-flash");
+
+    await page.locator('[data-scene="leak"]').click();
+    await expect(out).toContainText("Spent 0.03 of 0.03 WUSD");
+    await expect(out).toContainText("65 requests refused with 402");
+
+    await page.locator('[data-scene="invoice"]').click();
+    await expect(page.locator(".stage .result")).toHaveAttribute("data-verdict", "BLOCK");
+
+    await page.locator('[data-scene="mutual"]').click();
+    await expect(out).toHaveAttribute("data-outcome", "paid");
+    await expect(out).toContainText("5,000.00 / 4,600.00");
+    await expect(out).toContainText("20,000.00 / 20,000.00");
+
     const rows = page.locator(".cmp-row");
     await expect(rows.nth(0)).toContainText("5 of 20");
     await expect(rows.nth(1)).toContainText("0 of 20");
@@ -58,10 +73,34 @@ test.describe("public site", () => {
 
   test("demo: steps play in order when motion is allowed", async ({ page }) => {
     await page.goto("/#/demo");
-    await page.locator('[data-scene="bank"]').click();
+    await page.locator('[data-scene="swap"]').click();
     await expect(page.locator(".steps li.on")).toHaveCount(1);
-    await expect(page.locator(".stage .result")).toHaveAttribute("data-verdict", "BLOCK", { timeout: 10_000 });
+    await expect(page.locator(".stage .scene-out")).toHaveAttribute("data-outcome", "refused", { timeout: 10_000 });
     await expect(page.locator(".steps li.on")).toHaveCount(3);
+  });
+
+  test("mutual: pool numbers, we lose first, and a wallet-signed deposit with the 7-day wait", async ({ page, wallets }) => {
+    wallets.setNearAccount(OWNER_ACCOUNT);
+    await page.goto("/#/mutual");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("the pool pays you back");
+    const stats = page.getByTestId("pool-stats");
+    await expect(stats).toContainText("25,000.00");
+    await expect(stats).toContainText("5,000.00");
+    await expect(page.locator(".lose-first")).toContainText("We lose first.");
+    await expect(page.locator(".pool-form")).toContainText("Withdrawals unlock 7 days after you ask");
+    await page.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
+    await page.getByLabel("Amount (WUSD)").fill("250");
+    await page.locator('.pool-form [data-wallet="test-wallet"]').click();
+    await expect(page.getByTestId("pool-done")).toContainText("Deposited. sim-deposit-");
+    await expect(page.getByTestId("pool-position")).toContainText("250.00 WUSD");
+    await page.getByRole("tab", { name: "Withdraw" }).click();
+    const text = (await page.getByTestId("pool-position").textContent()) ?? "";
+    const shares = (/WUSD, (\d+) shares/.exec(text) ?? [])[1] ?? "";
+    await page.getByLabel("Shares").fill(shares);
+    await page.locator('.pool-form [data-wallet="test-wallet"]').click();
+    await expect(page.getByTestId("pool-done")).toContainText("Withdrawal requested. Unlocks");
+    await expect(page.getByTestId("pool-position")).toContainText("Unlocks");
+    await expectAccessible(page);
   });
 
   test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context }) => {
@@ -71,7 +110,11 @@ test.describe("public site", () => {
     await expect(page.locator('[data-unset="mcp"]')).toBeVisible();
     await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
-    await expect(page.locator("pre").first()).toContainText("$REDLINE_API_URL/v1/resolve");
+    await expect(page.locator("main")).toContainText("$WARDLINE_API_URL/v1/resolve");
+    const openai = page.locator(".conn").first();
+    await expect(openai).toContainText("OpenAI client, one line");
+    await expect(openai).toContainText("process.env.WARDLINE_API_URL}/v1/ai");
+    await expect(openai).toContainText('os.environ["WARDLINE_API_URL"] + "/v1/ai"');
     await page.getByRole("button", { name: "Copy curl resolve example" }).click();
     await expect(page.getByRole("button", { name: "Copy curl resolve example" })).toHaveText("Copied");
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");
@@ -81,8 +124,10 @@ test.describe("public site", () => {
   test("connect: with VITE_ URLs set, snippets use them", async ({ page }) => {
     await page.goto(`http://127.0.0.1:5198/#/connect`);
     await expect(page.locator('[data-unset="api"]')).toHaveCount(0);
-    await expect(page.locator("main")).toContainText("https://mcp.redline.example/mcp");
-    await expect(page.locator("main")).toContainText("https://api.redline.example/v1/check");
+    await expect(page.locator("main")).toContainText("https://mcp.wardline.example/mcp");
+    await expect(page.locator("main")).toContainText("https://api.wardline.example/v1/check");
+    await expect(page.locator("main")).toContainText('baseURL: "https://api.wardline.example/v1/ai"');
+    await expect(page.locator("main")).toContainText('base_url="https://api.wardline.example/v1/ai"');
   });
 
   test("verify: sign with NEAR, EVM and Solana wallets, host the file, reach domain linked", async ({ page, wallets, request }) => {
@@ -104,7 +149,7 @@ test.describe("public site", () => {
     await expect(page.locator(".signed")).toContainText("solana:devnet:");
     await page.getByRole("button", { name: "Next" }).click();
 
-    await expect(page.locator(".host-url")).toHaveText(`https://${domain}/.well-known/redline-payee.json`);
+    await expect(page.locator(".host-url")).toHaveText(`https://${domain}/.well-known/wardline-payee.json`);
     // Headless Chromium on this machine never completes blob downloads, so capture the blob and anchor the button hands to the browser.
     await page.evaluate(() => {
       const w = window as unknown as { __dl?: { name: string; text: Promise<string> } };
@@ -119,12 +164,12 @@ test.describe("public site", () => {
         return url;
       };
     });
-    await page.getByRole("button", { name: "Download redline-payee.json" }).click();
+    await page.getByRole("button", { name: "Download wardline-payee.json" }).click();
     const captured = await page.evaluate(async () => {
       const dl = (window as unknown as { __dl?: { name: string; text: Promise<string> } }).__dl;
       return dl ? { name: dl.name, text: await dl.text } : null;
     });
-    expect(captured?.name).toBe("redline-payee.json");
+    expect(captured?.name).toBe("wardline-payee.json");
     const text = captured?.text ?? "";
     const json = JSON.parse(text) as { version: number; domain: string; accounts: { proof: { type: string } }[] };
     expect(json).toMatchObject({ version: 2, domain });
@@ -208,7 +253,7 @@ test.describe("owner app", () => {
     const fernhill = page.locator(".desk-item", { hasText: "Fernhill Cloud Hosting" });
     await expect(fernhill.locator('[data-countdown="running"]')).toHaveText(/\d+h \d{2}m \d{2}s/);
     await expect(fernhill).toContainText("This account imitates one the vendor linked.");
-    await expect(fernhill).toContainText("800.00 REDL");
+    await expect(fernhill).toContainText("800.00 WUSD");
     await expect(page.getByRole("button", { name: /approve all/i })).toHaveCount(0);
     await expectAccessible(page);
 
@@ -230,10 +275,11 @@ test.describe("owner app", () => {
   test("api keys: create a check-only key, see it once, revoke it", async ({ page, wallets }) => {
     await page.goto("/#/app/keys");
     await signInAs(page, wallets, OWNER_ACCOUNT);
-    await page.getByLabel("Label").fill("Invoice agent");
-    await page.getByRole("button", { name: "Create key" }).click();
-    await expect(page.locator(".newkey pre")).toContainText("rk_");
-    const row = page.locator("tbody tr", { hasText: "Invoice agent" });
+    const payee = page.locator(".keys:not(.meter-keys)");
+    await payee.getByLabel("Label").fill("Invoice agent");
+    await page.getByRole("button", { name: "Create key", exact: true }).click();
+    await expect(payee.locator(".newkey pre")).toContainText("rk_");
+    const row = payee.locator("tbody tr", { hasText: "Invoice agent" });
     await expect(row).toContainText("check");
     page.once("dialog", (d) => void d.accept());
     await row.getByRole("button", { name: "Revoke" }).click();
@@ -255,8 +301,8 @@ test.describe("owner app", () => {
     await expect.poll(() => signRequest?.href ?? "", { timeout: 30_000 }).toContain("/sign-message");
     const url = signRequest as unknown as URL;
     expect(url.pathname).toBe("/sign-message");
-    expect(url.searchParams.get("recipient")).toBe("redline-owner-login");
-    expect(url.searchParams.get("message")).toContain(`redline-owner-login:v1:${APPROVER_ACCOUNT}:`);
+    expect(url.searchParams.get("recipient")).toBe("wardline-owner-login");
+    expect(url.searchParams.get("message")).toContain(`wardline-owner-login:v1:${APPROVER_ACCOUNT}:`);
     expect(Buffer.from(url.searchParams.get("nonce") ?? "", "base64")).toHaveLength(32);
   });
 
@@ -266,5 +312,42 @@ test.describe("owner app", () => {
     await page.getByLabel("NEAR account").fill(VENDOR_NEAR_ACCOUNT);
     await page.getByRole("button", { name: /Test wallet/ }).click();
     await expect(page.getByRole("alert")).toContainText("cannot be used to sign in");
+  });
+
+  test("group: shared budget, members, every call with model claimed and proven, and flagged payouts awaiting a vote", async ({ page, wallets }) => {
+    await page.goto("/#/app/group");
+    await signInAs(page, wallets, OWNER_ACCOUNT);
+    await expect(page.getByTestId("budget-strip")).toContainText("25.00");
+    await expect(page.locator(".group")).toContainText("aurora-lab.sputnikv2.testnet");
+    const calls = page.locator("table.calls tbody tr");
+    await expect(calls.filter({ hasText: "DeepSeek-V4.1-Flash-1017" })).toHaveAttribute("data-status", "verified");
+    await expect(calls.filter({ hasText: "bob.testnet" })).toContainText("Signed by the gateway, not by a model TEE.");
+    const bad = page.locator('.payouts li[data-receiver="northw1nd.testnet"]');
+    await expect(bad).toHaveClass(/flagged/);
+    await expect(bad).toHaveAttribute("data-verdict", "BLOCK");
+    await expect(page.locator('.payouts li[data-receiver="northwind.testnet"]')).toHaveAttribute("data-verdict", "PAY");
+    await expect(page.locator(".proposals")).toContainText("Set ci-agent.testnet's allowance");
+    await expectAccessible(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("meter keys and the AI spend panel", async ({ page, wallets }) => {
+    await page.goto("/#/app/keys");
+    await signInAs(page, wallets, OWNER_ACCOUNT);
+    const meter = page.locator(".meter-keys");
+    await meter.getByLabel("Member").selectOption("bob.testnet");
+    await meter.getByLabel("Label").fill("Bob notebook");
+    await meter.getByRole("button", { name: "Create meter key" }).click();
+    const key = ((await meter.locator(".newkey pre").textContent()) ?? "").trim();
+    expect(key).toMatch(/^wk_/);
+    const row = meter.locator("tbody tr", { hasText: "Bob notebook" });
+    await expect(row).not.toContainText(key);
+    page.once("dialog", (d) => void d.accept());
+    await row.getByRole("button", { name: "Revoke" }).click();
+    await expect(row).toContainText("Revoked");
+    await page.goto("/#/app/overview");
+    await expect(page.locator(".panel", { hasText: "AI spend" })).toContainText("Verified calls");
+    await expect(page.locator(".spend-chart svg")).toBeVisible();
   });
 });

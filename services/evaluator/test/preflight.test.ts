@@ -1,4 +1,4 @@
-import { LLM_SETTINGS } from "@redline/agent";
+import { LLM_SETTINGS } from "@wardline/agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requireLlmIfConfigured } from "../src/llm-preflight.js";
 import { DECIDE_TIMEOUT_MS } from "../src/rubric.js";

@@ -1,4 +1,4 @@
-import type { PayeeCheckResult, PayeeResolveResult, PayeeSignals, PayeeVendor } from "@redline/schemas";
+import type { PayeeCheckResult, PayeeResolveResult, PayeeSignals, PayeeVendor } from "@wardline/schemas";
 import type { ParsedAccount } from "./caip.js";
 
 /**

@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.alphabyalex/redline",
+  "name": "io.github.alphabyalex/wardline",
   "description": "Check who an agent pays: resolve a vendor's domain-linked account, or check one before paying.",
   "version": "0.1.0",
   "repository": {
@@ -11,13 +11,13 @@
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "@redline/mcp",
+      "identifier": "@wardline/mcp",
       "version": "0.1.0",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         {
-          "name": "REDLINE_API_URL",
-          "description": "Base URL of the Redline API",
+          "name": "WARDLINE_API_URL",
+          "description": "Base URL of the Wardline API",
           "isRequired": true,
           "format": "string"
         }

@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { Digest } from "@redline/schemas";
+import type { Digest } from "@wardline/schemas";
 import { MODEL_PRICES } from "./agent-config.js";
 import type { TokenUsage } from "./report.js";
 

@@ -1,11 +1,11 @@
 {
-  "schema": "redline-evidence-digests-v1",
-  "run_id": "run_dev_always-review_20261106T040149Z",
-  "report_digest": "sha256:b8b77d10c13a883888d824991229e10ad083c002fc1182dbbe2a9be3316d2e9a",
-  "run_record_digest": "sha256:5d96a9a9d63afccefe881007852fa97720452fb2793d5b8a7f20e24153fe37cc",
+  "schema": "wardline-evidence-digests-v1",
+  "run_id": "run_dev_always-review_20261108T100807Z",
+  "report_digest": "sha256:5f5961a0bc68205a3f9e67f680ff38303ff951e3db569ac7c396564dd8b0d25a",
+  "run_record_digest": "sha256:c21988ab51222642214a960eecd0e88ba1c4ab5aad1872f3d4cb60ed41209310",
   "files": {
-    "report.json": "sha256:04d727810e3ccefc8d2807482a86d51bb2f1c66adce4f60753e907b8203e47a8",
-    "report.md": "sha256:43437ec6f25f4459d2e1b896e276122526456666730781b45d2c92393a326737",
-    "run-record.json": "sha256:a942ecd87722c2d7871f0d276fdfbfb90738aced980ed3f20fbe1142194977fc"
+    "report.json": "sha256:4abb7bab74314691ec9ae7ee75632b74be88243cf9b6c18ec77a415a94d879ce",
+    "report.md": "sha256:8794d64fb020b2a723b5ece7643b1a3e11ef88c6019af8bf88a2feb73080c077",
+    "run-record.json": "sha256:6760eee9e09ef4283f5713c62a54bd73be5778d537cf1b699b961919877cf294"
   }
 }

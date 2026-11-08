@@ -1,4 +1,4 @@
-import { DecisionSchema } from "@redline/schemas";
+import { DecisionSchema } from "@wardline/schemas";
 import { describe, expect, it } from "vitest";
 import { LlmAgent, parseModelOutput } from "../src/llm-agent.js";
 import { LlmTransportError, MODEL_OUTPUT_JSON_SCHEMA, NearAiClient } from "../src/llm-client.js";
@@ -26,7 +26,7 @@ describe("LlmAgent output handling", () => {
     const { decision, report } = await run([payReply("pay_1001", { schema: "evil", intake_ref: "int_other" })]);
     // Still the model's PAY on the first attempt, not a fallback that happens to have the right ref.
     expect(report).toMatchObject({ attempts: 1, fallback: null });
-    expect(decision).toMatchObject({ decision: "PAY", schema: "redline-decision-v1", intake_ref: "int_scratch_clean" });
+    expect(decision).toMatchObject({ decision: "PAY", schema: "wardline-decision-v1", intake_ref: "int_scratch_clean" });
   });
 
   it("retries once on invalid output, then succeeds", async () => {
@@ -97,7 +97,7 @@ describe("LlmAgent guard: a PAY has to hold up against the records", () => {
   });
 
   it("holds a PAY for another vault's payable", async () => {
-    const intake = { ...scratchIntake("clean-match"), vault_id: "vault-b.redline.testnet" };
+    const intake = { ...scratchIntake("clean-match"), vault_id: "vault-b.wardline.testnet" };
     const { decision } = await run([payReply("pay_1001")], intake);
     expect(decision).toMatchObject({ decision: "REVIEW", matched_payable_ref: null });
   });
@@ -146,7 +146,7 @@ describe("what the model is sent", () => {
 
   it("only shows this vault's payables", () => {
     const ctx = scratchContext();
-    ctx.payables[1]!.vault_id = "vault-b.redline.testnet";
+    ctx.payables[1]!.vault_id = "vault-b.wardline.testnet";
     const client = new FakeChatClient([modelReply({})]);
     return new LlmAgent({ client }).decide(scratchIntake("clean-match"), ctx).then(() => {
       expect(client.calls[0]![1]!.content).toContain("pay_1001");
@@ -155,7 +155,7 @@ describe("what the model is sent", () => {
   });
 
   it("shows readable amounts instead of atomic units", () => {
-    expect(user!.content).toContain("1,250.00 REDL");
+    expect(user!.content).toContain("1,250.00 WUSD");
     expect(user!.content).not.toContain("1250000000");
   });
 });

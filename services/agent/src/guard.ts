@@ -1,4 +1,4 @@
-import type { AgentContext, Decision, Intake } from "@redline/schemas";
+import type { AgentContext, Decision, Intake } from "@wardline/schemas";
 import { checkPayable, checkWindow, knownRefs } from "./checks.js";
 import { makeDecision } from "./decisions.js";
 

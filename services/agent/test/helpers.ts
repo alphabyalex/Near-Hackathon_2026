@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type AgentContext, AgentContextSchema, type Intake, IntakeSchema } from "@redline/schemas";
+import { type AgentContext, AgentContextSchema, type Intake, IntakeSchema } from "@wardline/schemas";
 import { SCRATCH_FIXTURES_DIR } from "../src/agent-config.js";
 import type { ChatClient, ChatResult } from "../src/llm-client.js";
 import type { ChatMessage } from "../src/render.js";
@@ -13,7 +13,7 @@ export const scratchIntake = (name: string): Intake =>
 
 export const intakeWith = (source_text: string, overrides: Partial<Intake> = {}): Intake => ({
   intake_ref: "int_test",
-  vault_id: "vault-a.redline.testnet",
+  vault_id: "vault-a.wardline.testnet",
   received_at_ns: "1793664000000000000",
   source_text,
   attachments_note: null,

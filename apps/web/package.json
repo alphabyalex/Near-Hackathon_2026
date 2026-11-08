@@ -1,5 +1,5 @@
 {
-  "name": "@redline/web",
+  "name": "@wardline/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,8 +16,8 @@
     "@near-wallet-selector/core": "^10.1.4",
     "@near-wallet-selector/meteor-wallet": "^10.1.4",
     "@near-wallet-selector/my-near-wallet": "^10.1.4",
-    "@redline/sdk": "workspace:*",
-    "@redline/x402-guard": "workspace:*",
+    "@wardline/sdk": "workspace:*",
+    "@wardline/x402-guard": "workspace:*",
     "@scure/base": "^2.4.0",
     "buffer": "^6.0.3",
     "react": "^19.3.1",
@@ -29,7 +29,7 @@
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "@playwright/test": "^1.65.0",
-    "@redline/schemas": "workspace:*",
+    "@wardline/schemas": "workspace:*",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -39,6 +39,7 @@
     "typescript": "^7.0.2",
     "viem": "^2.57.16",
     "vite": "^8.3.5",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "@wardline/demo-provider": "workspace:*"
   }
 }

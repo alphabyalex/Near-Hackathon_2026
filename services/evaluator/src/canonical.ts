@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Digest } from "@redline/schemas";
+import type { Digest } from "@wardline/schemas";
 
 /**
  * Canonical JSON: object keys sorted by UTF-16 code unit, no whitespace, keys with undefined
@@ -34,12 +34,12 @@ export function sha256Bytes(data: string | Uint8Array): Digest {
 
 /** Domain tags. Each kind of digest gets its own so one can never be passed off as another. */
 export const DOMAIN = {
-  scenario: "redline/scenario/v1",
-  suiteCommitment: "redline/suite-commitment/v1",
-  report: "redline/report/v1",
-  runRecord: "redline/run-record/v1",
-  manifest: "redline/manifest/v1",
-  paymentRequest: "redline/payment-request/v1",
+  scenario: "wardline/scenario/v1",
+  suiteCommitment: "wardline/suite-commitment/v1",
+  report: "wardline/report/v1",
+  runRecord: "wardline/run-record/v1",
+  manifest: "wardline/manifest/v1",
+  paymentRequest: "wardline/payment-request/v1",
 } as const;
 export type Domain = (typeof DOMAIN)[keyof typeof DOMAIN];
 

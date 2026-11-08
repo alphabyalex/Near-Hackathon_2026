@@ -7,7 +7,7 @@ import { sha256Digest } from "../src/canonical.js";
 
 const dirs: string[] = [];
 afterEach(() => { vi.unstubAllEnvs(); for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true }); });
-function proofDir() { const dir = mkdtempSync(join(tmpdir(), "redline-proof-")); dirs.push(dir); vi.stubEnv("REDLINE_PROOF_DIR", dir); return dir; }
+function proofDir() { const dir = mkdtempSync(join(tmpdir(), "wardline-proof-")); dirs.push(dir); vi.stubEnv("WARDLINE_PROOF_DIR", dir); return dir; }
 
 it("preserves exact bytes and fetches completion-specific evidence without storing the key", async () => {
   const dir = proofDir(); const urls: string[] = [];

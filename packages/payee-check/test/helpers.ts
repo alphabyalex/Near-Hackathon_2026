@@ -1,4 +1,4 @@
-import type { PayeeVendor } from "@redline/schemas";
+import type { PayeeVendor } from "@wardline/schemas";
 import { parseAccount, type ParsedAccount } from "../src/caip.js";
 import { InMemoryPaymentHistory, InMemoryPayeeRegistry } from "../src/memory.js";
 import { UNSUPPORTED_SIGNALS } from "../src/signals/near-signals.js";

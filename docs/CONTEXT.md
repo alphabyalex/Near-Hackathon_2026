@@ -1,11 +1,11 @@
-> Redline is becoming the verified-payee layer for AI agents.
+> Wardline is becoming the verified-payee layer for AI agents.
 > Read [PAYEE_SHIELD.md](PAYEE_SHIELD.md) first; it is the current product direction.
 
-# PROJECT CONTEXT (full picture of Redline)
+# PROJECT CONTEXT (full picture of Wardline)
 
 ## One line
 
-Redline stress-tests invoice-handling AI agents and lets a business give a tested agent a NEAR payment vault with hard limits that hold even if the agent is fully compromised.
+Wardline stress-tests invoice-handling AI agents and lets a business give a tested agent a NEAR payment vault with hard limits that hold even if the agent is fully compromised.
 
 ## Problem
 
@@ -46,10 +46,14 @@ Humans still own approvals, new vendors, and anything unusual. The agent handles
 
 ## Real vs simulated
 
-- Real: vault contract execution and token transfers on NEAR sandbox and NEAR testnet, using a mock NEP-141 test token (REDL, no value).
+- Real: vault contract execution and token transfers on NEAR sandbox and NEAR testnet, using a mock NEP-141 test token (WUSD, no value).
 - Synthetic: the company, vendors, invoices, POs, receipts.
 - Live LLM inference for evaluated runs, with a clearly labeled replay mode for demo resilience.
 - Evaluation issuer is our team, and we say so.
+
+## Legacy deployments
+
+The product was renamed to Wardline on 2026-11-08. Accounts already on testnet keep their names, because NEAR accounts cannot be renamed: the current deployment under `redline-labs.testnet` (vaults, evidence registry, payee registry and the token at `redl.redline-labs.testnet`, which still reports its old symbol on chain) and the earlier one under `redlinehq.testnet`. Recorded evidence and red-team results also keep their bytes, so their hashes still verify. New deployments will live under a Wardline root account. `scripts/rebrand-wardline.mjs` lists every kept name in its allowlist.
 
 ## Out of scope
 

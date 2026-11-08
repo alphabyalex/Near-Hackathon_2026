@@ -9,7 +9,7 @@ import type {
   VaultRejection,
   VaultUsage,
   Vendor,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 
 /**
  * What the Gym needs from a vault simulator: the VaultGateway every other caller uses, plus a

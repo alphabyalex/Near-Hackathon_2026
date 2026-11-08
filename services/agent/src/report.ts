@@ -1,4 +1,4 @@
-import type { AgentContext, AgentRunner, Decision, Digest, Intake } from "@redline/schemas";
+import type { AgentContext, AgentRunner, Decision, Digest, Intake } from "@wardline/schemas";
 
 export type AgentKind = "llm" | "rules" | "review" | "replay" | "compromised";
 

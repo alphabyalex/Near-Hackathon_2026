@@ -8,7 +8,7 @@ import {
   type Payable,
   type PaymentRequest,
   PaymentRequestSchema,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { digestOf } from "./canonical.js";
 import { checkPayable } from "./checks.js";
 
@@ -29,7 +29,7 @@ export class NotPayableError extends Error {
  */
 export function requestDigest(intakeRef: string, payable: Payable): Digest {
   return digestOf({
-    schema: "redline-payment-request-digest-v1",
+    schema: "wardline-payment-request-digest-v1",
     intake_ref: intakeRef,
     vault_id: payable.vault_id,
     payable_ref: payable.payable_ref,

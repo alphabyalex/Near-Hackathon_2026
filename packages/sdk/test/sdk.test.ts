@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { utf8ToBytes } from "@noble/hashes/utils.js";
-import type { PayeeCheckResult } from "@redline/schemas";
+import type { PayeeCheckResult } from "@wardline/schemas";
 import { base58, base64 } from "@scure/base";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,35 +13,35 @@ import {
   createIndexedDbHistory,
   createMemoryHistory,
   createMemoryRegistry,
-  createRedline,
+  createWardline,
   createStubSignals,
   hashRequest,
   meetsTier,
   normalizeAccount,
   normalizeDomain,
   receiptSigningText,
-  RedlineApiError,
-  RedlineBlockedError,
+  WardlineApiError,
+  WardlineBlockedError,
   seedEvmAddress,
   seedSolanaAddress,
   STUB_VENDORS,
   verifyReceipt,
   type PayeeHistoryStore,
-  type Redline,
+  type Wardline,
 } from "../src/index.js";
 
 const NORTHWIND_EVM = `eip155:84532:${seedEvmAddress("northwind.example")}`;
 const NORTHWIND_SOL = `solana:devnet:${seedSolanaAddress("northwind.example")}`;
 const domain = "northwind.example";
 
-const direct = (overrides: Partial<Parameters<typeof createRedline>[0]> = {}): Redline =>
-  createRedline({
+const direct = (overrides: Partial<Parameters<typeof createWardline>[0]> = {}): Wardline =>
+  createWardline({
     mode: "direct",
     nearRpcUrl: "https://rpc.invalid",
     registryAccount: "registry.invalid",
     registry: createMemoryRegistry({ vendors: STUB_VENDORS }),
     ...overrides,
-  } as Parameters<typeof createRedline>[0]);
+  } as Parameters<typeof createWardline>[0]);
 
 const codes = (result: { reasons: { code: string }[] }) => result.reasons.map((r) => r.code);
 
@@ -153,7 +153,7 @@ describe("check verdicts", () => {
   it("HOLDs during cooling off, then PAYs after it", async () => {
     let now = new Date("2026-11-07T00:00:00Z");
     const registry = createMemoryRegistry({ vendors: STUB_VENDORS, now: () => now });
-    const redline = direct({ registry } as never);
+    const wardline = direct({ registry } as never);
     const added = `eip155:84532:0x${"12".repeat(20)}`;
     await registry.attestVendor({
       domain,
@@ -162,9 +162,9 @@ describe("check verdicts", () => {
       evidenceHash: "sha256:x",
       issuedAt: now.toISOString(),
     });
-    expect(codes(await redline.check({ payee: added, vendor: { domain } }))).toEqual(["COOLING_OFF"]);
+    expect(codes(await wardline.check({ payee: added, vendor: { domain } }))).toEqual(["COOLING_OFF"]);
     now = new Date("2026-11-10T00:00:01Z");
-    expect((await redline.check({ payee: added, vendor: { domain } })).verdict).toBe("PAY");
+    expect((await wardline.check({ payee: added, vendor: { domain } })).verdict).toBe("PAY");
   });
 
   it("refuses a proof older than the one on record", async () => {
@@ -178,19 +178,19 @@ describe("check verdicts", () => {
   it("HOLDs when this payer last paid a different account on the same chain", async () => {
     const registry = createMemoryRegistry({ vendors: STUB_VENDORS });
     const added = `eip155:84532:0x${"34".repeat(20)}`;
-    const redline = direct({ registry } as never);
-    await redline.recordPayment({ payer: "acme.testnet", domain, account: added });
-    const changed = await redline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "acme.testnet" });
+    const wardline = direct({ registry } as never);
+    await wardline.recordPayment({ payer: "acme.testnet", domain, account: added });
+    const changed = await wardline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "acme.testnet" });
     expect(changed.verdict).toBe("HOLD");
     expect(codes(changed)).toEqual(["VERIFIED_MATCH", "PAYEE_CHANGED"]);
-    expect((await redline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "other.testnet" })).verdict).toBe("PAY");
-    expect((await redline.check({ payee: NORTHWIND_SOL, vendor: { domain }, payer: "acme.testnet" })).verdict).toBe("PAY");
+    expect((await wardline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "other.testnet" })).verdict).toBe("PAY");
+    expect((await wardline.check({ payee: NORTHWIND_SOL, vendor: { domain }, payer: "acme.testnet" })).verdict).toBe("PAY");
   });
 
   it("gives the same verdict for the same input", async () => {
-    const redline = direct();
+    const wardline = direct();
     const request = { payee: "northw1nd.testnet", vendor: { domain } };
-    expect(await redline.check(request)).toEqual(await redline.check(request));
+    expect(await wardline.check(request)).toEqual(await wardline.check(request));
   });
 });
 
@@ -226,24 +226,24 @@ describe("resolve", () => {
 
 describe("evidence tiers", () => {
   it("is T2 for a domain-linked match, T0 otherwise, and T3 once this payer has paid the account", async () => {
-    const redline = direct();
-    expect((await redline.check({ payee: "northwind.testnet", vendor: { domain } })).evidenceTier).toBe("T2_DOMAIN_LINKED");
-    expect((await redline.check({ payee: "northw1nd.testnet", vendor: { domain } })).evidenceTier).toBe("T0_NONE");
-    expect((await redline.check({ payee: "nobody-known.testnet" })).evidenceTier).toBe("T0_NONE");
-    await redline.recordPayment({ payer: "acme.testnet", domain, account: NORTHWIND_EVM });
-    expect((await redline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "acme.testnet" })).evidenceTier).toBe("T3_RELATIONSHIP");
-    expect((await redline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "other.testnet" })).evidenceTier).toBe("T2_DOMAIN_LINKED");
-    expect((await redline.resolve({ domain, chain: "eip155:84532", payer: "acme.testnet" })).evidenceTier).toBe("T3_RELATIONSHIP");
-    expect((await redline.resolve({ domain: "not-listed.example", chain: "near:testnet" })).evidenceTier).toBe("T0_NONE");
+    const wardline = direct();
+    expect((await wardline.check({ payee: "northwind.testnet", vendor: { domain } })).evidenceTier).toBe("T2_DOMAIN_LINKED");
+    expect((await wardline.check({ payee: "northw1nd.testnet", vendor: { domain } })).evidenceTier).toBe("T0_NONE");
+    expect((await wardline.check({ payee: "nobody-known.testnet" })).evidenceTier).toBe("T0_NONE");
+    await wardline.recordPayment({ payer: "acme.testnet", domain, account: NORTHWIND_EVM });
+    expect((await wardline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "acme.testnet" })).evidenceTier).toBe("T3_RELATIONSHIP");
+    expect((await wardline.check({ payee: NORTHWIND_EVM, vendor: { domain }, payer: "other.testnet" })).evidenceTier).toBe("T2_DOMAIN_LINKED");
+    expect((await wardline.resolve({ domain, chain: "eip155:84532", payer: "acme.testnet" })).evidenceTier).toBe("T3_RELATIONSHIP");
+    expect((await wardline.resolve({ domain: "not-listed.example", chain: "near:testnet" })).evidenceTier).toBe("T0_NONE");
   });
 
   it("does not raise a pending account to T3", async () => {
     const registry = createMemoryRegistry({ vendors: STUB_VENDORS });
     const added = `eip155:84532:0x${"9a".repeat(20)}`;
     await registry.attestVendor({ domain, name: "Northwind Trading", accounts: ["near:testnet:northwind.testnet", added], evidenceHash: "sha256:x", issuedAt: new Date().toISOString() });
-    const redline = direct({ registry } as never);
-    await redline.recordPayment({ payer: "acme.testnet", domain, account: added });
-    expect((await redline.check({ payee: added, vendor: { domain }, payer: "acme.testnet" })).evidenceTier).toBe("T2_DOMAIN_LINKED");
+    const wardline = direct({ registry } as never);
+    await wardline.recordPayment({ payer: "acme.testnet", domain, account: added });
+    expect((await wardline.check({ payee: added, vendor: { domain }, payer: "acme.testnet" })).evidenceTier).toBe("T2_DOMAIN_LINKED");
   });
 
   it("lists every registry account as T2", async () => {
@@ -263,10 +263,10 @@ describe("evidence tiers", () => {
 
 describe("assertPayable", () => {
   it("returns a PAY and throws on anything else", async () => {
-    const redline = direct();
-    await expect(redline.check({ payee: "northwind.testnet" }).then(assertPayable)).resolves.toMatchObject({ verdict: "PAY" });
-    await expect(redline.check({ payee: "nobody-known.testnet" }).then(assertPayable)).rejects.toBeInstanceOf(RedlineBlockedError);
-    await redline.check({ payee: "northw1nd.testnet", vendor: { domain } }).then(assertPayable).catch((error: RedlineBlockedError) => {
+    const wardline = direct();
+    await expect(wardline.check({ payee: "northwind.testnet" }).then(assertPayable)).resolves.toMatchObject({ verdict: "PAY" });
+    await expect(wardline.check({ payee: "nobody-known.testnet" }).then(assertPayable)).rejects.toBeInstanceOf(WardlineBlockedError);
+    await wardline.check({ payee: "northw1nd.testnet", vendor: { domain } }).then(assertPayable).catch((error: WardlineBlockedError) => {
       expect(error.verdict).toBe("BLOCK");
       expect(error.reasons[0]?.code).toBe("LOOKALIKE_ACCOUNT");
     });
@@ -324,11 +324,11 @@ describe("receipts", () => {
 describe("direct mode privacy", () => {
   it("makes no network calls", async () => {
     const spy = vi.spyOn(globalThis, "fetch");
-    const redline = direct();
-    await redline.check({ payee: "northwind.testnet", vendor: { domain } });
-    await redline.resolve({ domain, chain: "near:testnet" });
-    await redline.getVendor(domain);
-    await redline.recordPayment({ payer: "a.testnet", domain, account: "northwind.testnet" });
+    const wardline = direct();
+    await wardline.check({ payee: "northwind.testnet", vendor: { domain } });
+    await wardline.resolve({ domain, chain: "near:testnet" });
+    await wardline.getVendor(domain);
+    await wardline.recordPayment({ payer: "a.testnet", domain, account: "northwind.testnet" });
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
@@ -336,10 +336,10 @@ describe("direct mode privacy", () => {
   it("warns once when it falls back to the sample registry", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const options = { mode: "direct", nearRpcUrl: "https://rpc.invalid", registryAccount: "r.invalid" } as const;
-    const redline = createRedline(options);
-    createRedline(options);
+    const wardline = createWardline(options);
+    createWardline(options);
     expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
-    expect((await redline.resolve({ domain, chain: "near:testnet" })).verdict).toBe("PAY");
+    expect((await wardline.resolve({ domain, chain: "near:testnet" })).verdict).toBe("PAY");
     warn.mockRestore();
   });
 });
@@ -347,17 +347,17 @@ describe("direct mode privacy", () => {
 describe("hosted mode", () => {
   const respond = (status: number, body: unknown) => async () => new Response(JSON.stringify(body), { status });
 
-  it("throws RedlineApiError on an error answer, so callers cannot read it as a verdict", async () => {
-    const redline = createRedline({ mode: "hosted", baseUrl: "https://api.invalid/", fetch: respond(402, { error: "FREE_TIER_EXCEEDED", message: "Limit reached." }) as typeof fetch });
-    const error = await redline.check({ payee: "northwind.testnet" }).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(RedlineApiError);
+  it("throws WardlineApiError on an error answer, so callers cannot read it as a verdict", async () => {
+    const wardline = createWardline({ mode: "hosted", baseUrl: "https://api.invalid/", fetch: respond(402, { error: "FREE_TIER_EXCEEDED", message: "Limit reached." }) as typeof fetch });
+    const error = await wardline.check({ payee: "northwind.testnet" }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(WardlineApiError);
     expect(error).toMatchObject({ status: 402, code: "FREE_TIER_EXCEEDED" });
   });
 
   it("rejects a malformed answer and treats a missing vendor as null", async () => {
-    const bad = createRedline({ mode: "hosted", baseUrl: "https://api.invalid", fetch: respond(200, { verdict: "MAYBE" }) as typeof fetch });
+    const bad = createWardline({ mode: "hosted", baseUrl: "https://api.invalid", fetch: respond(200, { verdict: "MAYBE" }) as typeof fetch });
     await expect(bad.check({ payee: "northwind.testnet" })).rejects.toThrow();
-    const none = createRedline({ mode: "hosted", baseUrl: "https://api.invalid", fetch: respond(404, { error: "NOT_FOUND" }) as typeof fetch });
+    const none = createWardline({ mode: "hosted", baseUrl: "https://api.invalid", fetch: respond(404, { error: "NOT_FOUND" }) as typeof fetch });
     await expect(none.getVendor(domain)).resolves.toBeNull();
   });
 });
@@ -365,7 +365,7 @@ describe("hosted mode", () => {
 describe("history stores", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "redline-history-"));
+    dir = mkdtempSync(join(tmpdir(), "wardline-history-"));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 

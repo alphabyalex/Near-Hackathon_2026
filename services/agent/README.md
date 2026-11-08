@@ -2,7 +2,7 @@
 
 Owner: Kristian
 
-The Redline invoice agent: `LlmAgent`, `RulesBaseline`, `AlwaysReviewControl`, `ReplayAgent`, version manifests and the decision-to-request adapter. It provides the real `AgentRunner` and `DecisionAdapter`.
+The Wardline invoice agent: `LlmAgent`, `RulesBaseline`, `AlwaysReviewControl`, `ReplayAgent`, version manifests and the decision-to-request adapter. It provides the real `AgentRunner` and `DecisionAdapter`.
 
 Full docs, including decision rules and known failure modes: [docs/AGENT.md](../../docs/AGENT.md).
 
@@ -10,7 +10,7 @@ Full docs, including decision rules and known failure modes: [docs/AGENT.md](../
 
 ```sh
 pnpm install
-pnpm --filter @redline/schemas build
+pnpm --filter @wardline/schemas build
 pnpm --filter agent test
 pnpm --filter agent check --agent rules
 ```

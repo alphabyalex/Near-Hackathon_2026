@@ -8,7 +8,7 @@ import {
   callFinal,
   viewCall,
   type SignerHandle,
-} from "@redline/vault-client";
+} from "@wardline/vault-client";
 import {
   Chain,
   DIGEST_A,
@@ -27,7 +27,7 @@ function getApprovalDigest(
   account: string,
   expiryNs: bigint | string | number,
 ): string {
-  const payload = `redline:endpoint-approval:${vaultId}:${vendorId}:${revision}:${account}:${expiryNs.toString()}`;
+  const payload = `wardline:endpoint-approval:${vaultId}:${vendorId}:${revision}:${account}:${expiryNs.toString()}`;
   const hash = createHash("sha256").update(payload).digest("hex");
   return `sha256:${hash}`;
 }

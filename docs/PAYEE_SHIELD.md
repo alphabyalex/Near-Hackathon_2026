@@ -1,6 +1,6 @@
 # Payee Shield
 
-Redline checks who an AI agent is about to pay. A vendor links its payout accounts to its website domain once. We verify that the vendor controls each account and that the domain lists it, and we say at which trust level. The record lives in a registry contract on NEAR, and agents read it before money moves.
+Wardline checks who an AI agent is about to pay. A vendor links its payout accounts to its website domain once. We verify that the vendor controls each account and that the domain lists it, and we say at which trust level. The record lives in a registry contract on NEAR, and agents read it before money moves.
 
 ## Problem
 
@@ -31,7 +31,7 @@ PAY needs at least T2. T3 is per payer and only appears when the caller authenti
 
 ## Vendor link file
 
-A vendor serves `https://<domain>/.well-known/redline-payee.json`:
+A vendor serves `https://<domain>/.well-known/wardline-payee.json`:
 
 ```json
 {
@@ -47,11 +47,11 @@ A vendor serves `https://<domain>/.well-known/redline-payee.json`:
 }
 ```
 
-Each account signs `redline-payee:v2:<domain>:<caip10>:<issued_at>`.
+Each account signs `wardline-payee:v2:<domain>:<caip10>:<issued_at>`.
 
 | Signature | Verification |
 | --- | --- |
-| `nep413` | NEP-413 with recipient `redline-payee-registry` and the nonce. `public_key` must be a current full-access key on the account. Nonce and signature are base64 |
+| `nep413` | NEP-413 with recipient `wardline-payee-registry` and the nonce. `public_key` must be a current full-access key on the account. Nonce and signature are base64 |
 | `eip191` | Recover the signer and compare it to the address. Signature is 0x hex |
 | `solana-ed25519` | Verify with the address as the public key. Signature is base58 |
 
@@ -93,8 +93,8 @@ Plain allow, warn and block risk checks are commodity. Our edge is verified acco
 
 ## Hosted and direct mode
 
-- **Hosted:** the SDK calls the Redline API and gets an ed25519-signed receipt for each verdict, covering the evidence tier. Redline sees the request.
-- **Direct:** the SDK reads the registry contract views straight from NEAR and runs the engine locally. Redline never sees who you pay. There are no receipts in this mode.
+- **Hosted:** the SDK calls the Wardline API and gets an ed25519-signed receipt for each verdict, covering the evidence tier. Wardline sees the request.
+- **Direct:** the SDK reads the registry contract views straight from NEAR and runs the engine locally. Wardline never sees who you pay. There are no receipts in this mode.
 
 ## Who owns what
 

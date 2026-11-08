@@ -1,4 +1,4 @@
-import type { PayeeVendor } from "@redline/schemas";
+import type { PayeeVendor } from "@wardline/schemas";
 import { formatAccount, normalizeDomain, tryParseAccount } from "./caip.js";
 import type { PaymentHistory, PayeeRegistry } from "./types.js";
 

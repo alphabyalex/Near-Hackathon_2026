@@ -49,7 +49,7 @@ export interface PayeeRegistryClientConfig extends TransportOptions {
 }
 
 /**
- * Client for Redline public payee registry on NEAR.
+ * Client for Wardline public payee registry on NEAR.
  * Read methods work in browsers without fs imports.
  */
 export class PayeeRegistryClient {

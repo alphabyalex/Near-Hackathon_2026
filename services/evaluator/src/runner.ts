@@ -6,7 +6,7 @@ import {
   type PayableStatus,
   type RequestResult,
   type VaultUsage,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import type { GymAgent, TokenUsage } from "./agents.js";
 import { groupForRun, type LoadedScenario } from "./fixtures.js";
 import { DECIDE_TIMEOUT_MS } from "./rubric.js";
@@ -37,7 +37,7 @@ export interface CaseRecord {
   timed_out: boolean;
   infra_error: string | null;
   usage: TokenUsage | null;
-  agent_report?: import("@redline/agent").DecisionReport | null;
+  agent_report?: import("@wardline/agent").DecisionReport | null;
 }
 
 export interface RunOptions {

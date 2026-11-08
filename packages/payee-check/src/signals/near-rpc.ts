@@ -54,7 +54,7 @@ export class NearRpcClient {
 
   async call<T>(method: string, params: Record<string, unknown>, archive = false): Promise<RpcOutcome<T>> {
     const url = archive ? (this.opts.archiveRpcUrl ?? this.opts.rpcUrl) : this.opts.rpcUrl;
-    const body = JSON.stringify({ jsonrpc: "2.0", id: "redline", method, params });
+    const body = JSON.stringify({ jsonrpc: "2.0", id: "wardline", method, params });
     let last: { kind: RpcFailureKind; message: string } = { kind: "FAILED", message: "not attempted" };
     for (let attempt = 0; attempt <= this.retries; attempt++) {
       this.calls += 1;

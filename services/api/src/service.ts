@@ -1,4 +1,4 @@
-import { DecisionSchema, ReasonCodeSchema } from "@redline/schemas";
+import { DecisionSchema, ReasonCodeSchema } from "@wardline/schemas";
 import type {
   AgentContext,
   Decision,
@@ -8,12 +8,13 @@ import type {
   ReasonCode,
   ReviewItem,
   VaultRejection,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { randomUUID } from "node:crypto";
 import type { OwnerAuthConfig } from "./auth.js";
 import type { Gateways } from "./gateways/index.js";
 import type { MockWorld } from "./mock/seed.js";
 import type { PayeeRuntime } from "./payee/runtime.js";
+import type { AiDeps } from "./ai.js";
 import type { Store } from "./store.js";
 import type { Clock } from "./time.js";
 
@@ -24,6 +25,8 @@ export interface Deps {
   now: Clock;
   payee: PayeeRuntime;
   auth: OwnerAuthConfig;
+  /** Metered AI calls, the chain clients and the DAO reader. */
+  ai: AiDeps;
 }
 
 export type ServiceFailure = { ok: false; status: 404 | 409 | 502; error: string; message: string; rejection?: VaultRejection };

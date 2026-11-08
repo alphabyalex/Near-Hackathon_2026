@@ -1,4 +1,4 @@
-import type { OverviewView } from "@redline/schemas";
+import type { OverviewView } from "@wardline/schemas";
 import { useApi } from "../../api/client";
 import { limitsFromOverview } from "../../api/limits";
 import { DotBar } from "../../components/DotBar";

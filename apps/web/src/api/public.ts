@@ -1,10 +1,10 @@
-import { createRedline, verifyReceipt, type PayeeRequest, type PayeeResult } from "@redline/sdk";
+import { createWardline, verifyReceipt, type PayeeRequest, type PayeeResult } from "@wardline/sdk";
 import { API_BASE } from "../config";
 
 /** The hosted SDK, pointed at this site's API. */
-export const redline = createRedline({ mode: "hosted", baseUrl: API_BASE });
+export const wardline = createWardline({ mode: "hosted", baseUrl: API_BASE });
 
-export const ATTESTOR_PATH = "/.well-known/redline-attestor.json";
+export const ATTESTOR_PATH = "/.well-known/wardline-attestor.json";
 
 /** The receipt-signing key the API publishes. Fetched fresh, never taken from the receipt itself. */
 export async function attestorKey(): Promise<string> {

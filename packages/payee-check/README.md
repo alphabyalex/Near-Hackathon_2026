@@ -1,4 +1,4 @@
-# @redline/payee-check
+# @wardline/payee-check
 
 Owner: Lucy
 
@@ -10,7 +10,7 @@ runs in the API (hosted mode) and inside the caller's own app through the SDK (d
 ## API
 
 ```ts
-import { checkPayee, resolvePayee, NearSignalsProvider, nearRpcUrlsFromEnv } from "@redline/payee-check";
+import { checkPayee, resolvePayee, NearSignalsProvider, nearRpcUrlsFromEnv } from "@wardline/payee-check";
 
 const deps = {
   registry,                 // PayeeRegistry: Tharun's on-chain client, or InMemoryPayeeRegistry
@@ -28,7 +28,7 @@ await resolvePayee({ domain: "northwind.com", chain: "near:testnet" }, deps);
 // { verdict: "PAY", domain, chain, account: "near:testnet:northwind.testnet", reasons, vendor }
 ```
 
-Results match `PayeeCheckResult` and `PayeeResolveResult` from `@redline/schemas` without
+Results match `PayeeCheckResult` and `PayeeResolveResult` from `@wardline/schemas` without
 `caseFile`, `receipt` and `evidenceTier`, which the API adds.
 
 Also exported: `parseAccount`, `formatAccount`, `normalizeAccount`, `parseChainId`,
@@ -146,18 +146,18 @@ the one-time creation search, cached forever.
 
 ## Fixtures and tests
 
-`pnpm --filter @redline/payee-check test` runs offline: the engine cases, the look-alike rules, a
+`pnpm --filter @wardline/payee-check test` runs offline: the engine cases, the look-alike rules, a
 simulated chain for the signals provider (skipped heights, timeouts, retries, broken archive), and a
 replay of real testnet responses in `fixtures/testnet-recording.json`.
 
-`pnpm --filter @redline/payee-check record-fixtures` re-records. It needs an archival endpoint, holds
+`pnpm --filter @wardline/payee-check record-fixtures` re-records. It needs an archival endpoint, holds
 a hard budget of 50 live calls, skips any account whose worst case would exceed it, and never
 writes the endpoint URL (QuickNode URLs contain the key). The Nov 8 recording used 27 calls against
 the public FastNEAR archival endpoint, not QuickNode.
 
 ## Known limits
 
-- **Direct mode is private from Redline, not from the RPC provider.** The `view_account` calls name the
+- **Direct mode is private from Wardline, not from the RPC provider.** The `view_account` calls name the
   payee, so whoever runs the RPC endpoint can see which accounts the caller checks.
 - **No on-chain signals for EVM or Solana.** No age, key, code or delegation checks there. A verified EVM
   address that is later compromised still PAYs. EIP-55 checksums are not validated (no keccak dependency).

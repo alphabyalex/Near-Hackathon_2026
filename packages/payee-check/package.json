@@ -1,5 +1,5 @@
 {
-  "name": "@redline/payee-check",
+  "name": "@wardline/payee-check",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
     "record-fixtures": "tsx scripts/record-payee-fixtures.ts"
   },
   "dependencies": {
-    "@redline/schemas": "workspace:*"
+    "@wardline/schemas": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

@@ -1,6 +1,6 @@
-import { GAS_PAYMENT, ONE_YOCTO, VaultExecutionError, callFinal, type SignerHandle } from "@redline/vault-client";
-import { VaultPanic, VaultSim, type AgentCaller, type TransferOutcome } from "@redline/vault-sim";
-import type { RequestResult } from "@redline/schemas";
+import { GAS_PAYMENT, ONE_YOCTO, VaultExecutionError, callFinal, type SignerHandle } from "@wardline/vault-client";
+import { VaultPanic, VaultSim, type AgentCaller, type TransferOutcome } from "@wardline/vault-sim";
+import type { RequestResult } from "@wardline/schemas";
 import { Chain, DIGEST_A, FAR_FUTURE_NS, NS_PER_DAY, registerWithToken, type World, type WorldOptions } from "./harness.js";
 
 export type Caller = "agent" | "stranger" | "agent_other_key";

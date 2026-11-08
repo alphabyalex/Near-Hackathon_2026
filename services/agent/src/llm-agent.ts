@@ -1,4 +1,4 @@
-import { type AgentContext, type Decision, DecisionSchema, type Digest, type Intake } from "@redline/schemas";
+import { type AgentContext, type Decision, DecisionSchema, type Digest, type Intake } from "@wardline/schemas";
 import { LLM_SETTINGS, MODEL_ID, nearAiApiKey, nearAiBaseUrl } from "./agent-config.js";
 import { scopeContext } from "./checks.js";
 import { makeDecision } from "./decisions.js";
@@ -40,7 +40,7 @@ export function parseModelOutput(content: string, intake: Intake): ParsedOutput 
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return { ok: false, problem: "the reply was not a JSON object" };
   }
-  const parsed = DecisionSchema.safeParse({ ...value, schema: "redline-decision-v1", intake_ref: intake.intake_ref });
+  const parsed = DecisionSchema.safeParse({ ...value, schema: "wardline-decision-v1", intake_ref: intake.intake_ref });
   if (parsed.success) return { ok: true, decision: parsed.data };
   const fields = parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`);
   return { ok: false, problem: fields.join("; ") };

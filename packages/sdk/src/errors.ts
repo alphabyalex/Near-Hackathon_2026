@@ -1,9 +1,9 @@
-import type { EvidenceTier, PayeeReason, PayeeVerdict } from "@redline/schemas";
+import type { EvidenceTier, PayeeReason, PayeeVerdict } from "@wardline/schemas";
 import type { PayeeResult } from "./receipts.js";
 
 /** No payment may proceed. `verdict` is null when the check itself failed. */
-export class RedlineBlockedError extends Error {
-  override readonly name = "RedlineBlockedError";
+export class WardlineBlockedError extends Error {
+  override readonly name = "WardlineBlockedError";
   readonly verdict: PayeeVerdict | null;
   readonly reasons: PayeeReason[];
   readonly evidenceTier: EvidenceTier | null;
@@ -16,9 +16,9 @@ export class RedlineBlockedError extends Error {
   }
 }
 
-/** The Redline API answered with an error. Treat it as "do not pay". */
-export class RedlineApiError extends Error {
-  override readonly name = "RedlineApiError";
+/** The Wardline API answered with an error. Treat it as "do not pay". */
+export class WardlineApiError extends Error {
+  override readonly name = "WardlineApiError";
   constructor(
     readonly status: number,
     readonly code: string,
@@ -34,7 +34,7 @@ const TIER_ORDER: readonly EvidenceTier[] = ["T0_NONE", "T1_WALLET_CONTROL", "T2
 export const meetsTier = (result: { evidenceTier?: EvidenceTier | undefined }, minimum: EvidenceTier): boolean =>
   TIER_ORDER.indexOf(result.evidenceTier ?? "T0_NONE") >= TIER_ORDER.indexOf(minimum);
 
-/** Throws RedlineBlockedError unless the verdict is PAY, and the tier is at least `minTier` when given. */
+/** Throws WardlineBlockedError unless the verdict is PAY, and the tier is at least `minTier` when given. */
 export function assertPayable<T extends PayeeResult>(result: T, options: { minTier?: EvidenceTier } = {}): T {
   const hasTarget = "payee" in result ? true : result.account !== null;
   const tierOk = options.minTier === undefined || meetsTier(result, options.minTier);
@@ -42,5 +42,5 @@ export function assertPayable<T extends PayeeResult>(result: T, options: { minTi
   const why = result.reasons.map((r) => r.code).join(", ") || "no reasons";
   const tier = result.evidenceTier ?? "T0_NONE";
   const message = result.verdict === "PAY" && !tierOk ? `Do not pay: evidence tier ${tier} is below ${options.minTier}.` : `Do not pay: ${result.verdict} (${why}), evidence tier ${tier}.`;
-  throw new RedlineBlockedError(message, { verdict: result.verdict, reasons: result.reasons, evidenceTier: tier });
+  throw new WardlineBlockedError(message, { verdict: result.verdict, reasons: result.reasons, evidenceTier: tier });
 }

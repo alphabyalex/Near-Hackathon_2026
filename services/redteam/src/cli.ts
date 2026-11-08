@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { AGENT_VARIANTS, AgentCache, agentCacheKey, compare, pickAgentCases, runAgentDecisions, type AgentDecisionEntry, type AgentVariant, type Comparison, type ComparisonRow } from "./agent.js";
+import { AGENT_VARIANTS, AgentCache, agentCacheKey, compare, pickAgentCases, recordedDigest, runAgentDecisions, type AgentDecisionEntry, type AgentVariant, type Comparison, type ComparisonRow } from "./agent.js";
 import { fillAdversarial, fillProse, type FillResult } from "./fill.js";
 import { chooseModel, nearAiJsonClient, readLedger, worstCaseCallUsd, writeLedger, type Ledger, type ModelChoice } from "./llm.js";
 import { generateAdversarialCases, generateCases, type CaseParams } from "./params.js";
@@ -27,7 +27,7 @@ interface CasesFile {
 }
 
 const readCases = (): CasesFile => {
-  if (!existsSync(PATHS.cases)) throw new Error("No fixtures/redteam/cases.json yet. Run: pnpm --filter @redline/redteam generate");
+  if (!existsSync(PATHS.cases)) throw new Error("No fixtures/redteam/cases.json yet. Run: pnpm --filter @wardline/redteam generate");
   return JSON.parse(readFileSync(PATHS.cases, "utf8")) as CasesFile;
 };
 const writeCases = (file: CasesFile) => {
@@ -94,7 +94,7 @@ async function prose(flags: { "dry-run"?: boolean; limit?: string; batch?: strin
   });
   writeCases({ ...file, model: model.id, modelNote: model.note });
   summarize(result, ledger, dryRun ? "dry-run" : `prose limit ${limit}`, before, MAX_CASES);
-  if (dryRun) console.log(`\nDry run done. Check the prose in fixtures/redteam/prose, then run: pnpm --filter @redline/redteam prose --limit ${MAX_CASES}`);
+  if (dryRun) console.log(`\nDry run done. Check the prose in fixtures/redteam/prose, then run: pnpm --filter @wardline/redteam prose --limit ${MAX_CASES}`);
 }
 
 async function adversarial(flags: { limit?: string; batch?: string }): Promise<void> {
@@ -154,7 +154,7 @@ async function agent(flags: { batch?: string; variant?: string }): Promise<void>
   if (!AGENT_VARIANTS.includes(variant)) throw new Error("--variant must be on-file or first-contact.");
   if (existsSync(PATHS.env)) process.loadEnvFile(PATHS.env);
   if (!process.env.NEAR_AI_API_KEY) throw new Error("NEAR_AI_API_KEY is not set in .env.");
-  const { createAgent, buildManifest, manifestDigest, LLM_SETTINGS, MODEL_ID } = await import("@redline/agent");
+  const { createAgent, buildManifest, manifestDigest, LLM_SETTINGS, MODEL_ID } = await import("@wardline/agent");
   const listing = (await (await fetch("https://cloud-api.near.ai/v1/models", { signal: AbortSignal.timeout(20_000) })).json()) as { data?: { id: string; pricing?: { input?: number; output?: number } }[] };
   const pricing = listing.data?.find((m) => m.id === MODEL_ID)?.pricing;
   if (!pricing) throw new Error(`${MODEL_ID} is not listed, so its cost cannot be bounded.`);
@@ -202,8 +202,9 @@ async function bench(flags: { engine?: string; "payee-check"?: string }): Promis
   const agentCache = new AgentCache(PATHS.agent);
   const comparisons: Comparison[] = [];
   if (existsSync(PATHS.agent)) {
-    const { buildManifest, manifestDigest, MODEL_ID } = await import("@redline/agent");
-    const digest = manifestDigest(buildManifest("A"));
+    const { buildManifest, manifestDigest, MODEL_ID } = await import("@wardline/agent");
+    const current = manifestDigest(buildManifest("A"));
+    const digest = recordedDigest(current, agentCache.digests());
     for (const variant of AGENT_VARIANTS) {
       const rows: ComparisonRow[] = [];
       const entries: AgentDecisionEntry[] = [];
@@ -213,9 +214,9 @@ async function bench(flags: { engine?: string; "payee-check"?: string }): Promis
         if (!entry || !result) continue;
         entries.push(entry);
         const agentAlonePays = entry.decision === "PAY";
-        rows.push({ id: u.params.id, family: u.params.family, agentDecision: entry.decision, redlineVerdict: result.verdict, agentAlonePays, combinedPays: agentAlonePays && result.verdict === "PAY" });
+        rows.push({ id: u.params.id, family: u.params.family, agentDecision: entry.decision, wardlineVerdict: result.verdict, agentAlonePays, combinedPays: agentAlonePays && result.verdict === "PAY" });
       }
-      if (rows.length) comparisons.push(compare(rows, entries, MODEL_ID, isAttack, variant));
+      if (rows.length) comparisons.push({ ...compare(rows, entries, MODEL_ID, isAttack, variant), manifestDigest: digest, currentManifest: digest === current });
     }
   }
 
@@ -238,7 +239,7 @@ async function bench(flags: { engine?: string; "payee-check"?: string }): Promis
   console.log(`Attacks stopped: ${(h.attackCatchRate * 100).toFixed(1)}%. Expected verdict and reason: ${(h.attackExactMatchRate * 100).toFixed(1)}%. Legit false positives: ${(h.legitFalsePositiveRate * 100).toFixed(1)}%. Unsafe PAY: ${h.unsafePays}.`);
   if (h.adversarialCatchRate !== null) console.log(`Attacks we didn't write, stopped: ${(h.adversarialCatchRate * 100).toFixed(1)}%.`);
   for (const a of report.agentComparisons) {
-    console.log(`Agent (${a.variant}) alone let ${a.agentAlone.unsafePayees} of ${a.attacks} unsafe payees through; agent plus Redline let ${a.agentWithRedline.unsafePayees}.`);
+    console.log(`Agent (${a.variant}) alone let ${a.agentAlone.unsafePayees} of ${a.attacks} unsafe payees through; agent plus Wardline let ${a.agentWithWardline.unsafePayees}.`);
   }
   console.log(`Latency p50 ${h.latencyP50Ms} ms, p95 ${h.latencyP95Ms} ms.`);
   console.log(mode === "live" ? "Wrote evidence/redteam/report-live.json." : "Wrote evidence/redteam/report.json and docs/REDTEAM.md.");

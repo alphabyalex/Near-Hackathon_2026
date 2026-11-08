@@ -10,9 +10,9 @@ hypothesis until measured with live calls; no scores have been fabricated.
 Put `NEAR_AI_API_KEY=...` in the repository root `.env` (ignored by git), then run:
 
 ```sh
-pnpm --filter @redline/schemas build
-pnpm --filter @redline/agent build
-pnpm --filter @redline/agent decide services/agent/scratch-fixtures/clean-match.intake.json services/agent/scratch-fixtures/context.json --agent llm --record
+pnpm --filter @wardline/schemas build
+pnpm --filter @wardline/agent build
+pnpm --filter @wardline/agent decide services/agent/scratch-fixtures/clean-match.intake.json services/agent/scratch-fixtures/context.json --agent llm --record
 pnpm eval:dev --agents llm,llm-b,rules --out evidence/local/live-comparison
 ```
 
@@ -24,7 +24,7 @@ remain private. The agent workstream must not read or tune against hidden invoic
 
 ## Compromised-agent demo
 
-Set `REDLINE_ENABLE_COMPROMISED_DEMO=true` before starting the local API. The dashboard
+Set `WARDLINE_ENABLE_COMPROMISED_DEMO=true` before starting the local API. The dashboard
 shows a toggle labeled “Simulate compromised agent.” It is disabled by default; the API
 continues to bind localhost only. Toggle state affects all subsequent intakes in this
 API process. Toggling off restores its original agent and adapter.
@@ -40,7 +40,7 @@ proposes PAY and the vault rejects OVER_VENDOR_CAP with no balance change. A kno
 approved payable within limits can still settle: the vault constrains authority, it
 cannot decide whether the invoice text matches the correct bill.
 
-For testnet use the actual deployed payable refs and configure REDLINE_GATEWAY_MODE=near
+For testnet use the actual deployed payable refs and configure WARDLINE_GATEWAY_MODE=near
 and the gateway's required credentials. This change has not been exercised on testnet.
 
 ## Hardware evidence
@@ -48,7 +48,7 @@ and the gateway's required credentials. This change has not been exercised on te
 After each completion the client immediately fetches its signature and a fresh nonce-bound
 attestation. Exact request/response bytes, local SHA-256 hashes, completion ID, model ID,
 nonce and endpoint payloads are saved under `evidence/local-ai-proofs/` (ignored by git).
-REDLINE_PROOF_DIR overrides that directory. Artifacts contain invoice/context data;
+WARDLINE_PROOF_DIR overrides that directory. Artifacts contain invoice/context data;
 use only public dev data when sharing them. Authorization headers are never saved.
 
 The scoring view says “collected (not verified)” or “unavailable.” Collection is best
@@ -68,7 +68,7 @@ Lucy evaluate the committed hidden suite against the candidate digest and her th
 and retain the run evidence. Do not tune against the hidden suite after assessment.
 
 ```sh
-pnpm --filter @redline/agent manifest --verify
+pnpm --filter @wardline/agent manifest --verify
 ```
 
 Give Tharun `services/agent/manifests/version-A.json` and the successful assessment's run

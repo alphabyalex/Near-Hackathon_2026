@@ -1,5 +1,5 @@
 {
-  "schema": "redline-payee-rpc-recording-v1",
+  "schema": "wardline-payee-rpc-recording-v1",
   "recorded_at": "2026-11-08T02:35:18.096Z",
   "network": "testnet",
   "endpoint_source": "NEAR_RPC_URL",
@@ -10,7 +10,7 @@
         "method": "query",
         "params": {
           "request_type": "view_account",
-          "account_id": "redline-payee-missing-q7x2.testnet",
+          "account_id": "wardline-payee-missing-q7x2.testnet",
           "finality": "final"
         }
       },
@@ -24,15 +24,15 @@
               "info": {
                 "block_hash": "4iNw329xsP5CcHEbpHmYNiiDoy495fJC38iVvSisvKrG",
                 "block_height": 276715726,
-                "requested_account_id": "redline-payee-missing-q7x2.testnet"
+                "requested_account_id": "wardline-payee-missing-q7x2.testnet"
               },
               "name": "UNKNOWN_ACCOUNT"
             },
             "code": -32000,
             "message": "Server error",
-            "data": "account redline-payee-missing-q7x2.testnet does not exist while viewing"
+            "data": "account wardline-payee-missing-q7x2.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -58,7 +58,7 @@
             "storage_paid_at": 0,
             "storage_usage": 262578
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -511,7 +511,7 @@
               "validator_reward": "0"
             }
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -968,7 +968,7 @@
               "validator_reward": "0"
             }
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -999,7 +999,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1021,7 +1021,7 @@
             "block_height": 276715727,
             "keys": []
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1052,7 +1052,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1078,7 +1078,7 @@
             "storage_paid_at": 0,
             "storage_usage": 262578
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1109,7 +1109,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1140,7 +1140,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1171,7 +1171,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1197,7 +1197,7 @@
             "storage_paid_at": 0,
             "storage_usage": 262578
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1228,7 +1228,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1254,7 +1254,7 @@
             "storage_paid_at": 0,
             "storage_usage": 262578
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1280,7 +1280,7 @@
             "storage_paid_at": 0,
             "storage_usage": 262578
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1306,7 +1306,7 @@
             "storage_paid_at": 0,
             "storage_usage": 259019
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1337,7 +1337,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1368,7 +1368,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1399,7 +1399,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1430,7 +1430,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1456,7 +1456,7 @@
             "storage_paid_at": 0,
             "storage_usage": 182
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1482,7 +1482,7 @@
             "storage_paid_at": 0,
             "storage_usage": 182
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1513,7 +1513,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1544,7 +1544,7 @@
             "message": "Server error",
             "data": "account vault-a.redline-labs.testnet does not exist while viewing"
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1570,7 +1570,7 @@
             "storage_paid_at": 0,
             "storage_usage": 182
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -1596,7 +1596,7 @@
             "storage_paid_at": 0,
             "storage_usage": 182
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     },
@@ -2051,13 +2051,13 @@
               "validator_reward": "0"
             }
           },
-          "id": "redline"
+          "id": "wardline"
         }
       }
     }
   ],
   "signals": {
-    "redline-payee-missing-q7x2.testnet": {
+    "wardline-payee-missing-q7x2.testnet": {
       "supported": true,
       "accountExists": false,
       "createdAtBlock": null,

@@ -9,7 +9,7 @@ import {
   type Intake,
   IntakeSchema,
   ScenarioSchema,
-} from "@redline/schemas";
+} from "@wardline/schemas";
 import { DEV_FIXTURES_DIR, loadRepoEnv, MANIFEST_DIR, MODEL_ID, nearAiBaseUrl, SCRATCH_FIXTURES_DIR } from "./agent-config.js";
 import { canonicalJson } from "./canonical.js";
 import { createAgent } from "./factory.js";
