@@ -1,11 +1,30 @@
 import { serve } from "@hono/node-server";
-import { createApp } from "./app.js";
+import { loadRepoEnv } from "@redline/agent";
+import { createApp, OWNER_PREFIX } from "./app.js";
+import { ownerAuthFromEnv } from "./auth.js";
 import { bootstrap } from "./bootstrap.js";
+import { createOwnerApp } from "./owner-app.js";
+import { ensureAttestorKey } from "./payee/attestor.js";
+import { loadPayeeBackends } from "./payee/runtime.js";
+import { serverConfigFromEnv } from "./server-config.js";
 
-const port = Number(process.env.API_PORT ?? 8787);
-const dbPath = process.env.API_DB_PATH ?? ":memory:";
+loadRepoEnv();
+ensureAttestorKey();
+const backends = await loadPayeeBackends();
+const auth = ownerAuthFromEnv();
+const config = serverConfigFromEnv(process.env, auth);
+const deps = bootstrap(process.env.API_DB_PATH ?? ":memory:", undefined, backends, auth);
+const ownerAuth = auth.enabled ? `${auth.owners.size} owner(s), ${auth.approvers.size} approver(s)` : "auth off";
 
-// Localhost only: the API has no authentication yet.
-serve({ fetch: createApp(bootstrap(dbPath)).fetch, port, hostname: "127.0.0.1" }, (info) => {
-  console.log(`Redline API on http://127.0.0.1:${info.port} (mock gateways)`);
+serve({ fetch: createApp(deps, { mountOwner: config.ownerPort === null }).fetch, port: config.port, hostname: config.host }, (info) => {
+  const engine = process.env.REDLINE_PAYEE_ENGINE ?? "stub";
+  const registry = process.env.REDLINE_REGISTRY_MODE ?? "memory";
+  console.log(`Redline API on http://${config.host}:${info.port} (payee engine ${engine}, registry ${registry})`);
+  if (config.ownerPort === null) console.log(`Owner routes at ${OWNER_PREFIX} (${ownerAuth})`);
 });
+
+if (config.ownerPort !== null) {
+  serve({ fetch: createOwnerApp(deps).fetch, port: config.ownerPort, hostname: config.ownerHost }, (info) => {
+    console.log(`Owner routes on http://${config.ownerHost}:${info.port} (${ownerAuth})`);
+  });
+}

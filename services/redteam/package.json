@@ -1,0 +1,38 @@
+{
+  "name": "@redline/redteam",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "generate": "tsx src/cli.ts generate",
+    "prose": "tsx src/cli.ts prose",
+    "bench": "tsx src/cli.ts bench",
+    "adversarial": "tsx src/cli.ts adversarial",
+    "agent": "tsx src/cli.ts agent"
+  },
+  "dependencies": {
+    "@redline/agent": "workspace:*",
+    "@redline/schemas": "workspace:*",
+    "@redline/sdk": "workspace:*",
+    "@redline/x402-guard": "workspace:*",
+    "canonicalize": "^5.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

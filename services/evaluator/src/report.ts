@@ -58,12 +58,26 @@ export function buildRun(a: BuildArgs): AgentRun {
     execution_status: status,
     assessment_outcome: assessmentOutcome(a.split, status, thresholds),
     metrics,
-    cases: scored.map((s) => s.case),
-    costs: computeCosts(a.records, a.wallClockMs),
+    cases: scored.map((s, index) => {
+      const report = a.records[index]?.agent_report;
+      return { ...s.case, ...(report ? { provenance: {
+        source: report.source, fallback: report.fallback !== null,
+        completion_id: report.tee?.completion_id ?? null,
+        proof_status: report.tee?.status ?? "unavailable" as const,
+        proof_verified: false as const,
+        response_hash: report.tee?.response_hash ?? null,
+      } } : {}) };
+    }),
+    costs: { ...computeCosts(a.records, a.wallClockMs), ...latencyFields(scored) },
     limitations,
   };
   EvaluationReportSchema.parse(report);
   return { agent: a.agent, report, scored, records: a.records, thresholds };
+}
+
+function latencyFields(scored: ScoredCase[]): { latency_p50_ms: number; latency_p95_ms: number } {
+  const { p50, p95 } = latencyPercentiles(scored);
+  return { latency_p50_ms: Math.round(p50), latency_p95_ms: Math.round(p95) };
 }
 
 const pct = (n: number, d: number): string => (d === 0 ? "N/A" : `${((100 * n) / d).toFixed(1)}%`);

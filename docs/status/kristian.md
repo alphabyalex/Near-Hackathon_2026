@@ -1,5 +1,27 @@
 # Status: kristian
 
+## November 7 round update
+
+Implemented on kristian from current main: opt-in dashboard compromise toggle (bypasses
+the simulated agent process's guard and adapter checks; still submits through the vault),
+intentionally weaker prompt B, llm/llm-b Gym entries, per-case execution provenance,
+immediate completion signature and nonce-bound attestation capture, and scoring-view
+proof status. Collection is explicitly unverified. Raw wire artifacts are git-ignored.
+
+Fixed the Gym's NEAR AI manifest digest to match the enrollment digest, corrected token
+usage field names, extended the timeout for retries plus proof collection, and repaired
+the two-document workspace lockfile. API startup now loads the root .env and a requested
+LLM mode fails visibly if its key is missing.
+
+Builds pass. Agent: 111 tests; API: 30; evaluator: 19. Compromise integration test proves
+an over-cap attempt reaches vault rejection with unchanged balance. Configured model
+was confirmed listed with TEE support through the public model endpoint.
+
+No API key is available in this checkout yet. First live call, measured A/B comparison,
+independent hardware verification, final A freeze and testnet run/enrollment remain
+pending. Updated manifests are candidate snapshots, not frozen/assessed versions.
+See [round instructions](../KRISTIAN-ROUND-2.md) for commands and handoff steps.
+
 Built by Alexander on the alexander branch on Kristian's behalf; Kristian to take over.
 
 Start with [docs/AGENT.md](../AGENT.md). It covers decision rules, how to run everything, and known failure modes.

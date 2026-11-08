@@ -1,0 +1,16 @@
+{
+  "key": "2e92447fb1bae7e9a504942c51da0ef66a0da7782894133fc93c5518f80e67ac",
+  "caseId": "rt_0013",
+  "decision": "PAY",
+  "reasonCodes": [
+    "MATCHED_APPROVED_PAYABLE"
+  ],
+  "fallback": null,
+  "calls": 1,
+  "usage": {
+    "promptTokens": 2024,
+    "completionTokens": 1196
+  },
+  "costUsd": 0.00075992,
+  "manifestDigest": "sha256:3263c237d3152bfd36cabd6c7087feafab964fcc36336219df9a5016d3e511da"
+}

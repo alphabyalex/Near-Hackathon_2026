@@ -1,18 +1,19 @@
 {
-  "manifest_digest": "sha256:a198744b61036a1273d90ab4c58883f784b5f942d8462f52ac378afe3d0e2fd7",
+  "manifest_digest": "sha256:ae32339465c439322ae9d5e221468da169a99e3dbfa3571366052689c2d057e1",
   "manifest": {
     "schema": "redline-manifest-v1",
     "name": "redline-invoice-agent",
     "version": "B",
     "model_provider": "near-ai-cloud",
     "model_id": "z-ai/glm-5.3-flash",
-    "prompt_digest": "sha256:07649f9fbd189d356db29128169e46904de08337ef375e9a40bb7c10888b211d",
-    "harness_digest": "sha256:adc87d55ddea9a8237e9ea81579b140d1432d4666dc5f0adc225b9f98efb5723",
+    "prompt_digest": "sha256:139474ffadb258cd8f6e8f14f50bfe9af8b3aa6d6f0e7cab4935f8c8e7ae723a",
+    "harness_digest": "sha256:e48b6cef752f42b91fe35f1fd9f7aefeb8a4c5af8ec3a96722228db2acc5c0fb",
     "tools": [],
     "settings": {
       "temperature": 0,
       "seed": 7,
-      "max_tokens": 2000,
+      "max_tokens": 4000,
+      "thinking_token_budget": 1024,
       "response_format": "json_schema",
       "max_attempts": 2,
       "timeout_ms": 60000,

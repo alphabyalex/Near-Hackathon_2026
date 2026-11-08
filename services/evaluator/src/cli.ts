@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { loadRepoEnv } from "@redline/agent";
 import { DEFAULT_AGENTS, resolveAgents } from "./agents.js";
+import { requireLlmIfConfigured } from "./llm-preflight.js";
 import { canonicalJson } from "./canonical.js";
 import {
   SuiteCommitmentSchema,
@@ -119,7 +121,9 @@ async function cmdRun(flags: Record<string, string | true>): Promise<void> {
   const suite = loadSplit(split);
   const stamp = stampNow();
   const names = (str(flags["agents"]) ?? DEFAULT_AGENTS.join(",")).split(",").map((s) => s.trim()).filter(Boolean);
+  loadRepoEnv();
   const { agents, unavailable } = await resolveAgents(names);
+  await requireLlmIfConfigured(names, agents.map((a) => a.name), unavailable, str(flags["agents"]) !== undefined);
   if (unavailable.length) console.log(`Not available yet, skipped: ${unavailable.join(", ")}`);
   if (agents.length === 0) throw new Error("no runnable agents");
 

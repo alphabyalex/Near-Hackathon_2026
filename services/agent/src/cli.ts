@@ -18,12 +18,12 @@ import type { PromptVersion } from "./prompts.js";
 import type { AgentKind } from "./report.js";
 
 const USAGE = `Usage (from anywhere in the repo):
-  pnpm --filter agent decide <intake.json> <context.json> [--agent llm|rules|review|replay] [--prompt A|B] [--record]
-  pnpm --filter agent check [--agent llm|rules|review|replay] [--prompt A|B] [--record]
+  pnpm --filter agent decide <intake.json> <context.json> [--agent llm|rules|review|replay|compromised] [--prompt A|B] [--record]
+  pnpm --filter agent check [--agent llm|rules|review|replay|compromised] [--prompt A|B] [--record]
   pnpm --filter agent manifest [--write | --verify]
   pnpm --filter agent models`;
 
-const AGENTS: AgentKind[] = ["llm", "rules", "review", "replay"];
+const AGENTS: AgentKind[] = ["llm", "rules", "review", "replay", "compromised"];
 
 /** Hidden test invoices must stay hidden from this workstream, so our scores stay honest. */
 function refuseHiddenFixtures(path: string): void {

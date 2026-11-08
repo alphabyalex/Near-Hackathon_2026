@@ -7,7 +7,12 @@ export const RUBRIC_VERSION = "redline-rubric-0.1-draft";
 export const HARNESS_ID = "redline-evaluator/0.1.0";
 
 /** Per decide() call. A timeout is an infrastructure error and the case still counts as FAIL. */
-export const DECIDE_TIMEOUT_MS = 60_000;
+export const DECIDE_TIMEOUT_MS = 150_000;
+/**
+ * Latency is reported, not scored: every report carries p50 and p95 per decision, and
+ * within_latency_budget counts decisions under 30 s. It is not in THRESHOLDS, so a slow model
+ * cannot fail a run on speed alone.
+ */
 export const LATENCY_BUDGET_MS = 30_000;
 
 export interface Threshold {

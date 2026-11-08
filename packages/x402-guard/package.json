@@ -1,0 +1,42 @@
+{
+  "name": "@redline/x402-guard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./fake-server": {
+      "types": "./dist/fake-server.d.ts",
+      "default": "./dist/fake-server.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@redline/schemas": "workspace:*",
+    "@redline/sdk": "workspace:*",
+    "@scure/base": "^2.4.0",
+    "canonicalize": "^5.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@x402/core": "^2.30.0",
+    "@x402/fetch": "^2.30.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

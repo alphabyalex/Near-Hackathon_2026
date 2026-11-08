@@ -1,4 +1,5 @@
 import type { AgentRunner, DecisionAdapter, Manifest } from "@redline/schemas";
+import { manifestDigest as agentManifestDigest } from "@redline/agent";
 import { DOMAIN, domainDigest, sha256Bytes } from "./canonical.js";
 import { HARNESS_ID } from "./rubric.js";
 import { alwaysReviewControl, credulousStub, rulesBaselineStub, stubAdapter } from "./stubs/agents.js";
@@ -23,6 +24,7 @@ export interface GymAgent {
   adapterIsStub: boolean;
   /** Optional: token usage of the most recent decide() call. */
   lastUsage?: () => TokenUsage | null;
+  lastReport?: () => import("@redline/agent").DecisionReport | null;
 }
 
 function stubManifest(name: string, description: string): Manifest {
@@ -41,6 +43,7 @@ function stubManifest(name: string, description: string): Manifest {
 }
 
 export function manifestDigest(m: Manifest): string {
+  if (m.model_provider === "near-ai-cloud") return agentManifestDigest(m);
   return domainDigest(DOMAIN.manifest, m);
 }
 

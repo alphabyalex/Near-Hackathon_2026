@@ -1,9 +1,10 @@
 import type { AgentRunner, DecisionAdapter, Manifest } from "@redline/schemas";
 import { PaymentRequestAdapter } from "./adapter.js";
+import { loadRepoEnv } from "./agent-config.js";
 import { createAgent } from "./factory.js";
 import { buildManifest, harnessDigest } from "./manifest.js";
 import { sha256Digest } from "./canonical.js";
-import type { TokenUsage } from "./report.js";
+import type { DecisionReport, ReportingAgent } from "./report.js";
 
 export interface GymAgentExport {
   name: string;
@@ -11,7 +12,8 @@ export interface GymAgentExport {
   kind: "llm" | "baseline" | "control" | "simulated_compromised";
   manifest: Manifest;
   runner: AgentRunner;
-  lastUsage?: () => TokenUsage | null;
+  lastUsage?: () => { input_tokens: number; output_tokens: number } | null;
+  lastReport?: () => DecisionReport | null;
 }
 
 export function createDecisionAdapter(): DecisionAdapter {
@@ -34,6 +36,7 @@ function rulesManifest(): Manifest {
 }
 
 export async function createGymAgents(): Promise<GymAgentExport[]> {
+  loadRepoEnv();
   const agents: GymAgentExport[] = [];
 
   const rulesAgent = createAgent("rules");
@@ -47,17 +50,27 @@ export async function createGymAgents(): Promise<GymAgentExport[]> {
   });
 
   if (process.env.NEAR_AI_API_KEY) {
-    try {
-      const llm = createAgent("llm", { version: "A" });
+    for (const version of ["A", "B"] as const) {
+      const llm = createAgent("llm", { version });
+      let report: DecisionReport | null = null;
+      const runner: ReportingAgent = {
+        async decideWithReport(intake, ctx) {
+          report = null;
+          const result = await llm.decideWithReport(intake, ctx);
+          report = result.report;
+          return result;
+        },
+        async decide(intake, ctx) { return (await this.decideWithReport(intake, ctx)).decision; },
+      };
       agents.push({
-        name: "llm",
-        label: "LlmAgent (z-ai/glm-5.3-flash)",
+        name: version === "A" ? "llm" : "llm-b",
+        label: `LlmAgent version ${version}${version === "B" ? " (intentionally weak candidate)" : ""}`,
         kind: "llm",
-        manifest: buildManifest("A"),
-        runner: llm,
+        manifest: buildManifest(version),
+        runner,
+        lastReport: () => report,
+        lastUsage: () => report ? { input_tokens: report.usage.prompt_tokens, output_tokens: report.usage.completion_tokens } : null,
       });
-    } catch {
-      // Key invalid or client failure
     }
   }
 

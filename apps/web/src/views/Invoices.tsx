@@ -101,7 +101,7 @@ function SubmitInvoicePanel({ vaultId, onChanged }: { vaultId: string; onChanged
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const detail = await apiPost<InvoiceDetail>("/intake", {
+      const detail = await apiPost<InvoiceDetail>("/owner/intake", {
         source_text: sourceText,
         channel: "MANUAL",
         sender: "operator@redline.test",
@@ -220,7 +220,7 @@ function SubmitInvoicePanel({ vaultId, onChanged }: { vaultId: string; onChanged
 }
 
 function InvoiceList({ version }: { version: number }) {
-  const invoices = useApi<InvoiceSummary[]>("/invoices", version);
+  const invoices = useApi<InvoiceSummary[]>("/owner/invoices", version);
   return (
     <Panel title="Invoices" note="Pick one to see its detail">
       {invoices.error && (
@@ -318,7 +318,7 @@ export function InvoiceDetailCard({ detail }: { detail: InvoiceDetail }) {
 }
 
 function SelectedInvoice({ intakeRef, version }: { intakeRef: string; version: number }) {
-  const detail = useApi<InvoiceDetail>(`/invoices/${encodeURIComponent(intakeRef)}`, version);
+  const detail = useApi<InvoiceDetail>(`/owner/invoices/${encodeURIComponent(intakeRef)}`, version);
   return (
     <>
       <a className="back" href="#/app/invoices">
@@ -342,7 +342,7 @@ export function Invoices({
   onChanged: () => void;
   vaultId?: string;
 }) {
-  const queue = useApi<ReviewQueueEntry[]>(selected ? null : "/review-queue", version);
+  const queue = useApi<ReviewQueueEntry[]>(selected ? null : "/owner/review-queue", version);
   if (selected) return <SelectedInvoice intakeRef={selected} version={version} />;
   return (
     <div className="stack">

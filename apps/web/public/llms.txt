@@ -1,0 +1,74 @@
+# Redline
+
+> Redline checks who an AI agent is about to pay. Vendors link their payout accounts on NEAR, EVM chains or Solana to their website domain. Redline verifies control of each account and its link to the domain, and reports the trust level. Agents read that record before money moves.
+
+## When to use which
+
+- You know the vendor's website: call resolve. It returns the account linked to that domain, so you never handle a raw address.
+- You have a raw address, from an invoice, an email or an x402 offer: call check before paying.
+
+Accounts are CAIP-10 strings: near:testnet:northwind.testnet, eip155:84532:0xabc..., solana:devnet:7xKX... A bare NEAR account id is also accepted.
+
+## Verdicts
+
+- PAY: pay. The account is linked to this vendor's domain and nothing looks wrong.
+- HOLD: do not pay. Send it to a human. Reasons: NOT_IN_REGISTRY, CHAIN_NOT_VERIFIED, COOLING_OFF, NEW_ACCOUNT, RECENT_FULL_ACCESS_KEY, RECENT_CODE_CHANGE, PAYEE_CHANGED, SIGNALS_UNAVAILABLE.
+- BLOCK: never pay. Reasons: ACCOUNT_MISSING, LOOKALIKE_ACCOUNT, ACCOUNT_NOT_VENDORS.
+
+If a call fails or returns an error, there is no verdict. Do not pay.
+
+## Evidence tiers
+
+Every answer has an evidenceTier. It says what was verified, never legal ownership.
+
+- T0_NONE: nothing verified for this vendor and account.
+- T1_WALLET_CONTROL: the account signed our challenge.
+- T2_DOMAIN_LINKED: T1, and the vendor's domain lists the account. PAY needs at least this.
+- T3_RELATIONSHIP: T2, and your owner approved the account or you paid it before. Needs your API key.
+- T4_EXTERNAL_KYB: reserved for an outside business-verification provider. Never set today.
+
+## MCP
+
+Streamable HTTP: http://127.0.0.1:8790/mcp
+Stdio: node services/mcp/dist/stdio.js
+Tools: resolve_payee, check_payee, get_vendor, how_to_verify
+
+## HTTP
+
+Base URL: http://127.0.0.1:8787
+
+```sh
+curl -s http://127.0.0.1:8787/v1/resolve -H 'content-type: application/json' \
+  -d '{"domain":"northwind.example","chain":"near:testnet"}'
+
+curl -s http://127.0.0.1:8787/v1/check -H 'content-type: application/json' \
+  -d '{"payee":"near:testnet:northw1nd.testnet","vendor":{"domain":"northwind.example"}}'
+```
+
+Other routes: GET /v1/vendors, GET /v1/vendors/{domain}, POST /v1/payments/record, POST /v1/vendors/verify, GET /.well-known/redline-attestor.json.
+
+Passing "payer" needs that payer's API key: Authorization: Bearer rk_... Recording payments needs a key with the record scope, or the payer's NEAR signature.
+
+Free tier: 200 calls per day per IP. Over that, HTTP 402 with x402 payment requirements of 0.01 USDC per call. Paying it is not available yet.
+
+## SDK
+
+```ts
+import { createRedline, assertPayable } from "@redline/sdk";
+const redline = createRedline({ mode: "hosted", baseUrl: "http://127.0.0.1:8787" });
+const result = await redline.resolve({ domain: "northwind.example", chain: "near:testnet" });
+assertPayable(result);
+pay(result.account);
+```
+
+Direct mode runs the checks locally, so Redline never sees who you pay: createRedline({ mode: "direct", nearRpcUrl, registryAccount }).
+
+x402: wrapFetchWithPayment(withRedline(fetch, { redline }), x402Client), from @redline/x402-guard.
+
+## Receipts
+
+Hosted answers carry an ed25519 receipt signed by the Redline API, covering the verdict, reasons and evidence tier. The public key is at /.well-known/redline-attestor.json. Check one with verifyReceipt(result, publicKey, { request }). Direct mode has no receipts.
+
+## For vendors
+
+Serve https://<domain>/.well-known/redline-payee.json, signed by each payout account, then POST {"domain":"<domain>"} to /v1/vendors/verify. That gives T2_DOMAIN_LINKED. The how_to_verify tool has the steps.
