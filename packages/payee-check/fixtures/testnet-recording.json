@@ -1,0 +1,2079 @@
+{
+  "schema": "redline-payee-rpc-recording-v1",
+  "recorded_at": "2026-11-08T02:35:18.096Z",
+  "network": "testnet",
+  "endpoint_source": "NEAR_RPC_URL",
+  "live_calls": 27,
+  "calls": [
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "redline-payee-missing-q7x2.testnet",
+          "finality": "final"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "4iNw329xsP5CcHEbpHmYNiiDoy495fJC38iVvSisvKrG",
+                "block_height": 276715726,
+                "requested_account_id": "redline-payee-missing-q7x2.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account redline-payee-missing-q7x2.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "finality": "final"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "2790789925863249800000012",
+            "block_hash": "4iNw329xsP5CcHEbpHmYNiiDoy495fJC38iVvSisvKrG",
+            "block_height": 276715726,
+            "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 262578
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "block",
+        "params": {
+          "finality": "final"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "author": "node1",
+            "chunks": [
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "Fz44tcMjJnmL2P1c4LBXEtpJR9SsbfBsxDcK9FEWdBrH",
+                "congestion_info": {
+                  "allowed_shard": 9,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "5H75CaGcb7Vb4aVMVtNDQkBMg3iU8BcwsnZrskd6T7Cy",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 10,
+                "signature": "ed25519:4Eck2fFqyzfqioS9yX84uxjkB5NzKLETDZMEb7Z1oVs38BQPq758ugBgKus27K48iyFsTey8UP1P5EaVXRBoCPr1",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "FEo8NBvAhjR53ZxM9ZVfLydXkwPj5DfCEMfJAUwiTSWY",
+                "congestion_info": {
+                  "allowed_shard": 6,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "GQ2biiceiLHge66p8Sg2ZP2mtHAcLwePJXZZ7xWEHsLV",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 11,
+                "signature": "ed25519:7odKpcd44YCXiSK1pD4Xzab8RLUbTD1LhD6JDoKHCDyEB8DuSeX2v1hizMdtfhRwUXK1DdgZjYtUZ2ofBg1aZxF",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "2PAzb98mvDWP2nborcC2YiMSdf3WnfUrcYLhMygVYRMx",
+                "congestion_info": {
+                  "allowed_shard": 7,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "AJcPrW4r65pey9pSXnjeoq4JeGeKfYosG56fUW9VhZxD",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 1,
+                "signature": "ed25519:2vhL8ttfXjDSgcCgcWzoYJufLzCehb6w8wRngsGPhKt2r3uAaACaGvvSEHimS9CjPhGyGW9Y6vpy5znf5u8762Qb",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "E5Ltmiomkck8rMkbyZgd88R8pZSK5UnDux4SsruWn9gf",
+                "congestion_info": {
+                  "allowed_shard": 4,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "8xwaHviVbvVdFx37NDj33YuouQ9hnSiFPnnxqzgU213f",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 12,
+                "signature": "ed25519:K2uswEqffrc84GM2oUVP663wvwqrc8yEneWNppeRryMpN7WbmwZTD5orBLfcL8Sm92yHJZs6DPT6SMvcGxwpCYW",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "268238063243100000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "1ZGpgHwTnqbej8YyTar3CoV1F4uZ9ADesK9kh1yo7BF",
+                "congestion_info": {
+                  "allowed_shard": 5,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 173,
+                "encoded_merkle_root": "ArC2Zcj8urRmDzwB8oJSDapnCRx9mfNLjvxYBecnbGUM",
+                "gas_limit": 1000000000000000,
+                "gas_used": 2682380632431,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "6v92i5bEheQH5rZjwzHt3vK6jEVskcctJ3kc5n67Gi2o",
+                "outgoing_receipts_root": "GP48ddjb1kg1F6JQYjxafQT2drWqtsKPxgSyuu1fdn1b",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "8tDgkNYEAVivCJjr74L1SU353ZLjypgu5LkKC6zd1vcw",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 13,
+                "signature": "ed25519:2iRk3ZYm136LV7ZrUgirp5bQQ5pDWvbU8sKdc5KAD64nbWhokKQunVgPXbM6HkvkzriEB3gAncAbneyjRCPRp7kR",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "E8kNGD3NLFPKY4NXKeQGB2QUBbTnK7VK7RABkvv2DceB",
+                "congestion_info": {
+                  "allowed_shard": 10,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "BjzQg8BAdk89rr1ReRNHDE6v7NFbMcTLSf4eTfbL7hnb",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 9,
+                "signature": "ed25519:4fPKbWZtuk7nBVt3gq6o4WzHgUrdxKEk5skvLGpByA2Pu6tnveDhMUEw6vkdv4V8Mkw9RJhA1WUYFkUGmyXCmEbo",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "2nasLgWpbhz6YcYG4QRLp117hdw4urGXehgY6VVQjZDA",
+                "congestion_info": {
+                  "allowed_shard": 11,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "8UJk5m98TycKLLJ9H8gjj2rbG8KGA2LVz7dbvRRtf9JP",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 6,
+                "signature": "ed25519:5HGuCGpXLP1i3rwiokotZmyeryuDgv8ipjiFgHfaxJ4Z9fDVcxDimjuP7S7LF9LWZ3ktwZouWkukBuCSSmDAzoAF",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "30906085801500000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "ECXHZ4NbVL2ZgjqM5jM3syhPfoD1m9qmHCcrPaYQ7Gka",
+                "congestion_info": {
+                  "allowed_shard": 1,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 671,
+                "encoded_merkle_root": "27RgckVS7WmLrup7b4BLxdwbLMcFCD8UcM9L4gRcnahr",
+                "gas_limit": 1000000000000000,
+                "gas_used": 309060858015,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "7RUGDmoXeKYenvncF6rNLvGh9stW8sCzayersGSF3Q7m",
+                "outgoing_receipts_root": "6iiwfZuTXj4LASEQTpVsyqwa7ia8NPmBoo8Vp6XcPxQR",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "6Q7ecBCgzsEhXzGt64mzmbqjTMASqc7JsWaEtB7dufhM",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 7,
+                "signature": "ed25519:5HVEecP9Z8p3XktrdGeJCpp9LMaLBMrGeEe93GaJRWmkWF6feSxaL141cRsnFDR3Nd3cQTv5k7vsbcDwMJmsCguk",
+                "tx_root": "9XX1XyYTYFwvbQ5gSNLxTwqMo9zxtgBRUmBLyfEg9a1W",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "CpaHAbtKiNUK2ukhrfob66VHw1PmKsnTRU3Hqpg6qGbE",
+                "congestion_info": {
+                  "allowed_shard": 12,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "AQ6ZpJ9SjRrsSGBQsGAMJbz94J6YiL59FuF6x8KAzAd4",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 4,
+                "signature": "ed25519:4r27VMqEXhrNe8aegnnJZyjj5Ln68HwEyGxetmLSwJ58rviGvcPQPxvSs3EdmfauC9byebLoSGd5Ytyd6b7KFAxw",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "214707758076100000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "BuZWkUyg4s6siQ3pAmm5P42xyW3vDS6TXms775BjnQF",
+                "congestion_info": {
+                  "allowed_shard": 13,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 1652,
+                "encoded_merkle_root": "HrEx9m87qXaGcQwbqQue7Hhzi4g9demik1Pxq8sMP5K6",
+                "gas_limit": 1000000000000000,
+                "gas_used": 2370260143261,
+                "height_created": 276715726,
+                "height_included": 276715726,
+                "outcome_root": "Diaj6ak8sEpvBmLtxqC6zNJHes7wbHnaeaRjbf19CShg",
+                "outgoing_receipts_root": "J3h9A6VLwyicAeZxi6KjGZPrPtuGAz81vu1VKMoz9c21",
+                "prev_block_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+                "prev_state_root": "7YCKZtSrsWcqEiMKRntumVovgZ7tYCv7QnS8WmemLRo4",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 5,
+                "signature": "ed25519:4va46uKchqBX8f34wyNDHDtRsVboB7sQz94nraTAmPjm33rYg6QdY1rQZg8Ch4RZdFPVTHiTPGpJHvfqu6rVBKBK",
+                "tx_root": "5PQDqXVrbKzNkf6RsC7NY7CUANQWKr7UspyixSLmSpi5",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              }
+            ],
+            "header": {
+              "approvals": [
+                "ed25519:2Fgkzzv6defERgFYmw3Cg9DozgcNT8K4AveozhjqTuGNwXKCcxfFjhy9CsQb9uDc5ZeprbXfgrAN6TLrbnJXxuQj",
+                "ed25519:4ak2CkwMn1XVWzveLu1ja41TvdNrh7Cu5XhpxRzoX9LdZr9wBQEBDg9tTmbBzPwfoEyK5BhKJ9zbJF2au1druwpP",
+                "ed25519:Y2vWUVy6c819wjShRqnyXbXJQr619TnKpaRHrURhPYnAAB9H2WUaWro9bZvBgTE5KYzX7ihiZwdeLriweLHVzj4",
+                "ed25519:5nG6SVktg3VSk2WcpQwC2w2xNydpKAWnKqAnDgKLtWzUYsmsGP5WFxPAEEFvw42LyUEvyszucjFBgiCPSHK3aat",
+                "ed25519:CpHb6MZ4T9Qpk9RpVC8XwWFAZqfKRns1pxi7Jh4n9zpEksosTsX3XvUXxKrqQiPP4oLzpa6EhBVjKVp2CJtf1v2",
+                "ed25519:CTREfFgSjscLLJetAttgD76NhMRYUhkEGVdbC7VxMcZtTnqHtAenp4bhGASB3HP1pWMR8ogd91m3SeEgHGsTfW9",
+                "ed25519:555S3AiEfduRero6QiPZFY5Lam6U4fapg4LAVF33pG35zbv62fKAeqkh38bW6VPReNyHiBfmUi5eD9E926dBv9tr",
+                "ed25519:4L7szia4bn8zK4JWiQDSVZNhaFLwsEdYdmpWYZwt7HNbaqXhzqk7grFxkNC5zy4qse9JeHzogdu3tcPxhdT6G6iU",
+                "ed25519:4iBkP5VnY49Jx4m9zjqhMxFrPdguuSDyudgpqnCvJ8WAzkTA9WUjQwLXcnC9tdoUUZcGYh2YdEcEjTNEmmz1RSr6",
+                "ed25519:5dFFzZGWhhDCyQQdNNZrRJZ4WbSbezrzSszPAZsuKiB21mi7ZLC2TJbJeFrhsG6sChHWg22gEsWnGovXeBPV2SJ7",
+                "ed25519:56sJ5jQAiizNjmQM4Wwz7Zc5C446WY9cH3FFKwUHGozN1fnnfBKoTtqw9wEEXWRKcfZv4e1K8E7F315oNhPKFtB4",
+                "ed25519:3pq3F1m7dQGcjXU45q2e4yuxqoYA2LEns1PgtKRrNbjYduQ9cNkjr2t2jfRGeM18Xp1wBGLTwbjwvv5QeDh9ud9G",
+                "ed25519:3rUhPx7RYCEXiUgvRNXe3UBnRX4gyJqE5Xo8hcuXNuuwZFCVwaWX6XMm4daixJZXRpgNGuE1WAAFRZTuHsmmJaEE",
+                "ed25519:5tUQJ7Ln84NyttkpK1eoxic1C1poRpBPk2EfWjxX6L5sXSuBKMhcWrykSkdfwpt73VzFuTF6UPkxffSFM3SQivWE",
+                "ed25519:2CjhgWh1ayzaAKThP1SnQ2XWhuATcEHst51CWEekJhUibAGd9fJfCWm9Vu8KP6BLc9a8GpnmUBpiNuu1a7CWVwFy",
+                "ed25519:54eq29KXJiSKbubMv4Myj23qSd7ch1E2SUrhKVnpebtnGX4bj1qgpUayGH99WmSwxtwVP1LDhtn8wMo54ErGSstz",
+                "ed25519:2J3CjeDdWWzkdsbemyCu5XFfLE5AcB5JEJBBcmk4UqdynrawnVDvS5FYHaW68Ry5HCSqesctY5hwUVkMBGqXQ1x",
+                "ed25519:5Nha8bwrYkeAPrVMYMqeDpWMJATAv9nYXdiDcAbvr2n6HMAqhgxDow7VuuCo7MVLagvUpcXTXiwqxJ6CiH2KYPyj",
+                "ed25519:9wMLfiLYXgoTXxttyf3pAyNa8ortTbcETW2iSPDiTaNbridNwYkmYasKChHxcPJhxu5nepdMoUjMQoCnWUBQD7d",
+                null
+              ],
+              "block_body_hash": "4LYDZXYYhLbP1qvF1FKyccv17aTtVzLp7sHxv9NGqPNu",
+              "block_merkle_root": "9Liqr84sZjzruhqzBDKHc6cphghvwiQFgYRAvJveigao",
+              "block_ordinal": 228708450,
+              "challenges_result": [],
+              "challenges_root": "11111111111111111111111111111111",
+              "chunk_endorsements": [
+                [
+                  255,
+                  95
+                ],
+                [
+                  255,
+                  255,
+                  3
+                ],
+                [
+                  255,
+                  63
+                ],
+                [
+                  255,
+                  254
+                ],
+                [
+                  239,
+                  255,
+                  3
+                ],
+                [
+                  255,
+                  95
+                ],
+                [
+                  255,
+                  255
+                ],
+                [
+                  191,
+                  127
+                ],
+                [
+                  226,
+                  222,
+                  7
+                ],
+                [
+                  255,
+                  127
+                ]
+              ],
+              "chunk_headers_root": "B24xR4fYQuj1umMLPv7i7FhDeSULkAMi79FxmgcKcLVm",
+              "chunk_mask": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "chunk_receipts_root": "Dz1VCSsG7cdJzHAvmT1mFAgWT3r5bnTfqTyx9AqpzX8T",
+              "chunk_tx_root": "E43JmqY1VSg8YxAh5qRwA8xNZRz1ANshyebp9jYEuAb2",
+              "chunks_included": 10,
+              "epoch_id": "GSoaNUy4Xqt1sUdRJyX1HHfDAQGVqWpC3D95WX6ftNBw",
+              "epoch_sync_data_hash": null,
+              "gas_price": "100000000",
+              "hash": "4iNw329xsP5CcHEbpHmYNiiDoy495fJC38iVvSisvKrG",
+              "height": 276715726,
+              "last_ds_final_block": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+              "last_final_block": "3PQAVh9FoQL8ZYARHbu6JLZ48LJe8US5AugHLENTJ2BV",
+              "latest_protocol_version": 88,
+              "next_bp_hash": "BxRtmuHEkhyHm3GW1MTP6yHszq7a1QBPJDbSrwLVyqyM",
+              "next_epoch_id": "3ZD6DaYKBpKRgyH95hGD6pXoBcUmoG7MDZaBbSHjPg51",
+              "outcome_root": "2a2DJd5HaTUX2d1AfXmix8fuwM4a7arqXfbWBZ543agF",
+              "prev_hash": "4NGvhpPBD2V89emndAxng1R9B9AwoaimpytC3cPLaR32",
+              "prev_height": 276715725,
+              "prev_state_root": "7qgGPuGmENjA99pFKVQjYzRkrGTDA1RLkCw6TzeQ13TS",
+              "random_value": "7jpsfqUU655RD2hVX3wffAMpeKosiNxvKWg2aCx3UoiR",
+              "rent_paid": "0",
+              "shard_split": null,
+              "signature": "ed25519:4QeXt7HEnJaET87rX8vsBZ1ZNecFAB48gkU6zcUKNwM7yPphjB7C1Fy6rJdw9ZvCb1hoxUU2QTEV2ZcZnEmzdQdm",
+              "timestamp": 1794105311338745600,
+              "timestamp_nanosec": "1794105311338745689",
+              "total_supply": "2679172177982251390382548255863392",
+              "validator_proposals": [],
+              "validator_reward": "0"
+            }
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "block",
+        "params": {
+          "block_id": 276110926
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "author": "node3",
+            "chunks": [
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "EGYaWJQTbS34eCHBjjMevrkptjL68ts8HwiZV5ahAZni",
+                "congestion_info": {
+                  "allowed_shard": 9,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "FiMFMGyVvcWXC9hmwc4JEfbQa2KP2UPh7Ko8hhUfRDjS",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 10,
+                "signature": "ed25519:5imJ5US2Kt52JaDKyfTDnZE1EuFS8BaAMUK5AF7NnaJodPczt99D4WYv3Y6KeNxUBdJ89vLcFYRGzeXXBYvZaqrm",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "J5QUyXyNHzpY9ZCEZoaU9Dkzhkki2HwG1a93ptmjoqPk",
+                "congestion_info": {
+                  "allowed_shard": 6,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "5itrCA9bsQUX8ykHERiDU53sDSgxABfDLNNnzMqpQefV",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 11,
+                "signature": "ed25519:5N2VyZ4mfiawoP7zhkGJYYPyL67EHeuzv5nKx1G2nRV87682VgvukeyNfYXu29F8ioE866JdRBdfD6zDVy5HkW8h",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "81LkWcnsGwUnpVwAVGLYLgWnCMqmXUZcfXU8TTo3pCxi",
+                "congestion_info": {
+                  "allowed_shard": 7,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "5sJypBLCoXUAwhR7jqjwZQFv579MQEmWSH11zJnQMfQ1",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 1,
+                "signature": "ed25519:2Cqg84ozsNJiyjmhVzwnTDEBFtbaRGx9wA7o7Sq1hdLS5cgnTwYvu5PZ9CuUhbH1mEygTtRJ6dajFMsyjhLRn69M",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "6460169189421600000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "HQVSSev8DEMYuVB92c4wC8RPeaNgi2zeJtPjupfmnhPG",
+                "congestion_info": {
+                  "allowed_shard": 4,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 183,
+                "encoded_merkle_root": "xv3sSgBUUNTbXKN4gwTbQywrX5B7USohVLFLT9FrfR6",
+                "gas_limit": 1000000000000000,
+                "gas_used": 64601691894216,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "GSMVp7eBL6GpiXow5VPHqfCzuSSwoCQ6KpWhT3YFPt8m",
+                "outgoing_receipts_root": "AHoom5hZgk9A6jD1JVucqoNcsAVvourPUsjUvYCKRKsX",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "67335s4ncb47hknaDE2ngD5tLkv4VZth19Lp5QGVFAfa",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 12,
+                "signature": "ed25519:3G92KJtzzAESwNPamRizLvBeh34osxDYrPDxdR8vfspLzMPNfn7S3Y11boZ4xD9eCtJK5FbbccKRpzYzM3yT4z2s",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "4e5ZnHMtwXTXK7aLGmPDk1QTanv3dhnAwJi34ZqFUvKc",
+                "congestion_info": {
+                  "allowed_shard": 5,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "DxuHLMAuMxywzxJty6hLyrfrLjqf7xev3Xy5oBR4XCEc",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 13,
+                "signature": "ed25519:3iYXvBn2uvLMCKs276iNLE29LrVuLBSJpEVhpJJT6Apr5q2SZ85B2v7NapHdafmw2L7tyu7sH6tjmnMx1pP7pNXL",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "31077747175500000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "CgV7manj8WShvncujfWSLfq9VkdVZoTDecufuWa4EGkK",
+                "congestion_info": {
+                  "allowed_shard": 10,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 312,
+                "encoded_merkle_root": "fyth5m9UZSiv5yRFR622P8SYCh8ifoZV1Wgq211gWpg",
+                "gas_limit": 1000000000000000,
+                "gas_used": 533960034255,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "FxdareAUkcdVu32qxr7ASxbXUSQAF76RCmDe37sRysvs",
+                "outgoing_receipts_root": "8uAPYqJn9puWqY8Q8ywwpduPAD3dAVhWrL2WeqHZ4k6s",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "GX9sbwkRdWvxjSsGWw7nuwWPFCLmmD4sx1TYq4Afxv21",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 9,
+                "signature": "ed25519:2RiD9BtiYz3aqvbjrZQyzRw3xiqVfSWSEtQcccjC97dmfcY8U4CqPKuqwXD3YdvfguSKVADBWCF3NrmQ6uJcLfLQ",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "BmP3CTPPz2nna1wAs2ZFQykiH2Eog8jadQR8rZmon8Nk",
+                "congestion_info": {
+                  "allowed_shard": 11,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "7gFenkF38Myaw7QV6UQTbTMUBi5pFoPy9YHCCQ4F58i7",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 6,
+                "signature": "ed25519:w3msAhkvg6EiE7KFYeBNeec4o7HbVcMEdqbZUC2AWFkkq9jAqJTUzknG1YWBi81DVGdg8H2P633EwbSR1vvABDL",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "2nFtNFSvHycUQ2ZgwZykBKTMMJYzqWH163tThvB4QGEn",
+                "congestion_info": {
+                  "allowed_shard": 1,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "7jqyjVqGhiqWrYEJgRKJsXDdoPFPrRdvmr3vBXDKVMr5",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 7,
+                "signature": "ed25519:5MJe3zRKo65ANvSxKcGupArDPDjWJVT8MVnysoxpT3Q9KBdcx8PdWBkUKXMumEama5z4Fr2zrE74yuw3UwFZa2v2",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "AvczmAAboD4tKLmbV3riw3pSC89kceLdLyiNNNFDi1n",
+                "congestion_info": {
+                  "allowed_shard": 12,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "5K3R7x7mH1BDvjhyt78ZGHyicP2AKP39Fqz1YoariuDs",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 4,
+                "signature": "ed25519:2jrgdwpaFz6Jdo1hcMVrFvFv4BNPtFeEWvuRgiM5ShE5QZZhmCquuP3T7WxLQKRCbpzMLpL3L1BaYSPRurTZwZxV",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "2G1D3HKTJETBzaiQ4vss9pdHjXYdBe6zGoivnBiCwvfh",
+                "congestion_info": {
+                  "allowed_shard": 13,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276110926,
+                "height_included": 276110926,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+                "prev_state_root": "88s9PzEgche8mrXGcDsxrFPgtfm2kALpLKpZF9dpA8AT",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 5,
+                "signature": "ed25519:3w1ehN4Czemj6DkVQgcT6zKQpByUK5HX8LndvRpdt2vw6XLGBfeommHR1Z5L4Mx2n4uxxahCgdJKtyVmLGvYdkzY",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              }
+            ],
+            "header": {
+              "approvals": [
+                null,
+                "ed25519:5pwUWTdqKrbKcKy5kQ1JusdVzHCL8KmjWiSSPE8fZKuNxWXdG6X7Z9cU2NLv4TEKLdk6hAeGY8VgXqpfSbRn1uu",
+                "ed25519:5t5afkpgbfzEHSkrToT4z1qg1xb3bbHDBSh2VeTiGTU1nPxbafLsXoWQkejLiiBLv9ZwaZTNR4dbT4W7wsSArsaq",
+                "ed25519:3JKmHSLzCjN1HDorEhdySf939JftLFyMUAmPMLgxFuz55cTWmJt3WnD52JWh8CLRFqHCSQbafVTszi89pLzcFowL",
+                "ed25519:4TADcjMgYp67f8RVkpJWHQNPAgsJBuJAjDazo7yfwttEufRyd4bEMFDWu3RJPB3qhVrfiSNeEgD3h4fk6sXZRifi",
+                "ed25519:YjPQHfYr1y9HAJbTWARSbwceT8EYcm2MWugSZCyN3ifXLVrT23TTySLk1MbPG9fADBFsZZWRxiHy88rKYS3FA1P",
+                "ed25519:3a9Pn1L2C8TKkRZy8Mq7USPw3HLrLDe2YEQrv71KF8SK25aNtdcnuVRVsmjJhji2Lpp66o4bWkFLvCTHqKSY7qwA",
+                "ed25519:4K2U6r2FDPcwCxcvxNjMVB57nCD1bLVVPjoRLfvTnGLVryMn26UmTTgGYnNESctDDLk2bZ2DRQYaPSiC2KSTbVM1",
+                null,
+                "ed25519:5BPqkjxyFEn94Ey4rp92qWfxQCSteJZTkzvtQsEe7LBfHe72C7qib4dUyDTy6Ewv7dzTg3HnLbsYBE66Y62NFNd9",
+                "ed25519:25NggndbZaxJ8hQWPXsg6jwrZpBxcnjQBHjguDyoL2cNmia9G1Kq5ZkGXj1qwEUA48NMxiCdX3JJEZ3Tz5CUE94Z",
+                "ed25519:2FsHR1giNzrGxRM7H57e1bwpFg2jkM2CM5b6iUWg7Ta9qutmrtEfo1C7NkvZM7azFMSFHpGjr6KMpjnwzq6JdV8v",
+                "ed25519:2nChz5DxB5V6pwEpMPRQ8sozMxSeZnxvMWfzSX74D5Ga42k6DGEiCBgJK7sj7ayEXZFvzqN6W9us81zBFS9uHtJ6",
+                "ed25519:2QyKtBi9rDjZuBehCNrj9PqrDhibhTYifsNAYsyPDaPWLSfRGkKbmBqjvPdBytwucFJk5vzCWQubjmXhNV5CuWAX",
+                "ed25519:4FgRH2xDkfkwAR14K8314WxGJUSL4vfiBbmMpVrRNY2LoFcWxbmf1FdHeTTZDc7wzdtFNpfz7Tgno9jgQwAEA25j",
+                "ed25519:3A9aSUWpNFf5pHma62sW8nyWgddAzHs1YMMMoxbmpurdhKo1A4UMi1x2ukHB5hrhQkXNGtHB94oB8dpTq5KmuE5f",
+                "ed25519:bG6AjWD25asU9Yuzb9iz1rHRryEsr56nHVeHAYnMkuSucZUvdT89FANzipH8ss6xMZy61FQQAPCHrhVDqALJwc6",
+                "ed25519:5BF5zH1jfkzeRtqj5FdmnUr5iSqXJ5UtSXDwJJWrWYyGx5i9DeVF9egLKMBMpuyih11xpSnpcE93Tv3KqUphRdxY",
+                "ed25519:5sBxukDUWqsBxdGcg6XFUX3DJ4nYCGcaU9tgcVdYUCukBqYhVuHa6kotXhJ4zPnX8GaK1KU5Zng7NFExcHmeC534",
+                null
+              ],
+              "block_body_hash": "At5mCHhjfVTdg3VeW1A4ViDFtRqUYrXn6PM7fqwfXnmW",
+              "block_merkle_root": "7FGq96jsPzZu8dXUrT5JtzJkmFvL36w2ZdL3BaWkGQe",
+              "block_ordinal": 228106114,
+              "challenges_result": [],
+              "challenges_root": "11111111111111111111111111111111",
+              "chunk_endorsements": [
+                [
+                  255,
+                  254
+                ],
+                [
+                  255,
+                  255,
+                  1
+                ],
+                [
+                  255,
+                  255,
+                  1
+                ],
+                [
+                  255,
+                  255,
+                  1
+                ],
+                [
+                  255,
+                  255,
+                  7
+                ],
+                [
+                  255,
+                  255,
+                  7
+                ],
+                [
+                  223,
+                  255,
+                  1
+                ],
+                [
+                  255,
+                  254,
+                  1
+                ],
+                [
+                  255,
+                  223
+                ],
+                [
+                  253,
+                  63
+                ]
+              ],
+              "chunk_headers_root": "DHsoMGjQHYVgQ4B83pcAEjo6o3JUk6gSJMKjMrJXafrM",
+              "chunk_mask": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "chunk_receipts_root": "6SAyjJfzLpUVASJH2QxMWRKVfzjbs8t5rzF62r1Q67n5",
+              "chunk_tx_root": "GqkgLbvmkkTGmhxoZqUugTNAzHJyKrkue7mCG2o6JPEA",
+              "chunks_included": 10,
+              "epoch_id": "76pFEcpvnppbHvuwZ1NJydvJRE3mZ9YATjASMiUSwe95",
+              "epoch_sync_data_hash": null,
+              "gas_price": "100000000",
+              "hash": "E9fVgHXenir2Nnb5yqvQ1xqZWFj2CtrJpyaX2gq5LPDa",
+              "height": 276110926,
+              "last_ds_final_block": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+              "last_final_block": "BvPahxsvLFfmT2Py7fhcQSpwNcSqdjoYWH61QKUqMQJa",
+              "latest_protocol_version": 88,
+              "next_bp_hash": "HzuxRqKqi5MZTuFQgtpEeSj11eCPQNjFZdk2Nt3m4R7t",
+              "next_epoch_id": "4Cm9q3UwPhucGX1CBZdnfLQHokKdo7DEbSWDZ2gUtzeQ",
+              "outcome_root": "CYXKuQWf4nk4KjoytbANLxk6asFLRofHCpx8JkMmZNWX",
+              "prev_hash": "5oBNLewnRhmrwez1Zvyn4QyjixsCYRWuhfExQyHi1BcN",
+              "prev_height": 276110925,
+              "prev_state_root": "D41qEdMEWEnaUMzZHa2P3eXsDQrNeyXZv6wEpwsuZEQ6",
+              "random_value": "F9fa2mEKJTAbwjqdz5KdUpUeHeHUqZPTKs7Y9GBgxhzd",
+              "rent_paid": "0",
+              "shard_split": null,
+              "signature": "ed25519:2ESUfCxYiznb2yUVdU16WLHhoE4s7SKEhcmrRZwyTNzCYi8xZFp2Ey3BtAbsJShJgpvxMrtpZQSjSf7VsWpWYoFN",
+              "timestamp": 1793745573359220700,
+              "timestamp_nanosec": "1793745573359220695",
+              "total_supply": "2678414940246718285656676244784273",
+              "validator_proposals": [],
+              "validator_reward": "0"
+            }
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 275698922
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "8wXdSa5rtVT3WNCwvvWdca7WUX2w9vwjsapfUwBdN6CT",
+                "block_height": 275698922,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_access_key_list",
+          "account_id": "vault-a.redline-labs.testnet",
+          "finality": "final"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "block_hash": "CB7RStABXndG4Rvb8Hz5ymwWj63wKtDiVfVkwSbBjSgE",
+            "block_height": 276715727,
+            "keys": []
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276207324
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "GHXLYdqPwLwq1FEafaEgy2t9xPzWzdM8GNgLadd8ZgRH",
+                "block_height": 276207324,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276461525
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "2790789925863249800000012",
+            "block_hash": "DJiYUssRPoCEKMJTxsWRktKdU8fYNpuM84GuUXNMk94F",
+            "block_height": 276461525,
+            "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 262578
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276334424
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "7w93pLnsDn4ykeCAxBM575i5ygo9RWowHouyebUsuBjW",
+                "block_height": 276334424,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276397974
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "EWRq1yAk71Kg4tz2xH7PdDtttePhLmsDqqex6VVKeXx8",
+                "block_height": 276397974,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276429749
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "349DpbJ7Z8WYH6wAqW6MU5itZFEDB6v7fvABg3y4iCHa",
+                "block_height": 276429749,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276445637
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "2790789925863249800000012",
+            "block_hash": "DRjTp2YYYyfg9AMCnhz8wsn3dzE6Kc8uS14CmYhvMpJy",
+            "block_height": 276445637,
+            "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 262578
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276437693
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "7f5HQ21CNiv9XsBEywYU3ufU4Dczi4GE9ZzNTBdgq9Nd",
+                "block_height": 276437693,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276441665
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "2790789925863249800000012",
+            "block_hash": "EM5NCVfQTExJ9tbJJaepJuQsVjU2tnrgkGdDV9HYMZZd",
+            "block_height": 276441665,
+            "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 262578
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276439679
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "2790789925863249800000012",
+            "block_hash": "9Xuucsvu5oHEXTZbLx4hLCFDPCxNPVupsqCsvUDnakdy",
+            "block_height": 276439679,
+            "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 262578
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438686
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "2790830527088249800000001",
+            "block_hash": "Dpbagj4XdHU8bGRdz83P8HrZdBBExQdstTkp48b9Fwo7",
+            "block_height": 276438686,
+            "code_hash": "8a6Mu1Ur4xr3BcXyioLzzbAYSfDDLpCAXpnFSLcd2GHQ",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 259019
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438189
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "ApQQ99AZjaMif7Yf9e7kXcobrLZA3YZnmcNPdmWUgBag",
+                "block_height": 276438189,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438437
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "F8UokhvWM2jXdeRTywcc9VYka15LCpsDdVzLbDXMt41s",
+                "block_height": 276438437,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438561
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "7fnmVUcvm2W14LRt8P5iCbBysMz6iJgGUjszpu9cpxiB",
+                "block_height": 276438561,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438623
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "yZqEFD8mJo5cHifFcMCzxEJx74yYZ48QEQwB2FvK962",
+                "block_height": 276438623,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438654
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "3400000000000000000000000",
+            "block_hash": "GuPYmhNCU5PpbMtYatwMtGsNwJhZ1KKZK7uFg6fS5WbC",
+            "block_height": 276438654,
+            "code_hash": "11111111111111111111111111111111",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 182
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438638
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "3400000000000000000000000",
+            "block_hash": "APKsJ3HxZVuCrwEanft8k8Yj7KvRJCD8aKXcvAA4whGw",
+            "block_height": 276438638,
+            "code_hash": "11111111111111111111111111111111",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 182
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438630
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "ETtmqLuiQvBd36idc9Ek67F9Ganukqzki3xgC8QHkcdw",
+                "block_height": 276438630,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438634
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "error": {
+            "name": "HANDLER_ERROR",
+            "cause": {
+              "info": {
+                "block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "block_height": 276438634,
+                "requested_account_id": "vault-a.redline-labs.testnet"
+              },
+              "name": "UNKNOWN_ACCOUNT"
+            },
+            "code": -32000,
+            "message": "Server error",
+            "data": "account vault-a.redline-labs.testnet does not exist while viewing"
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438636
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "3400000000000000000000000",
+            "block_hash": "7Yhz3DuYiNfgorWxFf5LXMTwC13hgDkViTPEKAb6DqQ9",
+            "block_height": 276438636,
+            "code_hash": "11111111111111111111111111111111",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 182
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "query",
+        "params": {
+          "request_type": "view_account",
+          "account_id": "vault-a.redline-labs.testnet",
+          "block_id": 276438635
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "amount": "3400000000000000000000000",
+            "block_hash": "Gc6cP561hjv7oYevTHf5eMrqwReMwtnosugaSMKjoCNJ",
+            "block_height": 276438635,
+            "code_hash": "11111111111111111111111111111111",
+            "locked": "0",
+            "storage_paid_at": 0,
+            "storage_usage": 182
+          },
+          "id": "redline"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "block",
+        "params": {
+          "block_id": 276438635
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "author": "node1",
+            "chunks": [
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "EnYPne1NaKBnt5K8RsGv7NDQaMR8TpZoLcVY6kPFYQsY",
+                "congestion_info": {
+                  "allowed_shard": 13,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "HirAicUija2NghxJHcg129t2bz9PZx5RfFdxrFfhjvFk",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 10,
+                "signature": "ed25519:3K5GFdYVAThLARE1tZHNqMs5VvSHyd2t3ErcF2cMoTRwSi58xnHFRieH1ZEKm4cvobYEeq2ecvhaWWaYucRg36uH",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "32479648396500000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "GjP1bFzcg3ocPzGJKyh7taTSkQx67wSC9LKPRdEK7VEQ",
+                "congestion_info": {
+                  "allowed_shard": 9,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 587,
+                "encoded_merkle_root": "6mLUdVejHA7arJkebdEekTTPA11NaJCWrpceoaeooWWg",
+                "gas_limit": 1000000000000000,
+                "gas_used": 324796483965,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "228GBtucA5q1rGmnitLmpgwYLApR7wLnaC7zCGa1FwP3",
+                "outgoing_receipts_root": "2Lnpf4xCUKvBZdsxnQm2v6zoqpex3hBDy58GHbtBzwFL",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "CKnmgTqAP1t3ywCCd2LAa9BWkGe4PHijtpQPgsMCM2iy",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 11,
+                "signature": "ed25519:HbNnpSoDNjbx81WRhz9EykKYVSErQuu4M3N8hAPuUjzni2mETdmmUesWtfVY9MsTbuegmvjBRvqnrigHrDp3qrj",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "8eXNj8VTx178iTUoLtBMGi7tQFA88ftu8o5XtJ9bqeK4",
+                "congestion_info": {
+                  "allowed_shard": 6,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "FKCxnVpENKDpLrzZgs74Cjv9YQhiXHVrbGM593JprDjA",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 1,
+                "signature": "ed25519:3kCUCV5sShVdfdvuY6zGDcZLaaUq6v5pp1jKRhVR37d6f7Uomt2y5w3ea2GEMbkcmrwQWohbMDrCVmR1fwRf8ZVr",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "A6MjKrHKVh11yT7Mue8SjEkQiTWN18WiFvnqaehSKmmb",
+                "congestion_info": {
+                  "allowed_shard": 7,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "AcYA1zZnPBeCLapx5w1HbRimn4ye4r8FNx21WimBu5UX",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 12,
+                "signature": "ed25519:2W4aMSkHDVfZb1kqTBB2HT4Cgar4QCrhLfNBPnsD6ay6Ydpagg9fUX4f999rg92KB1nrCA9fPXTEV3t5jS3ddeGN",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "65fahD5zG67Keuk6yrdkaE6mDPtz7QUX37UCzDEL2HVC",
+                "congestion_info": {
+                  "allowed_shard": 4,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "8HZYMk2uThBQyEAkmgsZMWkiFZ6Fyo1HRNWgpHDvBk14",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 13,
+                "signature": "ed25519:5YTpF57PyqsGfsru3N3JdagdiAPf9gFnb3Bniz49pkDovAGq4MU7VQVH8GbAYRhtbtxanx5qz8oTgEYcZ1naW3gu",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "31320934122000000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "B9J9d7uuSyzsQyj9ATYBQTB9xAof79ofFNDPkUoZrctU",
+                "congestion_info": {
+                  "allowed_shard": 5,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 315,
+                "encoded_merkle_root": "EcJCBJCgYGf5k6DA68ZKdswKnFviS6rwXgrQcvoueX2q",
+                "gas_limit": 1000000000000000,
+                "gas_used": 313209341220,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "AtUmnTdiC3PHLWJDPFCnDdVKYkuzKv2ZRDpDKD95jV29",
+                "outgoing_receipts_root": "ppxzwu35akLixHJZhTZZYyLK8iQH1dH1Ez4UEGoEkuz",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "Hp1tqcPSDdqM5rSGFumQhMnWKP87Piv99Dq3RCLwp49i",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 9,
+                "signature": "ed25519:5z4CLX5VC4L3ybpu3w48Yf2t5bhwMxXtVW8xZFBtrgCRHNF2SBLYpz7h2EPakoihyhLDH8wMoFcnGainYCmadyy3",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "2nUwbdj1phyDndg31FPTMua85dUBPr3HtxkfhKwQbu14",
+                "congestion_info": {
+                  "allowed_shard": 10,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "GKbMCcZu4V2jm9maLSBR7nAykG91PTBRVMd6L6JtSvEU",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 6,
+                "signature": "ed25519:41jeJrT7CuPfvgZbECVsKgXUjwFNNxxbtyucwywYvzycmLndpdGd8r88gMU7DSbbrcuUFDLHksyUUu6kpj4V5JQo",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "EetoKr8qsJYsBA9eNK17BcbBLoWtSoH4odGC5d6CGdix",
+                "congestion_info": {
+                  "allowed_shard": 11,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "BuGgMtK9AfmBWEoaddkvnQREyRxPnroEnzz7YUpzbXgL",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 7,
+                "signature": "ed25519:3W9mWDzwqf1czKFta9RaQ71eM7w1XjXMWVhoKvgMoKKw7Fqrp1g2xT2ztBNz8gfUqtFqfR2yHj6jMvDU8MHZhWYg",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "82494768750000000000",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "GmD7Htw9PksxG2B14baTUG6B2x7QN7nXz8qYAngirKcf",
+                "congestion_info": {
+                  "allowed_shard": 1,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 934,
+                "encoded_merkle_root": "4Woh8PjA4pwswzbBKFP9GrMybPvWHr4sVyMxZJyPiAFJ",
+                "gas_limit": 1000000000000000,
+                "gas_used": 1048130250000,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "5sdoMDTwLtL7uviV7taLLHaYBjKvbPoL8foRKFYedwMy",
+                "outgoing_receipts_root": "8etLiCErtm8ccoBPTn19zB9VJDSTzoj2Axw6NSpELfsx",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "5bJF1pAt9Z61ar5dTdqyTCn4h2ARtLUF6vg6qHnfM6jV",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 4,
+                "signature": "ed25519:319crN8j3i197QZTbBceFSZbDkakPPbpb7w129kPJYurFN8drTXAMotprEnPbSfqEQaFY2hhBUj5Jrk2dW7hTkVF",
+                "tx_root": "Byw5oD8xEVx9HvpJaEZBEMXxjp9L5zWZK7MacXA5eu8c",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              },
+              {
+                "balance_burnt": "0",
+                "bandwidth_requests": {
+                  "V1": {
+                    "requests": []
+                  }
+                },
+                "chunk_hash": "9Vb1muhuBViQ6UqFEA7V2E7RUZSghsVMjPD4SVfrUZBb",
+                "congestion_info": {
+                  "allowed_shard": 12,
+                  "buffered_receipts_gas": "0",
+                  "delayed_receipts_gas": "0",
+                  "receipt_bytes": 0
+                },
+                "encoded_length": 8,
+                "encoded_merkle_root": "5TxYudsfZd2FZoMyJEZAP19ASov2ZD43N8ZWv8mKzWgx",
+                "gas_limit": 1000000000000000,
+                "gas_used": 0,
+                "height_created": 276438635,
+                "height_included": 276438635,
+                "outcome_root": "11111111111111111111111111111111",
+                "outgoing_receipts_root": "3X9JMTCuQSnyxnoXbYxauz2mqS2FBJLzbB8zANq6fKA7",
+                "prev_block_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+                "prev_state_root": "8RJzbfTsfQtNQJpCBAVN7ig3QWsDzkpGkGhGG3pqPhT5",
+                "proposed_split": null,
+                "rent_paid": "0",
+                "shard_id": 5,
+                "signature": "ed25519:6nPN3Wfb9Ckk2fJYCqEBGz9UV3VevAtwg2Wuy6YM9z5wtN9gHURef31o4urJ5GCQJXmPg9Rizr9Hv3PasaYJSrk",
+                "tx_root": "11111111111111111111111111111111",
+                "validator_proposals": [],
+                "validator_reward": "0"
+              }
+            ],
+            "header": {
+              "approvals": [
+                "ed25519:2trPL882kLHqhH5A3C3LDKr7hyeGJ8bCGbdpttw3aTMAEDrpHHbwhrZEPkCVxqrMbGMZ3MR5zcfnxUZ3kQzZGjby",
+                "ed25519:3C8Hby78n1AgJw6Wssq8CCTLGH7EGtLB2DuAxyALBxDZ77Q81MsDXr9qMWm5urqMpMz6vf3Hq547GH6NxyvD2uAb",
+                "ed25519:6hgmXdHBBaKjXSvM3qFND6TSHXA4G3Rs6pJnH9TkDWrLTPGZHYq7gwLRbY4A2hH4AcQLR2TdHnYZVS6Vh7yvEHC",
+                "ed25519:2GLKtMBvjqzZyyKAWwd4uyz5Yqa17JzyiWeQh7d3yg4amMTzYQaS91jtnJ4Fw32BMtK3sGt3fsptKu5e4jCN7my8",
+                null,
+                "ed25519:5PvaYWZXsWf5YquKPbVZgYEKkznUHtDtFPvaZz4C9iW4ejW3haZFMdzHy8TqtbteTHTBtqwFmeUkp6YG65DJTDFA",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "ed25519:32RjNosVbVzz6b1pwiMYmVK5pXAwpv192gTx5smScQv2HUfYZ9sd4rpzxuUB6w2g1ow7C4zt5WPAADnsJwABsZsi",
+                "ed25519:2Ze4xNBkmzofLCMWy7E7PphjcAfEYmzP4QQdbM7qvgYQpvk1cuC4FFhBH4Rx7312qZSKMNAd9nsPvJ23xMKs4Myx",
+                "ed25519:E85YxLc5aPui5JH7wAWGXTi8mWeUZwhhGuVmBezpBMWaoyQcPEzFVnFbzQavuyTf3KKtpdRxcpTXa9XZLehCsT6",
+                "ed25519:5rxEidDJsFs3Fj12NDmPH6gXDR1kRaVbwtZ2um59YjcP6PJsDHQtgt1ki1SjLmpaJAXpjdCbhxV22oDrChYE7GwK",
+                null
+              ],
+              "block_body_hash": "BE9f2Jian4TydbAa2x3mTuN5gsg4PfKNpxTqzc4gcjWA",
+              "block_merkle_root": "6fBerH8pAn3uwxoQTQHAMoXMge9wkYtKhUqTyhtNymdt",
+              "block_ordinal": 228433016,
+              "challenges_result": [],
+              "challenges_root": "11111111111111111111111111111111",
+              "chunk_endorsements": [
+                [
+                  255,
+                  63
+                ],
+                [
+                  223,
+                  255
+                ],
+                [
+                  127,
+                  254,
+                  1
+                ],
+                [
+                  239,
+                  255,
+                  15
+                ],
+                [
+                  254,
+                  127
+                ],
+                [
+                  255,
+                  251,
+                  1
+                ],
+                [
+                  223,
+                  191
+                ],
+                [
+                  251,
+                  254,
+                  15
+                ],
+                [
+                  255,
+                  62
+                ],
+                [
+                  254,
+                  127,
+                  13
+                ]
+              ],
+              "chunk_headers_root": "5qjhmYGfTvCgD8KTVJ2zhvAkiBLHLrXU5buNuFDCx4oX",
+              "chunk_mask": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "chunk_receipts_root": "7v2bZusPatcu3oXJwyMQN6k5ktDuJsgHmK1x8iBvg9uE",
+              "chunk_tx_root": "2QP1fV4tP9tUFDgpNLtM8ukGfXhhNVM4WD7usng7s1Eh",
+              "chunks_included": 10,
+              "epoch_id": "99wFJG2tehdrujbtq3KiUPHpkm5fosLdMehHM34G2tvi",
+              "epoch_sync_data_hash": null,
+              "gas_price": "100000000",
+              "hash": "Gc6cP561hjv7oYevTHf5eMrqwReMwtnosugaSMKjoCNJ",
+              "height": 276438635,
+              "last_ds_final_block": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+              "last_final_block": "7x3rzt2q22eMm758Rca3FJZVP8duLUuQPqcivaoA3vNw",
+              "latest_protocol_version": 88,
+              "next_bp_hash": "Ad7SvRwZD6iHBykKVrBtJtHvJTwCUrgC2dd3B33gWTSQ",
+              "next_epoch_id": "3FbsRLJTPER5QLiW6pCX9koGbw8ZJReGekg45hdUyUZg",
+              "outcome_root": "Gs7zNUX6WUoZi6pcQnwzwmNTb78y6rTo7HMvsSbPu1XU",
+              "prev_hash": "F1XhRoGje9PsSasWpQQdcyEBV5TwtKxtGpnZtFZJ8zMB",
+              "prev_height": 276438634,
+              "prev_state_root": "8roHVhTp46ZigLQrZtRSsshWExGsLFYpkTit7ZCrvtVk",
+              "random_value": "A9MCycb1qhTaXakfbjzo4GmZsFJ7JtPTTgBdTXMi32LN",
+              "rent_paid": "0",
+              "shard_split": null,
+              "signature": "ed25519:3mK46nUiSk8pncNPjK2UdPnitDe1GVaXNftFUbGUAv7StPaCWb2XnEGux5Ao16tawASmu9j9HrvX5zovR28WbMLp",
+              "timestamp": 1793938533845690000,
+              "timestamp_nanosec": "1793938533845690022",
+              "total_supply": "2678844768262435559792668124442423",
+              "validator_proposals": [],
+              "validator_reward": "0"
+            }
+          },
+          "id": "redline"
+        }
+      }
+    }
+  ],
+  "signals": {
+    "redline-payee-missing-q7x2.testnet": {
+      "supported": true,
+      "accountExists": false,
+      "createdAtBlock": null,
+      "ageDays": null,
+      "fullAccessKeysAddedLast7d": null,
+      "codeChangedLast7d": null,
+      "hasContract": null
+    },
+    "vault-a.redline-labs.testnet": {
+      "supported": true,
+      "accountExists": true,
+      "createdAtBlock": 276438635,
+      "ageDays": 1.93,
+      "fullAccessKeysAddedLast7d": 0,
+      "codeChangedLast7d": true,
+      "hasContract": true
+    }
+  }
+}
