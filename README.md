@@ -315,7 +315,7 @@ Docs: [docs/DAO.md](docs/DAO.md) (governance), [docs/PAYEE_SHIELD.md](docs/PAYEE
 
 - No pre-hackathon code: the first commit is 2026-11-03.
 - Most code was written with Claude Code, directed and reviewed by the team.
-- Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@near-wallet-selector/*`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`.
+- Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@near-wallet-selector/*`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`; for brand assets `@resvg/resvg-js` (MPL-2.0, dev only) and `png-to-ico`. Font: Geist (SIL OFL 1.1), self-hosted.
 - External services: NEAR AI Cloud, Circle USDC on NEAR, NEAR RPC (FastNear, QuickNode optional), Sputnik DAO.
 - The full list with licenses: [docs/DISCLOSURES.md](docs/DISCLOSURES.md). To report a vulnerability: [SECURITY.md](SECURITY.md).
 

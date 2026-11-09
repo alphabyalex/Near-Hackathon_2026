@@ -1,7 +1,7 @@
 /**
  * Brand guard. Fails if an old product or token name appears anywhere outside the allowlist that
  * scripts/rebrand-wardline.mjs defines (legacy spans, plus paths marked legacy there), or if the
- * repository URL drifts from repo.config.json.
+ * repository URL or hosted links drift from repo.config.json, or if the old palette or fonts return to apps/web/src.
  *
  * Run: node --test tests/brand.test.mjs (part of pnpm test).
  */
@@ -94,6 +94,21 @@ test("hosted links live in repo.config.json, and README, llms.txt, SKILL.md and 
     }
   }
   assert.deepEqual(problems, [], "Change the hosted values in repo.config.json, then update these files to match.");
+});
+
+/** The paper, ink and red palette and the fonts from before Horizon. None may come back into the web app. */
+export const OLD_PALETTE = ["#f2f0eb", "#e9e6df", "#fbfaf7", "#f4f2ed", "#0b0b0a", "#2e2c28", "#22201c", "#4f4b44", "#d6d2c9", "#e7e3db", "#bdb8ad", "#cfcac0", "#e1251b", "#9e0e15", "#7a5000", "#135c36", "#141412", "#26241f", "#1b1a17", "#ece9e2", "#a29d93", "#5e5a52", "#ff5a4e", "#7fd1a4", "#faecea"];
+export const OLD_FONTS = /IBM Plex|Spline Sans|Wardline Mono|wardline-mono/i;
+
+test("apps/web/src has none of the old palette and none of the pre-Horizon fonts", () => {
+  const hits = [];
+  for (const file of FILES.filter((f) => f.startsWith("apps/web/src/"))) {
+    const text = readFileSync(join(ROOT, file), "utf8");
+    for (const hex of OLD_PALETTE) if (text.toLowerCase().includes(hex)) hits.push(`${file}: ${hex}`);
+    const font = OLD_FONTS.exec(text);
+    if (font) hits.push(`${file}: ${font[0]}`);
+  }
+  assert.deepEqual(hits, [], "Use the Horizon tokens in apps/web/src/theme/tokens.css and Geist.");
 });
 
 test("the retired test token appears nowhere outside its allowlist; all money is USDC", () => {
