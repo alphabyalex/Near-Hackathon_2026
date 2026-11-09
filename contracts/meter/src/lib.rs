@@ -1,8 +1,15 @@
 use near_sdk::json_types::U128;
 use near_sdk::store::{IterableMap, LookupSet};
-use near_sdk::{env, near, require, AccountId, BorshStorageKey, PanicOnDefault};
+use near_sdk::{env, near, require, AccountId, BorshStorageKey, PanicOnDefault, PromiseOrValue};
 
 pub mod events;
+
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct FundMsg {
+    action: String,
+    budget_id: String,
+}
 
 const PERIOD_DAY_NS: u64 = 24 * 60 * 60 * 1_000_000_000;
 const PERIOD_WEEK_NS: u64 = 7 * PERIOD_DAY_NS;
@@ -405,7 +412,9 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         call_id: String,
         amount: U128,
         proof: SettlementProof,
+        pay_to: Option<AccountId>,
     ) -> SettleResultView {
+        let _ = pay_to;
         let reservation = match self.reservations.get(&call_id) {
             Some(r) => r.clone(),
             None => {
@@ -576,6 +585,33 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             tx,
             refund: U128(refund),
         }
+    }
+
+    pub fn ft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        let _ = sender_id;
+        require!(
+            env::predecessor_account_id() == self.token_contract,
+            "Only token contract can call ft_on_transfer"
+        );
+        if let Ok(parsed) = near_sdk::serde_json::from_str::<FundMsg>(&msg) {
+            if parsed.action == "fund" {
+                if let Some(budget) = self.budgets.get_mut(&parsed.budget_id) {
+                    budget.deposit = budget.deposit.saturating_add(amount.0);
+                    events::budget_funded(
+                        &parsed.budget_id,
+                        &amount.0.to_string(),
+                        &budget.deposit.to_string(),
+                    );
+                    return PromiseOrValue::Value(U128(0));
+                }
+            }
+        }
+        PromiseOrValue::Value(amount)
     }
 
     pub fn fund(&mut self, budget_id: String, amount: U128) {
@@ -755,7 +791,7 @@ mod tests {
             chat_id: "chatcmpl-96068d70-a320-4475-a330-400be955d887".to_string(),
         };
 
-        let settle_res = meter.settle("call_deepseek".to_string(), U128(739), proof);
+        let settle_res = meter.settle("call_deepseek".to_string(), U128(739), proof, None);
         assert!(settle_res.ok);
         assert_eq!(settle_res.amount, Some(U128(739)));
         assert_eq!(settle_res.refund, Some(U128(261)));
@@ -779,8 +815,53 @@ mod tests {
             signing_address: "0xfe0071895500a9755c18044948ab4f4e1a7f337e".to_string(),
             chat_id: "chatcmpl-96068d70-a320-4475-a330-400be955d887".to_string(),
         };
-        let replay_res = meter.settle("call_deepseek_2".to_string(), U128(739), replay_proof);
+        let replay_res = meter.settle("call_deepseek_2".to_string(), U128(739), replay_proof, None);
         assert!(!replay_res.ok);
         assert_eq!(replay_res.reason, Some("REPLAYED".to_string()));
+    }
+
+    #[test]
+    fn test_ft_on_transfer_funding() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut meter = MeterContract::new(
+            owner.clone(),
+            token.clone(),
+            "registry.testnet".parse().unwrap(),
+            "pool.testnet".parse().unwrap(),
+            Some(200),
+        );
+
+        meter.create_budget(
+            "bgt_ft".to_string(),
+            "FT Budget".to_string(),
+            owner.clone(),
+            U128(10_000_000),
+            "week".to_string(),
+            vec![],
+        );
+
+        // Predecessor must be token contract for ft_on_transfer
+        let transfer_context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .build();
+        testing_env!(transfer_context);
+
+        let msg = r#"{"action":"fund","budget_id":"bgt_ft"}"#.to_string();
+        let res = meter.ft_on_transfer("alice.testnet".parse().unwrap(), U128(5_000_000), msg);
+        match res {
+            PromiseOrValue::Value(refund) => assert_eq!(refund.0, 0),
+            _ => panic!("Expected Value"),
+        }
+
+        let b = meter.get_budget("bgt_ft".to_string()).unwrap();
+        assert_eq!(b.deposit, U128(15_000_000));
     }
 }

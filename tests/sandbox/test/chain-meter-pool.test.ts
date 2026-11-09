@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  GAS_PAYMENT,
   NearCoverPoolClient,
   NearMeterClient,
   NearModelRegistryClient,
+  ONE_YOCTO,
+  callFinal,
   type SignerHandle,
 } from "@wardline/vault-client";
-import { Chain, wasm } from "../src/harness.js";
+import { Chain, registerWithToken, wasm } from "../src/harness.js";
 
 describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
   let chain: Chain;
@@ -40,6 +43,12 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
     registryAccount = await chain.account("model-reg");
     poolAccount = await chain.account("cover-pool");
     meterAccount = await chain.account("ai-meter");
+
+    // 0. Deploy Mock USDC
+    await chain.deploy(tokenAccount, wasm("mock-token"), {
+      method: "new",
+      args: { owner: owner.account_id },
+    });
 
     // 1. Deploy Model Registry
     await chain.deploy(registryAccount, wasm("model-registry"), {
@@ -171,6 +180,11 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
       expect(pool.senior).toBe("0");
       expect(pool.tvl).toBe("5000000");
       expect(pool.share_price).toBe("1000000"); // 1.0 scaled
+      expect(pool.ward_price).toBe("1000000");
+      expect(pool.ward_symbol).toBe("WARD");
+      expect(pool.ward_name).toBe("Wardline Mutual share");
+      expect(pool.launch_price).toBe("1000000");
+      expect(pool.price_history.length).toBeGreaterThanOrEqual(1);
       expect(pool.withdraw_delay_days).toBe(7);
     });
 
@@ -178,6 +192,7 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
       const lp = await chain.account("senior-lp");
       const depositRes = await poolClient.deposit(lp.account_id, "10000000", lp);
       expect(depositRes.shares).toBe("10000000");
+      expect(depositRes.ward).toBe("10000000");
 
       const pool = await poolClient.getPool();
       expect(pool.senior).toBe("10000000");
@@ -185,6 +200,7 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
 
       const pos = await poolClient.getPosition(lp.account_id);
       expect(pos.shares).toBe("10000000");
+      expect(pos.ward).toBe("10000000");
       expect(pos.value).toBe("10000000");
     });
 
@@ -213,6 +229,8 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
       expect(claim.status).toBe("paid");
       expect(claim.paid_from_junior).toBe("1000000");
       expect(claim.paid_from_senior).toBe("0");
+      expect(claim.ward_price_before).toBe("1050000");
+      expect(claim.ward_price_after).toBe("1050000");
 
       // Junior absorbed 100% of the loss
       const pool = await poolClient.getPool();
@@ -261,6 +279,72 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
       await expect(
         poolClient.requestWithdraw(lp.account_id, "2000000", lp),
       ).rejects.toThrow();
+    });
+
+    it("7. Enforces WARD NEP-141 views and metadata", async () => {
+      const supply = await poolClient.ftTotalSupply();
+      expect(BigInt(supply)).toBeGreaterThan(0n);
+
+      const metadata = await poolClient.ftMetadata();
+      expect(metadata.symbol).toBe("WARD");
+      expect(metadata.name).toBe("Wardline Mutual share");
+      expect(metadata.decimals).toBe(6);
+    });
+
+    it("8. Accepts USDC deposits via ft_on_transfer to mint WARD shares", async () => {
+      const ftLp = await chain.account("ft-lp");
+      // Register ftLp and pool with token contract
+      await registerWithToken(tokenAccount, owner, ftLp.account_id);
+      await registerWithToken(tokenAccount, owner, poolAccount.account_id);
+
+      // Mint mock USDC to ftLp
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "mint",
+        args: { account_id: ftLp.account_id, amount: "5000000" },
+      });
+
+      // ft_transfer_call to cover pool triggers ft_on_transfer
+      await callFinal(ftLp, {
+        contract_id: tokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: poolAccount.account_id,
+          amount: "5000000",
+          msg: "",
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
+
+      const pos = await poolClient.getPosition(ftLp.account_id);
+      expect(BigInt(pos.ward)).toBeGreaterThan(0n);
+    });
+
+    it("9. Request withdraw locks WARD and redeem burns locked shares for USDC", async () => {
+      const redeemLp = await chain.account("redeem-lp");
+      await poolClient.deposit(redeemLp.account_id, "4000000", redeemLp);
+
+      const withdrawReq = await poolClient.requestWithdraw(redeemLp.account_id, "2000000", redeemLp);
+      expect(withdrawReq.id).toBeDefined();
+
+      const posLocked = await poolClient.getPosition(redeemLp.account_id);
+      expect(posLocked.ward_locked).toBe("2000000");
+
+      // Immediate redemption fails because 7-day wait is not over
+      await expect(
+        poolClient.redeem(redeemLp.account_id, withdrawReq.id, redeemLp),
+      ).rejects.toThrow();
+
+      // Configure withdraw delay to 0 for instant settlement test
+      await poolClient.setParam("withdraw_delay_days", "0", owner);
+
+      const redeemRes = await poolClient.redeem(redeemLp.account_id, withdrawReq.id, redeemLp);
+      expect(redeemRes.usdc).toBeDefined();
+      expect(BigInt(redeemRes.usdc)).toBeGreaterThan(0n);
+
+      const posAfter = await poolClient.getPosition(redeemLp.account_id);
+      expect(posAfter.ward_locked).toBe("0");
     });
   });
 
@@ -435,6 +519,35 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
       if (!reserveRes.ok) {
         expect(reserveRes.reason).toBe("ALLOWANCE_EXHAUSTED");
       }
+    });
+
+    it("8. Funds budget via USDC ft_on_transfer", async () => {
+      // Register meter with mock USDC
+      await registerWithToken(tokenAccount, owner, meterAccount.account_id);
+
+      // Mint USDC to owner
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "mint",
+        args: { account_id: owner.account_id, amount: "10000000" },
+      });
+
+      // Transfer USDC to meter with action=fund
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: meterAccount.account_id,
+          amount: "10000000",
+          msg: JSON.stringify({ action: "fund", budget_id: "bgt_marketing" }),
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
+
+      const budget = await meterClient.getBudget("bgt_marketing");
+      // Originally 50000000, funded with 10000000 -> 60000000
+      expect(budget?.deposit).toBe("60000000");
     });
   });
 });

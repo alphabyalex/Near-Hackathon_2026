@@ -34,6 +34,33 @@ pub fn pool_withdraw_requested(account: &str, id: &str, shares: &str, available_
     );
 }
 
+pub fn pool_redeemed(account: &str, id: &str, ward: &str, usdc: &str) {
+    emit(
+        "pool_redeemed",
+        json!({
+            "account": account,
+            "id": id,
+            "ward": ward,
+            "usdc": usdc,
+        }),
+    );
+}
+
+pub fn ft_transfer_event(old_owner_id: &str, new_owner_id: &str, amount: &str, memo: Option<&str>) {
+    let envelope = json!({
+        "standard": "nep141",
+        "version": "1.0.0",
+        "event": "ft_transfer",
+        "data": [{
+            "old_owner_id": old_owner_id,
+            "new_owner_id": new_owner_id,
+            "amount": amount,
+            "memo": memo,
+        }],
+    });
+    env::log_str(&format!("EVENT_JSON:{}", envelope));
+}
+
 pub fn claim_filed(claim_id: &str, claimant: &str, amount: &str, status: &str) {
     emit(
         "claim_filed",

@@ -22,12 +22,12 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | Payee Registry Client | `packages/vault-client` | Done, browser-safe RPC client implementing PayeeRegistry |
 | Release Guard and Registry Specs | `docs/RELEASE_GUARD.md`, `docs/PAYEE_REGISTRY.md` | Done |
 | Model Registry Contract | `contracts/model-registry` | Done, TEE signer attestation directory with DAO management |
-| Meter Gateway Contract | `contracts/meter` | Done, on-chain EIP-191 ecrecover proof verification and budgets |
-| Cover Pool Contract (Mutual) | `contracts/cover-pool` | Done, junior first-loss and senior LP coverage with DAO claims |
-| Chain Clients (Meter, Registry, Pool) | `packages/vault-client` | Done, typed NearMeterClient, NearModelRegistryClient, NearCoverPoolClient |
-| Chain Switch-over | `services/api/src/chain/index.ts` | Done, wired createChain for WARDLINE_CHAIN_MODE=near |
+| Meter Gateway Contract | `contracts/meter` | Done, on-chain EIP-191 ecrecover proof verification, USDC `ft_on_transfer` budget funding, and provider payouts |
+| Cover Pool Contract (Mutual) | `contracts/cover-pool` | Done, WARD NEP-141 share token, junior first-loss, senior USDC `ft_on_transfer` minting, delayed `redeem`, and price history |
+| Chain Clients (Meter, Registry, Pool) | `packages/vault-client` | Done, typed NearMeterClient, NearModelRegistryClient, NearCoverPoolClient with full WARD & redeem support |
+| Chain Switch-over | `services/api/src/chain/index.ts` | Done, native NearCoverPoolClient without temporary adapter |
 | DAO Governance Spec | `docs/DAO.md` | Done, Sputnik v2 proposal mappings and methods |
-| Live Sandbox Meter and Pool Tests | `tests/sandbox/test/chain-meter-pool.test.ts` | Done, 16/16 tests passing on live sandbox |
+| Live Sandbox Meter and Pool Tests | `tests/sandbox/test/chain-meter-pool.test.ts` | Done, 20/20 tests passing on live sandbox |
 | Testnet Deployment Prep | `scripts/contracts/src/deploy-wardline-chain.ts` | Done, automated deployment and manifest generator |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
@@ -44,13 +44,13 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 
 | Suite | Result |
 | --- | --- |
-| Rust unit tests (`cargo test --workspace`) | 59 passed across all 8 contract crates (38 vault, 5 payee-registry, 3 meter, 2 model-registry, 1 cover-pool, 10 evidence) |
+| Rust unit tests (`cargo test --workspace`) | 64 passed across all 8 contract crates (38 vault, 5 payee-registry, 4 meter, 2 model-registry, 4 cover-pool, 10 evidence, 1 mock-token) |
 | `packages/vault-sim` | 50 passed |
 | `packages/vault-client` | 12 passed |
-| `tests/sandbox/test/chain-meter-pool.test.ts` | 16 passed |
+| `tests/sandbox/test/chain-meter-pool.test.ts` | 20 passed |
 | `tests/sandbox/test/v2-endpoint-release.test.ts` | 11 passed |
 | `tests/sandbox`, on a real local node | All suites pass |
-| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass (684+ unit and integration tests) |
+| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass (754+ unit and integration tests) |
 
 Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
 
@@ -107,6 +107,29 @@ All in `docs/VAULT_RULES.md`:
   - Release manifest coverage, gateway trust boundaries, conservative authority caps, and event specifications.
 - `docs/PAYEE_REGISTRY.md`:
   - Directory architecture, CAIP-10 account normalization, attestor first-listing, self-service updates, and vault independence.
+
+## USDC and WARD Mutual Implementation (2026-11-08)
+
+All requested features from Alexander's update have been built and verified:
+1. **Meter Contract (`contracts/meter`)**:
+   - `ft_on_transfer`: accepts USDC via NEP-141 with `{"action":"fund","budget_id":"..."}` to deposit directly into member budgets.
+   - `settle`: supports optional `pay_to` account destination for provider settlements in USDC.
+2. **Cover Pool Contract (`contracts/cover-pool`)**:
+   - Implements full NEP-141 token interface for WARD ("Wardline Mutual share", symbol WARD, 6 decimals): `ft_total_supply`, `ft_balance_of`, `ft_metadata`, and `ft_transfer`.
+   - `ft_on_transfer`: accepts USDC deposits, minting WARD at `senior_assets / ward_supply` (starting at 1.0 USDC).
+   - `request_withdraw`: locks caller's WARD shares.
+   - `redeem`: burns locked WARD shares and releases USDC at the day's price once the 7-day delay has elapsed.
+   - Views: `ward_supply`, `ward_price`, `launch_price` ("1000000"), `price_history`, and `ward_price_before`/`ward_price_after` on claims.
+   - Parameter updates: DAO owner can set `trade_url` via `set_param("trade_url", url)`.
+3. **Clients and Chain Integration**:
+   - `NearCoverPoolClient` implements `CoverPoolClient` from `services/api/src/chain/types.ts` directly.
+   - Removed temporary `wardPoolAdapter` from `services/api/src/chain/index.ts`.
+4. **Testing and Verification**:
+   - 20/20 live sandbox tests in `tests/sandbox/test/chain-meter-pool.test.ts`.
+   - 11/11 live sandbox tests in `tests/sandbox/test/v2-endpoint-release.test.ts`.
+   - 64 Rust unit tests passing across all 8 workspace crates.
+   - 754+ TypeScript workspace tests passing with 0 failures.
+   - Brand guard verified (5/5 passed). Zero em dashes throughout the repo.
 
 ### Payee Registry wiring for Alexander (services/api/src/payee/runtime.ts)
 

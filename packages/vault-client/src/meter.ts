@@ -176,20 +176,25 @@ export class NearMeterClient {
     call_id: string;
     amount: string;
     proof: SettlementProof;
+    pay_to?: string;
     signer?: SignerHandle;
   }): Promise<SettleResult> {
     const signer = args.signer ?? this.signer;
     if (!signer) throw new Error("Signer required for settle");
+    const callArgs: Record<string, unknown> = {
+      call_id: args.call_id,
+      amount: args.amount,
+      proof: args.proof,
+    };
+    if (args.pay_to) {
+      callArgs.pay_to = args.pay_to;
+    }
     const outcome = await callFinal(
       signer,
       {
         contract_id: this.contractId,
         method: "settle",
-        args: {
-          call_id: args.call_id,
-          amount: args.amount,
-          proof: args.proof,
-        },
+        args: callArgs,
         gas: GAS_PAYMENT,
       },
       this.options,
