@@ -1,22 +1,12 @@
 import { BRAND } from "../brand";
-import { MARK_DOTS } from "./data/dots";
+import { HorizonMark } from "./HorizonMark";
 
-/** The Eclipse mark, inlined so the dots take currentColor. The cut row stays red. */
-export function Mark({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      {MARK_DOTS.map(([cx, cy, r, kind]) => (
-        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} className={kind === "c" ? "mark-cut" : ""} fill="currentColor" {...(kind === "g" ? { opacity: 0.16 } : {})} />
-      ))}
-    </svg>
-  );
-}
-
-/** Always links home. */
-export function Logo({ markSize = 30, textSize = 23 }: { markSize?: number; textSize?: number }) {
+/** The lockup: the Horizon mark at about 1.5x the wordmark's cap height, then "Wardline". Always links home. */
+export function Logo({ textSize = 22 }: { textSize?: number }) {
+  const mark = Math.round(textSize * 0.7 * 1.5);
   return (
     <a className="logo" href="#/" aria-label={BRAND.homeLabel}>
-      <Mark size={markSize} />
+      <HorizonMark size={mark} />
       <span className="wordmark" style={{ fontSize: textSize }}>
         {BRAND.name}
       </span>

@@ -1,11 +1,13 @@
 /** WARD-holder voting on the Mutual: fees, coverage, which models are covered and large payouts. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { executeProposal, getVoteWeight, type MutualAction, type MutualProposalView, type Tier } from "../../api/ai";
 import { errorText } from "../../api/public";
 import { GOV, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
-import { nearWallets, type NearWalletId } from "../../wallets/near";
+import { useConnected } from "../../wallets/connected";
+import type { NearWalletId } from "../../wallets/near";
+import { ConnectDialog } from "./Member";
 import { countdown, signMutual, useNow } from "./Mutual";
 
 const ward = (atomic: string): string => formatUsdc(atomic);
@@ -253,60 +255,63 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
   );
 }
 
-export function Governance({ proposals, account, setAccount, onChange }: { proposals: MutualProposalView[]; account: string; setAccount: (a: string) => void; onChange: () => void }) {
-  const wallets = useMemo(() => nearWallets(), []);
-  const [wallet, setWallet] = useState<NearWalletId | null>(wallets[0]?.id ?? null);
+/** WARD-holder governance. embedded: inside another page (My share), without its own section. */
+export function Governance({ proposals, onChange, embedded = false }: { proposals: MutualProposalView[]; onChange: () => void; embedded?: boolean }) {
+  const connected = useConnected();
+  const [connecting, setConnecting] = useState(false);
   const now = useNow();
   const open = proposals.filter((p) => p.status === "open" || p.status === "passed");
   const decided = proposals.filter((p) => p.status === "rejected" || p.status === "executed");
-  const voter = { account, wallet };
+  const voter = { account: connected?.account ?? "", wallet: connected?.wallet ?? null };
 
+  const body = (
+    <>
+      <div className="voter">
+        {connected ? (
+          <span className="voter-as">
+            {GOV.voteAs} <span className="acct">{connected.account}</span>
+          </span>
+        ) : (
+          <span className="voter-as muted">{GOV.connectToVote}</span>
+        )}
+        <button type="button" className="btn ghost sm" onClick={() => setConnecting(true)}>
+          {connected ? GOV.changeWallet : GOV.connect}
+        </button>
+        <small className="muted">{GOV.voterNote}</small>
+      </div>
+      {connecting && <ConnectDialog onClose={() => setConnecting(false)} />}
+      <h3 className="gov-h">{GOV.open}</h3>
+      {open.length === 0 ? (
+        <p className="empty">{GOV.none}</p>
+      ) : (
+        <div className="props">
+          {open.map((p) => (
+            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} />
+          ))}
+        </div>
+      )}
+      <ProposeForm voter={voter} onChange={onChange} />
+      <h3 className="gov-h">{GOV.decided}</h3>
+      {decided.length === 0 ? (
+        <p className="empty">{GOV.noneDecided}</p>
+      ) : (
+        <div className="props">
+          {decided.map((p) => (
+            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+  if (embedded) return <div className="gov embedded" data-testid="governance">{body}</div>;
   return (
-    <section className="sec tight gov" aria-labelledby="gov-title" data-testid="governance">
+    <section className="sec gov" aria-labelledby="gov-title" data-testid="governance">
       <div className="wrap">
-        <span className="label">{GOV.label}</span>
         <h2 className="h2" id="gov-title">
           {GOV.title}
         </h2>
-        <p className="lede ink gov-lede">{GOV.lede}</p>
-        <div className="voter">
-          <label className="field compact">
-            <span>{GOV.voteAs}</span>
-            <input value={account} onChange={(e) => setAccount(e.target.value)} placeholder="you.testnet" spellCheck={false} autoComplete="username" aria-describedby="voter-note" />
-          </label>
-          <fieldset className="voter-wallets">
-            <legend>{GOV.wallet}</legend>
-            {wallets.map((w) => (
-              <button key={w.id} type="button" className="chipbtn" aria-pressed={wallet === w.id} onClick={() => setWallet(w.id)} data-wallet={w.id}>
-                {w.name}
-              </button>
-            ))}
-          </fieldset>
-          <small id="voter-note" className="muted">
-            {GOV.voterNote}
-          </small>
-        </div>
-        <h3 className="h3 gov-h">{GOV.open}</h3>
-        {open.length === 0 ? (
-          <p className="empty">{GOV.none}</p>
-        ) : (
-          <div className="props">
-            {open.map((p) => (
-              <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} />
-            ))}
-          </div>
-        )}
-        <ProposeForm voter={voter} onChange={onChange} />
-        <h3 className="h3 gov-h">{GOV.decided}</h3>
-        {decided.length === 0 ? (
-          <p className="empty">{GOV.noneDecided}</p>
-        ) : (
-          <div className="props">
-            {decided.map((p) => (
-              <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} />
-            ))}
-          </div>
-        )}
+        <p className="lede gov-lede">{GOV.lede}</p>
+        {body}
       </div>
     </section>
   );

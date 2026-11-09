@@ -9,15 +9,28 @@ const SIZES = [
   { name: "390", width: 390, height: 844 },
 ] as const;
 
-type Shot = { name: string; path: string; base?: string; prepare?: (page: Page, wallets: Wallets) => Promise<void> };
+type Shot = { name: string; path: string; base?: string; motion?: boolean; viewport?: boolean; prepare?: (page: Page, wallets: Wallets) => Promise<void> };
 
 const SHOTS: Shot[] = [
   {
+    // With motion on: wait for the line, the assembly and a moment of drift, so the shot shows the settled hero.
     name: "home",
     path: "#/",
+    motion: true,
     prepare: async (page) => {
       await expect(page.getByTestId("home-stats")).toBeVisible();
       await expect(page.getByTestId("governance")).toBeVisible();
+      await page.waitForTimeout(4200);
+    },
+  },
+  {
+    name: "join",
+    path: "#/",
+    viewport: true,
+    prepare: async (page) => {
+      await expect(page.getByTestId("home-stats")).toBeVisible();
+      await page.getByRole("button", { name: "Become a member" }).first().click();
+      await expect(page.getByTestId("join-dialog")).toBeVisible();
     },
   },
   {
@@ -30,66 +43,39 @@ const SHOTS: Shot[] = [
     },
   },
   {
-    name: "try-it-block",
-    path: "#/try",
-    prepare: async (page) => {
-      await page.getByRole("tab", { name: "Check an address" }).click();
-      await page.getByRole("button", { name: "Check", exact: true }).click();
-      await expect(page.locator(".result")).toHaveAttribute("data-verdict", "BLOCK");
-    },
-  },
-  {
     name: "demo",
     path: "#/demo",
     prepare: async (page) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.locator('[data-scene="mutual"]').click();
-      await expect(page.locator(".stage .scene-out")).toBeVisible();
+      await page.locator('[data-scene="swap"]').click();
+      await page.locator('[data-run="swap"]').click();
+      await expect(page.locator(".stage-result")).toBeVisible();
     },
   },
   {
     name: "demo-group",
     path: "#/demo",
     prepare: async (page) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
       await page.locator('[data-scene="group"]').click();
-      await expect(page.locator(".stage .scene-out")).toBeVisible();
-    },
-  },
-  {
-    name: "demo-swap",
-    path: "#/demo",
-    prepare: async (page) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.locator('[data-scene="swap"]').click();
-      await expect(page.locator(".stage .scene-out")).toBeVisible();
-    },
-  },
-  {
-    name: "demo-leak",
-    path: "#/demo",
-    prepare: async (page) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.locator('[data-scene="leak"]').click();
-      await expect(page.locator(".stage .scene-out")).toBeVisible();
+      await page.locator('[data-run="group"]').click();
+      await expect(page.locator(".stage-result")).toBeVisible();
     },
   },
   {
     name: "demo-payout",
     path: "#/demo",
     prepare: async (page) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
       await page.locator('[data-scene="payout"]').click();
-      await expect(page.locator(".stage .scene-out")).toBeVisible();
+      await page.locator('[data-run="payout"]').click();
+      await expect(page.locator(".stage-result")).toBeVisible();
     },
   },
   {
     name: "demo-tier",
     path: "#/demo",
     prepare: async (page) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
       await page.locator('[data-scene="tier"]').click();
-      await expect(page.locator(".stage .scene-out")).toBeVisible();
+      await page.locator('[data-run="tier"]').click();
+      await expect(page.locator(".stage-result")).toBeVisible();
     },
   },
   {
@@ -99,7 +85,13 @@ const SHOTS: Shot[] = [
       await expect(page.locator(".gcard").first()).toBeVisible();
     },
   },
-  { name: "proof", path: "#/proof" },
+  {
+    name: "proof",
+    path: "#/proof",
+    prepare: async (page) => {
+      await expect(page.getByTestId("proofs")).toBeVisible();
+    },
+  },
   { name: "connect", path: "#/connect", base: `http://127.0.0.1:${SHOTS_PORT}/` },
   { name: "connect-unset", path: "#/connect" },
   { name: "verify", path: "#/verify" },
@@ -149,6 +141,14 @@ const SHOTS: Shot[] = [
     },
   },
   {
+    name: "my-share",
+    path: "#/app/share",
+    prepare: async (page, wallets) => {
+      await signInAs(page, wallets, OWNER_ACCOUNT);
+      await expect(page.getByTestId("price-chart")).toBeVisible();
+    },
+  },
+  {
     name: "owner-group",
     path: "#/app/group",
     prepare: async (page, wallets) => {
@@ -177,7 +177,7 @@ const SHOTS: Shot[] = [
 for (const size of SIZES) {
   for (const shot of SHOTS) {
     test(`${shot.name} at ${size.name}`, async ({ page, wallets }) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.emulateMedia({ reducedMotion: shot.motion ? "no-preference" : "reduce" });
       await page.setViewportSize({ width: size.width, height: size.height });
       await page.goto(`${shot.base ?? "/"}${shot.path}`);
       await expect(page.locator("main")).toBeVisible();
@@ -185,9 +185,9 @@ for (const size of SIZES) {
       await page.mouse.move(0, 0);
       await page.evaluate(async () => {
         await document.fonts.ready;
-        window.scrollTo(0, 0);
+        if (!document.querySelector(".dlg")) window.scrollTo(0, 0);
       });
-      await page.screenshot({ path: `screenshots/${shot.name}-${size.name}.png`, fullPage: true });
+      await page.screenshot({ path: `screenshots/${shot.name}-${size.name}.png`, fullPage: !shot.viewport });
     });
   }
 }

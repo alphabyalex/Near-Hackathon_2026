@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FOOTER, NAV } from "../../brand";
 import { Logo } from "../../components/Logo";
 import type { SitePage } from "../../router";
+import { ConnectWallet } from "./Member";
 
 function PageLinks({ page }: { page: SitePage }) {
   return NAV.map((link) => (
@@ -11,6 +12,7 @@ function PageLinks({ page }: { page: SitePage }) {
   ));
 }
 
+/** Sticky header: lockup left, pages in the middle, the wallet on the right. */
 export function SiteHeader({ page }: { page: SitePage }) {
   const [open, setOpen] = useState(false);
   // Close the small-screen menu whenever the page changes.
@@ -19,12 +21,15 @@ export function SiteHeader({ page }: { page: SitePage }) {
     <header className={open ? "top sitehead open" : "top sitehead"}>
       <div className="wrap">
         <Logo />
-        <button type="button" className="menu-btn" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((o) => !o)}>
-          {open ? "Close" : "Menu"}
-        </button>
         <nav className="nav" id="main-nav" aria-label="Main">
           <PageLinks page={page} />
         </nav>
+        <div className="head-end">
+          <ConnectWallet />
+          <button type="button" className="menu-btn" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((o) => !o)}>
+            {open ? "Close" : "Menu"}
+          </button>
+        </div>
       </div>
     </header>
   );
@@ -34,7 +39,7 @@ export function SiteFooter({ page }: { page: SitePage }) {
   return (
     <footer className="foot">
       <div className="wrap">
-        <Logo markSize={22} textSize={18} />
+        <Logo textSize={18} />
         <nav className="nav" aria-label="Footer">
           <PageLinks page={page} />
           <a href="#/try">{FOOTER.try}</a>

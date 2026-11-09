@@ -1,82 +1,122 @@
-/** The Mutual, which is the home page: what it is, live numbers, the three layers, the safest groups, joining, voting and payouts. */
+/** The Mutual, which is the home page: the hero, the two sides of the line, holding a share, voting and the safest groups. */
 import { useEffect, useState } from "react";
 import { getMutual, type GroupSummary, type MutualSummary } from "../../api/ai";
 import { errorText } from "../../api/public";
-import { HOME, POOL, REP } from "../../brand";
-import { Button } from "../../components/Button";
-import { HeroSphere } from "../../components/HeroSphere";
-import { TextLink } from "../../components/TextLink";
+import { HOME, REP } from "../../brand";
+import { HeroHorizon } from "../../components/HeroHorizon";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
 import { Governance } from "./Governance";
-import { Claims, DepositRedeem, price, sinceLaunch, Stats, TrancheBar, WardPanel } from "./Mutual";
+import { JoinDialog, MemberCard } from "./Member";
+import { price, sinceLaunch } from "./Mutual";
 
-/** Scrolls to the deposit form and puts the cursor in the account field. */
-function toJoin(): void {
-  const section = document.getElementById("join");
-  section?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-  window.setTimeout(() => document.getElementById("join-account")?.focus({ preventScroll: true }), 300);
-}
+const count = (n: number) => n.toLocaleString("en-US");
 
-function LiveStats({ m }: { m: MutualSummary }) {
-  const s = m.stats;
-  const change = sinceLaunch(s);
-  const cells: [string, string, string, string?][] = [
-    [HOME.stats.pooled, formatUsdc(s.total_pooled), "USDC"],
-    [HOME.stats.price, price(s.ward_price), `${change} since launch`, change.startsWith("-") ? "down" : ""],
-    [HOME.stats.yield, formatUsdc(s.yield_earned), `USDC. ${HOME.stats.yieldNote}`],
-    [HOME.stats.groups, String(s.groups_covered), HOME.stats.groupsNote],
-    [HOME.stats.proven, s.proven_payments.toLocaleString("en-US"), HOME.stats.provenNote],
-    [HOME.stats.payouts, String(s.payouts), HOME.stats.payoutsNote],
-  ];
+function Hero({ onJoin }: { onJoin: () => void }) {
   return (
-    <section className="sec tight" aria-labelledby="stats-title">
-      <div className="wrap">
-        <h2 className="label" id="stats-title">
-          {HOME.statsLabel}
-        </h2>
-        <div className="strip home-stats" data-testid="home-stats">
-          {cells.map(([l, v, note, cls]) => (
-            <div key={l}>
-              <div className="l">{l}</div>
-              <div className={`v num ${cls ?? ""}`}>{v}</div>
-              <div className="s">{note}</div>
-            </div>
-          ))}
+    <section className="hero" aria-labelledby="hero-title">
+      <div className="hero-art">
+        <HeroHorizon />
+      </div>
+      <div className="wrap hero-copy">
+        <h1 className="hero-h1 fade-1" id="hero-title">
+          {HOME.heroLead} {HOME.heroRest}.
+        </h1>
+        <p className="hero-sub fade-2">{HOME.sub}</p>
+        <div className="actions fade-3">
+          <button type="button" className="btn" onClick={onJoin}>
+            {HOME.primary}
+          </button>
+          <a className="btn ghost" href="#/demo">
+            {HOME.secondary}
+          </a>
         </div>
       </div>
     </section>
   );
 }
 
-function HowItWorks() {
+function Stats({ m }: { m: MutualSummary }) {
+  const s = m.stats;
+  const change = sinceLaunch(s);
   return (
-    <section className="sec tight" aria-labelledby="how-title">
+    <section className="stats" aria-label={HOME.stats.price}>
       <div className="wrap">
-        <span className="label">{HOME.howLabel}</span>
-        <h2 className="h2 how-title" id="how-title">
-          {HOME.howTitle}
+        <dl className="stat-row" data-testid="home-stats">
+          <div>
+            <dt>{HOME.stats.pooled}</dt>
+            <dd className="num">{formatUsdc(m.pool.senior)}</dd>
+            <dd className="stat-note">{HOME.stats.pooledNote}</dd>
+          </div>
+          <div>
+            <dt>{HOME.stats.price}</dt>
+            <dd className="num" data-testid="ward-price">
+              {price(s.ward_price)}
+            </dd>
+            <dd className="stat-note num">{HOME.stats.sinceLaunch(change)}</dd>
+          </div>
+          <div>
+            <dt>{HOME.stats.above}</dt>
+            <dd className="num">{count(s.proven_payments)}</dd>
+            <dd className="stat-note">{HOME.stats.aboveNote}</dd>
+          </div>
+          <div>
+            <dt>{HOME.stats.below}</dt>
+            <dd className="num below-text">{count(s.below.total)}</dd>
+            <dd className="stat-note">{HOME.stats.belowNote}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+function Sides({ m }: { m: MutualSummary }) {
+  const b = m.stats.below;
+  const kinds = [
+    ["swapped", b.swapped],
+    ["lookalike", b.lookalike],
+    ["capped", b.capped],
+  ] as const;
+  return (
+    <section className="sec" aria-labelledby="sides-title">
+      <div className="wrap">
+        <h2 className="h2" id="sides-title">
+          {HOME.sidesTitle}
         </h2>
-        <div className="specs layers">
-          {HOME.layers.map(([name, line], i) => (
-            <div className="spec" key={name}>
-              <b>
-                <span className="scene-n num">{i + 1}</span> {name}
-              </b>
-              <span>
-                {line}{" "}
-                {i === 0 ? (
-                  <button type="button" className="link inline" onClick={toJoin}>
-                    {HOME.layerCta[i]}
-                  </button>
-                ) : (
-                  <a className="link inline" href={HOME.layerLinks[i]}>
-                    {HOME.layerCta[i]}
-                  </a>
-                )}
-              </span>
+        <div className="sides" data-testid="sides">
+          <div className="side-panel above">
+            <div className="side-head">
+              <h3>{HOME.above}</h3>
+              <span className="side-count num">{count(m.stats.proven_payments)}</span>
             </div>
-          ))}
+            <p className="side-lede">{HOME.aboveLede}</p>
+            <ul className="side-list">
+              {HOME.aboveChecks.map(([name, line]) => (
+                <li key={name}>
+                  <b>{name}</b>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="side-panel below" data-testid="below-panel">
+            <div className="side-head">
+              <h3>{HOME.below}</h3>
+              <span className="side-count num">{count(b.total)}</span>
+            </div>
+            <p className="side-lede">{HOME.belowLede}</p>
+            <ul className="side-list">
+              {kinds.map(([k, n]) => (
+                <li key={k} data-kind={k}>
+                  <b>
+                    {HOME.belowKinds[k][0]} <span className="num">{count(n)}</span>
+                  </b>
+                  <span>{HOME.belowKinds[k][1]}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -86,7 +126,7 @@ function HowItWorks() {
 export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?: number }) {
   const rows = limit ? groups.slice(0, limit) : groups;
   return (
-    <div className="scrollx">
+    <div className="scrollx" role="region" aria-label={HOME.boardTitle} tabIndex={0}>
       <table className="tbl board" data-testid="leaderboard">
         <thead>
           <tr>
@@ -102,12 +142,12 @@ export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?:
             <tr key={g.budget_id} data-budget={g.budget_id}>
               <td>
                 <b className="board-name">{g.name}</b>
-                <span className="ref mono">{g.owner}</span>
+                <span className="ref acct">{g.owner}</span>
               </td>
               <td>
                 <TierBadge tier={g.tier} />
               </td>
-              <td className="num r">{g.proven_calls.toLocaleString("en-US")}</td>
+              <td className="num r">{count(g.proven_calls)}</td>
               <td className="num r">{REP.claimCount(g.claims)}</td>
               <td className="num r">{feeText(g.fee_bps)}</td>
             </tr>
@@ -122,32 +162,16 @@ export function Home() {
   const [m, setM] = useState<MutualSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
-  const [account, setAccount] = useState("");
+  const [joining, setJoining] = useState(false);
   const refresh = () => setTick((t) => t + 1);
   useEffect(() => {
     getMutual().then(setM, (e: unknown) => setError(errorText(e)));
   }, [tick]);
+  const join = () => m && setJoining(true);
 
   return (
     <main>
-      <section className="hero" aria-label="Introduction">
-        <HeroSphere />
-        <div className="limitline" aria-hidden="true">
-          <span>limit</span>
-        </div>
-        <div className="wrap">
-          <h1 className="hero-h1">
-            {HOME.heroLead} <span>{HOME.heroRest}</span>
-            <em>.</em>
-          </h1>
-          <p>{HOME.sub}</p>
-          <div className="actions">
-            <Button onClick={toJoin}>{HOME.primary}</Button>
-            <TextLink href="#/groups">{HOME.secondary}</TextLink>
-          </div>
-        </div>
-      </section>
-
+      <Hero onJoin={join} />
       {error && (
         <div className="wrap">
           <p className="notice" role="alert">
@@ -160,63 +184,63 @@ export function Home() {
           <p className="loading">Loading the Mutual</p>
         </div>
       )}
-      {m && <LiveStats m={m} />}
-      <HowItWorks />
+      {m && <Stats m={m} />}
+      {m && <Sides m={m} />}
 
       {m && (
-        <section className="sec tight" aria-labelledby="board-title">
+        <section className="sec light" id="member" aria-labelledby="share-title">
+          <div className="wrap share-grid">
+            <div className="share-copy">
+              <h2 className="h2" id="share-title">
+                {HOME.shareTitle}
+              </h2>
+              {HOME.shareBody.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+              <button type="button" className="btn" onClick={join}>
+                {HOME.shareCta}
+              </button>
+              <p className="mode-note">{m.mode === "sim" ? HOME.modeSim : HOME.modeMixed}</p>
+            </div>
+            <MemberCard pool={m.pool} version={tick} onJoin={join} onChanged={refresh} />
+          </div>
+        </section>
+      )}
+
+      {m && <Governance proposals={m.governance.proposals} onChange={refresh} />}
+
+      {m && (
+        <section className="sec" aria-labelledby="board-title">
           <div className="wrap">
-            <span className="label">{HOME.boardLabel}</span>
-            <h2 className="h2 board-title" id="board-title">
+            <h2 className="h2" id="board-title">
               {HOME.boardTitle}
             </h2>
+            <p className="lede">{HOME.boardLede}</p>
             <Leaderboard groups={m.groups} limit={5} />
-            <p className="board-more">
-              <TextLink href="#/groups">{HOME.boardAll}</TextLink>
+            <p className="more">
+              <a className="link" href="#/groups">
+                {HOME.boardAll}
+              </a>
             </p>
           </div>
         </section>
       )}
 
-      {m && (
-        <section className="sec tight join" id="join" aria-labelledby="join-title" tabIndex={-1}>
-          <div className="wrap">
-            <span className="label">{HOME.joinLabel}</span>
-            <h2 className="h2" id="join-title">
-              {HOME.joinTitle}
+      <section className="sec cta" aria-labelledby="cta-title">
+        <div className="wrap cta-row">
+          <div>
+            <h2 className="h2" id="cta-title">
+              {HOME.ctaTitle}
             </h2>
-            <p className="lede ink join-lede">{HOME.joinLede}</p>
-            <WardPanel pool={m.pool} />
-            <div className="pool-grid">
-              <div>
-                <div className="lose-first">
-                  <h3 className="h3">{POOL.loseFirstTitle}</h3>
-                  {POOL.loseFirst.map((line) => (
-                    <p key={line}>{line}</p>
-                  ))}
-                </div>
-                <TrancheBar pool={m.pool} />
-                <Stats pool={m.pool} />
-              </div>
-              <DepositRedeem pool={m.pool} onDone={refresh} account={account} setAccount={setAccount} />
-            </div>
-            <p className="engine-note">{m.mode === "sim" ? HOME.modeSim : HOME.modeMixed}</p>
+            <p className="lede">{HOME.ctaBody}</p>
           </div>
-        </section>
-      )}
+          <button type="button" className="btn" onClick={join} disabled={!m}>
+            {HOME.primary}
+          </button>
+        </div>
+      </section>
 
-      {m && <Governance proposals={m.governance.proposals} account={account} setAccount={setAccount} onChange={refresh} />}
-
-      {m && (
-        <section className="sec tight" aria-labelledby="claims-title">
-          <div className="wrap">
-            <h2 className="h3" id="claims-title">
-              {POOL.claims}
-            </h2>
-            <Claims claims={m.claims} />
-          </div>
-        </section>
-      )}
+      {joining && m && <JoinDialog pool={m.pool} onClose={() => setJoining(false)} onJoined={refresh} />}
     </main>
   );
 }

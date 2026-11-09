@@ -82,20 +82,20 @@ describe("routing", () => {
   it("follows link clicks in JS, with no hashchange event", () => {
     stubApi();
     render(<App />);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Wardline is a credit union for the AI economy.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("A credit union for the AI economy.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Wardline decides where the money may go");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getAllByLabelText("Wardline home")[0] as HTMLElement);
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Wardline is a credit union for the AI economy.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("A credit union for the AI economy.");
   });
 
   it("leaves new-tab clicks to the browser", () => {
     stubApi();
     render(<App />);
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"), { ctrlKey: true });
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Wardline is a credit union for the AI economy.");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("A credit union for the AI economy.");
   });
 
   it("orders the site nav with About rightmost and gives the footer an owner sign-in link", () => {
@@ -240,9 +240,13 @@ describe("source rules", () => {
     expect(hits).toEqual([]);
   });
 
-  it("names no fallback mono after Wardline Mono", () => {
+  it("sets everything in Geist, self-hosted, with no monospace face", () => {
     const tokens = Object.entries(SOURCES).find(([path]) => path.endsWith("theme/tokens.css"))?.[1] ?? "";
-    expect(tokens).toContain('--mono: "Wardline Mono", monospace;');
+    expect(tokens).toContain('font-family: "Geist";');
+    expect(tokens).toContain('src: url("/fonts/geist-variable.woff2")');
+    expect(tokens).toContain('--font: "Geist"');
+    const css = Object.entries(SOURCES).filter(([path]) => path.endsWith(".css"));
+    expect(css.filter(([, text]) => /font-family:[^;}]*monospace|var\(--mono\)/.test(text)).map(([path]) => path)).toEqual([]);
   });
 
   it("turns motion off under prefers-reduced-motion", () => {

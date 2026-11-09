@@ -2,7 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@wardline/schemas";
 import { DotBar } from "../src/components/DotBar";
-import { Mark } from "../src/components/Logo";
+import { fingerprintCells, HORIZON_COLORS, horizonDots, MARK, seededLight } from "../src/brand/horizon";
+import { Fingerprint, HorizonMark } from "../src/components/HorizonMark";
 import { Money, TokenContext } from "../src/components/Money";
 import { Status } from "../src/components/Status";
 import { businessName, dueIn, formatAtomic, formatNs, formatShort, percentOf, shortDigest, timeOfDay } from "../src/format";
@@ -54,12 +55,34 @@ describe("DotBar", () => {
   });
 });
 
-describe("Mark", () => {
-  it("takes currentColor, with a red cut row of seven dots", () => {
-    const { container } = render(<Mark size={30} />);
-    expect(container.querySelectorAll("circle").length).toBe(37);
-    expect(container.querySelectorAll("circle.mark-cut").length).toBe(7);
-    expect(container.querySelector("circle:not(.mark-cut)")?.getAttribute("fill")).toBe("currentColor");
+describe("Horizon mark", () => {
+  it("cuts the sphere at -10 degrees: light dots above the line, violet below, none in the gap", () => {
+    const dots = horizonDots(MARK);
+    expect(dots.length).toBeGreaterThan(150);
+    expect(dots.every((d) => (d.off < 0 ? d.fill === HORIZON_COLORS.light.top : d.fill === HORIZON_COLORS.light.bottom))).toBe(true);
+    expect(dots.every((d) => Math.abs(d.off) >= MARK.step * 0.75)).toBe(true);
+    // The light sits top left, so a dot near the top left is bigger than its mirror at the bottom right.
+    const near = (x: number, y: number) => dots.reduce((best, d) => (Math.hypot(d.x - x, d.y - y) < Math.hypot(best.x - x, best.y - y) ? d : best));
+    expect(near(70, 60).r).toBeGreaterThan(near(150, 160).r);
+  });
+
+  it("renders the same dots everywhere", () => {
+    const { container } = render(<HorizonMark size={30} />);
+    expect(container.querySelectorAll("circle").length).toBe(horizonDots(MARK).length);
+  });
+
+  it("gives every group its own light, and every call a mirrored fingerprint", () => {
+    expect(seededLight("bgt_aurora")).not.toEqual(seededLight("bgt_mission"));
+    expect(seededLight("bgt_aurora")).toEqual(seededLight("bgt_aurora"));
+    const cells = fingerprintCells("call_123");
+    expect(cells).toHaveLength(25);
+    for (let r = 0; r < 5; r++) {
+      expect(cells[r * 5]).toBe(cells[r * 5 + 4]);
+      expect(cells[r * 5 + 1]).toBe(cells[r * 5 + 3]);
+    }
+    const { container } = render(<Fingerprint id="call_123" side="below" />);
+    expect(container.querySelector("svg")?.classList.contains("fp-below")).toBe(true);
+    expect(container.querySelectorAll("rect").length).toBe(cells.filter(Boolean).length);
   });
 });
 

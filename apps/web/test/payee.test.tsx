@@ -16,7 +16,8 @@ describe("brand module", () => {
   it("holds the product name and hero line", () => {
     expect(BRAND.name).toBe("Wardline");
     expect(BRAND.homeLabel).toBe(`${BRAND.name} home`);
-    expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("Wardline is a credit union for the AI economy.");
+    expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("A credit union for the AI economy.");
+    expect(BRAND.tagline).toBe("A credit union for the AI economy.");
   });
 
   it("never claims legal ownership, and says what each trust level does not establish", () => {
@@ -90,14 +91,16 @@ describe("helpers", () => {
 
 describe("WARD copy", () => {
   it("says what WARD is in two lines, keeps We lose first, and never calls it stable or protected", async () => {
-    const { POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF } = await import("../src/brand");
+    const { POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF, JOIN, MEMBER, SHARE, WALLET } = await import("../src/brand");
     expect(POOL.ward.pitch).toEqual(["Earn a share of every fee by backing the proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."]);
-    expect(HOME.sub).toBe("Back the AI economy and earn from it. Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely.");
+    expect(HOME.sub).toBe("Members pool USDC, back AI agents, and earn from every payment that proves itself. Anything that can't prove itself stays below the line.");
+    expect(HOME.ctaTitle).toBe("Back the AI economy and earn from it.");
     // Lead with communities earning, not with the token.
     expect(HOME.sub.toLowerCase()).not.toMatch(/buy|ward/);
     expect(POOL.loseFirstTitle).toBe("We lose first.");
     expect(POOL.ward.kind.toLowerCase()).toContain("yield-bearing, loss-sharing");
-    const copy = JSON.stringify([POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF]).toLowerCase();
+    const copy = JSON.stringify([POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF, JOIN, MEMBER, SHARE, WALLET]).toLowerCase();
+    expect(HOME.shareBody.join(" ").toLowerCase()).toContain("yield-bearing and loss-sharing");
     for (const word of ["stable", "principal", "guaranteed", "insurance", "insured", "risk-free"]) expect(copy).not.toContain(word);
   });
 });

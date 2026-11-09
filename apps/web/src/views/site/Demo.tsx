@@ -1,16 +1,16 @@
+/** Seven scenes, each calling the real /v1/demo endpoint and showing its real numbers. */
 import { useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
 import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
-import { feeText, TierBadge } from "../../components/TierBadge";
 import { errorText } from "../../api/public";
 import { callWords, modelName } from "../../ai/words";
-import { DEMO } from "../../brand";
+import { DEMO, REP } from "../../brand";
+import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
 import { ResultCard } from "../../payee/ResultCard";
 import { firstContact, onFile } from "../../redteam";
 
 const SCENES = Object.keys(DEMO.scenes) as SceneName[];
-const STEP_MS = 900;
 const L = DEMO.labels;
 
 /** Same first and last six hex characters as the real address, different in between. */
@@ -26,18 +26,15 @@ interface MutualSceneResult {
   position: { value: string };
 }
 interface GroupResult {
-  group: { name: string; owner: string };
-  proposal: { id: number; description: string; status: string; approvals: number; fund_tx: string | null };
-  calls: { status: number; proof: string; call: CallView & { settlement_tx: string }; reply: string | null }[];
-  batch: { member: string; sent: number; proven: number; spent: string };
+  group: { name: string };
+  proposal: { description: string; status: string; approvals: number; fund_tx: string | null };
+  calls: { proof: string; call: CallView & { settlement_tx: string }; reply: string | null }[];
+  batch: { member: string; proven: number; spent: string };
   budget: BudgetView;
   ward: { before: string; after: string; fees: string };
 }
 interface SwapResult {
   claimed: string;
-  status: number;
-  proof: string;
-  error: { code: string; message: string } | null;
   call: CallView;
 }
 interface LeakResult {
@@ -47,13 +44,12 @@ interface LeakResult {
   refused: number;
 }
 interface InvoiceResult {
-  proposal: { id: number; description: string; receiver: string; amount: string; dao: string };
+  proposal: { description: string; receiver: string; amount: string };
   payee: string;
   vendor: string;
   result: PayeeCheckResult;
 }
 interface PayoutResult {
-  before: PoolView;
   payouts: { claim: ClaimView; pool: PoolView }[];
   refill: { calls: number; spent: string; fees: string; ward_before: string; ward_after: string };
 }
@@ -66,211 +62,184 @@ interface TierResult {
 }
 type SceneResult = MutualSceneResult | GroupResult | SwapResult | LeakResult | InvoiceResult | PayoutResult | TierResult;
 
-function Row({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
-  return (
-    <div className={`out-row${cls ? ` ${cls}` : ""}`}>
-      <span>{k}</span>
-      <b>{v}</b>
-    </div>
-  );
+type Tone = "above" | "below" | "tier";
+type Row = { k: string; v: string; tone?: "above" | "below" | "mono" | undefined };
+interface Outcome {
+  tone: Tone;
+  verdict: string;
+  rows: Row[];
 }
 
-const usd4 = (atomic: string): string => (Number(BigInt(atomic)) / 1e6).toFixed(4);
-const wardPrice6 = (scaled: string): string => (Number(BigInt(scaled)) / 1e6).toFixed(6);
+const p4 = (scaled: string) => (Number(BigInt(scaled)) / 1e6).toFixed(4);
+const p6 = (scaled: string) => (Number(BigInt(scaled)) / 1e6).toFixed(6);
+const u4 = (atomic: string) => (Number(BigInt(atomic)) / 1e6).toFixed(4);
 
-function MutualSceneOut({ r }: { r: MutualSceneResult }) {
-  return (
-    <div className="scene-out" data-outcome="deposited">
-      <div className="out-card">
-        <Row k={L.pooled} v={`${formatUsdc(r.stats.total_pooled)} USDC`} />
-        <Row k={L.earned} v={`${formatUsdc(r.stats.yield_earned)} USDC`} />
-        <Row k={L.groups} v={String(r.stats.groups_covered)} />
-        <Row k={L.provenPayments} v={r.stats.proven_payments.toLocaleString("en-US")} />
-      </div>
-      <div className="out-card">
-        <div className="out-head">
-          <span className="badge ok">WARD</span>
-          <b className="mono">{r.deposit.account}</b>
-        </div>
-        <Row k={L.deposited} v={`${formatUsdc(r.deposit.usdc)} USDC`} />
-        <Row k={L.atPrice} v={`${wardPrice(r.deposit.price)} USDC`} />
-        <Row k={L.received} v={`${formatUsdc(r.deposit.ward)} WARD`} />
-        <Row k={L.worth} v={`${formatUsdc(r.position.value)} USDC`} />
-        <Row k={L.settlement} v={<span className="mono">{r.deposit.tx}</span>} />
-      </div>
-    </div>
-  );
+/** Each scene's verdict and rows, from its real result. */
+function outcome(id: SceneName, raw: SceneResult): Outcome {
+  switch (id) {
+    case "mutual": {
+      const r = raw as MutualSceneResult;
+      return {
+        tone: "above",
+        verdict: DEMO.verdicts.mutual(formatUsdc(r.deposit.ward)),
+        rows: [
+          { k: L.pooled, v: `${formatUsdc(r.stats.total_pooled)} USDC` },
+          { k: L.earned, v: `${formatUsdc(r.stats.yield_earned)} USDC` },
+          { k: L.groups, v: String(r.stats.groups_covered) },
+          { k: L.deposited, v: `${formatUsdc(r.deposit.usdc)} USDC from ${r.deposit.account}` },
+          { k: L.atPrice, v: `${p4(r.deposit.price)} USDC` },
+          { k: L.received, v: `${formatUsdc(r.deposit.ward)} WARD`, tone: "above" },
+          { k: L.settlement, v: r.deposit.tx, tone: "mono" },
+        ],
+      };
+    }
+    case "group": {
+      const r = raw as GroupResult;
+      const proven = r.calls.filter((c) => c.proof === "verified").length + r.batch.proven;
+      return {
+        tone: "above",
+        verdict: DEMO.verdicts.group(proven),
+        rows: [
+          { k: L.daoVote, v: `${r.proposal.status}, ${L.approvals(r.proposal.approvals)}` },
+          { k: L.funded, v: `${formatUsdc(r.budget.deposit)} USDC` },
+          ...r.calls.map((c) => ({ k: modelName(c.call.model_proven), v: `${u4(c.call.amount)} USDC, ${c.proof}`, tone: "above" as const })),
+          { k: L.batch(r.batch.proven, r.batch.member), v: `${formatUsdc(r.batch.spent)} USDC` },
+          { k: L.feesToWard, v: `${u4(r.ward.fees)} USDC` },
+          { k: L.wardPrice, v: `${p6(r.ward.before)} to ${p6(r.ward.after)}`, tone: "above" },
+        ],
+      };
+    }
+    case "swap": {
+      const r = raw as SwapResult;
+      return {
+        tone: "below",
+        verdict: DEMO.verdicts.swap,
+        rows: [
+          { k: L.claimed, v: modelName(r.claimed) },
+          { k: L.proven, v: modelName(r.call.model_proven) || L.noneProven, tone: "below" },
+          { k: "Why", v: callWords(r.call.reason) },
+          { k: L.paid, v: `${u4(r.call.amount)} USDC` },
+          { k: L.refunded, v: `${u4(r.call.refund)} USDC` },
+          { k: L.refund, v: r.call.release_tx ?? "", tone: "mono" },
+        ],
+      };
+    }
+    case "leak": {
+      const r = raw as LeakResult;
+      return {
+        tone: "below",
+        verdict: DEMO.verdicts.leak(formatUsdc(r.cap)),
+        rows: [
+          ...r.bursts.map((b) => ({ k: b.member, v: `${L.burst(b.paid, b.refused)} (${b.reasons.map(callWords).join(" ")})` })),
+          { k: "Total", v: L.spentOf(formatUsdc(r.spent), formatUsdc(r.cap)) },
+          { k: "Refused", v: L.refusedCount(r.refused), tone: "below" },
+        ],
+      };
+    }
+    case "invoice": {
+      const r = raw as InvoiceResult;
+      return {
+        tone: "below",
+        verdict: DEMO.verdicts.invoice,
+        rows: [
+          { k: "Proposal", v: r.proposal.description },
+          { k: L.paid, v: `${formatUsdc(r.proposal.amount)} USDC to ${r.proposal.receiver}`, tone: "below" },
+          { k: "Verdict", v: r.result.verdict, tone: r.result.verdict === "PAY" ? "above" : "below" },
+        ],
+      };
+    }
+    case "payout": {
+      const r = raw as PayoutResult;
+      return {
+        tone: "below",
+        verdict: DEMO.verdicts.payout,
+        rows: [
+          ...r.payouts.flatMap(({ claim, pool }, i) => [
+            { k: `${L.payout(i + 1)}: ${formatUsdc(claim.amount)} USDC`, v: `${L.junior} ${formatUsdc(claim.paid_from_junior)}, ${L.senior.toLowerCase()} ${formatUsdc(claim.paid_from_senior)}` },
+            { k: L.wardPrice, v: `${p4(claim.ward_price_before)} to ${p4(claim.ward_price_after)}`, tone: claim.ward_price_after !== claim.ward_price_before ? ("below" as const) : undefined },
+            ...(i === 1 ? [{ k: L.stakeLeft, v: `${formatUsdc(pool.junior)} USDC` }] : []),
+          ]),
+          { k: L.refill, v: L.refillCalls(r.refill.calls, formatUsdc(r.refill.spent)) },
+          { k: L.wardPrice, v: `${p4(r.refill.ward_before)} to ${p4(r.refill.ward_after)}`, tone: "above" },
+        ],
+      };
+    }
+    case "tier": {
+      const r = raw as TierResult;
+      return {
+        tone: "tier",
+        verdict: DEMO.verdicts.tier(REP.names[r.after.tier], feeText(r.after.fee_bps)),
+        rows: [
+          { k: L.tierBefore, v: `${REP.names[r.before.tier]}, ${feeText(r.before.fee_bps)} fee, ${formatUsdc(r.before.coverage_cap)} USDC coverage` },
+          { k: L.tierAfter(r.calls), v: `${REP.names[r.after.tier]}, ${feeText(r.after.fee_bps)} fee, ${formatUsdc(r.after.coverage_cap)} USDC coverage` },
+          { k: L.feeOnCall(r.first.n), v: `${u4(r.first.fee)} USDC` },
+          { k: L.feeOnCall(r.last.n), v: `${u4(r.last.fee)} USDC`, tone: "above" },
+        ],
+      };
+    }
+  }
 }
 
-function GroupOut({ r }: { r: GroupResult }) {
-  return (
-    <div className="scene-out" data-outcome="verified">
-      <div className="out-card">
-        <div className="out-head">
-          <span className="badge ok">{r.proposal.status}</span>
-          <b>{r.group.name}</b>
-        </div>
-        <Row k={L.daoVote} v={`${r.proposal.description} (${L.approvals(r.proposal.approvals)})`} />
-        <Row k={L.funded} v={<span className="mono">{r.proposal.fund_tx}</span>} />
-      </div>
-      {r.calls.map((c) => (
-        <div className="out-card" key={c.call.call_id}>
-          <div className="out-head">
-            <span className="badge ok">{c.proof}</span>
-            <b>{modelName(c.call.model_proven)}</b>
-          </div>
-          {c.reply && <p className="out-reply">{c.reply}</p>}
-          <Row k={L.paid} v={`${usd4(c.call.amount)} USDC`} />
-          <Row k={L.settlement} v={<span className="mono">{c.call.settlement_tx}</span>} />
-        </div>
-      ))}
-      <div className="out-card" data-testid="ward-tick">
-        <Row k={L.batch(r.batch.proven, r.batch.member)} v={`${formatUsdc(r.batch.spent)} USDC`} />
-        <Row k={L.feesToWard} v={`${usd4(r.ward.fees)} USDC`} />
-        <Row k={L.wardPrice} v={`${wardPrice6(r.ward.before)} to ${wardPrice6(r.ward.after)} USDC`} cls="up" />
-      </div>
-    </div>
-  );
-}
+type Run = null | { state: "busy" } | { state: "done"; result: SceneResult } | { state: "error"; message: string };
 
-function SwapOut({ r }: { r: SwapResult }) {
-  return (
-    <div className="scene-out" data-outcome={r.proof}>
-      <div className="out-card refused">
-        <div className="out-head">
-          <span className="badge bad">{r.proof}</span>
-          <b>{callWords(r.call.reason)}</b>
-        </div>
-        <Row k={L.claimed} v={modelName(r.claimed)} />
-        <Row k={L.proven} v={modelName(r.call.model_proven) || L.noneProven} cls="mismatch" />
-        <Row k={L.paid} v={`${formatUsdc(r.call.amount)} USDC`} />
-        <Row k={L.refunded} v={`${formatUsdc(r.call.refund)} USDC`} />
-        <Row k={L.refund} v={<span className="mono">{r.call.release_tx}</span>} />
-      </div>
-    </div>
-  );
-}
-
-function LeakOut({ r }: { r: LeakResult }) {
-  return (
-    <div className="scene-out" data-outcome="capped">
-      <div className="out-card">
-        <div className="out-head">
-          <b className="num">{L.spentOf(formatUsdc(r.spent), formatUsdc(r.cap))}</b>
-        </div>
-        {r.bursts.map((b) => (
-          <Row key={b.member} k={b.member} v={`${L.burst(b.paid, b.refused)} (${b.reasons.map(callWords).join(" ")})`} />
-        ))}
-        <p className="out-foot">{L.refusedCount(r.refused)}</p>
-      </div>
-    </div>
-  );
-}
-
-const wardPrice = (scaled: string): string => (Number(BigInt(scaled)) / 1e6).toFixed(4);
-
-function PayoutOut({ r }: { r: PayoutResult }) {
-  return (
-    <div className="scene-out" data-outcome={r.payouts.every((p) => p.claim.status === "paid") ? "paid" : "pending"}>
-      {r.payouts.map(({ claim, pool }, i) => {
-        const dipped = claim.ward_price_after !== claim.ward_price_before;
-        return (
-          <div className="out-card" key={claim.claim_id} data-payout={i + 1}>
-            <div className="out-head">
-              <span className="badge ok">{claim.status}</span>
-              <b className="num">
-                {L.payout(i + 1)}: {formatUsdc(claim.amount)} USDC
-              </b>
-            </div>
-            <Row k={L.junior} v={`${formatUsdc(claim.paid_from_junior)} USDC`} />
-            <Row k={L.senior} v={`${formatUsdc(claim.paid_from_senior)} USDC`} />
-            <Row k={L.stakeLeft} v={`${formatUsdc(pool.junior)} USDC`} />
-            <Row k={L.wardPrice} v={`${wardPrice(claim.ward_price_before)} to ${wardPrice(claim.ward_price_after)} USDC`} cls={dipped ? "mismatch" : ""} />
-            <Row k={L.settlement} v={<span className="mono">{claim.tx}</span>} />
-          </div>
-        );
-      })}
-      <div className="out-card" data-testid="refill">
-        <div className="out-head">
-          <b>{L.refill}</b>
-        </div>
-        <Row k={L.refillCalls(r.refill.calls, formatUsdc(r.refill.spent))} v={`${usd4(r.refill.fees)} USDC`} />
-        <Row k={L.wardPrice} v={`${wardPrice(r.refill.ward_before)} to ${wardPrice(r.refill.ward_after)} USDC`} cls="up" />
-      </div>
-    </div>
-  );
-}
-
-function TierOut({ r }: { r: TierResult }) {
-  const line = (x: ReputationView) => `${feeText(x.fee_bps)} fee, ${formatUsdc(x.coverage_cap)} USDC coverage, ${x.proven_calls} proven calls`;
-  return (
-    <div className="scene-out" data-outcome={r.after.tier}>
-      <div className="out-card">
-        <div className="out-head">
-          <TierBadge tier={r.before.tier} />
-          <b>{L.tierBefore}</b>
-        </div>
-        <p className="out-foot">{line(r.before)}</p>
-      </div>
-      <div className="out-card">
-        <div className="out-head">
-          <TierBadge tier={r.after.tier} />
-          <b>{L.tierAfter(r.calls)}</b>
-        </div>
-        <p className="out-foot">{line(r.after)}</p>
-        <Row k={L.feeOnCall(r.first.n)} v={`${usd4(r.first.fee)} USDC`} />
-        <Row k={L.feeOnCall(r.last.n)} v={`${usd4(r.last.fee)} USDC`} cls="up" />
-      </div>
-    </div>
-  );
-}
-
-function Outcome({ id, r }: { id: SceneName; r: SceneResult }) {
-  if (id === "mutual") return <MutualSceneOut r={r as MutualSceneResult} />;
-  if (id === "group") return <GroupOut r={r as GroupResult} />;
-  if (id === "swap") return <SwapOut r={r as SwapResult} />;
-  if (id === "leak") return <LeakOut r={r as LeakResult} />;
-  if (id === "payout") return <PayoutOut r={r as PayoutResult} />;
-  if (id === "tier") return <TierOut r={r as TierResult} />;
-  const inv = r as InvoiceResult;
-  const request: PayeeCheckRequest = { payee: inv.payee, vendor: { domain: inv.vendor } };
-  return (
-    <div className="scene-out" data-outcome="flagged">
-      <div className="out-card refused">
-        <div className="out-head">
-          <span className="badge bad">{L.flagged}</span>
-          <b>{inv.proposal.description}</b>
-        </div>
-        <Row k={L.paid} v={`${formatUsdc(inv.proposal.amount)} USDC to ${inv.proposal.receiver}`} cls="mismatch" />
-      </div>
-      <ResultCard result={{ ...inv.result, receipt: null }} request={request} />
-    </div>
-  );
-}
-
-const reducedMotion = (): boolean => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
-
-type Run = { shown: number; outcome: null | { state: "busy" } | { state: "done"; result: SceneResult } | { state: "error"; message: string } };
-
-function Stage({ id, run }: { id: SceneName; run: Run }) {
+function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; onRun: () => void; onNext: () => void; hasNext: boolean }) {
   const scene = DEMO.scenes[id];
+  const n = SCENES.indexOf(id) + 1;
+  const out = run?.state === "done" ? outcome(id, run.result) : null;
   return (
-    <div className="stage" aria-live="polite">
-      <ol className="steps">
-        {scene.steps.map((step, i) => (
-          <li key={step} className={i < run.shown ? "on" : ""}>
-            <span className="tick" aria-hidden="true" />
-            {step}
-          </li>
+    <div className="stage" data-testid="stage">
+      <div className="stage-head">
+        <span className="stage-n num">Scene {n} of 7</span>
+        <h2>{scene.name}</h2>
+        <p>{scene.line}</p>
+      </div>
+      <ol className="stage-setup">
+        {scene.steps.map((step) => (
+          <li key={step}>{step}</li>
         ))}
       </ol>
-      {run.outcome?.state === "busy" && <p className="loading">{DEMO.running}</p>}
-      {run.outcome?.state === "error" && (
-        <p className="notice" role="alert">
-          {run.outcome.message}
-        </p>
+      {run?.state !== "busy" && (
+        <button type="button" className="btn" onClick={onRun} data-run={id}>
+          {run ? DEMO.replay : DEMO.run}
+        </button>
       )}
-      {run.outcome?.state === "done" && <Outcome id={id} r={run.outcome.result} />}
+      <div aria-live="polite">
+        {run?.state === "busy" && (
+          <p className="stage-busy" role="status">
+            <span className="spinner" aria-hidden="true" />
+            {DEMO.doing[id]}
+          </p>
+        )}
+        {run?.state === "error" && (
+          <p className="notice" role="alert">
+            {run.message}
+          </p>
+        )}
+        {out && (
+          <div className="stage-result" data-outcome={out.tone} data-scene-result={id}>
+            <p className={`verdict v-${out.tone}`}>{out.verdict}</p>
+            <dl className="result-rows">
+              {out.rows.map((r, i) => (
+                <div key={`${r.k}-${i}`} className="rr" style={{ animationDelay: `${0.12 * i}s` }}>
+                  <dt>{r.k}</dt>
+                  <dd className={r.tone === "mono" ? "acct" : r.tone ? `t-${r.tone} num` : "num"}>{r.v}</dd>
+                </div>
+              ))}
+            </dl>
+            {id === "invoice" && run?.state === "done" && (
+              <ResultCard
+                result={{ ...(run.result as InvoiceResult).result, receipt: null }}
+                request={{ payee: (run.result as InvoiceResult).payee, vendor: { domain: (run.result as InvoiceResult).vendor } } as PayeeCheckRequest}
+              />
+            )}
+            {hasNext && (
+              <button type="button" className="btn ghost" onClick={onNext}>
+                {DEMO.next}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -298,7 +267,6 @@ export function Comparison() {
   return (
     <section className="sec" aria-labelledby="cmp-title">
       <div className="wrap">
-        <span className="label">{DEMO.comparisonLabel}</span>
         <h2 className="h2 cmp-title" id="cmp-title">
           {DEMO.comparisonTitle}
         </h2>
@@ -306,7 +274,7 @@ export function Comparison() {
           <DotRow label={DEMO.agentAlone} paid={first.agentAlone.unsafePayees} of={first.attacks} />
           <DotRow label={DEMO.withWardline} paid={first.agentWithWardline.unsafePayees} of={first.attacks} />
         </div>
-        <p className="engine-note">
+        <p className="fine engine-note">
           {first.cases} cases, {first.attacks} of them scams, through the invoice agent on {first.model}. Both paid {first.agentWithWardline.legitPaid} of {first.legitRecurring}{" "}
           legitimate invoices.
           {known && ` ${DEMO.onFileNote} ${known.agentAlone.unsafePayees} and ${known.agentWithWardline.unsafePayees} scams paid.`}
@@ -318,60 +286,49 @@ export function Comparison() {
 
 export function Demo() {
   const [current, setCurrent] = useState<SceneName>("mutual");
-  const [run, setRun] = useState<Run>({ shown: 0, outcome: null });
-  const timers = useRef<number[]>([]);
-
-  const clear = () => {
-    timers.current.forEach((t) => window.clearTimeout(t));
-    timers.current = [];
-  };
-  useEffect(() => clear, []);
+  const [runs, setRuns] = useState<Partial<Record<SceneName, Run>>>({});
+  const live = useRef(true);
+  useEffect(() => {
+    // StrictMode runs effects twice in development, so set it on every mount.
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
 
   const play = (id: SceneName) => {
-    clear();
-    setCurrent(id);
-    const steps = DEMO.scenes[id].steps.length;
-    const call = () => {
-      setRun({ shown: steps, outcome: { state: "busy" } });
-      runDemoScene<SceneResult>(id).then(
-        (result) => setRun({ shown: steps, outcome: { state: "done", result } }),
-        (error: unknown) => setRun({ shown: steps, outcome: { state: "error", message: errorText(error) } }),
-      );
-    };
-    if (reducedMotion()) {
-      call();
-      return;
-    }
-    setRun({ shown: 0, outcome: null });
-    for (let i = 1; i <= steps; i++) timers.current.push(window.setTimeout(() => setRun({ shown: i, outcome: null }), i * STEP_MS));
-    timers.current.push(window.setTimeout(call, (steps + 0.6) * STEP_MS));
+    setRuns((r) => ({ ...r, [id]: { state: "busy" } }));
+    runDemoScene<SceneResult>(id).then(
+      (result) => live.current && setRuns((r) => ({ ...r, [id]: { state: "done", result } })),
+      (error: unknown) => live.current && setRuns((r) => ({ ...r, [id]: { state: "error", message: errorText(error) } })),
+    );
   };
+  const idx = SCENES.indexOf(current);
 
   return (
     <main>
       <section className="sec pagetop page-intro">
         <div className="wrap">
-          <span className="label">{DEMO.label}</span>
-          <h1 className="h2">{DEMO.title}</h1>
-          <p className="lede ink">{DEMO.lede}</p>
+          <h1 className="h1">{DEMO.title}</h1>
+          <p className="lede">{DEMO.lede}</p>
         </div>
       </section>
       <section className="sec tight">
         <div className="wrap demo">
-          <div className="scenes" role="list">
+          <ol className="scenes">
             {SCENES.map((id, i) => (
-              <div role="listitem" key={id} className={`scene${id === current ? " on" : ""}`}>
-                <button type="button" onClick={() => play(id)} aria-pressed={id === current && run.shown > 0} data-scene={id}>
-                  <b>
-                    <span className="scene-n num">{i + 1}</span> {DEMO.scenes[id].name}
-                  </b>
-                  <span>{DEMO.scenes[id].line}</span>
-                  <em>{id === current && run.shown > 0 ? DEMO.replay : DEMO.run}</em>
+              <li key={id} className={id === current ? "scene on" : "scene"}>
+                <button type="button" onClick={() => setCurrent(id)} aria-current={id === current ? "step" : undefined} data-scene={id}>
+                  <span className="scene-n num">{i + 1}</span>
+                  <span className="scene-t">
+                    <b>{DEMO.scenes[id].name}</b>
+                    <span>{DEMO.scenes[id].line}</span>
+                  </span>
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
-          <Stage id={current} run={run} />
+          </ol>
+          <Stage id={current} run={runs[current] ?? null} onRun={() => play(current)} onNext={() => setCurrent(SCENES[idx + 1]!)} hasNext={idx < SCENES.length - 1} />
         </div>
       </section>
       <Comparison />

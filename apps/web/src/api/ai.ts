@@ -79,6 +79,8 @@ export interface ReputationView {
   tier: Tier;
   proven_calls: number;
   refused_calls: number;
+  capped_calls: number;
+  blocked_payees: number;
   claims: number;
   clean_calls: number;
   next_tier_at: number | null;
@@ -137,7 +139,7 @@ export interface MutualSummary {
   contract: string;
   pool: PoolView;
   claims: ClaimView[];
-  stats: { total_pooled: string; ward_price: string; launch_price: string; yield_earned: string; groups_covered: number; proven_payments: number; payouts: number };
+  stats: { total_pooled: string; ward_price: string; launch_price: string; yield_earned: string; groups_covered: number; proven_payments: number; payouts: number; below: { swapped: number; lookalike: number; capped: number; total: number } };
   groups: GroupSummary[];
   tiers: TierRules;
   governance: { quorum_bps: number; voting_days: number; proposals: MutualProposalView[] };
@@ -239,6 +241,20 @@ export const poolChallenge = (body: PoolRequest) => apiPost<{ message: string; r
 export const poolSubmit = (body: { nonce: string; publicKey: string; signature: string }) =>
   apiPost<{ action: string; tx?: string; ward?: string; usdc?: string; available_at?: string; position?: PoolPosition; proposal?: MutualProposalView }>("/v1/pool/submit", body);
 
+export interface ProofRow {
+  call_id: string;
+  budget_id: string;
+  group: string;
+  side: "above" | "below";
+  status: "verified" | "refused" | "failed" | "pending";
+  reason: string | null;
+  model_claimed: string;
+  model_proven: string | null;
+  amount: string;
+  refund: string;
+  created_at: string;
+}
+export const getProofs = (limit = 12) => apiGet<{ mode: "sim" | "near"; proofs: ProofRow[] }>(`/v1/proofs?limit=${limit}`);
 export const getMutual = () => apiGet<MutualSummary>("/v1/mutual");
 export const getGroups = () => apiGet<{ mode: "sim" | "near"; groups: GroupSummary[]; tiers: TierRules }>("/v1/groups");
 export const getVoteWeight = (id: number, account: string) => apiGet<{ weight: string }>(`/v1/mutual/proposals/${id}/weight/${encodeURIComponent(account)}`);

@@ -1,59 +1,109 @@
+import type { Page } from "@playwright/test";
 import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
 
 const PAGES = ["#/", "#/groups", "#/proof", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
 
+/** Connects the test wallet for an account through the header's Connect wallet dialog. */
+async function connectWallet(page: Page, account: string) {
+  await page.getByTestId("connect-wallet").click();
+  const dlg = page.getByTestId("connect-dialog");
+  await dlg.getByLabel("NEAR account").fill(account);
+  await dlg.locator('[data-wallet="test-wallet"]').click();
+  await dlg.getByRole("button", { name: "Use this wallet" }).click();
+  await expect(page.getByTestId("connect-wallet")).toContainText(account);
+}
+
+test.describe("brand assets", () => {
+  test("index.html links the favicons, touch icon, manifest, theme color and social card", async ({ request }) => {
+    const html = await (await request.get("/")).text();
+    expect(html).toContain('<link rel="icon" href="/favicon.ico"');
+    expect(html).toContain('<link rel="icon" href="/favicon.svg" type="image/svg+xml"');
+    expect(html).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png"');
+    expect(html).toContain('<link rel="manifest" href="/site.webmanifest"');
+    expect(html).toContain('<meta name="theme-color" content="#0E0912"');
+    expect(html).toMatch(/<meta property="og:image" content="https:\/\/[^"]+\/og-image\.png"/);
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image"');
+    const manifest = (await (await request.get("/site.webmanifest")).json()) as { name: string; theme_color: string; background_color: string; icons: { src: string }[] };
+    expect(manifest).toMatchObject({ name: "Wardline", theme_color: "#0E0912", background_color: "#0E0912" });
+    for (const path of ["/favicon.ico", "/favicon.svg", "/favicon-32.png", "/apple-touch-icon.png", "/og-image.png", ...manifest.icons.map((i) => i.src)]) {
+      expect((await request.get(path)).status(), path).toBe(200);
+    }
+  });
+});
+
 test.describe("public site", () => {
-  test("home is the Mutual: headline, live stats, three layers, safest groups, nav", async ({ page }) => {
+  test("home: the hero, both sides of the line with real counts, the safest groups and the nav", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Wardline is a credit union for the AI economy.");
-    await expect(page.locator(".hero p")).toContainText("Back the AI economy and earn from it.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("A credit union for the AI economy.");
+    await expect(page.locator(".hero-sub")).toContainText("Anything that can't prove itself stays below the line.");
     const stats = page.getByTestId("home-stats");
-    await expect(stats.locator(".l")).toHaveText(["Total pooled", "WARD price", "Yield earned", "Groups covered", "Proven AI payments", "Payouts made"]);
-    await expect(stats).toContainText("since launch");
-    await expect(page.locator(".layers .spec b")).toHaveText(["1 The Mutual", "2 Groups", "3 The proof engine"]);
+    await expect(stats.locator("dt")).toHaveText(["Pooled by members", "WARD price", "Paid above the line", "Kept below it"]);
+    await expect(stats).toContainText("since launch at 1.0000");
+    await expect(stats.locator(".below-text")).toHaveText(/^\d+$/);
+    const sides = page.getByTestId("sides");
+    await expect(sides.locator(".above h3")).toHaveText("Above the line");
+    await expect(sides.locator(".above li b")).toHaveText(["The model is proven", "The payee is real", "It fits the budget"]);
+    const below = page.getByTestId("below-panel");
+    await expect(below.locator("h3")).toHaveText("Below the line");
+    await expect(below.locator('[data-kind="swapped"]')).toContainText("Swapped models");
+    await expect(below.locator('[data-kind="lookalike"]')).toContainText("Look-alike payees");
+    await expect(below.locator('[data-kind="capped"]')).toContainText("Leaked keys");
     const board = page.getByTestId("leaderboard");
     await expect(board.locator("tbody tr").first()).toContainText("Mission Street hacker house");
-    await expect(board.locator("tbody tr").first().locator(".tierb")).toHaveAttribute("data-tier", "gold");
-    await expect(board.locator('tr[data-budget="bgt_kelp"]')).toContainText("Bronze");
+    await expect(board.locator("tbody tr").first().locator(".tier-name")).toHaveText("Gold");
+    await expect(board.locator('tr[data-budget="bgt_kelp"] .tier-name')).toHaveText("Bronze");
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
     await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "Demo", "Connect", "About"]);
     await expect(nav.first()).toHaveAttribute("aria-current", "page");
-    await page.getByRole("link", { name: "Start a group" }).first().click();
-    await expect(page).toHaveURL(/#\/groups$/);
+    await expect(page.getByRole("link", { name: "Watch the demo" })).toHaveAttribute("href", "#/demo");
     await page.getByLabel("Wardline home").first().click();
     await expect(page).toHaveURL(/#\/$/);
-    await page.getByRole("button", { name: "Join the Mutual" }).click();
-    await expect(page.locator("#join-account")).toBeFocused();
   });
 
-  test("proof engine: the old home, feature rows and red-team results", async ({ page }) => {
-    await page.goto("/#/proof");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("AI that only pays on proof.");
-    await expect(page.locator(".spec b")).toHaveText(["Proof of delivery", "Proof of payee", "Hard cap", "Protocol-backed coverage", "One-line plug-in"]);
-    const strip = page.locator(".strip.results");
-    await expect(strip).toContainText("100%");
-    await expect(page.locator(".engine-note")).toContainText("stub rules engine");
+  test("hero: a static sphere under reduced motion, the cut and assembly otherwise", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#/");
+    const hero = page.locator("svg.hero-horizon");
+    await expect(hero).toHaveAttribute("data-static", "true");
+    await expect(hero.locator("circle.rise, circle.drop")).toHaveCount(0);
+    expect(await hero.locator(".hero-cut").evaluate((el) => getComputedStyle(el).strokeDashoffset)).toMatch(/^0(px)?$/);
+    const r1 = await hero.locator("circle").nth(40).getAttribute("r");
+    await page.waitForTimeout(600);
+    expect(await hero.locator("circle").nth(40).getAttribute("r")).toBe(r1);
+
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await expect(hero).toHaveAttribute("data-static", "false");
+    expect(await hero.locator("circle.rise").count()).toBeGreaterThan(100);
+    expect(await hero.locator("circle.drop").count()).toBeGreaterThan(100);
+    // After the cut and the assembly, the light drifts: radii change without any React render.
+    const before = await hero.locator("circle").nth(40).getAttribute("r");
+    await expect.poll(async () => hero.locator("circle").nth(40).getAttribute("r"), { timeout: 8_000 }).not.toBe(before);
   });
 
-  test("groups: tier table, every group with its tier, fee, coverage and history, and how to start one", async ({ page }) => {
-    await page.goto("/#/groups");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("One shared AI budget");
-    const tiers = page.getByTestId("tier-table").locator("tbody tr");
-    await expect(tiers).toHaveCount(3);
-    await expect(tiers.nth(0)).toContainText("2.00%");
-    await expect(tiers.nth(1)).toContainText("1.50%");
-    await expect(tiers.nth(2)).toContainText("1.00%");
-    await expect(tiers.nth(1)).toContainText("10 clean proven calls in a row at Bronze");
-    const mission = page.locator('.gcard[data-budget="bgt_mission"]');
-    await expect(mission).toHaveAttribute("data-tier", "gold");
-    await expect(mission).toContainText("Top tier");
-    const kelp = page.locator('.gcard[data-budget="bgt_kelp"]');
-    await expect(kelp).toHaveAttribute("data-tier", "bronze");
-    await expect(kelp.locator(".gfacts")).toContainText("Claims1");
-    await expect(page.locator('.gcard[data-budget="bgt_nightshade"]')).toContainText("more clean proven calls to Gold");
-    await expect(page.locator(".start-steps li")).toHaveCount(4);
-    await expectAccessible(page);
+  test("hero: nothing listens to the mouse", async ({ page }) => {
+    await page.addInitScript(() => {
+      const seen: string[] = [];
+      (window as unknown as { __moves: string[] }).__moves = seen;
+      const add = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function (type: string, ...rest: unknown[]) {
+        if (/^(mousemove|pointermove|mouseover|pointerover)$/.test(type)) {
+          const el = this as unknown as Element;
+          const where = this === window ? "window" : this === document ? "document" : el.closest?.(".hero") ? "hero" : el.id === "root" ? "react-root" : (el.tagName ?? "other");
+          seen.push(`${type}@${where}`);
+        }
+        return (add as (...a: unknown[]) => void).call(this, type, ...rest);
+      };
+    });
+    await page.goto("/#/");
+    await expect(page.locator("svg.hero-horizon")).toBeVisible();
+    await page.waitForTimeout(800);
+    const moves = await page.evaluate(() => (window as unknown as { __moves: string[] }).__moves);
+    // React delegates its own events at its root; nothing else may listen for mouse movement.
+    expect(moves.filter((m) => !m.endsWith("@react-root"))).toEqual([]);
+    expect(await page.locator(".hero [onmousemove], .hero [onpointermove]").count()).toBe(0);
   });
 
   test("try it: resolve gives PAY with a receipt the browser verifies; check blocks a look-alike", async ({ page }) => {
@@ -73,90 +123,105 @@ test.describe("public site", () => {
     await expect(card.locator(".tier")).toContainText("Not verified");
   });
 
-  test("demo: seven scenes end in real results, then the red-team numbers", async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
+  test("demo: seven scenes run the real endpoints, each lands above or below the line, then the red-team numbers", async ({ page }) => {
     await page.goto("/#/demo");
     await expect(page.locator("[data-scene]")).toHaveCount(7);
-    const out = page.locator(".stage .scene-out");
+    const stage = page.getByTestId("stage");
+    const run = async (id: string) => {
+      await page.locator(`[data-scene="${id}"]`).click();
+      await stage.locator(`[data-run="${id}"]`).click();
+      const out = stage.locator(`[data-scene-result="${id}"]`);
+      await expect(out).toBeVisible({ timeout: 15_000 });
+      return out;
+    };
 
-    await page.locator('[data-scene="mutual"]').click();
-    await expect(out).toHaveAttribute("data-outcome", "deposited");
+    let out = await run("mutual");
+    await expect(out).toHaveAttribute("data-outcome", "above");
+    await expect(out.locator(".verdict")).toContainText("Above the line:");
     await expect(out).toContainText("maya.testnet");
     await expect(out).toContainText("sim-deposit-");
 
-    await page.locator('[data-scene="group"]').click();
-    await expect(out).toHaveAttribute("data-outcome", "verified");
-    await expect(out).toContainText("Hayes Valley hacker house");
+    out = await run("group");
+    await expect(out.locator(".verdict")).toHaveText("Above the line: 8 calls paid on proof");
     await expect(out).toContainText("DeepSeek-V4.1-Flash-1017");
-    await expect(out.getByTestId("ward-tick")).toContainText("1.000000 to 1.000500 USDC");
+    await expect(out).toContainText("1.000000 to 1.000500");
 
-    await page.locator('[data-scene="swap"]').click();
-    await expect(out).toHaveAttribute("data-outcome", "refused");
+    out = await run("swap");
+    await expect(out).toHaveAttribute("data-outcome", "below");
+    await expect(out.locator(".verdict")).toHaveText("Below the line: refused and refunded");
     await expect(out).toContainText("The signature names a different model.");
-    await expect(out.locator(".out-row.mismatch")).toContainText("glm-5.3-flash");
+    await expect(out.locator("dd.t-below")).toContainText("glm-5.3-flash");
 
-    await page.locator('[data-scene="leak"]').click();
+    out = await run("leak");
+    await expect(out.locator(".verdict")).toHaveText("Below the line: capped at 15.00 USDC");
     await expect(out).toContainText("Spent 15.00 of 15.00 USDC");
     await expect(out).toContainText("50 requests refused with 402");
 
-    await page.locator('[data-scene="invoice"]').click();
-    await expect(out).toHaveAttribute("data-outcome", "flagged");
+    out = await run("invoice");
+    await expect(out.locator(".verdict")).toHaveText("Below the line: blocked before the vote");
     await expect(out).toContainText("northw1nd.testnet");
-    await expect(page.locator(".stage .result")).toHaveAttribute("data-verdict", "BLOCK");
+    await expect(out.locator(".result")).toHaveAttribute("data-verdict", "BLOCK");
 
-    await page.locator('[data-scene="payout"]').click();
-    await expect(out).toHaveAttribute("data-outcome", "paid");
-    const first = out.locator('[data-payout="1"]');
-    const second = out.locator('[data-payout="2"]');
-    await expect(first).toContainText("Paid by Wardline's stake8.00 USDC");
-    await expect(first).toContainText("1.0000 to 1.0000 USDC");
-    await expect(second).toContainText("Paid by WARD holders0.50 USDC");
-    await expect(second.locator(".out-row.mismatch")).toContainText("1.0000 to 0.9958 USDC");
-    await expect(out.getByTestId("refill")).toContainText("0.9958 to 1.0000 USDC");
+    out = await run("payout");
+    await expect(out).toContainText("Paid by Wardline's stake 8.00, paid by ward holders 0.00");
+    await expect(out).toContainText("1.0000 to 0.9958");
+    await expect(out).toContainText("0.9958 to 1.0000");
 
-    await page.locator('[data-scene="tier"]').click();
-    await expect(out).toHaveAttribute("data-outcome", "silver");
-    await expect(out).toContainText("Fee on call 10.0100 USDC");
-    await expect(out).toContainText("Fee on call 110.0075 USDC");
+    out = await run("tier");
+    await expect(out).toHaveAttribute("data-outcome", "tier");
+    await expect(out.locator(".verdict")).toHaveText("Silver: the fee drops to 1.50%");
+    await expect(out).toContainText("0.0100 USDC");
+    await expect(out).toContainText("0.0075 USDC");
+
+    // Next scene moves along the list.
+    await page.locator('[data-scene="swap"]').click();
+    await stage.getByRole("button", { name: "Next scene" }).click();
+    await expect(stage.locator("h2")).toHaveText("Leaked key");
 
     const rows = page.locator(".cmp-row");
     await expect(rows.nth(0)).toContainText("5 of 20");
     await expect(rows.nth(1)).toContainText("0 of 20");
   });
 
-  test("demo: steps play in order when motion is allowed", async ({ page }) => {
-    await page.goto("/#/demo");
-    await page.locator('[data-scene="swap"]').click();
-    await expect(page.locator(".steps li.on")).toHaveCount(1);
-    await expect(page.locator(".stage .scene-out")).toHaveAttribute("data-outcome", "refused", { timeout: 10_000 });
-    await expect(page.locator(".steps li.on")).toHaveCount(3);
-  });
-
-  test("join the Mutual: any wallet deposits USDC for WARD, no group needed, then a 7-day redemption", async ({ page, wallets }) => {
+  test("join the Mutual: a dialog with quick picks, our stake in front, a wallet approval, then the member card and a 7-day redemption", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
-    await page.goto("/#/mutual");
-    await expect(page.getByRole("heading", { level: 2, name: "Anyone can deposit. No group needed." })).toBeVisible();
-    const ward = page.getByTestId("ward-panel");
-    await expect(ward).toContainText("Earn a share of every fee by backing the proofs.");
-    await expect(ward).toContainText("Yield-bearing, loss-sharing.");
-    expect(Number(await page.getByTestId("ward-price").textContent())).toBeGreaterThanOrEqual(1);
-    await expect(page.getByTestId("trade-ward")).toHaveCount(0);
-    await expect(page.locator(".lose-first")).toContainText("We lose first.");
-    await page.locator("#join-account").fill(OWNER_ACCOUNT);
-    await page.getByLabel("Amount (USDC)").fill("20");
-    await page.locator('.pool-form [data-wallet="test-wallet"]').click();
-    await expect(page.getByTestId("pool-done")).toContainText("Received");
-    await expect(page.getByTestId("pool-done")).toContainText("WARD. sim-deposit-");
-    const position = page.getByTestId("pool-position");
-    await expect(position).toContainText("Balance");
-    await page.getByRole("tab", { name: "Redeem WARD" }).click();
-    await expect(page.locator(".pool-form")).toContainText("locks your WARD for 7 days");
-    await page.getByLabel("WARD to redeem").fill("5");
-    await page.locator('.pool-form [data-wallet="test-wallet"]').click();
-    await expect(page.getByTestId("pool-done")).toContainText("WARD locked. Redeemable from");
-    await expect(page.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
-    await expect(position).toContainText("Locked for redemption");
+    await page.goto("/#/");
+    const opener = page.locator(".hero").getByRole("button", { name: "Become a member" });
+    await opener.click();
+    const dlg = page.getByTestId("join-dialog");
+    await expect(dlg).toBeVisible();
+    await expect(dlg.getByRole("heading", { name: "Join the Mutual" })).toBeVisible();
+    // Escape closes and focus returns to the opener.
+    await page.keyboard.press("Escape");
+    await expect(dlg).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    await opener.click();
+    await dlg.getByRole("button", { name: "100", exact: true }).click();
+    await expect(dlg.getByLabel("Amount in USDC")).toHaveValue("100");
+    await expect(dlg).toContainText("You receive");
+    await expect(dlg).toContainText("Our stake in front of yours");
+    await dlg.getByRole("button", { name: "10", exact: true }).click();
+    await dlg.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
+    await dlg.locator('[data-wallet="test-wallet"]').click();
     await expectAccessible(page);
+    await dlg.getByRole("button", { name: "Deposit 10.00 USDC" }).click();
+    await expect(dlg.getByTestId("join-done")).toContainText("You received");
+    await expect(dlg.getByTestId("join-done")).toContainText("WARD");
+    await dlg.getByRole("button", { name: "Go to my share" }).click();
+    await expect(dlg).toHaveCount(0);
+    await expect(page.getByTestId("connect-wallet")).toContainText(OWNER_ACCOUNT);
+
+    const card = page.getByTestId("member-card");
+    const position = card.getByTestId("pool-position");
+    await expect(position).toContainText("WARD held");
+    await expect(position).toContainText(OWNER_ACCOUNT);
+    await card.getByText("Redeem WARD").click();
+    await expect(card).toContainText("locks your WARD for 7 days");
+    await card.getByLabel("WARD to redeem").fill("5");
+    await card.getByRole("button", { name: "Lock for redemption" }).click();
+    await expect(card.getByTestId("pool-done")).toContainText("WARD locked. Redeemable from");
+    await expect(card.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
+    await expect(position).toContainText("Locked for redemption");
   });
 
   test("governance: WARD holders vote with their wallet, anyone executes a passed proposal, once", async ({ page, wallets }) => {
@@ -170,22 +235,58 @@ test.describe("public site", () => {
     const mine = gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" });
     await expect(mine).toHaveAttribute("data-status", "open");
     await expect(mine.getByRole("button", { name: "Vote for" })).toBeDisabled();
-    await gov.getByLabel("Vote as").fill(OWNER_ACCOUNT);
-    await gov.locator('.voter [data-wallet="test-wallet"]').click();
+    await connectWallet(page, OWNER_ACCOUNT);
+    await expect(gov.locator(".voter")).toContainText(OWNER_ACCOUNT);
     await expect(mine).toContainText(/Your vote: [0-9.]+ WARD/);
     const weight = (/Your vote: ([0-9.]+) WARD/.exec((await mine.textContent()) ?? "") ?? [])[1] ?? "";
     await mine.getByRole("button", { name: "Vote for" }).click();
     await expect(mine.getByRole("status")).toContainText("Vote counted: for.");
     await expect(gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" }).locator(".prop-facts")).toContainText(`For${weight} WARD`);
 
-    const late = gov.locator(".prop", { hasText: "Lower the Silver fee to 1.25%" });
-    await expect(late).toContainText("You held no WARD when this opened.");
+    await expect(gov.locator(".prop", { hasText: "Lower the Silver fee to 1.25%" })).toContainText("You held no WARD when this opened.");
 
     const passed = gov.locator('.prop[data-status="passed"]', { hasText: "Raise coverage to 1.25x" });
     await passed.getByRole("button", { name: "Execute" }).click();
     await expect(gov.locator('.prop[data-status="executed"]', { hasText: "Raise coverage to 1.25x" })).toBeVisible();
     await expect(gov.locator('.prop[data-status="passed"]', { hasText: "Raise coverage to 1.25x" })).toHaveCount(0);
     await expectAccessible(page);
+  });
+
+  test("groups: three tier cards, every group with its own horizon, tier and history, and four steps to start one", async ({ page }) => {
+    await page.goto("/#/groups");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("One shared AI budget for your crew.");
+    const tiers = page.getByTestId("tier-table").locator(".tier-card");
+    await expect(tiers).toHaveCount(3);
+    await expect(tiers.locator(".tier-name")).toHaveText(["Bronze", "Silver", "Gold"]);
+    await expect(tiers.locator(".tc-fee")).toHaveText(["2.00%", "1.50%", "1.00%"]);
+    await expect(tiers.nth(1)).toContainText("10 clean proven calls in a row at Bronze");
+    const mission = page.locator('.gcard[data-budget="bgt_mission"]');
+    await expect(mission).toHaveAttribute("data-tier", "gold");
+    await expect(mission).toContainText("Top tier");
+    await expect(mission.locator("svg.group-horizon")).toBeVisible();
+    const kelp = page.locator('.gcard[data-budget="bgt_kelp"]');
+    await expect(kelp).toHaveAttribute("data-tier", "bronze");
+    await expect(kelp.locator(".gfacts")).toContainText("Claims1");
+    await expect(page.locator('.gcard[data-budget="bgt_nightshade"]')).toContainText("more clean proven calls to Gold");
+    // Each group's horizon has its own light.
+    const a = await mission.locator("svg.group-horizon circle").first().getAttribute("r");
+    const b = await kelp.locator("svg.group-horizon circle").first().getAttribute("r");
+    expect(a).not.toBe(b);
+    await expect(page.locator(".steps-row li b")).toHaveText(["Connect your DAO", "Vote in a budget", "Members get keys", "Change one line"]);
+    await expectAccessible(page);
+  });
+
+  test("proof engine: the one-line snippet, four steps, the latest proofs on each side of the line, and the red-team numbers", async ({ page }) => {
+    await page.goto("/#/proof");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nothing crosses the line without proof.");
+    await expect(page.locator(".snippet")).toContainText("/v1/ai");
+    await expect(page.locator(".steps-row li b")).toHaveText(["Reserve", "Forward", "Prove", "Settle"]);
+    const proofs = page.getByTestId("proofs");
+    await expect(proofs.locator('tr[data-side="above"]').first()).toContainText("Above, paid");
+    await expect(proofs.locator('tr[data-side="below"]').first()).toContainText("Below, refunded");
+    await expect(proofs.locator('tr[data-side="below"] svg.fp-below')).toHaveCount(await proofs.locator('tr[data-side="below"]').count());
+    await expect(page.locator(".stat-row.results")).toContainText("100%");
+    await expect(page.locator(".engine-note")).toContainText("stub rules engine");
   });
 
   test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context }) => {
@@ -322,7 +423,7 @@ test.describe("public site", () => {
     await page.keyboard.press("Tab");
     await page.keyboard.press("Shift+Tab");
     const outline = await input.evaluate((el) => [getComputedStyle(el).outlineStyle, getComputedStyle(el).outlineColor]);
-    expect(outline).toEqual(["solid", "rgb(225, 37, 27)"]);
+    expect(outline).toEqual(["solid", "rgb(165, 155, 255)"]);
   });
 });
 
@@ -404,7 +505,7 @@ test.describe("owner app", () => {
     await signInAs(page, wallets, OWNER_ACCOUNT);
     await expect(page.getByTestId("budget-strip")).toContainText("25.00");
     await expect(page.locator(".group")).toContainText("aurora-lab.sputnikv2.testnet");
-    await expect(page.getByTestId("group-tier").locator(".tierb")).toHaveAttribute("data-tier", "bronze");
+    await expect(page.getByTestId("group-tier").locator(".tier-name")).toHaveText("Bronze");
     await expect(page.getByTestId("group-tier")).toContainText("more clean proven calls to Silver");
     await expect(page.getByTestId("group-tier")).toContainText("Fee 2.00%");
     const calls = page.locator("table.calls tbody tr");
@@ -415,6 +516,26 @@ test.describe("owner app", () => {
     await expect(bad).toHaveAttribute("data-verdict", "BLOCK");
     await expect(page.locator('.payouts li[data-receiver="northwind.testnet"]')).toHaveAttribute("data-verdict", "PAY");
     await expect(page.locator(".proposals")).toContainText("Set ci-agent.testnet's allowance");
+    await expectAccessible(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("my share: the value card, the WARD price chart against launch, where the share came from, and voting", async ({ page, wallets }) => {
+    await page.goto("/#/app/share");
+    await signInAs(page, wallets, OWNER_ACCOUNT);
+    const share = page.getByTestId("my-share");
+    await expect(share.locator(".vc-value")).toContainText("USDC");
+    await expect(share).toContainText(OWNER_ACCOUNT);
+    const chart = page.getByTestId("price-chart");
+    await expect(chart.locator(".pc-launch")).toHaveCount(1);
+    await expect(chart.locator(".pc-above")).toHaveAttribute("clip-path", /#above-/);
+    await expect(chart.locator(".pc-below")).toHaveAttribute("clip-path", /#below-/);
+    await expect(chart.locator(".pc-dot")).toHaveCount(1);
+    await expect(share.locator(".sources li").first()).toContainText("Launch at 1.0000 USDC");
+    await expect(share.locator('.sources li[data-event="claim"]')).toContainText("Our stake paid 1.50 USDC first");
+    await expect(share.getByTestId("governance")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Dashboard" }).getByRole("link", { name: "My share" })).toHaveAttribute("aria-current", "page");
     await expectAccessible(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoHorizontalScroll(page);

@@ -17,10 +17,12 @@ import { Invoices } from "./Invoices";
 import { Overview } from "./Overview";
 import { ApiKeys } from "./owner/ApiKeys";
 import { ReviewDesk } from "./owner/ReviewDesk";
+import { Share } from "./owner/Share";
 import { SignIn } from "./owner/SignIn";
 
 const TABS: readonly { tab: DashboardTab; label: string }[] = [
   { tab: "overview", label: OWNER.tabs.overview },
+  { tab: "share", label: OWNER.tabs.share },
   { tab: "group", label: OWNER.tabs.group },
   { tab: "invoices", label: OWNER.tabs.invoices },
   { tab: "review", label: OWNER.tabs.review },
@@ -122,10 +124,23 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
       <div className={paused ? "paused" : ""}>
         <header className="top app-top">
           <div className="wrap">
-            <div className="dash-brand">
-              <Logo markSize={26} textSize={20} />
-              <Tabs label="Dashboard" items={TABS.map((t) => ({ href: `#/app/${t.tab}`, label: t.label, current: t.tab === tab }))} />
+            <Logo />
+            <Tabs label="Dashboard" items={TABS.map((t) => ({ href: `#/app/${t.tab}`, label: t.label, current: t.tab === tab }))} />
+            <div className="whoami">
+              <span className="acct" title={session.role}>
+                {session.account}
+              </span>
+              <span className="role">{session.role}</span>
+              {session.account !== "local" && (
+                <button type="button" className="btn ghost sm" onClick={onSignOut}>
+                  {OWNER.signOut}
+                </button>
+              )}
             </div>
+          </div>
+        </header>
+        <div className="app-bar">
+          <div className="wrap">
             <div className="dash-actions">
               {simulation.data?.enabled && <button type="button" disabled={simulationBusy} aria-pressed={simulation.data.compromised}
                 onClick={() => void toggleSimulation()}>{simulation.data.compromised ? "Simulated compromise ON" : "Simulate compromised agent"}</button>}
@@ -156,7 +171,7 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
               </button>
             </div>
           </div>
-        </header>
+        </div>
 
         <div className="appmain" key={`${tab}-${vaultId}`}>
           {simulation.data?.compromised && <p className="notice" role="status">Simulated compromised agent: invoices attempt payment without safety checks. Vault limits still apply.</p>}
@@ -166,29 +181,19 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
               {pauseError}
             </p>
           )}
-          {overview.error && <LoadError message={overview.error} />}
-          {!overview.error && !data && <Loading />}
-          {data && (
+          {tab === "share" && <Share account={session.account} version={version} />}
+          {tab !== "share" && overview.error && <LoadError message={overview.error} />}
+          {tab !== "share" && !overview.error && !data && <Loading />}
+          {tab !== "share" && data && (
             <>
               <div className="apphead">
                 <div>
                   <h1>{businessName(data.vault_id)}</h1>
                   <div className="sub">
-                    {data.vault_id} · agent version {data.manifest.version}
+                    {data.vault_id}, agent version {data.manifest.version}
                   </div>
                 </div>
                 <div className="apphead-side">
-                  <div className="whoami">
-                    <span className="mono" title={session.role}>
-                      {session.account}
-                    </span>
-                    <span className="role">{session.role}</span>
-                    {session.account !== "local" && (
-                      <button type="button" className="back" onClick={onSignOut}>
-                        {OWNER.signOut}
-                      </button>
-                    )}
-                  </div>
                   <div className="sub">Amounts in {data.token.symbol}</div>
                 </div>
               </div>
