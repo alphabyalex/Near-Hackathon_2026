@@ -65,7 +65,8 @@ button.link{background:none;border:0;padding:0;font:inherit;font-weight:600;curs
 .fine,.engine-note{margin:16px 0 0;font-size:14px;color:var(--muted);max-width:80ch}
 .loading{margin:24px 0;font-size:14px;color:var(--muted)}
 .empty{margin:0;padding:18px 0;font-size:15px;color:var(--muted)}
-.notice{margin:0 0 20px;padding:12px 14px;border:1px solid var(--red-edge);background:var(--red-wash);color:var(--red-text);font-size:14px;border-radius:12px}
+/* Failures are not below the line, so they are never red: say what happened and what to do next. */
+.notice{margin:0 0 20px;padding:12px 14px;border:1px solid var(--rule-strong);background:var(--surface-2);color:var(--text);font-size:14px;border-radius:12px}
 .ok-line{margin:0;font-size:14px;color:var(--text);overflow-wrap:anywhere}
 .more{margin:20px 0 0}
 

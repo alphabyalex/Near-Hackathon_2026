@@ -1,6 +1,7 @@
 /** The proof engine: why the Mutual's yield is safe. */
 import { useEffect, useState } from "react";
-import { getProofs, type ProofRow } from "../../api/ai";
+import { Problem } from "../../components/Problem";
+import { getProofs, type ProofRow } from "../../data/proofs";
 import { callWords, modelName } from "../../ai/words";
 import { PROOF } from "../../brand";
 import { CodeBlock } from "../../components/CodeBlock";
@@ -61,20 +62,23 @@ export function ResultsStrip() {
 
 function LatestProofs() {
   const [rows, setRows] = useState<ProofRow[] | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
+    setError(null);
     getProofs(12).then(
       (r) => setRows(r.proofs),
-      () => setError(true),
+      (e: unknown) => setError(e),
     );
-  }, []);
+  }, [tick]);
   return (
     <section className="sec" aria-labelledby="latest-title">
       <div className="wrap">
         <h2 className="h2" id="latest-title">
           {PROOF.latestTitle}
         </h2>
-        {error && <p className="empty">{PROOF.latestEmpty}</p>}
+        {error !== null && <Problem error={error} onRetry={() => setTick((t) => t + 1)} />}
+        {rows === null && error === null && <div className="skel-card proofs-skel" aria-hidden="true" />}
         {rows && rows.length === 0 && <p className="empty">{PROOF.latestEmpty}</p>}
         {rows && rows.length > 0 && (
           <div className="scrollx" role="region" aria-label={PROOF.latestTitle} tabIndex={0}>

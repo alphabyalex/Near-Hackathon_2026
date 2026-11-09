@@ -360,3 +360,48 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .stat-row>div+div{padding-left:12px}
   .stat-row>div:nth-child(3){padding-left:0}
 }
+
+/* Problems: what happened, what to do next */
+.problem{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:18px 20px;background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--r-card);color:var(--text);max-width:640px}
+.problem b{font-size:17px;font-weight:700;letter-spacing:-0.015em}
+.problem span{font-size:15px;color:var(--text-2)}
+.problem .btn{margin-top:8px}
+.problem.compact{padding:12px 14px;border-radius:12px;gap:2px;max-width:none}
+.problem.compact b{font-size:15px}
+.problem.compact span{font-size:14px}
+.light .problem{background:var(--bg)}
+.state-wrap{padding-top:48px;padding-bottom:48px}
+
+/* Loading: static blocks at the real size, so nothing shifts when numbers arrive */
+.skel{display:block;background:var(--surface-2);border-radius:8px}
+.skel-label{width:110px;height:14px}
+.skel-value{width:140px;height:40px;margin-top:10px}
+.skel-text{color:transparent!important;background:var(--surface-2);border-radius:8px;width:fit-content}
+.skel-title{width:min(560px,80%);height:56px;margin-bottom:28px}
+.skel-card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card-lg)}
+.sides-skel{height:420px}
+.groups-skel{height:560px;margin-top:40px}
+.proofs-skel{height:360px}
+.skel-card.value-card{min-height:360px}
+.skel-card.tall{min-height:360px}
+
+/* Explorer links: small, quiet, never a pill */
+.tx-link{font-size:13px;font-weight:600;color:var(--violet-text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;white-space:nowrap}
+.tx-link:hover{color:var(--text)}
+.tx-id{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+
+/* #/me */
+.me-empty{display:flex;flex-direction:column;align-items:flex-start;gap:16px;padding:36px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card-lg);max-width:640px}
+.me-empty p{margin:0;font-size:20px;font-weight:600;letter-spacing:-0.02em}
+.me-body{display:flex;flex-direction:column;gap:24px}
+.me-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:stretch}
+.me-grid .value-card .btn{align-self:flex-start;margin-top:14px}
+.me-redeem h2{margin:0 0 6px;font-size:18px;font-weight:700}
+.me-list{margin:0;padding:0;list-style:none}
+.me-list li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 20px;padding:14px 0;border-bottom:1px solid var(--rule-2);font-size:15px;color:var(--text-2)}
+.me-list li:last-child{border-bottom:0}
+.me-weight{margin:18px 0 -6px;font-size:14px;color:var(--violet-text)}
+.vote-for{color:var(--text)}
+.vote-against{color:var(--text-2)}
+@media (max-width:980px){.me-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.me-empty{padding:24px 20px}}

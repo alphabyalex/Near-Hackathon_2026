@@ -1,7 +1,8 @@
 /** Groups: shared AI budgets from a DAO treasury, reputation tiers, every covered group and how to start one. */
 import { useEffect, useState } from "react";
-import { getGroups, type GroupSummary, type TierRules } from "../../api/ai";
-import { errorText } from "../../api/public";
+import type { GroupSummary, TierRules } from "../../api/ai";
+import { Problem } from "../../components/Problem";
+import { getGroups } from "../../data/groups";
 import { GROUPS, REP } from "../../brand";
 import { GroupHorizon } from "../../components/HorizonMark";
 import { feeText, TierBadge } from "../../components/TierBadge";
@@ -93,10 +94,12 @@ function TierCards({ tiers }: { tiers: TierRules }) {
 
 export function Groups() {
   const [data, setData] = useState<{ groups: GroupSummary[]; tiers: TierRules } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    getGroups().then(setData, (e: unknown) => setError(errorText(e)));
-  }, []);
+    setError(null);
+    getGroups().then(setData, (e: unknown) => setError(e));
+  }, [tick]);
 
   return (
     <main>
@@ -106,16 +109,17 @@ export function Groups() {
           <p className="lede">{GROUPS.lede}</p>
         </div>
       </section>
-      {error && (
-        <div className="wrap">
-          <p className="notice" role="alert">
-            {error}
-          </p>
+      {error !== null && (
+        <div className="wrap state-wrap">
+          <Problem error={error} onRetry={() => setTick((t) => t + 1)} />
         </div>
       )}
-      {!data && !error && (
-        <div className="wrap">
-          <p className="loading">Loading groups</p>
+      {!data && error === null && (
+        <div className="wrap" aria-busy="true">
+          <p className="sr-only" role="status">
+            Loading groups
+          </p>
+          <div className="skel-card groups-skel" aria-hidden="true" />
         </div>
       )}
       {data && (

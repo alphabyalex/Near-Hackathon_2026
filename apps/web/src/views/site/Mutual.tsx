@@ -1,7 +1,5 @@
 /** Shared helpers for the Mutual: prices, countdowns, and signing a Mutual request with the holder's wallet. */
 import { useEffect, useState } from "react";
-import { poolChallenge, poolSubmit, type PoolRequest } from "../../api/ai";
-import { fromBase64, signNep413, type NearWalletId } from "../../wallets/near";
 
 export const share = (part: string, whole: string): number => (BigInt(whole) === 0n ? 0 : Number((BigInt(part) * 10_000n) / BigInt(whole)) / 100);
 /** A price scaled by 1e6 as USDC with four places. */
@@ -31,9 +29,4 @@ export function countdown(availableAt: string, now: number): string | null {
   return days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`;
 }
 
-/** Signs a Mutual request (deposit, redeem, vote, propose) with the account's own NEAR wallet. */
-export async function signMutual(walletId: NearWalletId, body: PoolRequest) {
-  const ch = await poolChallenge(body);
-  const signed = await signNep413(walletId, { message: ch.message, recipient: ch.recipient, nonce: fromBase64(ch.nonce) }, body.account);
-  return poolSubmit({ nonce: ch.nonce, publicKey: signed.publicKey, signature: signed.signature });
-}
+export { signMutual } from "../../data/mutual";

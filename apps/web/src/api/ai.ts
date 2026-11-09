@@ -137,6 +137,8 @@ export interface MutualSummary {
   mode: "sim" | "near";
   mutual_mode: "sim" | "near";
   contract: string;
+  /** Smallest deposit, atomic USDC. */
+  min_deposit: string;
   pool: PoolView;
   claims: ClaimView[];
   stats: { total_pooled: string; ward_price: string; launch_price: string; yield_earned: string; groups_covered: number; proven_payments: number; payouts: number; below: { swapped: number; lookalike: number; capped: number; total: number } };
@@ -228,6 +230,9 @@ export interface PoolPosition {
   ward_locked: string;
   value: string;
   pending_withdrawals: { id: string; ward: string; value: string; requested_at: string; available_at: string }[];
+  deposited?: string;
+  redeemed?: string;
+  joined_at?: string | null;
 }
 
 export const getPool = () => apiGet<{ mode: "sim" | "near"; contract: string; pool: PoolView; claims: ClaimView[] }>("/v1/pool");

@@ -1,7 +1,8 @@
 /** My share: the signed-in account's WARD, the price since launch, voting, and every change in WARD's price. */
 import { useEffect, useState } from "react";
-import { getMutual, getPosition, type MutualSummary, type PoolPosition } from "../../api/ai";
+import type { MutualSummary, PoolPosition } from "../../api/ai";
 import { errorText } from "../../api/public";
+import { getMutual, getPosition } from "../../data/mutual";
 import { SHARE } from "../../brand";
 import { HorizonMark } from "../../components/HorizonMark";
 import { LoadError, Loading } from "../../components/Loading";

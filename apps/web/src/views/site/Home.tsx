@@ -1,7 +1,8 @@
 /** The Mutual, which is the home page: the hero, the two sides of the line, holding a share, voting and the safest groups. */
 import { useEffect, useState } from "react";
-import { getMutual, type GroupSummary, type MutualSummary } from "../../api/ai";
-import { errorText } from "../../api/public";
+import type { GroupSummary, MutualSummary } from "../../api/ai";
+import { Problem } from "../../components/Problem";
+import { getMutual } from "../../data/mutual";
 import { HOME, REP } from "../../brand";
 import { HeroHorizon } from "../../components/HeroHorizon";
 import { feeText, TierBadge } from "../../components/TierBadge";
@@ -123,6 +124,36 @@ function Sides({ m }: { m: MutualSummary }) {
   );
 }
 
+/** The stats strip and the two sides, at their real size, while the numbers load. */
+function HomeSkeleton() {
+  return (
+    <div aria-busy="true" data-testid="home-loading">
+      <p className="sr-only" role="status">
+        Loading the Mutual
+      </p>
+      <section className="stats" aria-hidden="true">
+        <div className="wrap">
+          <dl className="stat-row skel-row">
+            {[HOME.stats.pooled, HOME.stats.price, HOME.stats.above, HOME.stats.below].map((label) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd className="num skel-text">000.00</dd>
+                <dd className="stat-note skel-text">0000000000</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+      <section className="sec" aria-hidden="true">
+        <div className="wrap">
+          <span className="skel skel-title" />
+          <div className="skel-card sides-skel" />
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?: number }) {
   const rows = limit ? groups.slice(0, limit) : groups;
   return (
@@ -160,30 +191,30 @@ export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?:
 
 export function Home() {
   const [m, setM] = useState<MutualSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
   const [joining, setJoining] = useState(false);
   const refresh = () => setTick((t) => t + 1);
   useEffect(() => {
-    getMutual().then(setM, (e: unknown) => setError(errorText(e)));
+    getMutual().then(
+      (v) => {
+        setM(v);
+        setError(null);
+      },
+      (e: unknown) => setError(e),
+    );
   }, [tick]);
   const join = () => m && setJoining(true);
 
   return (
     <main>
       <Hero onJoin={join} />
-      {error && (
-        <div className="wrap">
-          <p className="notice" role="alert">
-            {error}
-          </p>
+      {error !== null && !m && (
+        <div className="wrap state-wrap">
+          <Problem error={error} onRetry={refresh} />
         </div>
       )}
-      {!m && !error && (
-        <div className="wrap">
-          <p className="loading">Loading the Mutual</p>
-        </div>
-      )}
+      {!m && error === null && <HomeSkeleton />}
       {m && <Stats m={m} />}
       {m && <Sides m={m} />}
 
@@ -240,7 +271,7 @@ export function Home() {
         </div>
       </section>
 
-      {joining && m && <JoinDialog pool={m.pool} onClose={() => setJoining(false)} onJoined={refresh} />}
+      {joining && m && <JoinDialog pool={m.pool} minDeposit={m.min_deposit} onClose={() => setJoining(false)} onJoined={refresh} />}
     </main>
   );
 }

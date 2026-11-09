@@ -1,7 +1,10 @@
 /** Connecting a wallet, joining the Mutual, and the member card with redemption. */
 import { useEffect, useMemo, useState } from "react";
-import { getPosition, toAtomic, type PoolPosition, type PoolView } from "../../api/ai";
-import { errorText } from "../../api/public";
+import { toAtomic, type PoolPosition, type PoolView } from "../../api/ai";
+import { Problem } from "../../components/Problem";
+import { TxLink } from "../../components/TxLink";
+import { getPosition } from "../../data/mutual";
+import { navigate } from "../../router";
 import { HOME, JOIN, MEMBER, WALLET } from "../../brand";
 import { Dialog } from "../../components/Dialog";
 import { HorizonMark } from "../../components/HorizonMark";
@@ -73,13 +76,21 @@ export function ConnectDialog({ onClose }: { onClose: () => void }) {
 }
 
 /** The header button: "Connect wallet", or the connected account. */
+/** The header: "Connect wallet", or the connected account, which opens #/me. */
 export function ConnectWallet() {
   const connected = useConnected();
   const [open, setOpen] = useState(false);
+  if (connected) {
+    return (
+      <a className="btn ghost sm acct-btn" href="#/me" data-testid="connect-wallet" aria-label={WALLET.yourShare(connected.account)}>
+        <span className="acct">{connected.account}</span>
+      </a>
+    );
+  }
   return (
     <>
-      <button type="button" className={connected ? "btn ghost sm acct-btn" : "btn ghost sm"} onClick={() => setOpen(true)} data-testid="connect-wallet" {...(connected ? { "aria-label": WALLET.connectedAs(connected.account) } : {})}>
-        {connected ? <span className="acct">{connected.account}</span> : WALLET.connect}
+      <button type="button" className="btn ghost sm" onClick={() => setOpen(true)} data-testid="connect-wallet">
+        {WALLET.connect}
       </button>
       {open && <ConnectDialog onClose={() => setOpen(false)} />}
     </>
@@ -89,18 +100,19 @@ export function ConnectWallet() {
 type JoinStep = { step: "form" } | { step: "approving"; usdc: string } | { step: "done"; ward: string; tx: string };
 
 /** Join the Mutual: amount, what you receive, our stake in front, then the wallet signs the deposit. */
-export function JoinDialog({ pool, onClose, onJoined }: { pool: PoolView; onClose: () => void; onJoined: () => void }) {
+export function JoinDialog({ pool, onClose, onJoined, minDeposit = "1000000" }: { pool: PoolView; onClose: () => void; onJoined: () => void; minDeposit?: string }) {
   const connected = useConnected();
   const f = useWalletFields(connected);
   const [amount, setAmount] = useState("25");
   const [state, setState] = useState<JoinStep>({ step: "form" });
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const atomic = toAtomic(amount);
+  const belowMin = atomic !== null && BigInt(atomic) < BigInt(minDeposit);
   const ward = atomic ? ((BigInt(atomic) * 1_000_000n) / BigInt(pool.ward_price)).toString() : null;
   const usdcText = atomic ? formatUsdc(atomic) : "0.00";
 
   const deposit = async () => {
-    if (!atomic) return setError(JOIN.badAmount);
+    if (!atomic) return setError(new Error(JOIN.badAmount));
     if (!f.wallet || !f.account.trim()) return;
     setError(null);
     setState({ step: "approving", usdc: atomic });
@@ -110,7 +122,7 @@ export function JoinDialog({ pool, onClose, onJoined }: { pool: PoolView; onClos
       setState({ step: "done", ward: res.ward ?? "0", tx: res.tx ?? "" });
       onJoined();
     } catch (e) {
-      setError(errorText(e));
+      setError(e);
       setState({ step: "form" });
     }
   };
@@ -151,12 +163,9 @@ export function JoinDialog({ pool, onClose, onJoined }: { pool: PoolView; onClos
               <WalletPick value={f.wallet} onChange={f.setWallet} />
             </>
           )}
-          {error && (
-            <p className="notice" role="alert">
-              {error}
-            </p>
-          )}
-          <button type="button" className="btn wide" disabled={!atomic || !f.account.trim() || !f.wallet} onClick={() => void deposit()}>
+          {belowMin && <Problem error={{ code: "BELOW_MINIMUM" }} compact />}
+          {error !== null && !belowMin && <Problem error={error} compact />}
+          <button type="button" className="btn wide" disabled={!atomic || belowMin || !f.account.trim() || !f.wallet} onClick={() => void deposit()}>
             {JOIN.deposit(usdcText)}
           </button>
         </>
@@ -175,13 +184,15 @@ export function JoinDialog({ pool, onClose, onJoined }: { pool: PoolView; onClos
           <HorizonMark size={56} />
           <b className="num">{JOIN.received(formatUsdc(state.ward))}</b>
           <p className="muted">{JOIN.receivedNote}</p>
-          <p className="tx">{state.tx}</p>
+          <p className="tx">
+            <TxLink hash={state.tx} />
+          </p>
           <button
             type="button"
             className="btn wide"
             onClick={() => {
               onClose();
-              window.setTimeout(() => document.getElementById("member")?.scrollIntoView({ block: "start" }), 0);
+              navigate("#/me");
             }}
           >
             {JOIN.goToShare}
@@ -199,7 +210,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
   const [position, setPosition] = useState<PoolPosition | null>(null);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
 
   useEffect(() => {
@@ -226,7 +237,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
       setAmount("");
       onChanged();
     } catch (e) {
-      setError(errorText(e));
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -296,11 +307,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
           </details>
         </div>
       )}
-      {error && (
-        <p className="notice" role="alert">
-          {error}
-        </p>
-      )}
+      {error !== null && <Problem error={error} compact />}
       {done && (
         <p className="ok-line" role="status" data-testid="pool-done">
           {done}

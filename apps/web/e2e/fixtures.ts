@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type Page } from "@playwright/test";
-import { evmAccount, signNep413, signSolana, solanaAddress } from "./keys";
+import { API_PORT, evmAccount, signNep413, signSolana, solanaAddress } from "./keys";
 
 export interface Wallets {
   /** The NEAR account the scripted wallet signs as. */
@@ -12,7 +12,15 @@ export interface Wallets {
  * VITE_WARDLINE_TEST_WALLET=1), an injected EIP-1193 provider and a Phantom-shaped provider. Keys
  * live in the test process; the page only receives signatures.
  */
-export const test = base.extend<{ wallets: Wallets }>({
+export const test = base.extend<{ wallets: Wallets; freshWorld: void }>({
+  // Every test, in every browser, starts from the same seeded API state.
+  freshWorld: [
+    async ({ request }, use) => {
+      await request.post(`http://127.0.0.1:${API_PORT}/__e2e/reset`);
+      await use();
+    },
+    { auto: true },
+  ],
   wallets: async ({ page }, use) => {
     let nearAccount = "";
     await page.exposeFunction("__e2eNearSign", (message: string, recipient: string, nonce: string) => signNep413(nearAccount, message, recipient, nonce));

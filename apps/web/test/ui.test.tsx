@@ -167,3 +167,34 @@ describe("Invoices", () => {
     expect(screen.getByText("vault-a.wardline.testnet")).toBeTruthy();
   });
 });
+
+describe("states and explorer links", () => {
+  it("explains each failure as what happened and what to do next", async () => {
+    const { explain, walletError } = await import("../src/data/errors");
+    const { ApiRequestError } = await import("../src/api/client");
+    expect(explain(new TypeError("Failed to fetch"))).toMatchObject({ kind: "apiDown", retry: true });
+    expect(explain(new ApiRequestError("x", 503, "CHAIN_UNAVAILABLE"))).toMatchObject({ kind: "chainDown", retry: true });
+    expect(explain(new ApiRequestError("x", 400, "BELOW_MINIMUM")).title).toBe("The smallest deposit is 1.00 USDC.");
+    expect(explain(new ApiRequestError("x", 409, "VOTING_CLOSED")).kind).toBe("votingClosed");
+    expect(explain(new ApiRequestError("x", 409, "COOLDOWN")).kind).toBe("cooldown");
+    expect(explain(walletError(new Error("User rejected the request"))).kind).toBe("walletRejected");
+    expect(explain(walletError(new Error("No test wallet in this build."))).kind).toBe("walletMissing");
+    expect(explain(walletError(new Error("The wallet signed as bob.testnet, not alice.testnet."))).kind).toBe("walletMismatch");
+    const unknown = explain(new Error("Something specific"));
+    expect(unknown).toMatchObject({ kind: "unknown", title: "Something specific", retry: false });
+  });
+
+  it("links real NEAR transaction hashes to NearBlocks and leaves simulated ids as text", async () => {
+    const { TxLink, isTxHash, explorerUrl } = await import("../src/components/TxLink");
+    const hash = "4au3yM4pPgkqHPqKd8DSPyAo61PaUaXcroPgpYEDqVyk";
+    expect(isTxHash(hash)).toBe(true);
+    expect(isTxHash("sim-settle-0123456789abcdef")).toBe(false);
+    expect(explorerUrl(hash)).toBe(`https://testnet.nearblocks.io/txns/${hash}`);
+    const { container } = render(<TxLink hash={hash} />);
+    expect(container.querySelector("a.tx-link")?.getAttribute("href")).toBe(`https://testnet.nearblocks.io/txns/${hash}`);
+    cleanup();
+    const sim = render(<TxLink hash="sim-claim-abc" />);
+    expect(sim.container.querySelector("a")).toBeNull();
+    expect(sim.container.textContent).toBe("sim-claim-abc");
+  });
+});

@@ -27,8 +27,13 @@ const auth = ownerAuthFromEnv({
   WARDLINE_APPROVER_ACCOUNTS: `${APPROVER_ACCOUNT},${REQUESTER_ACCOUNT}`,
 });
 
-// Metered AI calls go to the offline demo providers: recorded NEAR AI traffic and the local test TEE.
-const deps = bootstrap(":memory:", undefined, { lookupKeys, fetchFile, freeCallsPerDay: 1_000_000 }, auth, {
+/**
+ * Builds a fresh world: real routes on a new in-memory store and sim chain, seeded the same way every
+ * time. POST /__e2e/reset rebuilds it, so each test, in every browser, starts from the same state.
+ */
+async function build() {
+  // Metered AI calls go to the offline demo providers: recorded NEAR AI traffic and the local test TEE.
+  const deps = bootstrap(":memory:", undefined, { lookupKeys, fetchFile, freeCallsPerDay: 1_000_000 }, auth, {
   env: { WARDLINE_CHAIN_MODE: "sim" },
   routes: {
     providers: [
@@ -45,31 +50,46 @@ const deps = bootstrap(":memory:", undefined, { lookupKeys, fetchFile, freeCalls
   fetch: demoFetch({ replay: createReplayProvider(), simtee: createSimTee() }),
   gateway: { signatureDelaysMs: [0, 0] },
 });
-const app = createApp(deps);
+  const app = createApp(deps);
 
-// Test hook: "host" a wardline-payee.json on a domain, as the vendor would on its website.
-app.post("/__e2e/host", async (c) => {
+  // Test hook: "host" a wardline-payee.json on a domain, as the vendor would on its website.
+  app.post("/__e2e/host", async (c) => {
   const { domain, file } = (await c.req.json()) as { domain: string; file: string };
   hosted.set(domain, new TextEncoder().encode(file));
   return c.json({ ok: true });
 });
 
 // A few real metered calls, so the group page and dashboard have something to show.
-const call = async (member: string, body: unknown) => {
+  const call = async (member: string, body: unknown) => {
   const { key } = deps.ai.meter.createKey({ budgetId: "bgt_aurora", member, label: "e2e seed", models: null, createdBy: "seed", now: new Date() });
   await app.request("/v1/ai/chat/completions", { method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, body: JSON.stringify(body) });
 };
-const recorded = (name: string) => JSON.parse(Buffer.from(loadRecording(name).requestBytes).toString("utf8")) as unknown;
-await call("alice.testnet", recorded(RECORDED.expensive));
-await call("alice.testnet", recorded(RECORDED.cheap));
-await call("bob.testnet", recorded(RECORDED.gatewayOnly));
-for (let i = 0; i < 3; i++) await call("ci-agent.testnet", { model: SIM_MODEL, messages: [{ role: "user", content: `nightly eval ${i}` }] });
-for (const k of deps.ai.meter.listKeys()) deps.ai.meter.revokeKey(k.id, new Date());
+  const recorded = (name: string) => JSON.parse(Buffer.from(loadRecording(name).requestBytes).toString("utf8")) as unknown;
+  await call("alice.testnet", recorded(RECORDED.expensive));
+  await call("alice.testnet", recorded(RECORDED.cheap));
+  await call("bob.testnet", recorded(RECORDED.gatewayOnly));
+  for (let i = 0; i < 3; i++) await call("ci-agent.testnet", { model: SIM_MODEL, messages: [{ role: "user", content: `nightly eval ${i}` }] });
+  for (const k of deps.ai.meter.listKeys()) deps.ai.meter.revokeKey(k.id, new Date());
 
 // The owner deposits before this proposal opens, so they hold WARD at its snapshot and can vote on it.
-await deps.ai.chain.pool.deposit(OWNER_ACCOUNT, "30000000");
-await deps.ai.chain.governance.propose({ proposer: OWNER_ACCOUNT, description: "Lower the Gold fee to 0.75%", action: { type: "set_fee_bps", tier: "gold", fee_bps: 75 } });
+  await deps.ai.chain.pool.deposit(OWNER_ACCOUNT, "30000000");
+  await deps.ai.chain.pool.deposit(APPROVER_ACCOUNT, "12000000");
+  await deps.ai.chain.governance.propose({ proposer: OWNER_ACCOUNT, description: "Lower the Gold fee to 0.75%", action: { type: "set_fee_bps", tier: "gold", fee_bps: 75 } });
 
-serve({ fetch: app.fetch, port: API_PORT, hostname: "127.0.0.1" }, (info) => {
+
+  return app;
+}
+
+let current = await build();
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "POST" && new URL(req.url).pathname === "/__e2e/reset") {
+    hosted.clear();
+    current = await build();
+    return Response.json({ ok: true });
+  }
+  return current.fetch(req);
+};
+
+serve({ fetch: handler, port: API_PORT, hostname: "127.0.0.1" }, (info) => {
   console.log(`e2e stub API on http://127.0.0.1:${info.port}`);
 });

@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
   return {
     // Read VITE_ variables from the repo root .env. Only VITE_-prefixed names ever reach the browser.
     envDir: ENV_DIR,
+    // WARDLINE_DATA picks the page data source (apps/web/src/data). Only this one value reaches the browser.
+    define: { "import.meta.env.VITE_WARDLINE_DATA": JSON.stringify(process.env.WARDLINE_DATA ?? process.env.VITE_WARDLINE_DATA ?? "sim") },
     plugins: [
       react(),
       redteamSummary(REPORT),

@@ -209,7 +209,9 @@ test.describe("public site", () => {
     await expect(dlg.getByTestId("join-done")).toContainText("WARD");
     await dlg.getByRole("button", { name: "Go to my share" }).click();
     await expect(dlg).toHaveCount(0);
+    await expect(page).toHaveURL(/#\/me$/);
     await expect(page.getByTestId("connect-wallet")).toContainText(OWNER_ACCOUNT);
+    await page.goto("/#/");
 
     const card = page.getByTestId("member-card");
     const position = card.getByTestId("pool-position");

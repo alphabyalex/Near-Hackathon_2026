@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
 import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
-import { errorText } from "../../api/public";
+import { Problem } from "../../components/Problem";
+import { TxLink } from "../../components/TxLink";
 import { callWords, modelName } from "../../ai/words";
 import { DEMO, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
@@ -180,7 +181,7 @@ function outcome(id: SceneName, raw: SceneResult): Outcome {
   }
 }
 
-type Run = null | { state: "busy" } | { state: "done"; result: SceneResult } | { state: "error"; message: string };
+type Run = null | { state: "busy" } | { state: "done"; result: SceneResult } | { state: "error"; error: unknown };
 
 function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; onRun: () => void; onNext: () => void; hasNext: boolean }) {
   const scene = DEMO.scenes[id];
@@ -210,11 +211,7 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
             {DEMO.doing[id]}
           </p>
         )}
-        {run?.state === "error" && (
-          <p className="notice" role="alert">
-            {run.message}
-          </p>
-        )}
+        {run?.state === "error" && <Problem error={run.error} onRetry={onRun} />}
         {out && (
           <div className="stage-result" data-outcome={out.tone} data-scene-result={id}>
             <p className={`verdict v-${out.tone}`}>{out.verdict}</p>
@@ -222,7 +219,7 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
               {out.rows.map((r, i) => (
                 <div key={`${r.k}-${i}`} className="rr" style={{ animationDelay: `${0.12 * i}s` }}>
                   <dt>{r.k}</dt>
-                  <dd className={r.tone === "mono" ? "acct" : r.tone ? `t-${r.tone} num` : "num"}>{r.v}</dd>
+                  <dd className={r.tone === "mono" ? "acct" : r.tone ? `t-${r.tone} num` : "num"}>{r.tone === "mono" ? <TxLink hash={r.v} /> : r.v}</dd>
                 </div>
               ))}
             </dl>
@@ -300,7 +297,7 @@ export function Demo() {
     setRuns((r) => ({ ...r, [id]: { state: "busy" } }));
     runDemoScene<SceneResult>(id).then(
       (result) => live.current && setRuns((r) => ({ ...r, [id]: { state: "done", result } })),
-      (error: unknown) => live.current && setRuns((r) => ({ ...r, [id]: { state: "error", message: errorText(error) } })),
+      (error: unknown) => live.current && setRuns((r) => ({ ...r, [id]: { state: "error", error } })),
     );
   };
   const idx = SCENES.indexOf(current);

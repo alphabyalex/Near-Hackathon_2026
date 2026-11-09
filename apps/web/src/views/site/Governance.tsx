@@ -1,7 +1,9 @@
 /** WARD-holder voting on the Mutual: fees, coverage, which models are covered and large payouts. */
 import { useEffect, useState } from "react";
-import { executeProposal, getVoteWeight, type MutualAction, type MutualProposalView, type Tier } from "../../api/ai";
-import { errorText } from "../../api/public";
+import type { MutualAction, MutualProposalView, Tier } from "../../api/ai";
+import { Problem } from "../../components/Problem";
+import { TxLink } from "../../components/TxLink";
+import { executeProposal, getVoteWeight } from "../../data/mutual";
 import { GOV, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
@@ -43,15 +45,15 @@ function VoteBar({ p }: { p: MutualProposalView }) {
   );
 }
 
-interface Voter {
+export interface Voter {
   account: string;
   wallet: NearWalletId | null;
 }
 
-function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; voter: Voter; now: number; onChange: () => void }) {
+export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; voter: Voter; now: number; onChange: () => void }) {
   const [weight, setWeight] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
   const account = voter.account.trim();
 
@@ -81,7 +83,7 @@ function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; voter: V
       setDone(GOV.voted(support === "for" ? GOV.votesFor.toLowerCase() : GOV.votesAgainst.toLowerCase()));
       onChange();
     } catch (e) {
-      setError(errorText(e));
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -95,7 +97,7 @@ function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; voter: V
       setDone(GOV.executed);
       onChange();
     } catch (e) {
-      setError(errorText(e));
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -151,12 +153,12 @@ function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; voter: V
           </button>
         </div>
       )}
-      {p.status === "executed" && p.tx && <p className="prop-tx mono">{p.tx}</p>}
-      {error && (
-        <p className="notice" role="alert">
-          {error}
+      {p.status === "executed" && p.tx && (
+        <p className="prop-tx">
+          <TxLink hash={p.tx} />
         </p>
       )}
+      {error !== null && <Problem error={error} compact />}
       {done && (
         <p className="ok-line" role="status">
           {done}
@@ -174,7 +176,7 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
   const [value, setValue] = useState("1.25");
   const [model, setModel] = useState("z-ai/glm-5.3-flash");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
 
   const action = (): MutualAction | null => {
@@ -186,7 +188,7 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
 
   const submit = async () => {
     const a = action();
-    if (!a || !voter.wallet) return setError(kind === "uncover" ? "Name the model to stop covering." : "Enter a number.");
+    if (!a || !voter.wallet) return setError(new Error(kind === "uncover" ? "Name the model to stop covering." : "Enter a number."));
     setError(null);
     setDone(null);
     setBusy(true);
@@ -195,7 +197,7 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
       setDone(GOV.proposed(res.proposal?.id ?? 0));
       onChange();
     } catch (e) {
-      setError(errorText(e));
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -241,11 +243,7 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
           {GOV.propose}
         </button>
       </div>
-      {error && (
-        <p className="notice" role="alert">
-          {error}
-        </p>
-      )}
+      {error !== null && <Problem error={error} compact />}
       {done && (
         <p className="ok-line" role="status">
           {done}

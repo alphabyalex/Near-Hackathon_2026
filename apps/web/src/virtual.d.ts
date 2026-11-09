@@ -18,4 +18,5 @@ interface ImportMetaEnv {
   readonly VITE_WARDLINE_OWNER_URL?: string;
   readonly VITE_NEAR_NETWORK?: string;
   readonly VITE_WARDLINE_TEST_WALLET?: string;
+  readonly VITE_WARDLINE_DATA?: string;
 }

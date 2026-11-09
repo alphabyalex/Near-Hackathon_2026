@@ -140,6 +140,7 @@ export const WALLET = {
   save: "Use this wallet",
   disconnect: "Disconnect",
   connectedAs: (account: string) => `Connected as ${account}`,
+  yourShare: (account: string) => `Your share, connected as ${account}`,
 } as const;
 
 /** The owner app's My share tab. */
@@ -678,4 +679,59 @@ export const GROUPS = {
   ],
   startCta: "Open the owner app",
   connectCta: "See the one-line plug-in",
+} as const;
+
+/** Every failure, as what happened and what to do next. No apologies. */
+export const ERRORS = {
+  retry: "Try again",
+  apiDown: { title: "Wardline can't reach its API right now.", next: "Your money hasn't moved. Try again in a moment." },
+  chainDown: { title: "The NEAR network isn't answering.", next: "Nothing was sent or changed. Try again in a minute." },
+  walletRejected: { title: "Your wallet didn't sign.", next: "Nothing was sent. Sign again when you're ready." },
+  walletMissing: { title: "That wallet isn't available in this browser.", next: "Install it, or choose another wallet." },
+  walletMismatch: { title: "Your wallet signed as a different account.", next: "Switch to the account you entered, or enter the one your wallet uses." },
+  belowMinimum: { title: "The smallest deposit is 1.00 USDC.", next: "Raise the amount and deposit again." },
+  votingClosed: { title: "Voting on this proposal has closed.", next: "Its result is in the decided list." },
+  cooldown: { title: "This WARD is still in its 7-day wait.", next: "Redeem it once the countdown reaches zero." },
+  alreadyVoted: { title: "This wallet already voted on this proposal.", next: "Each holder votes once. Your vote is counted." },
+  noWeight: { title: "This wallet held no WARD when the proposal opened.", next: "You can vote on proposals that open after you join." },
+  notEnoughWard: { title: "That's more WARD than this wallet holds free.", next: "Enter a smaller amount. WARD already locked for redemption can't be locked again." },
+  alreadyExecuted: { title: "This proposal was already executed.", next: "The change is in effect." },
+  notWired: { title: "This view isn't connected to testnet data yet.", next: "Switch WARDLINE_DATA back to sim, or wait for the testnet routes." },
+  unknown: { title: "The request failed.", next: "Nothing was changed. Try again, or reload the page." },
+} as const;
+
+export const TX = {
+  view: "View on NearBlocks",
+  label: (hash: string) => `View transaction ${hash.slice(0, 8)} on NearBlocks`,
+} as const;
+
+/** The member page, #/me, for any connected wallet. */
+export const ME = {
+  title: "Your share",
+  lede: "Your WARD, what it earned, the votes you can cast and where your share came from.",
+  connectTitle: "Connect a wallet to see your share.",
+  connect: "Connect wallet",
+  empty: "This wallet holds no WARD yet.",
+  join: "Join the Mutual",
+  value: "Value today",
+  held: "WARD held",
+  earned: "Earned since joining",
+  joined: (date: string) => `Member since ${date}`,
+  account: "Account",
+  change: "Change wallet",
+  chart: "WARD price since launch",
+  openVotes: "Votes you can cast",
+  openNone: "No open proposals right now.",
+  weight: (w: string) => `Your weight: ${w} WARD, counted at the snapshot`,
+  noWeight: "You held no WARD when this opened, so it has no vote from you.",
+  pastVotes: "Your votes",
+  pastNone: "You haven't voted yet.",
+  votedFor: "For",
+  votedAgainst: "Against",
+  redemption: "Redemption in progress",
+  unlocksIn: (left: string) => `Unlocks in ${left}`,
+  unlocked: "Ready to redeem",
+  sources: "Where your share came from",
+  sourcesLede: "Your deposits, and every change in WARD's price since you joined.",
+  youDeposited: (usdc: string) => `You deposited ${usdc} USDC`,
 } as const;
