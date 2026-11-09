@@ -67,6 +67,19 @@ export default defineConfig(({ mode }) => {
           this.emitFile({ type: "asset", fileName: "_headers", source: lines.join(String.fromCharCode(10)) });
         },
       },
+      // Node closes an idle keep-alive connection after 5s. WebKit on Windows can reuse one at that moment
+      // and then fails the POST ("rewinding of the data stream failed"), which reads as the API being down.
+      // Holding idle connections longer than any browser keeps them avoids the race.
+      {
+        name: "wardline-keep-alive",
+        configureServer(server: { httpServer: import("node:http").Server | null }) {
+          if (server.httpServer) { server.httpServer.keepAliveTimeout = 65_000; server.httpServer.headersTimeout = 66_000; }
+        },
+        configurePreviewServer(server: { httpServer: import("node:http").Server }) {
+          server.httpServer.keepAliveTimeout = 65_000;
+          server.httpServer.headersTimeout = 66_000;
+        },
+      },
       // The page title and description come from src/brand.ts, like every other line of copy.
       { name: "wardline-brand-html", transformIndexHtml: (html: string) =>
           html
