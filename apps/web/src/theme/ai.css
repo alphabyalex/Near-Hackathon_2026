@@ -84,6 +84,13 @@
 .dlg-back{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(8,5,11,.72);animation:dim .18s ease-out both}
 .dlg{width:100%;max-width:460px;max-height:calc(100vh - 40px);overflow:auto;background:var(--surface);border:1px solid var(--rule-strong);border-radius:var(--r-card-lg);padding:26px 28px 28px;display:flex;flex-direction:column;gap:16px;animation:lift .22s cubic-bezier(.2,.8,.2,1) both}
 .dlg:focus{outline:none}
+/* Connect wallet: a panel under its header button on wide screens, a bottom sheet on phones. */
+.dlg-back.pop{align-items:flex-start;justify-content:flex-end;padding:0;background:rgba(8,5,11,.45)}
+.dlg.pop{position:fixed;top:var(--pop-top,80px);right:var(--pop-right,20px);max-width:400px;max-height:calc(100vh - var(--pop-top,80px) - 16px);padding:22px 24px 24px}
+.dlg.pop .dlg-head h2{font-size:22px}
+.dlg-from{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--rule-strong);border-radius:12px;font-size:15px}
+.dlg-from .acct{font-weight:600;color:var(--text)}
+.dlg-from span{color:var(--muted)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .dlg-head h2{margin:0;font-size:26px;font-weight:700;letter-spacing:-0.035em}
 .dlg-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;color:var(--text-2);background:transparent;border:1px solid var(--rule-strong);border-radius:var(--r-btn);cursor:pointer}
@@ -351,6 +358,8 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .member-card{padding:24px 20px}
   .mc-facts{grid-template-columns:minmax(0,1fr)}
   .dlg{padding:22px 20px}
+  .dlg-back.pop{align-items:flex-end;justify-content:stretch}
+  .dlg.pop{position:relative;top:auto;right:auto;max-width:none;max-height:85vh;border-radius:20px 20px 0 0;border-bottom:0;padding:20px 20px calc(24px + env(safe-area-inset-bottom))}
   .proposals li{grid-template-columns:auto minmax(0,1fr);gap:4px 12px}
   .proposals li .prop-status,.proposals li .muted{grid-column:2}
   .group .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -403,3 +412,4 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .vote-against{color:var(--text-2)}
 @media (max-width:980px){.me-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.me-empty{padding:24px 20px}}
+.dlg-stop{margin-top:12px}

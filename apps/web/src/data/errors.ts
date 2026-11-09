@@ -18,15 +18,19 @@ export interface Explained {
 /** Raised by a wallet, sorted into the cases a person can act on. */
 export class WalletError extends Error {
   constructor(
-    readonly kind: "walletRejected" | "walletMissing" | "walletMismatch",
+    readonly kind: "walletRejected" | "walletMissing" | "walletMismatch" | "walletPopup",
     message: string,
   ) {
     super(message);
   }
 }
 
+const POPUP = /pop-?up/i;
+
 export function walletError(error: unknown): WalletError {
   const text = error instanceof Error ? error.message : String(error);
+  // "Couldn't open popup window to complete wallet action": the browser blocked the wallet window.
+  if (POPUP.test(text)) return new WalletError("walletPopup", text);
   if (/reject|denied|declin|cancel|closed|user (did not|didn't)|aborted/i.test(text)) return new WalletError("walletRejected", text);
   if (/not installed|no test wallet|not found|unavailable|no wallet|extension|failed to load|is not defined/i.test(text)) return new WalletError("walletMissing", text);
   if (/signed as/i.test(text)) return new WalletError("walletMismatch", text);
@@ -53,6 +57,8 @@ export function explain(error: unknown): Explained {
   } else if (error instanceof ApiRequestError) {
     // A proxy or gateway answering for an API that is down.
     kind = error.status === 502 || error.status === 503 || error.status === 504 ? "apiDown" : "unknown";
+  } else if (error instanceof Error && POPUP.test(error.message)) {
+    kind = "walletPopup";
   } else if (error instanceof TypeError) {
     // fetch rejects with a TypeError when nothing answers at all.
     kind = "apiDown";

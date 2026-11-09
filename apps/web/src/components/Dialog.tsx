@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { JOIN } from "../brand";
 
 /**
@@ -17,8 +18,29 @@ if (typeof document !== "undefined") {
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** A modal dialog: focus moves in and is trapped, Escape and the backdrop close it, and focus returns to the opener. */
-export function Dialog({ title, onClose, children, testId }: { title: string; onClose: () => void; children: ReactNode; testId?: string }) {
+/** Where an anchored panel sits: just under its button, right edges aligned, never off screen. */
+function useAnchor(anchor: HTMLElement | null | undefined): CSSProperties | undefined {
+  const [style, setStyle] = useState<CSSProperties>();
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    const place = () => {
+      const r = anchor.getBoundingClientRect();
+      setStyle({ "--pop-top": `${Math.round(r.bottom + 8)}px`, "--pop-right": `${Math.max(16, Math.round(window.innerWidth - r.right))}px` } as CSSProperties);
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [anchor]);
+  return style;
+}
+
+/**
+ * A modal dialog: focus moves in and is trapped, Escape and the backdrop close it, and focus returns to the opener.
+ * It renders on <body>: inside the sticky header (backdrop-filter) a fixed backdrop would be sized to the header.
+ * With an anchor it is a panel under that button on wide screens and a bottom sheet on phones.
+ */
+export function Dialog({ title, onClose, children, testId, anchor }: { title: string; onClose: () => void; children: ReactNode; testId?: string; anchor?: HTMLElement | null | undefined }) {
+  const pop = useAnchor(anchor);
   const box = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const close = useRef(onClose);
@@ -58,9 +80,9 @@ export function Dialog({ title, onClose, children, testId }: { title: string; on
     };
   }, []);
 
-  return (
-    <div className="dlg-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="dlg" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={box} tabIndex={-1} data-testid={testId}>
+  return createPortal(
+    <div className={anchor ? "dlg-back pop" : "dlg-back"} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={anchor ? "dlg pop" : "dlg"} style={pop} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={box} tabIndex={-1} data-testid={testId}>
         <div className="dlg-head">
           <h2 id={titleId}>{title}</h2>
           <button type="button" className="dlg-x" onClick={onClose} aria-label={JOIN.close}>
@@ -71,6 +93,7 @@ export function Dialog({ title, onClose, children, testId }: { title: string; on
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
