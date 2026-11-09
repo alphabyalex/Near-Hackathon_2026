@@ -16,7 +16,7 @@ describe("brand module", () => {
   it("holds the product name and hero line", () => {
     expect(BRAND.name).toBe("Wardline");
     expect(BRAND.homeLabel).toBe(`${BRAND.name} home`);
-    expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("AI that only pays on proof.");
+    expect(`${HOME.heroLead} ${HOME.heroRest}.`).toBe("Wardline is a credit union for the AI economy.");
   });
 
   it("never claims legal ownership, and says what each trust level does not establish", () => {
@@ -90,11 +90,14 @@ describe("helpers", () => {
 
 describe("WARD copy", () => {
   it("says what WARD is in two lines, keeps We lose first, and never calls it stable or protected", async () => {
-    const { POOL, HOME, BRAND } = await import("../src/brand");
-    expect(POOL.ward.pitch).toEqual(["Earn a share of Wardline's fees by backing its proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."]);
+    const { POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF } = await import("../src/brand");
+    expect(POOL.ward.pitch).toEqual(["Earn a share of every fee by backing the proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."]);
+    expect(HOME.sub).toBe("Back the AI economy and earn from it. Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely.");
+    // Lead with communities earning, not with the token.
+    expect(HOME.sub.toLowerCase()).not.toMatch(/buy|ward/);
     expect(POOL.loseFirstTitle).toBe("We lose first.");
     expect(POOL.ward.kind.toLowerCase()).toContain("yield-bearing, loss-sharing");
-    const copy = JSON.stringify([POOL, HOME, BRAND]).toLowerCase();
+    const copy = JSON.stringify([POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF]).toLowerCase();
     for (const word of ["stable", "principal", "guaranteed", "insurance", "insured", "risk-free"]) expect(copy).not.toContain(word);
   });
 });

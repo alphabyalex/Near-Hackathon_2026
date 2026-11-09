@@ -12,7 +12,14 @@ const SIZES = [
 type Shot = { name: string; path: string; base?: string; prepare?: (page: Page, wallets: Wallets) => Promise<void> };
 
 const SHOTS: Shot[] = [
-  { name: "home", path: "#/" },
+  {
+    name: "home",
+    path: "#/",
+    prepare: async (page) => {
+      await expect(page.getByTestId("home-stats")).toBeVisible();
+      await expect(page.getByTestId("governance")).toBeVisible();
+    },
+  },
   {
     name: "try-it",
     path: "#/try",
@@ -36,7 +43,16 @@ const SHOTS: Shot[] = [
     path: "#/demo",
     prepare: async (page) => {
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.locator('[data-scene="plugin"]').click();
+      await page.locator('[data-scene="mutual"]').click();
+      await expect(page.locator(".stage .scene-out")).toBeVisible();
+    },
+  },
+  {
+    name: "demo-group",
+    path: "#/demo",
+    prepare: async (page) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.locator('[data-scene="group"]').click();
       await expect(page.locator(".stage .scene-out")).toBeVisible();
     },
   },
@@ -59,21 +75,31 @@ const SHOTS: Shot[] = [
     },
   },
   {
-    name: "demo-mutual",
+    name: "demo-payout",
     path: "#/demo",
     prepare: async (page) => {
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.locator('[data-scene="mutual"]').click();
+      await page.locator('[data-scene="payout"]').click();
       await expect(page.locator(".stage .scene-out")).toBeVisible();
     },
   },
   {
-    name: "mutual",
-    path: "#/mutual",
+    name: "demo-tier",
+    path: "#/demo",
     prepare: async (page) => {
-      await expect(page.getByTestId("pool-stats")).toBeVisible();
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.locator('[data-scene="tier"]').click();
+      await expect(page.locator(".stage .scene-out")).toBeVisible();
     },
   },
+  {
+    name: "groups",
+    path: "#/groups",
+    prepare: async (page) => {
+      await expect(page.locator(".gcard").first()).toBeVisible();
+    },
+  },
+  { name: "proof", path: "#/proof" },
   { name: "connect", path: "#/connect", base: `http://127.0.0.1:${SHOTS_PORT}/` },
   { name: "connect-unset", path: "#/connect" },
   { name: "verify", path: "#/verify" },

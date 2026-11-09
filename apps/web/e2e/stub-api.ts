@@ -66,6 +66,10 @@ await call("bob.testnet", recorded(RECORDED.gatewayOnly));
 for (let i = 0; i < 3; i++) await call("ci-agent.testnet", { model: SIM_MODEL, messages: [{ role: "user", content: `nightly eval ${i}` }] });
 for (const k of deps.ai.meter.listKeys()) deps.ai.meter.revokeKey(k.id, new Date());
 
+// The owner deposits before this proposal opens, so they hold WARD at its snapshot and can vote on it.
+await deps.ai.chain.pool.deposit(OWNER_ACCOUNT, "30000000");
+await deps.ai.chain.governance.propose({ proposer: OWNER_ACCOUNT, description: "Lower the Gold fee to 0.75%", action: { type: "set_fee_bps", tier: "gold", fee_bps: 75 } });
+
 serve({ fetch: app.fetch, port: API_PORT, hostname: "127.0.0.1" }, (info) => {
   console.log(`e2e stub API on http://127.0.0.1:${info.port}`);
 });

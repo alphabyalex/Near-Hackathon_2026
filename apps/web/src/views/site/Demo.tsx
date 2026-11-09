@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
-import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type SceneName } from "../../api/ai";
+import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
+import { feeText, TierBadge } from "../../components/TierBadge";
 import { errorText } from "../../api/public";
 import { callWords, modelName } from "../../ai/words";
 import { DEMO } from "../../brand";
@@ -19,9 +20,18 @@ export function poisonedAddress(real: string): string {
   return `0x${hex.slice(0, 6)}${middle}${hex.slice(-6)}`;
 }
 
-interface PluginResult {
+interface MutualSceneResult {
+  stats: { total_pooled: string; yield_earned: string; groups_covered: number; proven_payments: number };
+  deposit: { account: string; usdc: string; ward: string; price: string; tx: string };
+  position: { value: string };
+}
+interface GroupResult {
+  group: { name: string; owner: string };
+  proposal: { id: number; description: string; status: string; approvals: number; fund_tx: string | null };
   calls: { status: number; proof: string; call: CallView & { settlement_tx: string }; reply: string | null }[];
+  batch: { member: string; sent: number; proven: number; spent: string };
   budget: BudgetView;
+  ward: { before: string; after: string; fees: string };
 }
 interface SwapResult {
   claimed: string;
@@ -37,15 +47,24 @@ interface LeakResult {
   refused: number;
 }
 interface InvoiceResult {
+  proposal: { id: number; description: string; receiver: string; amount: string; dao: string };
   payee: string;
   vendor: string;
   result: PayeeCheckResult;
 }
-interface MutualResult {
+interface PayoutResult {
   before: PoolView;
   payouts: { claim: ClaimView; pool: PoolView }[];
+  refill: { calls: number; spent: string; fees: string; ward_before: string; ward_after: string };
 }
-type SceneResult = PluginResult | SwapResult | LeakResult | InvoiceResult | MutualResult;
+interface TierResult {
+  before: ReputationView;
+  after: ReputationView;
+  first: { n: number; fee: string };
+  last: { n: number; fee: string };
+  calls: number;
+}
+type SceneResult = MutualSceneResult | GroupResult | SwapResult | LeakResult | InvoiceResult | PayoutResult | TierResult;
 
 function Row({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
   return (
@@ -56,9 +75,44 @@ function Row({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
   );
 }
 
-function PluginOut({ r }: { r: PluginResult }) {
+const usd4 = (atomic: string): string => (Number(BigInt(atomic)) / 1e6).toFixed(4);
+const wardPrice6 = (scaled: string): string => (Number(BigInt(scaled)) / 1e6).toFixed(6);
+
+function MutualSceneOut({ r }: { r: MutualSceneResult }) {
+  return (
+    <div className="scene-out" data-outcome="deposited">
+      <div className="out-card">
+        <Row k={L.pooled} v={`${formatUsdc(r.stats.total_pooled)} USDC`} />
+        <Row k={L.earned} v={`${formatUsdc(r.stats.yield_earned)} USDC`} />
+        <Row k={L.groups} v={String(r.stats.groups_covered)} />
+        <Row k={L.provenPayments} v={r.stats.proven_payments.toLocaleString("en-US")} />
+      </div>
+      <div className="out-card">
+        <div className="out-head">
+          <span className="badge ok">WARD</span>
+          <b className="mono">{r.deposit.account}</b>
+        </div>
+        <Row k={L.deposited} v={`${formatUsdc(r.deposit.usdc)} USDC`} />
+        <Row k={L.atPrice} v={`${wardPrice(r.deposit.price)} USDC`} />
+        <Row k={L.received} v={`${formatUsdc(r.deposit.ward)} WARD`} />
+        <Row k={L.worth} v={`${formatUsdc(r.position.value)} USDC`} />
+        <Row k={L.settlement} v={<span className="mono">{r.deposit.tx}</span>} />
+      </div>
+    </div>
+  );
+}
+
+function GroupOut({ r }: { r: GroupResult }) {
   return (
     <div className="scene-out" data-outcome="verified">
+      <div className="out-card">
+        <div className="out-head">
+          <span className="badge ok">{r.proposal.status}</span>
+          <b>{r.group.name}</b>
+        </div>
+        <Row k={L.daoVote} v={`${r.proposal.description} (${L.approvals(r.proposal.approvals)})`} />
+        <Row k={L.funded} v={<span className="mono">{r.proposal.fund_tx}</span>} />
+      </div>
       {r.calls.map((c) => (
         <div className="out-card" key={c.call.call_id}>
           <div className="out-head">
@@ -66,11 +120,15 @@ function PluginOut({ r }: { r: PluginResult }) {
             <b>{modelName(c.call.model_proven)}</b>
           </div>
           {c.reply && <p className="out-reply">{c.reply}</p>}
-          <Row k={L.paid} v={`${formatUsdc(c.call.amount)} USDC`} />
-          <Row k={L.refunded} v={`${formatUsdc(c.call.refund)} USDC`} />
+          <Row k={L.paid} v={`${usd4(c.call.amount)} USDC`} />
           <Row k={L.settlement} v={<span className="mono">{c.call.settlement_tx}</span>} />
         </div>
       ))}
+      <div className="out-card" data-testid="ward-tick">
+        <Row k={L.batch(r.batch.proven, r.batch.member)} v={`${formatUsdc(r.batch.spent)} USDC`} />
+        <Row k={L.feesToWard} v={`${usd4(r.ward.fees)} USDC`} />
+        <Row k={L.wardPrice} v={`${wardPrice6(r.ward.before)} to ${wardPrice6(r.ward.after)} USDC`} cls="up" />
+      </div>
     </div>
   );
 }
@@ -111,7 +169,7 @@ function LeakOut({ r }: { r: LeakResult }) {
 
 const wardPrice = (scaled: string): string => (Number(BigInt(scaled)) / 1e6).toFixed(4);
 
-function MutualOut({ r }: { r: MutualResult }) {
+function PayoutOut({ r }: { r: PayoutResult }) {
   return (
     <div className="scene-out" data-outcome={r.payouts.every((p) => p.claim.status === "paid") ? "paid" : "pending"}>
       {r.payouts.map(({ claim, pool }, i) => {
@@ -132,18 +190,62 @@ function MutualOut({ r }: { r: MutualResult }) {
           </div>
         );
       })}
+      <div className="out-card" data-testid="refill">
+        <div className="out-head">
+          <b>{L.refill}</b>
+        </div>
+        <Row k={L.refillCalls(r.refill.calls, formatUsdc(r.refill.spent))} v={`${usd4(r.refill.fees)} USDC`} />
+        <Row k={L.wardPrice} v={`${wardPrice(r.refill.ward_before)} to ${wardPrice(r.refill.ward_after)} USDC`} cls="up" />
+      </div>
+    </div>
+  );
+}
+
+function TierOut({ r }: { r: TierResult }) {
+  const line = (x: ReputationView) => `${feeText(x.fee_bps)} fee, ${formatUsdc(x.coverage_cap)} USDC coverage, ${x.proven_calls} proven calls`;
+  return (
+    <div className="scene-out" data-outcome={r.after.tier}>
+      <div className="out-card">
+        <div className="out-head">
+          <TierBadge tier={r.before.tier} />
+          <b>{L.tierBefore}</b>
+        </div>
+        <p className="out-foot">{line(r.before)}</p>
+      </div>
+      <div className="out-card">
+        <div className="out-head">
+          <TierBadge tier={r.after.tier} />
+          <b>{L.tierAfter(r.calls)}</b>
+        </div>
+        <p className="out-foot">{line(r.after)}</p>
+        <Row k={L.feeOnCall(r.first.n)} v={`${usd4(r.first.fee)} USDC`} />
+        <Row k={L.feeOnCall(r.last.n)} v={`${usd4(r.last.fee)} USDC`} cls="up" />
+      </div>
     </div>
   );
 }
 
 function Outcome({ id, r }: { id: SceneName; r: SceneResult }) {
-  if (id === "plugin") return <PluginOut r={r as PluginResult} />;
+  if (id === "mutual") return <MutualSceneOut r={r as MutualSceneResult} />;
+  if (id === "group") return <GroupOut r={r as GroupResult} />;
   if (id === "swap") return <SwapOut r={r as SwapResult} />;
   if (id === "leak") return <LeakOut r={r as LeakResult} />;
-  if (id === "mutual") return <MutualOut r={r as MutualResult} />;
+  if (id === "payout") return <PayoutOut r={r as PayoutResult} />;
+  if (id === "tier") return <TierOut r={r as TierResult} />;
   const inv = r as InvoiceResult;
   const request: PayeeCheckRequest = { payee: inv.payee, vendor: { domain: inv.vendor } };
-  return <ResultCard result={{ ...inv.result, receipt: null }} request={request} />;
+  return (
+    <div className="scene-out" data-outcome="flagged">
+      <div className="out-card refused">
+        <div className="out-head">
+          <span className="badge bad">{L.flagged}</span>
+          <b>{inv.proposal.description}</b>
+        </div>
+        <Row k={L.paid} v={`${formatUsdc(inv.proposal.amount)} USDC to ${inv.proposal.receiver}`} cls="mismatch" />
+      </div>
+      <ResultCard result={{ ...inv.result, receipt: null }} request={request} />
+    </div>
+  );
 }
 
 const reducedMotion = (): boolean => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
@@ -215,7 +317,7 @@ export function Comparison() {
 }
 
 export function Demo() {
-  const [current, setCurrent] = useState<SceneName>("plugin");
+  const [current, setCurrent] = useState<SceneName>("mutual");
   const [run, setRun] = useState<Run>({ shown: 0, outcome: null });
   const timers = useRef<number[]>([]);
 

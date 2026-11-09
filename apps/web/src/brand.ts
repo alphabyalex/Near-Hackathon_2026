@@ -1,9 +1,11 @@
 /**
  * Product name, tagline and every line of marketing copy. A rebrand is a change to this file only.
- * Rules: short, specific lines. No em dashes, no hype words. Never claim legal ownership: we verify
- * control of an account and its link to a domain, at a stated trust level. Never claim we prove token
- * counts: a TEE signature shows which attested model signed the exact response bytes. The pool is
- * protocol-backed coverage.
+ * Rules: short, specific lines. No em dashes, no hype words. Lead with communities earning from real
+ * AI spending; WARD is how you hold your share, never the pitch. WARD is yield-bearing and
+ * loss-sharing, never stable, guaranteed or principal-protected. The pool is protocol-backed coverage,
+ * not insurance. Never claim legal ownership: we verify control of an account and its link to a
+ * domain, at a stated trust level. Never claim we prove token counts: a TEE signature shows which
+ * attested model signed the exact response bytes.
  */
 
 import type { EvidenceTier } from "@wardline/schemas";
@@ -13,45 +15,89 @@ const NAME = "Wardline";
 
 export const BRAND = {
   name: NAME,
-  tagline: "AI that only pays on proof.",
-  metaDescription: "AI that only pays on proof. The right party, for the model you actually got, up to what you allowed.",
+  tagline: "A credit union for the AI economy.",
+  metaDescription: "Back the AI economy and earn from it. Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely.",
   homeLabel: `${NAME} home`,
   /** Source repository. Lives in repo.config.json at the root; the GitHub rename to "wardline" is a one-line change there. */
   repoUrl: repo.url,
 } as const;
 
+/** Main navigation. The Mutual is the home page. */
 export const NAV = [
-  { page: "try", label: "Try it" },
-  { page: "demo", label: "Demo" },
-  { page: "mutual", label: "Mutual" },
-  { page: "connect", label: "Connect" },
-  { page: "verify", label: "Verify" },
-  { page: "about", label: "About" },
+  { page: "home", href: "#/", label: "Mutual" },
+  { page: "groups", href: "#/groups", label: "Groups" },
+  { page: "proof", href: "#/proof", label: "Proof engine" },
+  { page: "demo", href: "#/demo", label: "Demo" },
+  { page: "connect", href: "#/connect", label: "Connect" },
+  { page: "about", href: "#/about", label: "About" },
 ] as const;
 
 export const FOOTER = {
   owner: "Owner sign-in",
   vault: "The vault",
   llms: "llms.txt",
+  try: "Check a payee",
+  verify: "Verify your business",
 } as const;
 
+/** The Mutual, which is the home page. */
 export const HOME = {
+  heroLead: `${NAME} is a credit union`,
+  heroRest: "for the AI economy",
+  sub: "Back the AI economy and earn from it. Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely.",
+  primary: "Join the Mutual",
+  secondary: "Start a group",
+  statsLabel: "The Mutual today",
+  stats: {
+    pooled: "Total pooled",
+    price: "WARD price",
+    yield: "Yield earned",
+    yieldNote: "Fees paid to WARD holders",
+    groups: "Groups covered",
+    groupsNote: "Teams, houses and DAOs",
+    proven: "Proven AI payments",
+    provenNote: "Paid only on a TEE signature",
+    payouts: "Payouts made",
+    payoutsNote: "Our stake pays first",
+  },
+  howLabel: "How it works",
+  howTitle: "Three layers. Your money sits on the first.",
+  layers: [
+    ["The Mutual", "Deposit USDC and get WARD, your share of the pool. WARD holders earn 2% of every proven AI payment and vote on payouts, fees and what gets covered. If an approval is wrong, our own stake pays first, then WARD holders."],
+    ["Groups", "A team, hacker house or DAO funds one shared AI budget from its Sputnik or Trezu treasury. Groups with a clean record earn lower fees and more coverage."],
+    ["The proof engine", "Why the yield is safe. A call is paid only to the right party, for the model you actually got (signed by NEAR AI's TEE), up to a hard cap. Anything else is refunded."],
+  ],
+  layerLinks: ["#/", "#/groups", "#/proof"],
+  layerCta: ["Join below", "See the groups", "How the proofs work"],
+  boardLabel: "Safest groups",
+  boardTitle: "A clean record pays less.",
+  boardAll: "Every group and how tiers work",
+  joinLabel: "Join the Mutual",
+  joinTitle: "Anyone can deposit. No group needed.",
+  joinLede: "Deposit USDC from any NEAR wallet and receive WARD at today's price. WARD is yield-bearing and loss-sharing: it rises with fees and falls only when a payout goes past our own stake.",
+  modeSim: "Simulated Mutual. Deposits and votes are signed by your wallet and applied to the simulation.",
+  modeMixed: "Pool, budgets and model registry on NEAR testnet. Reputation tiers and WARD voting are simulated until their contracts are deployed.",
+} as const;
+
+/** The proof engine page: what used to be the home page. */
+export const PROOF = {
+  label: "Proof engine",
   heroLead: "AI that only pays",
   heroRest: "on proof",
-  sub: "The right party, for the model you actually got, up to what you allowed. And if we're wrong, the Mutual pays you back.",
+  sub: "The right party, for the model you actually got, up to what you allowed. This is why the Mutual's yield is safe to earn.",
   primary: "Watch it refuse a swapped model",
-  secondary: "Plug in one line",
-  featuresLabel: "What it does",
+  secondary: "Check a payee",
+  featuresLabel: "What it checks",
   features: [
     ["Proof of delivery", "A model call is paid only when NEAR AI's TEE signs that exact response for the model you asked for. Anything else is refunded."],
     ["Proof of payee", `Pay a business by its website name. ${NAME} returns the account that site linked, at a stated trust level.`],
     ["Hard cap", "Spending comes from a deposit, and each member has an allowance. A leaked key stops at its limit."],
-    ["Wardline Mutual", "Protocol-backed coverage. If a Wardline approval was wrong, the pool pays you back, and our own stake pays first."],
-    ["Social Money", "A group funds one AI budget from its Sputnik DAO or Trezu treasury, and votes on allowances and payouts."],
-    ["One-line plug-in", `Change your OpenAI client's base URL. Every call is reserved, checked, then paid or refunded.`],
+    ["Protocol-backed coverage", "If a Wardline approval was wrong, the Mutual pays the group back, and our own stake pays first."],
+    ["One-line plug-in", "Change your OpenAI client's base URL. Every call is reserved, checked, then paid or refunded."],
   ],
   resultsLabel: "Red-team results",
   resultsTitle: "Scam payees, thrown at the checks.",
+  verifyLink: "Verify your business",
 } as const;
 
 export const TRY = {
@@ -104,19 +150,28 @@ export const TIERS: Record<EvidenceTier, { short: string; verified: string; notE
 
 export const DEMO = {
   label: "Demo",
-  title: "Five ways an AI bill goes wrong, and what happens instead.",
-  lede: "Each scene runs the real gateway, payee check or pool code against simulated contracts and recorded NEAR AI traffic.",
+  title: "From a deposit to a lower fee, in seven scenes.",
+  lede: "Each scene runs the real Mutual, gateway, payee check, pool and reputation code against simulated contracts and recorded NEAR AI traffic.",
   run: "Run",
   replay: "Replay",
   running: "Running",
   scenes: {
-    plugin: {
-      name: "One-line plug-in",
-      line: "Point the OpenAI client at Wardline. Calls are paid with receipts.",
+    mutual: {
+      name: "The Mutual",
+      line: "An investor deposits USDC and gets WARD.",
       steps: [
-        "The app changes one line: baseURL becomes <wardline>/v1/ai.",
-        "Each call reserves the most it can cost, then goes to NEAR AI byte for byte.",
-        `NEAR AI's TEE signs model, request hash and response hash. ${NAME} checks it, then pays.`,
+        "The Mutual today: what is pooled, what WARD holders have earned, which groups it covers.",
+        "maya.testnet deposits 25 USDC from her own wallet. She is in no group.",
+        "She receives WARD at today's price: her share of every fee from here on.",
+      ],
+    },
+    group: {
+      name: "A group plugs in",
+      line: "A hacker house funds its AI budget by DAO vote.",
+      steps: [
+        "Hayes Valley hacker house proposes 20 USDC for this week's AI budget. Two members approve.",
+        "A member's app changes one line: baseURL becomes <wardline>/v1/ai.",
+        "Every call is paid only on proof. 2% of each goes to WARD holders, and WARD ticks up.",
       ],
     },
     swap: {
@@ -138,21 +193,30 @@ export const DEMO = {
       ],
     },
     invoice: {
-      name: "Bank details changed",
-      line: "An email swaps in a look-alike NEAR account.",
+      name: "Look-alike payout",
+      line: "A DAO payout to a look-alike account.",
       steps: [
-        "Email from billing@northwind.example: our bank details changed.",
-        "New payout account in the email: northw1nd.testnet",
-        `The agent extracts the payee and asks ${NAME} before paying.`,
+        "A proposal to the group's DAO: pay northwind.example invoice 55190.",
+        "The payout account, northw1nd.testnet, came from an email saying bank details changed.",
+        `${NAME} checks the payee before anyone votes.`,
       ],
     },
-    mutual: {
-      name: "Wrong approval",
-      line: `${NAME} said PAY, and it was wrong.`,
+    payout: {
+      name: "We're wrong once",
+      line: "Our stake pays first. Then WARD holders.",
       steps: [
-        `${NAME} answered PAY for brightwater-pay.testnet, and the key behind it had been stolen.`,
-        `The payout comes out of ${NAME}'s own stake. WARD does not move.`,
-        "A bigger second payout uses up the stake. WARD holders cover the rest, and WARD dips a little.",
+        `${NAME} answered PAY and was wrong. The payout comes from our own stake, and WARD stays put.`,
+        "A bigger one uses up the stake. WARD holders cover the rest, and WARD dips.",
+        "Fees from the next proven calls refill it.",
+      ],
+    },
+    tier: {
+      name: "A clean record pays less",
+      line: "Ten clean calls move a group up a tier.",
+      steps: [
+        "Aurora Lab starts at Bronze: a 2% fee and 25 USDC of coverage.",
+        "Its members make ten proven calls in a row.",
+        "It moves up to Silver. Its fee drops to 1.5% and its coverage doubles.",
       ],
     },
   },
@@ -177,6 +241,26 @@ export const DEMO = {
     before: "Before",
     after: "After",
     claim: "Claim",
+    pooled: "Total pooled",
+    earned: "Earned by WARD holders",
+    groups: "Groups covered",
+    provenPayments: "Proven AI payments",
+    deposited: "Deposited",
+    received: "Received",
+    atPrice: "At WARD price",
+    worth: "Worth today",
+    daoVote: "DAO vote",
+    approvals: (n: number) => `${n} approvals`,
+    funded: "Budget funded",
+    batch: (n: number, member: string) => `${n} more proven calls from ${member}`,
+    feesToWard: "Fees to WARD holders",
+    flagged: "Flagged before the vote",
+    refill: "Refilled by fees",
+    refillCalls: (calls: number, spent: string) => `${calls} proven calls, ${spent} USDC`,
+    tierBefore: "Before",
+    tierAfter: (n: number) => `After ${n} proven calls`,
+    feeOnCall: (n: number) => `Fee on call ${n}`,
+    coverage: "Coverage",
   },
   comparisonLabel: "First payment to a vendor",
   comparisonTitle: `No record of the vendor yet. The agent alone, then with ${BRAND.name}.`,
@@ -362,18 +446,16 @@ export const GROUP = {
 
 export const POOL = {
   label: "Wardline Mutual",
-  title: "If we approve the wrong payment, the pool pays you back.",
-  lede: "Protocol-backed coverage, funded by WARD holders and by a fee on every proven call.",
   loseFirstTitle: "We lose first.",
   loseFirst: [
     "Every claim is paid from Wardline's own stake, the first-loss tranche, before any WARD holder is touched.",
     "WARD holders cover only what is left after that stake is gone.",
-    "Claims above a set size wait for a vote of the pool's DAO. Smaller ones pay at once.",
+    "Claims above a group's coverage cap, or above a set size, wait for a WARD-holder vote. Smaller ones pay at once.",
   ],
   ward: {
     title: "WARD",
-    name: "Wardline Mutual share",
-    pitch: ["Earn a share of Wardline's fees by backing its proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."],
+    name: "your share of the Mutual",
+    pitch: ["Earn a share of every fee by backing the proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."],
     kind: "Yield-bearing, loss-sharing. The price rises with fees and falls when a payout goes past Wardline's stake.",
     price: "WARD price",
     sinceLaunch: "Since launch at 1.00 USDC",
@@ -407,8 +489,86 @@ export const POOL = {
   noPosition: "No WARD yet.",
   unlocksIn: "Unlocks in",
   redeemNow: "Redeem now",
-  claims: "Claims",
-  claimsEmpty: "No claims yet.",
+  claims: "Payouts",
+  claimsEmpty: "No payouts yet.",
   col: { filed: "Filed", subject: "Approval", amount: "Amount", junior: "From Wardline", senior: "From WARD", price: "WARD price", status: "Status" },
-  modeSim: "Simulated pool. Deposits are signed by your wallet and applied to the simulation.",
+} as const;
+
+export const GOV = {
+  label: "Governance",
+  title: "WARD holders decide the risks.",
+  lede: "One WARD, one vote, counted at each proposal's snapshot, so WARD bought or moved later cannot vote twice. A proposal passes with quorum and more votes for than against when its window closes, or early once more than half of all WARD votes for it. Anyone can execute a passed proposal.",
+  open: "Open proposals",
+  decided: "Decided",
+  none: "No open proposals.",
+  noneDecided: "Nothing decided yet.",
+  status: { open: "Voting", passed: "Passed", rejected: "Rejected", executed: "Executed" },
+  votesFor: "For",
+  votesAgainst: "Against",
+  quorum: "Quorum",
+  timeLeft: "Time left",
+  closed: "Voting closed",
+  snapshot: "Snapshot",
+  voteAs: "Vote as",
+  voterNote: "Your wallet signs each vote. Only WARD you held when a proposal opened counts.",
+  voteFor: "Vote for",
+  voteAgainst: "Vote against",
+  execute: "Execute",
+  executing: "Executing",
+  weight: (w: string) => `Your vote: ${w} WARD`,
+  noWeight: "You held no WARD when this opened.",
+  wallet: "Wallet",
+  voted: (support: string) => `Vote counted: ${support}.`,
+  executed: "Executed. The change is in effect.",
+  proposeTitle: "Propose a change",
+  proposeLede: "WARD holders can propose. Your WARD at this moment is the snapshot for every vote on it.",
+  kind: "Change",
+  kinds: { fee: "Fee for a tier", coverage: "Coverage for every tier", uncover: "Stop covering a model" },
+  tier: "Tier",
+  feePct: "New fee (%)",
+  multiplier: "Coverage multiplier (x)",
+  model: "Model",
+  propose: "Sign and propose",
+  proposed: (id: number) => `Proposal ${id} is open for votes.`,
+} as const;
+
+export const REP = {
+  names: { bronze: "Bronze", silver: "Silver", gold: "Gold" },
+  tierBadge: (name: string) => `${name} tier`,
+  next: (n: number, name: string) => `${n} more clean proven calls to ${name}`,
+  top: "Top tier",
+  rule: "Clean proven calls in a row move a group up a tier. A paid claim moves it down one, and the streak starts again. Refused calls do not count against a group: the provider failed the proof, not the group.",
+  fee: "Fee",
+  coverage: "Coverage cap",
+  proven: "Proven calls",
+  refused: "Refused calls",
+  claims: "Claims",
+  noClaims: "No claims",
+  claimCount: (n: number) => (n === 0 ? "No claims" : n === 1 ? "1 claim" : `${n} claims`),
+  spent: "Paid for AI",
+  col: { group: "Group", tier: "Tier", proven: "Proven calls", claims: "Claims", fee: "Fee" },
+} as const;
+
+export const GROUPS = {
+  label: "Groups",
+  title: "One shared AI budget, governed by your group.",
+  lede: "A team, hacker house or DAO funds a shared AI budget from its own Sputnik or Trezu treasury. Members get allowances, every call is paid only on proof, and a clean record earns a lower fee and more coverage.",
+  tiersLabel: "Reputation tiers",
+  tiersTitle: "Lower fees and more coverage for a clean record.",
+  tierCol: { tier: "Tier", fee: "Fee on each call", coverage: "Coverage cap (USDC)", earn: "How to earn it" },
+  earnFirst: "Every new group",
+  earnAfter: (n: number, from: string) => `${n} clean proven calls in a row at ${from}`,
+  listLabel: "Covered groups",
+  members: (n: number) => (n === 1 ? "1 member" : `${n} members`),
+  dao: "Treasury",
+  startLabel: "Start a group",
+  startTitle: "Four steps, all from your own treasury.",
+  steps: [
+    ["Use your DAO", "Any Sputnik DAO works, including one you run through Trezu. The DAO stays the owner of the money."],
+    ["Fund a budget", "Propose a USDC transfer to the Wardline meter for your group's budget. Members vote; nothing moves until they approve."],
+    ["Set allowances", "Give each member, person or agent, an allowance by proposal, then a meter key."],
+    ["Change one line", "Each member points their OpenAI client's base URL at Wardline. Calls are paid only on proof."],
+  ],
+  startCta: "Open the owner app",
+  connectCta: "See the one-line plug-in",
 } as const;

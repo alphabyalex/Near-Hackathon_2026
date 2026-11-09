@@ -1,24 +1,59 @@
 import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
 
-const PAGES = ["#/", "#/try", "#/demo", "#/mutual", "#/connect", "#/verify", "#/about"];
+const PAGES = ["#/", "#/groups", "#/proof", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
 
 test.describe("public site", () => {
-  test("home: hero, feature rows and results read from the red-team report", async ({ page }) => {
+  test("home is the Mutual: headline, live stats, three layers, safest groups, nav", async ({ page }) => {
     await page.goto("/#/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("AI that only pays on proof.");
-    await expect(page.locator(".spec")).toHaveCount(6);
-    await expect(page.locator(".spec b")).toHaveText(["Proof of delivery", "Proof of payee", "Hard cap", "Wardline Mutual", "Social Money", "One-line plug-in"]);
-    const strip = page.locator(".strip.results");
-    await expect(strip).toContainText("100%");
-    await expect(strip).toContainText("0%");
-    await expect(page.locator(".engine-note")).toContainText("stub rules engine");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Wardline is a credit union for the AI economy.");
+    await expect(page.locator(".hero p")).toContainText("Back the AI economy and earn from it.");
+    const stats = page.getByTestId("home-stats");
+    await expect(stats.locator(".l")).toHaveText(["Total pooled", "WARD price", "Yield earned", "Groups covered", "Proven AI payments", "Payouts made"]);
+    await expect(stats).toContainText("since launch");
+    await expect(page.locator(".layers .spec b")).toHaveText(["1 The Mutual", "2 Groups", "3 The proof engine"]);
+    const board = page.getByTestId("leaderboard");
+    await expect(board.locator("tbody tr").first()).toContainText("Mission Street hacker house");
+    await expect(board.locator("tbody tr").first().locator(".tierb")).toHaveAttribute("data-tier", "gold");
+    await expect(board.locator('tr[data-budget="bgt_kelp"]')).toContainText("Bronze");
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
-    await expect(nav).toHaveText(["Try it", "Demo", "Mutual", "Connect", "Verify", "About"]);
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About" }).click();
-    await expect(page).toHaveURL(/#\/about$/);
+    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "Demo", "Connect", "About"]);
+    await expect(nav.first()).toHaveAttribute("aria-current", "page");
+    await page.getByRole("link", { name: "Start a group" }).first().click();
+    await expect(page).toHaveURL(/#\/groups$/);
     await page.getByLabel("Wardline home").first().click();
     await expect(page).toHaveURL(/#\/$/);
+    await page.getByRole("button", { name: "Join the Mutual" }).click();
+    await expect(page.locator("#join-account")).toBeFocused();
+  });
+
+  test("proof engine: the old home, feature rows and red-team results", async ({ page }) => {
+    await page.goto("/#/proof");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("AI that only pays on proof.");
+    await expect(page.locator(".spec b")).toHaveText(["Proof of delivery", "Proof of payee", "Hard cap", "Protocol-backed coverage", "One-line plug-in"]);
+    const strip = page.locator(".strip.results");
+    await expect(strip).toContainText("100%");
+    await expect(page.locator(".engine-note")).toContainText("stub rules engine");
+  });
+
+  test("groups: tier table, every group with its tier, fee, coverage and history, and how to start one", async ({ page }) => {
+    await page.goto("/#/groups");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("One shared AI budget");
+    const tiers = page.getByTestId("tier-table").locator("tbody tr");
+    await expect(tiers).toHaveCount(3);
+    await expect(tiers.nth(0)).toContainText("2.00%");
+    await expect(tiers.nth(1)).toContainText("1.50%");
+    await expect(tiers.nth(2)).toContainText("1.00%");
+    await expect(tiers.nth(1)).toContainText("10 clean proven calls in a row at Bronze");
+    const mission = page.locator('.gcard[data-budget="bgt_mission"]');
+    await expect(mission).toHaveAttribute("data-tier", "gold");
+    await expect(mission).toContainText("Top tier");
+    const kelp = page.locator('.gcard[data-budget="bgt_kelp"]');
+    await expect(kelp).toHaveAttribute("data-tier", "bronze");
+    await expect(kelp.locator(".gfacts")).toContainText("Claims1");
+    await expect(page.locator('.gcard[data-budget="bgt_nightshade"]')).toContainText("more clean proven calls to Gold");
+    await expect(page.locator(".start-steps li")).toHaveCount(4);
+    await expectAccessible(page);
   });
 
   test("try it: resolve gives PAY with a receipt the browser verifies; check blocks a look-alike", async ({ page }) => {
@@ -38,16 +73,22 @@ test.describe("public site", () => {
     await expect(card.locator(".tier")).toContainText("Not verified");
   });
 
-  test("demo: five scenes end in real results from the gateway, payee check and pool, then the red-team numbers", async ({ page }) => {
+  test("demo: seven scenes end in real results, then the red-team numbers", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/demo");
+    await expect(page.locator("[data-scene]")).toHaveCount(7);
     const out = page.locator(".stage .scene-out");
 
-    await page.locator('[data-scene="plugin"]').click();
+    await page.locator('[data-scene="mutual"]').click();
+    await expect(out).toHaveAttribute("data-outcome", "deposited");
+    await expect(out).toContainText("maya.testnet");
+    await expect(out).toContainText("sim-deposit-");
+
+    await page.locator('[data-scene="group"]').click();
     await expect(out).toHaveAttribute("data-outcome", "verified");
-    await expect(out.locator(".out-card")).toHaveCount(2);
+    await expect(out).toContainText("Hayes Valley hacker house");
     await expect(out).toContainText("DeepSeek-V4.1-Flash-1017");
-    await expect(out).toContainText("sim-settle-");
+    await expect(out.getByTestId("ward-tick")).toContainText("1.000000 to 1.000500 USDC");
 
     await page.locator('[data-scene="swap"]').click();
     await expect(out).toHaveAttribute("data-outcome", "refused");
@@ -59,18 +100,24 @@ test.describe("public site", () => {
     await expect(out).toContainText("50 requests refused with 402");
 
     await page.locator('[data-scene="invoice"]').click();
+    await expect(out).toHaveAttribute("data-outcome", "flagged");
+    await expect(out).toContainText("northw1nd.testnet");
     await expect(page.locator(".stage .result")).toHaveAttribute("data-verdict", "BLOCK");
 
-    await page.locator('[data-scene="mutual"]').click();
+    await page.locator('[data-scene="payout"]').click();
     await expect(out).toHaveAttribute("data-outcome", "paid");
     const first = out.locator('[data-payout="1"]');
     const second = out.locator('[data-payout="2"]');
     await expect(first).toContainText("Paid by Wardline's stake8.00 USDC");
-    await expect(first).toContainText("Paid by WARD holders0.00 USDC");
     await expect(first).toContainText("1.0000 to 1.0000 USDC");
-    await expect(second).toContainText("Paid by Wardline's stake12.00 USDC");
-    await expect(second).toContainText("Paid by WARD holders6.00 USDC");
-    await expect(second.locator(".out-row.mismatch")).toContainText("1.0000 to 0.9500 USDC");
+    await expect(second).toContainText("Paid by WARD holders0.50 USDC");
+    await expect(second.locator(".out-row.mismatch")).toContainText("1.0000 to 0.9958 USDC");
+    await expect(out.getByTestId("refill")).toContainText("0.9958 to 1.0000 USDC");
+
+    await page.locator('[data-scene="tier"]').click();
+    await expect(out).toHaveAttribute("data-outcome", "silver");
+    await expect(out).toContainText("Fee on call 10.0100 USDC");
+    await expect(out).toContainText("Fee on call 110.0075 USDC");
 
     const rows = page.locator(".cmp-row");
     await expect(rows.nth(0)).toContainText("5 of 20");
@@ -85,29 +132,26 @@ test.describe("public site", () => {
     await expect(page.locator(".steps li.on")).toHaveCount(3);
   });
 
-  test("mutual: WARD price and pitch, we lose first, a wallet-signed USDC deposit for WARD, and a 7-day redemption", async ({ page, wallets }) => {
+  test("join the Mutual: any wallet deposits USDC for WARD, no group needed, then a 7-day redemption", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/mutual");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("the pool pays you back");
+    await expect(page.getByRole("heading", { level: 2, name: "Anyone can deposit. No group needed." })).toBeVisible();
     const ward = page.getByTestId("ward-panel");
-    await expect(ward).toContainText("Earn a share of Wardline's fees by backing its proofs.");
-    await expect(ward).toContainText("If Wardline is wrong, WARD holders cover it after Wardline's own stake.");
+    await expect(ward).toContainText("Earn a share of every fee by backing the proofs.");
     await expect(ward).toContainText("Yield-bearing, loss-sharing.");
     expect(Number(await page.getByTestId("ward-price").textContent())).toBeGreaterThanOrEqual(1);
     await expect(page.getByTestId("trade-ward")).toHaveCount(0);
-    await expect(page.getByTestId("pool-stats")).toContainText("20.00");
     await expect(page.locator(".lose-first")).toContainText("We lose first.");
-    await page.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
+    await page.locator("#join-account").fill(OWNER_ACCOUNT);
     await page.getByLabel("Amount (USDC)").fill("20");
     await page.locator('.pool-form [data-wallet="test-wallet"]').click();
     await expect(page.getByTestId("pool-done")).toContainText("Received");
     await expect(page.getByTestId("pool-done")).toContainText("WARD. sim-deposit-");
     const position = page.getByTestId("pool-position");
-    await expect(position).toContainText(/worth (19.99|20.00) USDC/);
+    await expect(position).toContainText("Balance");
     await page.getByRole("tab", { name: "Redeem WARD" }).click();
     await expect(page.locator(".pool-form")).toContainText("locks your WARD for 7 days");
-    const balance = (/Balance ([0-9.,]+) WARD/.exec((await position.textContent()) ?? "") ?? [])[1] ?? "";
-    await page.getByLabel("WARD to redeem").fill(balance.replace(/,/g, ""));
+    await page.getByLabel("WARD to redeem").fill("5");
     await page.locator('.pool-form [data-wallet="test-wallet"]').click();
     await expect(page.getByTestId("pool-done")).toContainText("WARD locked. Redeemable from");
     await expect(page.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
@@ -115,6 +159,34 @@ test.describe("public site", () => {
     await expectAccessible(page);
   });
 
+  test("governance: WARD holders vote with their wallet, anyone executes a passed proposal, once", async ({ page, wallets }) => {
+    wallets.setNearAccount(OWNER_ACCOUNT);
+    await page.goto("/#/");
+    const gov = page.getByTestId("governance");
+    await expect(gov.getByRole("heading", { level: 2 })).toHaveText("WARD holders decide the risks.");
+    await expect(gov.locator('.prop[data-status="executed"]')).toContainText("Cover GLM-5.3 Flash");
+    await expect(gov.locator('.prop[data-status="rejected"]')).toContainText("Raise the Bronze fee to 2.50%");
+
+    const mine = gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" });
+    await expect(mine).toHaveAttribute("data-status", "open");
+    await expect(mine.getByRole("button", { name: "Vote for" })).toBeDisabled();
+    await gov.getByLabel("Vote as").fill(OWNER_ACCOUNT);
+    await gov.locator('.voter [data-wallet="test-wallet"]').click();
+    await expect(mine).toContainText(/Your vote: [0-9.]+ WARD/);
+    const weight = (/Your vote: ([0-9.]+) WARD/.exec((await mine.textContent()) ?? "") ?? [])[1] ?? "";
+    await mine.getByRole("button", { name: "Vote for" }).click();
+    await expect(mine.getByRole("status")).toContainText("Vote counted: for.");
+    await expect(gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" }).locator(".prop-facts")).toContainText(`For${weight} WARD`);
+
+    const late = gov.locator(".prop", { hasText: "Lower the Silver fee to 1.25%" });
+    await expect(late).toContainText("You held no WARD when this opened.");
+
+    const passed = gov.locator('.prop[data-status="passed"]', { hasText: "Raise coverage to 1.25x" });
+    await passed.getByRole("button", { name: "Execute" }).click();
+    await expect(gov.locator('.prop[data-status="executed"]', { hasText: "Raise coverage to 1.25x" })).toBeVisible();
+    await expect(gov.locator('.prop[data-status="passed"]', { hasText: "Raise coverage to 1.25x" })).toHaveCount(0);
+    await expectAccessible(page);
+  });
 
   test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -237,8 +309,8 @@ test.describe("public site", () => {
     await page.goto("/#/");
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden();
     await page.getByRole("button", { name: "Menu" }).click();
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Verify" }).click();
-    await expect(page).toHaveURL(/#\/verify$/);
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Groups" }).click();
+    await expect(page).toHaveURL(/#\/groups$/);
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden();
   });
 
@@ -332,6 +404,9 @@ test.describe("owner app", () => {
     await signInAs(page, wallets, OWNER_ACCOUNT);
     await expect(page.getByTestId("budget-strip")).toContainText("25.00");
     await expect(page.locator(".group")).toContainText("aurora-lab.sputnikv2.testnet");
+    await expect(page.getByTestId("group-tier").locator(".tierb")).toHaveAttribute("data-tier", "bronze");
+    await expect(page.getByTestId("group-tier")).toContainText("more clean proven calls to Silver");
+    await expect(page.getByTestId("group-tier")).toContainText("Fee 2.00%");
     const calls = page.locator("table.calls tbody tr");
     await expect(calls.filter({ hasText: "DeepSeek-V4.1-Flash-1017" })).toHaveAttribute("data-status", "verified");
     await expect(calls.filter({ hasText: "bob.testnet" })).toContainText("Signed by the gateway, not by a model TEE.");

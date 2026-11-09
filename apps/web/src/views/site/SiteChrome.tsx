@@ -5,7 +5,7 @@ import type { SitePage } from "../../router";
 
 function PageLinks({ page }: { page: SitePage }) {
   return NAV.map((link) => (
-    <a key={link.page} href={`#/${link.page}`} {...(link.page === page ? { "aria-current": "page" as const } : {})}>
+    <a key={link.page} href={link.href} {...(link.page === page ? { "aria-current": "page" as const } : {})}>
       {link.label}
     </a>
   ));
@@ -37,6 +37,8 @@ export function SiteFooter({ page }: { page: SitePage }) {
         <Logo markSize={22} textSize={18} />
         <nav className="nav" aria-label="Footer">
           <PageLinks page={page} />
+          <a href="#/try">{FOOTER.try}</a>
+          <a href="#/verify">{FOOTER.verify}</a>
           <a href="#/vault">{FOOTER.vault}</a>
           <a href="/llms.txt">{FOOTER.llms}</a>
           <a href="#/app/overview">{FOOTER.owner}</a>

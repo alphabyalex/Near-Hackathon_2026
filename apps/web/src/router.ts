@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
-export type SitePage = "home" | "try" | "demo" | "mutual" | "connect" | "verify" | "about" | "vault" | "scoring";
+export type SitePage = "home" | "groups" | "proof" | "try" | "demo" | "connect" | "verify" | "about" | "vault" | "scoring";
 export type DashboardTab = "overview" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
 export type Route = { kind: "site"; page: SitePage } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
-const SITE_PAGES: readonly string[] = ["try", "demo", "mutual", "connect", "verify", "about", "vault", "scoring"];
+const SITE_PAGES: readonly string[] = ["groups", "proof", "try", "demo", "connect", "verify", "about", "vault", "scoring"];
 const TABS: readonly string[] = ["overview", "group", "invoices", "review", "keys", "evaluation", "controls"];
 
 function decode(part: string | undefined): string | null {
@@ -16,7 +16,7 @@ function decode(part: string | undefined): string | null {
   }
 }
 
-/** Anything unrecognized falls back to home, or to the overview inside the dashboard. */
+/** Anything unrecognized falls back to home (the Mutual; #/mutual is an alias), or to the overview inside the dashboard. */
 export function parseRoute(hash: string): Route {
   const [first, second, third] = hash.replace(/^#\/?/, "").split("/");
   if (first === "app") {

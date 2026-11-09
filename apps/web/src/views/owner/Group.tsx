@@ -2,7 +2,9 @@ import type { PayeeVerdict } from "@wardline/schemas";
 import { useApi } from "../../api/client";
 import type { CallView, GroupView } from "../../api/ai";
 import { callWords, modelName } from "../../ai/words";
-import { GROUP } from "../../brand";
+import { GROUP, REP } from "../../brand";
+import { feeText, TierBadge } from "../../components/TierBadge";
+import { NextTier } from "../site/Groups";
 import { DotBar } from "../../components/DotBar";
 import { LoadError, Loading } from "../../components/Loading";
 import { Panel } from "../../components/Panel";
@@ -40,6 +42,19 @@ export function Group({ version }: { version: number }) {
           {GROUP.lede} {GROUP.dao} <span className="mono">{data.dao}</span>.
         </p>
       </div>
+
+      {data.reputation && (
+        <div className="group-tier" data-testid="group-tier">
+          <TierBadge tier={data.reputation.tier} />
+          <NextTier g={data.reputation} />
+          <span className="num">
+            {REP.fee} {feeText(data.reputation.fee_bps)}, {REP.coverage.toLowerCase()} {formatUsdc(data.reputation.coverage_cap)} USDC
+          </span>
+          <span className="num muted">
+            {data.reputation.proven_calls} {REP.proven.toLowerCase()}, {data.reputation.refused_calls} {REP.refused.toLowerCase()}, {data.reputation.claims} {REP.claims.toLowerCase()}
+          </span>
+        </div>
+      )}
 
       <div className="strip" data-testid="budget-strip">
         <div>

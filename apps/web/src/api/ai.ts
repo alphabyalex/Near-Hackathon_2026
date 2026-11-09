@@ -70,8 +70,83 @@ export interface AttestedModel {
   source: string;
 }
 
+export type Tier = "bronze" | "silver" | "gold";
+
+export interface ReputationView {
+  budget_id: string;
+  name: string;
+  owner: string;
+  tier: Tier;
+  proven_calls: number;
+  refused_calls: number;
+  claims: number;
+  clean_calls: number;
+  next_tier_at: number | null;
+  fee_bps: number;
+  coverage_cap: string;
+  spent: string;
+  fees_paid: string;
+}
+
+export interface TierRule {
+  tier: Tier;
+  fee_bps: number;
+  coverage: string;
+  promote_after: number | null;
+}
+
+export interface TierRules {
+  rules: TierRule[];
+  coverage_multiplier_bps: number;
+}
+
+export interface GroupSummary extends ReputationView {
+  deposit: string;
+  members: number;
+  period: string | null;
+}
+
+export type MutualAction =
+  | { type: "set_fee_bps"; tier: Tier; fee_bps: number }
+  | { type: "set_coverage_multiplier"; multiplier_bps: number }
+  | { type: "cover_model"; model_id: string; signing_address: string }
+  | { type: "uncover_model"; model_id: string }
+  | { type: "approve_payout"; claim_id: string };
+
+export interface MutualProposalView {
+  id: number;
+  proposer: string;
+  description: string;
+  action: MutualAction;
+  snapshot_at: string;
+  snapshot_supply: string;
+  votes_for: string;
+  votes_against: string;
+  voters: number;
+  quorum: string;
+  opens_at: string;
+  closes_at: string;
+  status: "open" | "passed" | "rejected" | "executed";
+  executed_at: string | null;
+  tx: string | null;
+}
+
+export interface MutualSummary {
+  mode: "sim" | "near";
+  mutual_mode: "sim" | "near";
+  contract: string;
+  pool: PoolView;
+  claims: ClaimView[];
+  stats: { total_pooled: string; ward_price: string; launch_price: string; yield_earned: string; groups_covered: number; proven_payments: number; payouts: number };
+  groups: GroupSummary[];
+  tiers: TierRules;
+  governance: { quorum_bps: number; voting_days: number; proposals: MutualProposalView[] };
+}
+
 export interface GroupView {
   mode: "sim" | "near";
+  reputation: ReputationView | null;
+  tiers: TierRules;
   dao: string;
   budget: BudgetView;
   calls: CallView[];
@@ -155,12 +230,21 @@ export interface PoolPosition {
 
 export const getPool = () => apiGet<{ mode: "sim" | "near"; contract: string; pool: PoolView; claims: ClaimView[] }>("/v1/pool");
 export const getPosition = (account: string) => apiGet<PoolPosition>(`/v1/pool/positions/${encodeURIComponent(account)}`);
-export const poolChallenge = (body: { account: string; action: "deposit" | "withdraw"; amount: string } | { account: string; action: "redeem"; id: string }) =>
-  apiPost<{ message: string; recipient: string; nonce: string; expiresAt: string }>("/v1/pool/challenge", body);
+export type PoolRequest =
+  | { account: string; action: "deposit" | "withdraw"; amount: string }
+  | { account: string; action: "redeem"; id: string }
+  | { account: string; action: "vote"; id: number; support: "for" | "against" }
+  | { account: string; action: "propose"; description: string; proposal: MutualAction };
+export const poolChallenge = (body: PoolRequest) => apiPost<{ message: string; recipient: string; nonce: string; expiresAt: string }>("/v1/pool/challenge", body);
 export const poolSubmit = (body: { nonce: string; publicKey: string; signature: string }) =>
-  apiPost<{ action: string; tx: string; ward?: string; usdc?: string; available_at?: string; position: PoolPosition }>("/v1/pool/submit", body);
+  apiPost<{ action: string; tx?: string; ward?: string; usdc?: string; available_at?: string; position?: PoolPosition; proposal?: MutualProposalView }>("/v1/pool/submit", body);
 
-export type SceneName = "plugin" | "swap" | "leak" | "invoice" | "mutual";
+export const getMutual = () => apiGet<MutualSummary>("/v1/mutual");
+export const getGroups = () => apiGet<{ mode: "sim" | "near"; groups: GroupSummary[]; tiers: TierRules }>("/v1/groups");
+export const getVoteWeight = (id: number, account: string) => apiGet<{ weight: string }>(`/v1/mutual/proposals/${id}/weight/${encodeURIComponent(account)}`);
+export const executeProposal = (id: number) => apiPost<{ proposal: MutualProposalView }>(`/v1/mutual/proposals/${id}/execute`, {});
+
+export type SceneName = "mutual" | "group" | "swap" | "leak" | "invoice" | "payout" | "tier";
 export const runDemoScene = <T,>(name: SceneName) => apiPost<T>(`/v1/demo/${name}`);
 
 /** Whole USDC typed by a person, to atomic units. Up to six decimal places. */

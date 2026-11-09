@@ -1,24 +1,25 @@
+/** The Mutual's pieces: WARD, the tranches, the deposit and redeem form, and payouts. The home page composes them. */
 import { useEffect, useMemo, useState } from "react";
-import { getPool, getPosition, poolChallenge, poolSubmit, toAtomic, type ClaimView, type PoolPosition, type PoolView } from "../../api/ai";
+import { getPosition, poolChallenge, poolSubmit, toAtomic, type ClaimView, type PoolPosition, type PoolRequest, type PoolView } from "../../api/ai";
 import { errorText } from "../../api/public";
 import { POOL } from "../../brand";
 import { NEAR_NETWORK } from "../../config";
 import { formatUsdc } from "../../format";
 import { fromBase64, nearWallets, signNep413, type NearWalletId } from "../../wallets/near";
 
-const share = (part: string, whole: string): number => (BigInt(whole) === 0n ? 0 : Number((BigInt(part) * 10_000n) / BigInt(whole)) / 100);
+export const share = (part: string, whole: string): number => (BigInt(whole) === 0n ? 0 : Number((BigInt(part) * 10_000n) / BigInt(whole)) / 100);
 /** A price scaled by 1e6 as USDC with four places. */
-const price = (scaled: string): string => (Number(BigInt(scaled || "0")) / 1e6).toFixed(4);
+export const price = (scaled: string): string => (Number(BigInt(scaled || "0")) / 1e6).toFixed(4);
 /** Atomic WARD (6 decimals) for display. */
 const ward = (atomic: string): string => formatUsdc(atomic);
 
-function sinceLaunch(pool: PoolView): string {
-  const change = (Number(BigInt(pool.ward_price)) / Number(BigInt(pool.launch_price)) - 1) * 100;
+export function sinceLaunch(p: { ward_price: string; launch_price: string }): string {
+  const change = (Number(BigInt(p.ward_price)) / Number(BigInt(p.launch_price)) - 1) * 100;
   const rounded = Math.abs(change) < 0.005 ? 0 : change;
   return `${rounded > 0 ? "+" : rounded < 0 ? "-" : ""}${Math.abs(rounded).toFixed(2)}%`;
 }
 
-function useNow(ms = 30_000): number {
+export function useNow(ms = 30_000): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), ms);
@@ -27,7 +28,7 @@ function useNow(ms = 30_000): number {
   return now;
 }
 
-function countdown(availableAt: string, now: number): string | null {
+export function countdown(availableAt: string, now: number): string | null {
   const left = Date.parse(availableAt) - now;
   if (left <= 0) return null;
   const days = Math.floor(left / 86_400_000);
@@ -36,7 +37,7 @@ function countdown(availableAt: string, now: number): string | null {
   return days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`;
 }
 
-function WardPanel({ pool }: { pool: PoolView }) {
+export function WardPanel({ pool }: { pool: PoolView }) {
   const change = sinceLaunch(pool);
   return (
     <section className="ward" aria-labelledby="ward-title" data-testid="ward-panel">
@@ -86,7 +87,7 @@ function WardPanel({ pool }: { pool: PoolView }) {
   );
 }
 
-function Stats({ pool }: { pool: PoolView }) {
+export function Stats({ pool }: { pool: PoolView }) {
   const cells: [string, string, string][] = [
     [POOL.stats.tvl, formatUsdc(pool.tvl), "USDC"],
     [POOL.stats.junior, formatUsdc(pool.junior), `${Math.round(share(pool.junior, pool.tvl))}% of TVL`],
@@ -108,7 +109,7 @@ function Stats({ pool }: { pool: PoolView }) {
 }
 
 /** First-loss on the left, because it pays first. */
-function TrancheBar({ pool }: { pool: PoolView }) {
+export function TrancheBar({ pool }: { pool: PoolView }) {
   const junior = share(pool.junior, pool.tvl);
   return (
     <figure className="tranche">
@@ -169,11 +170,17 @@ function Position({ position, now, onRedeem, busy }: { position: PoolPosition; n
   );
 }
 
-function DepositRedeem({ pool, onDone }: { pool: PoolView; onDone: () => void }) {
+/** Signs a Mutual request (deposit, redeem, vote, propose) with the account's own NEAR wallet. */
+export async function signMutual(walletId: NearWalletId, body: PoolRequest) {
+  const ch = await poolChallenge(body);
+  const signed = await signNep413(walletId, { message: ch.message, recipient: ch.recipient, nonce: fromBase64(ch.nonce) }, body.account);
+  return poolSubmit({ nonce: ch.nonce, publicKey: signed.publicKey, signature: signed.signature });
+}
+
+export function DepositRedeem({ pool, onDone, account, setAccount }: { pool: PoolView; onDone: () => void; account: string; setAccount: (a: string) => void }) {
   const wallets = useMemo(() => nearWallets(), []);
   const now = useNow();
   const [action, setAction] = useState<"deposit" | "withdraw">("deposit");
-  const [account, setAccount] = useState("");
   const [amount, setAmount] = useState("");
   const [wallet, setWallet] = useState<NearWalletId | null>(null);
   const [position, setPosition] = useState<PoolPosition | null>(null);
@@ -190,11 +197,7 @@ function DepositRedeem({ pool, onDone }: { pool: PoolView; onDone: () => void })
     }
   };
 
-  const signAndSend = async (walletId: NearWalletId, body: Parameters<typeof poolChallenge>[0]) => {
-    const ch = await poolChallenge(body);
-    const signed = await signNep413(walletId, { message: ch.message, recipient: ch.recipient, nonce: fromBase64(ch.nonce) }, body.account);
-    return poolSubmit({ nonce: ch.nonce, publicKey: signed.publicKey, signature: signed.signature });
-  };
+  const signAndSend = signMutual;
 
   const go = async (walletId: NearWalletId) => {
     setError(null);
@@ -205,7 +208,7 @@ function DepositRedeem({ pool, onDone }: { pool: PoolView; onDone: () => void })
     setWallet(walletId);
     try {
       const res = await signAndSend(walletId, { account: account.trim(), action, amount: value });
-      setPosition(res.position);
+      setPosition(res.position ?? null);
       setDone(action === "deposit" ? `Received ${ward(res.ward ?? "0")} WARD. ${res.tx}` : `WARD locked. Redeemable from ${res.available_at?.slice(0, 10)}. ${res.tx}`);
       setAmount("");
       onDone();
@@ -223,7 +226,7 @@ function DepositRedeem({ pool, onDone }: { pool: PoolView; onDone: () => void })
     setBusy(walletId);
     try {
       const res = await signAndSend(walletId, { account: account.trim(), action: "redeem", id });
-      setPosition(res.position);
+      setPosition(res.position ?? null);
       setDone(`Redeemed for ${formatUsdc(res.usdc ?? "0")} USDC. ${res.tx}`);
       onDone();
     } catch (e) {
@@ -244,7 +247,7 @@ function DepositRedeem({ pool, onDone }: { pool: PoolView; onDone: () => void })
       </div>
       <label className="field">
         <span>{POOL.account}</span>
-        <input value={account} onChange={(e) => setAccount(e.target.value)} onBlur={() => void load(account)} placeholder={`you.${NEAR_NETWORK}`} spellCheck={false} autoComplete="username" />
+        <input id="join-account" value={account} onChange={(e) => setAccount(e.target.value)} onBlur={() => void load(account)} placeholder={`you.${NEAR_NETWORK}`} spellCheck={false} autoComplete="username" />
       </label>
       <label className="field">
         <span>{action === "deposit" ? POOL.amount : POOL.wardAmount}</span>
@@ -275,10 +278,10 @@ function DepositRedeem({ pool, onDone }: { pool: PoolView; onDone: () => void })
   );
 }
 
-function Claims({ claims }: { claims: ClaimView[] }) {
+export function Claims({ claims }: { claims: ClaimView[] }) {
   if (claims.length === 0) return <p className="empty">{POOL.claimsEmpty}</p>;
   return (
-    <div className="scrollx">
+    <div className="scrollx" role="region" aria-label={POOL.claims} tabIndex={0}>
       <table className="rows">
         <thead>
           <tr>
@@ -309,68 +312,5 @@ function Claims({ claims }: { claims: ClaimView[] }) {
         </tbody>
       </table>
     </div>
-  );
-}
-
-export function Mutual() {
-  const [state, setState] = useState<{ pool: PoolView; claims: ClaimView[]; mode: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    getPool().then(
-      (r) => setState({ pool: r.pool, claims: r.claims, mode: r.mode }),
-      (e: unknown) => setError(errorText(e)),
-    );
-  }, [tick]);
-
-  return (
-    <main>
-      <section className="sec pagetop page-intro">
-        <div className="wrap">
-          <span className="label">{POOL.label}</span>
-          <h1 className="h2">{POOL.title}</h1>
-          <p className="lede ink">{POOL.lede}</p>
-        </div>
-      </section>
-      <section className="sec tight">
-        <div className="wrap">
-          {error && (
-            <p className="notice" role="alert">
-              {error}
-            </p>
-          )}
-          {!state && !error && <p className="loading">Loading the pool</p>}
-          {state && (
-            <>
-              <WardPanel pool={state.pool} />
-              <div className="pool-grid">
-                <div>
-                  <div className="lose-first">
-                    <h2 className="h3">{POOL.loseFirstTitle}</h2>
-                    {POOL.loseFirst.map((line) => (
-                      <p key={line}>{line}</p>
-                    ))}
-                  </div>
-                  <TrancheBar pool={state.pool} />
-                  <Stats pool={state.pool} />
-                </div>
-                <DepositRedeem pool={state.pool} onDone={() => setTick((t) => t + 1)} />
-              </div>
-              {state.mode === "sim" && <p className="engine-note">{POOL.modeSim}</p>}
-            </>
-          )}
-        </div>
-      </section>
-      {state && (
-        <section className="sec tight" aria-labelledby="claims-title">
-          <div className="wrap">
-            <h2 className="h3" id="claims-title">
-              {POOL.claims}
-            </h2>
-            <Claims claims={state.claims} />
-          </div>
-        </section>
-      )}
-    </main>
   );
 }
