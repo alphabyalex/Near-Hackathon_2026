@@ -436,6 +436,11 @@ export class SimPool implements CoverPoolClient {
   }
 
   async fileClaim(args: { subject: string; claimant: string; amount: string; reason: string; budget_id?: string }): Promise<ClaimView> {
+    return this.fileClaimNow(args);
+  }
+
+  /** fileClaim without the await, so a seeded history is in place before anyone reads the pool. */
+  fileClaimNow(args: { subject: string; claimant: string; amount: string; reason: string; budget_id?: string }): ClaimView {
     const amount = big(args.amount);
     const before = this.price().toString();
     const claim: ClaimView = {
@@ -453,7 +458,7 @@ export class SimPool implements CoverPoolClient {
       tx: null,
     };
     if (args.budget_id) this.claimBudgets.set(claim.claim_id, args.budget_id);
-    const capacity = big((await this.getPool()).coverage_capacity);
+    const capacity = ((this.junior + this.senior) * BigInt(this.seed.max_claim_bps)) / 10_000n;
     const groupCap = args.budget_id ? (this.hooks.coverageCap?.(args.budget_id) ?? null) : null;
     this.claims.push(claim);
     if (amount <= big(this.seed.large_claim_threshold) && amount <= capacity && (groupCap === null || amount <= groupCap)) this.pay(claim);
@@ -531,7 +536,7 @@ export function createSimChain(seed: SimChainSeed, now: Clock): Chain {
   // History from before this run: fees its groups already paid, and claims already settled.
   const pastFees = Object.values(seed.reputation ?? {}).reduce((n, r) => n + BigInt(r.fees_paid ?? "0"), 0n);
   if (pastFees > 0n) void pool.addFees(pastFees.toString());
-  for (const c of seed.claims ?? []) void pool.fileClaim(c);
+  for (const c of seed.claims ?? []) pool.fileClaimNow(c);
   if (seed.proposals) governance.seed(seed.proposals);
   return { mode: "sim", meter, registry, pool, reputation, governance };
 }

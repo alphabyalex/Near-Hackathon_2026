@@ -132,6 +132,8 @@ describe("demo scenes run the real code paths", () => {
   it("1. the Mutual: stats, then an investor's USDC deposit mints WARD at today's price", async () => {
     const s = (await scene("mutual")) as { stats: { groups_covered: number; proven_payments: number; yield_earned: string; ward_price: string }; deposit: { usdc: string; ward: string; price: string }; position: { value: string } };
     expect(s.stats.groups_covered).toBe(4);
+    expect((s.stats as unknown as { payouts: number; total_pooled: string }).payouts).toBe(1);
+    expect((s.stats as unknown as { total_pooled: string }).total_pooled).toBe("139740000");
     expect(s.stats.proven_payments).toBeGreaterThan(600);
     expect(BigInt(s.stats.yield_earned)).toBeGreaterThan(0n);
     expect(BigInt(s.deposit.ward)).toBe((BigInt(s.deposit.usdc) * 1_000_000n) / BigInt(s.deposit.price));

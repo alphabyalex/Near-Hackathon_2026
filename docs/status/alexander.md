@@ -1,5 +1,141 @@
 # Status: alexander
 
+## A credit union for the AI economy (2026-11-09)
+
+### Step 0: Tharun's T4.5 merged into main
+
+- `origin/tharun` contained `origin/alexander` (89b7004), and main had nothing tharun lacked.
+- A clean checkout of `origin/tharun` (34459c4) passed install, build, `cargo test --workspace` in WSL (66 unit tests), `pnpm test` (754 package tests plus the brand guard) and `pnpm test:e2e` (25 of 25).
+- main was fast-forwarded to 34459c4 and pushed. alexander was fast-forwarded to main and pushed. This was the only push to main.
+
+### What changed
+
+- **Positioning.** "Wardline is a credit union for the AI economy." The three layers are the Mutual, Groups and the proof engine. Social Money leads the track list.
+- **The home page is the Mutual.** It shows:
+  - the hero, with the headline and pitch line;
+  - live stats: pooled, WARD price and change since launch, yield, groups covered, proven payments, payouts;
+  - "How it works" for the three layers;
+  - the "Safest groups" leaderboard;
+  - Join the Mutual (any wallet, no group needed);
+  - Governance and Payouts.
+
+  The old home page is now **Proof engine** (`#/proof`). `#/mutual` still opens the home page. The nav is Mutual, Groups, Proof engine, Demo, Connect, About. Check a payee and Verify moved to the footer.
+- **WARD-holder governance (sim).**
+  - Proposals can:
+    - set a tier's `fee_bps`;
+    - set the coverage multiplier;
+    - cover or uncover a model;
+    - approve a large payout.
+  - Rules:
+    - Votes are weighted by WARD at the snapshot. Free WARD counts; WARD locked for redemption does not.
+    - Quorum is 20% of the snapshot, and the window is 3 days.
+    - A proposal passes early once votes for exceed half the snapshot.
+    - Anyone can execute a passed proposal, once.
+    - Only WARD holders can propose.
+    - A claim above a group's coverage cap opens an `approve_payout` proposal automatically.
+  - Votes and proposals are wallet-signed (NEP-413) through `/v1/pool/challenge` and `/v1/pool/submit`. Execution uses `POST /v1/mutual/proposals/:id/execute`.
+  - The group-treasury proposals in `packages/dao-adapter` are unchanged.
+- **Reputation tiers (sim).**
+  - `get_reputation(budget_id)` returns `{tier, proven_calls, refused_calls, claims, clean_calls, next_tier_at, fee_bps, coverage_cap, spent, fees_paid}`.
+  - | Tier | Fee | Coverage | How to earn it |
+    | --- | --- | --- | --- |
+    | Bronze | 200 bps | 25 USDC | every new group |
+    | Silver | 150 bps | 50 USDC | 10 clean proven calls at Bronze |
+    | Gold | 100 bps | 100 USDC | 25 more clean proven calls at Silver |
+  - A paid claim moves a group down one tier and restarts its streak. Refused calls are counted but never demote.
+  - The meter charges each group its tier's fee.
+  - The Groups page (`#/groups`) and the owner Group view show the tier badge, the next tier, the fee, the coverage cap and the history.
+- **Demo, seven scenes**, each running the real code path:
+  1. **Mutual:** stats, then a deposit that mints WARD.
+  2. **Group:** a hacker house funds its budget by DAO vote; two recorded NEAR AI calls and six sim-TEE calls are paid on proof; WARD goes from 1.000000 to 1.000500.
+  3. **Swap:** the swapped model is refused.
+  4. **Leak:** the leaked key stops at the cap.
+  5. **Look-alike:** the payout proposal is flagged before the vote.
+  6. **Payout:** 8 USDC from our stake (WARD stays 1.0000), then 12.5 USDC (WARD 0.9958), then 78 proven calls of fees refill it to 1.0000.
+  7. **Tier:** Bronze to Silver, with the per-call fee falling from 0.0100 to 0.0075 USDC.
+
+  The page closes on the scam-test numbers.
+- **Live sim seed.** Besides Aurora Lab, three groups have a history:
+  - Mission Street hacker house: Gold, 412 calls;
+  - Nightshade research DAO: Silver, 186 calls;
+  - Kelp Robotics club: Bronze after one 1.50 USDC claim.
+
+  The fees they paid lift WARD to about 1.01. There are four proposals: one executed, one rejected, one passed and awaiting execution, one open. The demo scenes and unit tests use the launch seed, so their numbers are exact.
+- **API routes:**
+  - `GET /v1/mutual`
+  - `GET /v1/groups`
+  - `GET /v1/reputation/:budget`
+  - `GET /v1/mutual/proposals`
+  - `GET /v1/mutual/proposals/:id/weight/:account`
+  - `POST /v1/mutual/proposals/:id/execute`
+- **Scripts:** `pnpm demo:vote`, `pnpm demo:tier`, and `pnpm testnet:check` (view calls only). `pnpm demo:mutual` now shows a deposit, both payouts and the refill.
+- **Docs.** README:
+  - opens with the new headline, the three layers and the hosted links;
+  - Try it gains a WARD vote and a tier change, 11 steps in all;
+  - live variants name the real env vars;
+  - honest limits say tiers and voting are simulated.
+
+  `llms.txt` and SKILL.md match.
+- **Hosted links** live in `repo.config.json` under `hosted` `{web, api, mcp}`. The brand test fails if README, `llms.txt`, SKILL.md or `services/mcp/server.json` lack those values or carry any other tunnel URL. **Tharun:** to switch to permanent hosting, change those three values; `pnpm test` names every file that must follow.
+
+### Security fix: demo meter key
+
+- **The problem.** T4.5 turned `wk_demo_alice_key` on by default in sim mode. A hosted API behind a tunnel binds 127.0.0.1, so the public-bind guard never tripped, and anyone could spend alice.testnet's allowance.
+- **The fix.** The key now needs `WARDLINE_DEMO_METER_KEY` set explicitly; the README step 2 sets it. It is refused in near mode, with `WARDLINE_BIND_PUBLIC=true` and with `NODE_ENV=production`. `WARDLINE_SEED_METER_KEYS` follows the same rules.
+- **Tests.** Both are in `services/api/test/mutual.test.ts`.
+
+### Step 6: chain
+
+- **Wiring.** Near mode reads the contract ids from `repo.config.json`:
+  - `meter.wardline-labs.testnet`
+  - `pool.wardline-labs.testnet`
+  - `model-registry.wardline-labs.testnet`
+
+  The old placeholder ids `meter.wardline.testnet` and `mutual.wardline.testnet` are gone, in both `createChain` and `contractsFromEnv`. The default RPC is FastNear. Reputation and voting report mode `sim` in near mode until T4.6 lands: voting weights come from a shadow WARD ledger, and tiers from the meter's budgets.
+- **View calls** (`pnpm testnet:check`):
+
+  | Account | Reads |
+  | --- | --- |
+  | pool | TVL 0.35 USDC, junior 0.25, senior 0.10, 0.10 WARD at 1.000000, claims paid 0.05 |
+  | meter | 2 budgets (`bgt_engineering`, `bgt_leaked_1794187233942`) |
+  | registry | 2 attested models (DeepSeek V4.1 Flash `0xfe00...337e`, sim-echo) |
+  | investor1 | 0.10 WARD |
+
+- **No testnet run.** `.env` has no gateway key (`WARDLINE_GATEWAY_ACCOUNT` / `WARDLINE_GATEWAY_KEY`), so scenes 1 to 6 were not run on testnet and there are no new tx hashes. Tharun's T4.5 hashes stand.
+- **Tharun, the pool reports `fees_earned` 0.** That is despite a settle that sent a 1,250-unit cover fee to the pool. Either the meter's fee transfer does not call `add_fees`, or `ft_on_transfer` from the meter does not count it as fees. On chain, WARD would then not rise with fees.
+
+### Tests
+
+- `pnpm test`: the brand guard (6 checks, including the new hosted-links check) and 773 package tests pass, among them 200 in `services/api` (governance, tiers, demo-key guard, near wiring, the seven scenes) and 71 in `apps/web`.
+- `pnpm test:e2e`: 29 of 29 pass, covering:
+  - the Mutual home;
+  - Join the Mutual with a wallet;
+  - governance: vote, snapshot refusal, execute once;
+  - Groups and tiers, and the owner Group tier;
+  - all seven scenes;
+  - axe at 390px and desktop on every public page.
+- Against a real API process (port 19123, with the old providers on 8791):
+  - with `WARDLINE_DEMO_METER_KEY` set, `pnpm demo:plugin` verified and settled, and `/v1/mutual` and `/v1/reputation/bgt_aurora` answered as documented;
+  - without the key, `wk_demo_alice_key` gets 401;
+  - with `NODE_ENV=production`, the API refuses to start: "WARDLINE_DEMO_METER_KEY is refused when NODE_ENV=production."
+- Found and fixed while checking: seeded claims were applied a tick late, so the Mutual scene showed 0 payouts. They now apply synchronously, and a test pins it.
+- No contract changes this round, so there is no new `cargo test` run. The Step 0 run on tharun passed 66 tests.
+
+### Screenshots
+
+Desktop and 390px screenshots of the Mutual home, Groups, Proof engine and every demo scene are in `apps/web/screenshots/` (gitignored). I looked at them and fixed:
+- the leaderboard rows at 390px;
+- the tier table's cramped USDC column;
+- an unstyled `.h3`.
+
+### For Tharun (T4.6)
+
+- Please put the on-chain interfaces in `docs/DAO.md` and `docs/status/tharun.md` with these names, and I will wire them:
+  - `get_reputation(budget_id)` with the shape above;
+  - propose, vote and execute with a snapshot, quorum, window and execute-once.
+- Once they are deployed, the sim stand-ins go in `MeterBackedReputation` and the `governance` field of `createChain` in `services/api/src/chain/index.ts`.
+- Please also look at `fees_earned`, above.
+
 ## Ready to make public (2026-11-08)
 
 ### Secret scan: clean, nothing to rotate

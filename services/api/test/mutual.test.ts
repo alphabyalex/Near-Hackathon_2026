@@ -215,3 +215,15 @@ describe("Mutual routes", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("near mode wiring", () => {
+  it("reads contract ids from repo.config.json, and keeps tiers and voting simulated until T4.6", () => {
+    const c = createChain("near", now);
+    expect(c.mode).toBe("near");
+    expect((c.meter as unknown as { contractId: string }).contractId).toBe("meter.wardline-labs.testnet");
+    expect((c.pool as unknown as { contractId: string }).contractId).toBe("pool.wardline-labs.testnet");
+    expect((c.registry as unknown as { contractId: string }).contractId).toBe("model-registry.wardline-labs.testnet");
+    expect(c.reputation.mode).toBe("sim");
+    expect(c.governance.mode).toBe("sim");
+  });
+});
