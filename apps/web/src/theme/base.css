@@ -123,7 +123,7 @@ section{border-bottom:1px solid var(--rule)}
 .appmain{max-width:1360px;margin:0 auto;padding:40px 40px 72px;animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
 .apphead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:28px}
 .apphead h1{margin:0;font-weight:500;font-size:40px;letter-spacing:-0.035em;line-height:1}
-.apphead .sub{font-size:14px;color:var(--muted);margin-top:10px}
+.apphead .sub{font-size:14px;color:var(--ink-2);margin-top:10px}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start}
 .panel{background:var(--panel);border:1px solid var(--rule);border-radius:4px}
 .panel h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-0.01em}

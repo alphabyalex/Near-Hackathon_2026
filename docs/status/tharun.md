@@ -282,6 +282,12 @@ All public endpoints are deployed, reachable over HTTPS, and verified:
 - Added `GET /usage`: Public overview returning overall verified vs refused AI calls, USDC spent, refunds, and vault limits.
 - Added `GET /v1/ai/usage`: Authenticated meter gateway route returning caller's specific budget deposit, member allowance, and spend series.
 
+### 4. End-to-End Verification & Accessibility Compliance
+- **Root e2e script:** Added `test:e2e` to root `package.json` pointing to `@wardline/web test:e2e` so `pnpm test:e2e` runs directly from the repo root as documented in README step 9.
+- **Default demo meter key:** Configured `services/api/src/index.ts` to default to `wk_demo_alice_key` in sim mode, allowing `pnpm demo:plugin` to run immediately without requiring manual env export.
+- **Accessibility & Color Contrast:** Enhanced design token colors (`--muted`, `--amber`, `--green`, `--red-ink`) and typography contrast across `.apphead`, `.di-facts`, `.desk-intro`, and table statuses to fully satisfy WCAG AA 4.5:1 ratio requirements.
+- **Playwright Test Suite:** 25/25 e2e browser tests passing (`pnpm test:e2e`).
+
 ## Blockers
 
 None.

@@ -23,7 +23,7 @@ if (deps.ai.chain.mode === "sim" && process.env.WARDLINE_SEED_METER_KEYS === "tr
   }
 }
 // Local walkthroughs only: a fixed meter key for alice.testnet, so README commands need no copying. Sim mode only.
-const demoKey = process.env.WARDLINE_DEMO_METER_KEY;
+const demoKey = process.env.WARDLINE_DEMO_METER_KEY ?? (deps.ai.chain.mode === "sim" ? "wk_demo_alice_key" : undefined);
 if (demoKey) {
   if (deps.ai.chain.mode !== "sim") throw new Error("WARDLINE_DEMO_METER_KEY works in sim mode only.");
   deps.ai.meter.createKey({ budgetId: GROUP_BUDGET, member: "alice.testnet", label: "local walkthrough", models: null, createdBy: "seed", now: new Date(), key: demoKey });

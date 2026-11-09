@@ -18,6 +18,7 @@
     "payee:seed": "tsx scripts/seed-payees.ts",
     "demo:x402-swap": "tsx scripts/demo-x402-swap.ts",
     "test:brand": "node --test tests/brand.test.mjs",
+    "test:e2e": "pnpm --filter @wardline/web test:e2e",
     "rebrand": "node scripts/rebrand-wardline.mjs",
     "demo:leaked-key": "tsx scripts/demo-leaked-key.ts",
     "demo:providers": "pnpm --filter @wardline/demo-provider start",
