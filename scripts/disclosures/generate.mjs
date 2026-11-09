@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+/**
+ * Writes the third-party library table in docs/DISCLOSURES.md: every direct dependency of every
+ * package.json (license read from the installed package) and every direct crate of the contracts
+ * workspace (from cargo-direct.json, a snapshot of `cargo metadata`). Run after pnpm install.
+ *
+ *   node scripts/disclosures/generate.mjs
+ */
+
+import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const DOC = join(ROOT, "docs/DISCLOSURES.md");
+const START = "<!-- libraries:start -->";
+const END = "<!-- libraries:end -->";
+
+const manifests = execFileSync("git", ["ls-files", "*package.json"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+const workspace = new Set(manifests.map((m) => JSON.parse(readFileSync(join(ROOT, m), "utf8")).name));
+
+function installed(fromDir, name) {
+  // pnpm links every direct dependency into the package's own node_modules.
+  for (const base of [join(ROOT, fromDir), ROOT]) {
+    try {
+      return JSON.parse(readFileSync(join(base, "node_modules", name, "package.json"), "utf8"));
+    } catch {
+      /* try the next place */
+    }
+  }
+  const require = createRequire(join(ROOT, fromDir, "package.json"));
+  let dir;
+  try {
+    dir = dirname(require.resolve(`${name}/package.json`));
+  } catch {
+    // Packages whose exports hide package.json: walk up from the main entry instead.
+    try {
+      dir = dirname(require.resolve(name));
+      while (dir.length > ROOT.length) {
+        try {
+          const p = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+          if (p.name === name) break;
+        } catch {
+          /* keep walking */
+        }
+        dir = dirname(dir);
+      }
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+const licenseOf = (p) => (p ? (typeof p.license === "string" ? p.license : (p.license?.type ?? (p.licenses ?? []).map((l) => l.type).join(" OR ") ?? "unknown")) : "not installed");
+
+const npm = new Map();
+for (const m of manifests) {
+  const pkg = JSON.parse(readFileSync(join(ROOT, m), "utf8"));
+  const dir = dirname(m);
+  for (const [field, kind] of [["dependencies", "runtime"], ["devDependencies", "dev"], ["optionalDependencies", "runtime"], ["peerDependencies", "peer"]]) {
+    for (const name of Object.keys(pkg[field] ?? {})) {
+      if (workspace.has(name)) continue;
+      const entry = npm.get(name) ?? { name, kinds: new Set(), users: new Set(), info: null };
+      entry.kinds.add(kind);
+      entry.users.add(pkg.name);
+      entry.info ??= installed(dir, name);
+      npm.set(name, entry);
+    }
+  }
+}
+
+const crates = JSON.parse(readFileSync(join(ROOT, "scripts/disclosures/cargo-direct.json"), "utf8"));
+
+const rows = [...npm.values()].sort((a, b) => a.name.localeCompare(b.name));
+const kindText = (kinds) => (kinds.has("runtime") ? "runtime" : kinds.has("peer") ? "peer" : "dev");
+const lines = [
+  START,
+  "",
+  `### npm (${rows.length} packages)`,
+  "",
+  "| Package | Version | License | Used as | Used by |",
+  "| --- | --- | --- | --- | --- |",
+  ...rows.map((r) => `| \`${r.name}\` | ${r.info?.version ?? "?"} | ${licenseOf(r.info)} | ${kindText(r.kinds)} | ${[...r.users].sort().join(", ")} |`),
+  "",
+  `### Rust crates (${crates.length} crates)`,
+  "",
+  "| Crate | Version | License | Used by |",
+  "| --- | --- | --- | --- |",
+  ...crates.map((c) => `| \`${c.name}\` | ${c.version} | ${c.license} | ${c.users.join(", ")} |`),
+  "",
+  "### Fonts and assets",
+  "",
+  "| Asset | License |",
+  "| --- | --- |",
+  "| IBM Plex Sans (Google Fonts) | SIL Open Font License 1.1 |",
+  "| Geist (Google Fonts) | SIL Open Font License 1.1 |",
+  "| Spline Sans Mono, shipped as Wardline Mono in apps/web/public/fonts | SIL Open Font License 1.1 |",
+  "",
+  END,
+];
+
+const doc = readFileSync(DOC, "utf8");
+const a = doc.indexOf(START);
+const b = doc.indexOf(END);
+if (a < 0 || b < 0) throw new Error("markers missing in docs/DISCLOSURES.md");
+writeFileSync(DOC, doc.slice(0, a) + lines.join("\n") + doc.slice(b + END.length));
+const unknown = rows.filter((r) => !r.info || licenseOf(r.info) === "unknown");
+console.log(`Wrote ${rows.length} npm packages and ${crates.length} crates.${unknown.length ? ` Unknown license: ${unknown.map((r) => r.name).join(", ")}` : ""}`);

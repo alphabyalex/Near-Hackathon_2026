@@ -25,3 +25,7 @@ Thumbs.db
 apps/web/screenshots/
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Playwright output anywhere in the repo
+test-results/
+playwright-report/
