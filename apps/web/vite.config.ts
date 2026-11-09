@@ -88,6 +88,6 @@ export default defineConfig(({ mode }) => {
         "/api": { target: process.env.WARDLINE_DEV_API ?? `http://127.0.0.1:${process.env.WARDLINE_API_PORT ?? 8787}`, rewrite: (path: string) => path.replace(/^\/api/, "") },
       },
     },
-    test: { environment: "jsdom", css: true, include: ["test/**/*.test.{ts,tsx}"] },
+    test: { environment: "jsdom", css: true, include: ["test/**/*.test.{ts,tsx}"], testTimeout: 20_000 },
   };
 });

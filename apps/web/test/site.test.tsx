@@ -1,11 +1,15 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, configure, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EvaluationDetail, EvaluationSummary } from "@wardline/schemas";
 import { limitsFromOverview, REFERENCE_LIMITS } from "../src/api/limits";
 import { isScoredRun, scoreFrom } from "../src/api/scoring";
 import { App } from "../src/App";
 import { navigate, parseRoute } from "../src/router";
 import { Scoring } from "../src/views/site/Scoring";
+import { Vault } from "../src/views/site/Vault";
+
+// Routes are lazy-loaded, and a cold import in jsdom can take more than the default second.
+configure({ asyncUtilTimeout: 5_000 });
 
 const SOURCES = import.meta.glob("../src/**/*.{ts,tsx,css}", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
@@ -79,12 +83,13 @@ describe("parseRoute", () => {
 });
 
 describe("routing", () => {
-  it("follows link clicks in JS, with no hashchange event", () => {
+  it("follows link clicks in JS, with no hashchange event", async () => {
     stubApi();
     render(<App />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("A credit union for the AI economy.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("Wardline decides where the money may go");
+    // About is lazy-loaded: wait for it.
+    expect((await screen.findByRole("heading", { level: 1, name: /Wardline decides where the money may go/ })).textContent).toContain("Wardline decides where the money may go");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getAllByLabelText("Wardline home")[0] as HTMLElement);
@@ -116,10 +121,11 @@ describe("limit bars", () => {
 
   it("show the reference values on the vault page when the API is down", async () => {
     stubApi();
-    navigate("#/vault");
-    render(<App />);
+    // The page directly: this test is about the limit bars, not routing.
+    render(<Vault />);
+    // The vault page is lazy-loaded: wait for it to render and fetch.
+    expect(await screen.findByText("9,060 / 15,000")).toBeTruthy();
     await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalled());
-    expect(screen.getByText("9,060 / 15,000")).toBeTruthy();
     expect(screen.getByText("31,240 / 100,000")).toBeTruthy();
   });
 
@@ -173,6 +179,10 @@ describe("scoring", () => {
 });
 
 describe("dashboard", () => {
+  // The dashboard is lazy-loaded; compile it once up front so the first test measures the page, not the transform.
+  beforeAll(async () => {
+    await import("../src/views/Dashboard");
+  }, 60_000);
   const SESSION = { "/owner/auth/session": { account: "owner.testnet", role: "owner" } };
 
   it("asks for sign-in when there is no session", async () => {
