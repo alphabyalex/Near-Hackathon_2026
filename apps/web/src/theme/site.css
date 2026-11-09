@@ -73,9 +73,6 @@
 .rc-note{margin:16px 0 0;font-size:14px;color:var(--muted)}
 
 /* Connect */
-.unset{display:flex;flex-direction:column;gap:4px;margin-bottom:32px;padding:14px 16px;border:1px solid var(--rule-strong);border-radius:var(--r-card);background:var(--surface);color:var(--text-2);font-size:14px}
-.unset b{font-weight:700;color:var(--text)}
-.unset-line{margin:0;padding:14px 0;color:var(--muted);font-size:14px}
 .conns{border-top:1px solid var(--rule-2)}
 .conn{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:16px 48px;padding:28px 0;border-bottom:1px solid var(--rule-2)}
 .conn-head h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-0.03em}

@@ -51,8 +51,8 @@ export const HOME = {
   primary: "Become a member",
   secondary: "Watch the demo",
   stats: {
-    pooled: "Pooled by members",
-    pooledNote: "USDC behind WARD",
+    pooled: "Total pooled",
+    pooledNote: "Members' USDC plus our stake",
     price: "WARD price",
     sinceLaunch: (change: string) => `${change} since launch at 1.0000`,
     above: "Paid above the line",
@@ -87,7 +87,6 @@ export const HOME = {
   boardAll: "Every group and how tiers work",
   ctaTitle: "Back the AI economy and earn from it.",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
-  modeSim: "Simulated Mutual. Deposits and votes are signed by your wallet and applied to the simulation.",
   modeMixed: "Pool, budgets and model registry on NEAR testnet. Reputation tiers and WARD voting are simulated until their contracts are deployed.",
 } as const;
 
@@ -383,9 +382,6 @@ export const CONNECT = {
   label: "Connect",
   title: `Put ${BRAND.name} in front of every payment.`,
   lede: "One base URL for AI calls. MCP for agents, HTTP for anything, the SDK for TypeScript.",
-  unsetTitle: "Set your API URL",
-  unsetBody: "These snippets use $WARDLINE_API_URL until the site is built with VITE_WARDLINE_API_URL.",
-  unsetMcp: "Set VITE_WARDLINE_MCP_URL to show your MCP endpoint here.",
   openai: "OpenAI client, one line",
   openaiLine: "Use any OpenAI-compatible client with a meter key. Each call is paid only on a verified model signature, and every response carries X-Wardline-Proof.",
   openaiJs: "JavaScript",

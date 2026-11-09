@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
+import repo from "../../../repo.config.json" with { type: "json" };
 
 const PAGES = ["#/", "#/me", "#/groups", "#/proof", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
 
@@ -39,7 +40,7 @@ test.describe("public site", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("A credit union for the AI economy.");
     await expect(page.locator(".hero-sub")).toContainText("Anything that can't prove itself stays below the line.");
     const stats = page.getByTestId("home-stats");
-    await expect(stats.locator("dt")).toHaveText(["Pooled by members", "WARD price", "Paid above the line", "Kept below it"]);
+    await expect(stats.locator("dt")).toHaveText(["Total pooled", "WARD price", "Paid above the line", "Kept below it"]);
     await expect(stats).toContainText("since launch at 1.0000");
     await expect(stats.locator(".below-text")).toHaveText(/^\d+$/);
     const sides = page.getByTestId("sides");
@@ -243,7 +244,7 @@ test.describe("public site", () => {
     await page.goto("/#/");
     const gov = page.getByTestId("governance");
     await expect(gov.getByRole("heading", { level: 2 })).toHaveText("WARD holders decide the risks.");
-    await expect(gov.locator('.prop[data-status="executed"]')).toContainText("Cover GLM-5.3 Flash");
+    await expect(gov.locator('.prop[data-status="executed"]')).toContainText("Set the Gold fee to 1.00%");
     await expect(gov.locator('.prop[data-status="rejected"]')).toContainText("Raise the Bronze fee to 2.50%");
 
     const mine = gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" });
@@ -300,22 +301,24 @@ test.describe("public site", () => {
     await expect(proofs.locator('tr[data-side="below"]').first()).toContainText("Below, refunded");
     await expect(proofs.locator('tr[data-side="below"] svg.fp-below')).toHaveCount(await proofs.locator('tr[data-side="below"]').count());
     await expect(page.locator(".stat-row.results")).toContainText("100%");
-    await expect(page.locator(".engine-note")).toContainText("stub rules engine");
+    await expect(page.locator("main")).not.toContainText("stub rules engine");
   });
 
-  test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context, browserName }) => {
+  test("connect: with no API URL set, snippets show the hosted URL, never a variable or localhost; copy works", async ({ page, context, browserName }) => {
     // Only Chromium lets a test grant and read the clipboard; elsewhere the button label is the check.
     if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/#/connect");
-    await expect(page.locator('[data-unset="api"]')).toContainText("Set your API URL");
-    await expect(page.locator('[data-unset="mcp"]')).toBeVisible();
+    await expect(page.locator('[data-unset]')).toHaveCount(0);
+    await expect(page.locator("main")).not.toContainText("VITE_WARDLINE");
+    await expect(page.locator("main")).not.toContainText("process.env.WARDLINE_API_URL");
     await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
-    await expect(page.locator("main")).toContainText("$WARDLINE_API_URL/v1/resolve");
+    await expect(page.locator("main")).toContainText(`curl -s ${repo.hosted.api}/v1/resolve`);
     const openai = page.locator(".conn").first();
     await expect(openai).toContainText("OpenAI client, one line");
-    await expect(openai).toContainText("process.env.WARDLINE_API_URL}/v1/ai");
-    await expect(openai).toContainText('os.environ["WARDLINE_API_URL"] + "/v1/ai"');
+    await expect(openai).toContainText(`baseURL: "${repo.hosted.api}/v1/ai"`);
+    await expect(openai).toContainText(`base_url="${repo.hosted.api}/v1/ai"`);
+    await expect(page.locator("main")).toContainText(repo.hosted.mcp);
     await page.getByRole("button", { name: "Copy curl resolve example" }).click();
     await expect(page.getByRole("button", { name: "Copy curl resolve example" })).toHaveText("Copied");
     if (browserName === "chromium") expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");

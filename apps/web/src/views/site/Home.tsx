@@ -46,7 +46,7 @@ function Stats({ m }: { m: MutualSummary }) {
         <dl className="stat-row" data-testid="home-stats">
           <div>
             <dt>{HOME.stats.pooled}</dt>
-            <dd className="num">{formatUsdc(m.pool.senior)}</dd>
+            <dd className="num">{formatUsdc(s.total_pooled)}</dd>
             <dd className="stat-note">{HOME.stats.pooledNote}</dd>
           </div>
           <div>
@@ -234,7 +234,7 @@ export function Home() {
               <button type="button" className="btn" onClick={join}>
                 {HOME.shareCta}
               </button>
-              <p className="mode-note">{m.mode === "sim" ? HOME.modeSim : HOME.modeMixed}</p>
+              {m.mode !== "sim" && <p className="mode-note">{HOME.modeMixed}</p>}
             </div>
             <MemberCard pool={m.pool} version={tick} onJoin={join} onChanged={refresh} />
           </div>

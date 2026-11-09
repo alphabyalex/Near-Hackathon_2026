@@ -1,13 +1,13 @@
 import { CONNECT } from "../../brand";
 import { CodeBlock } from "../../components/CodeBlock";
-import { API_URL, MCP_URL } from "../../config";
+import { SNIPPET_API_URL, SNIPPET_MCP_URL } from "../../config";
 
-/** Every snippet uses the configured URL, or a variable the reader sets. */
-export function snippets(apiUrl: string | null, mcpUrl: string | null) {
-  const shellBase = apiUrl ?? "$WARDLINE_API_URL";
-  const tsBase = apiUrl ? JSON.stringify(apiUrl) : "process.env.WARDLINE_API_URL!";
-  const jsBase = apiUrl ? JSON.stringify(`${apiUrl}/v1/ai`) : "`${process.env.WARDLINE_API_URL}/v1/ai`";
-  const pyBase = apiUrl ? JSON.stringify(`${apiUrl}/v1/ai`) : 'os.environ["WARDLINE_API_URL"] + "/v1/ai"';
+/** Every snippet shows a real URL: the configured one, or the hosted one. */
+export function snippets(apiUrl: string, mcpUrl: string) {
+  const shellBase = apiUrl;
+  const tsBase = JSON.stringify(apiUrl);
+  const jsBase = JSON.stringify(`${apiUrl}/v1/ai`);
+  const pyBase = JSON.stringify(`${apiUrl}/v1/ai`);
   return {
     openaiJs: `import OpenAI from "openai";
 
@@ -34,7 +34,7 @@ raw = client.chat.completions.with_raw_response.create(
 )
 print(raw.headers["x-wardline-proof"])  # verified, or the call was refunded
 reply = raw.parse()`,
-    mcp: mcpUrl ? JSON.stringify({ mcpServers: { wardline: { type: "http", url: mcpUrl } } }, null, 2) : null,
+    mcp: JSON.stringify({ mcpServers: { wardline: { type: "http", url: mcpUrl } } }, null, 2),
     resolve: `curl -s ${shellBase}/v1/resolve \\
   -H 'content-type: application/json' \\
   -d '{"domain":"northwind.example","chain":"near:testnet"}'`,
@@ -89,7 +89,7 @@ function Block({ title, line, children }: { title: string; line?: string; childr
 }
 
 export function Connect() {
-  const s = snippets(API_URL, MCP_URL);
+  const s = snippets(SNIPPET_API_URL, SNIPPET_MCP_URL);
   return (
     <main>
       <section className="sec pagetop page-intro">
@@ -101,28 +101,14 @@ export function Connect() {
       </section>
       <section className="sec tight">
         <div className="wrap">
-          {!API_URL && (
-            <div className="unset" role="note" data-unset="api">
-              <b>{CONNECT.unsetTitle}</b>
-              <span>{CONNECT.unsetBody}</span>
-            </div>
-          )}
           <div className="conns">
             <Block title={CONNECT.openai} line={CONNECT.openaiLine}>
               <CodeBlock code={s.openaiJs} label={`${CONNECT.openaiJs} OpenAI client`} language="js" />
               <CodeBlock code={s.openaiPy} label={`${CONNECT.openaiPy} OpenAI client`} language="py" />
             </Block>
             <Block title={CONNECT.mcp} line={CONNECT.mcpLine}>
-              {MCP_URL && s.mcp ? (
-                <>
-                  <CodeBlock code={MCP_URL} label="MCP URL" language="url" />
-                  <CodeBlock code={s.mcp} label="MCP client config" language="json" />
-                </>
-              ) : (
-                <p className="unset-line" data-unset="mcp">
-                  {CONNECT.unsetMcp}
-                </p>
-              )}
+              <CodeBlock code={SNIPPET_MCP_URL} label="MCP URL" language="url" />
+              <CodeBlock code={s.mcp} label="MCP client config" language="json" />
             </Block>
             <Block title={CONNECT.resolve}>
               <CodeBlock code={s.resolve} label="curl resolve example" language="sh" />
