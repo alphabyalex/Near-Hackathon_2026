@@ -5,6 +5,7 @@ import { defineConfig } from "vitest/config";
 import { applyLegacyEnv } from "@wardline/schemas";
 import { BRAND } from "./src/brand";
 import { redteamSummary } from "./vite/redteam";
+import repo from "../../repo.config.json";
 
 const REPORT = fileURLToPath(new URL("../../evidence/redteam/report.json", import.meta.url));
 const ENV_DIR = fileURLToPath(new URL("../..", import.meta.url));
@@ -28,7 +29,14 @@ export default defineConfig(({ mode }) => {
       react(),
       redteamSummary(REPORT),
       // The page title and description come from src/brand.ts, like every other line of copy.
-      { name: "wardline-brand-html", transformIndexHtml: (html: string) => html.replaceAll("%BRAND_NAME%", BRAND.name).replaceAll("%BRAND_DESCRIPTION%", BRAND.metaDescription) },
+      { name: "wardline-brand-html", transformIndexHtml: (html: string) =>
+          html
+            .replaceAll("%BRAND_NAME%", BRAND.name)
+            .replaceAll("%BRAND_TAGLINE%", BRAND.tagline.replace(/\.$/, ""))
+            .replaceAll("%BRAND_DESCRIPTION%", BRAND.metaDescription)
+            // Social cards need an absolute image URL: the hosted web app from repo.config.json.
+            .replaceAll("%SITE_URL%", (process.env.VITE_WARDLINE_SITE_URL ?? repo.hosted.web).replace(/\/$/, "")),
+      },
     ],
     server: {
       host: "127.0.0.1",

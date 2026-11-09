@@ -30,14 +30,17 @@
     "testnet:mint": "pnpm --filter @wardline/contract-scripts run mint-tokens",
     "testnet:check": "pnpm --filter @wardline/api exec tsx scripts/check-testnet.ts",
     "demo:vote": "tsx scripts/demo-vote.ts",
-    "demo:tier": "tsx scripts/demo-tier.ts"
+    "demo:tier": "tsx scripts/demo-tier.ts",
+    "brand:assets": "tsx scripts/brand/generate-assets.ts"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@wardline/demo-provider": "workspace:*",
     "@wardline/sdk": "workspace:*",
     "@wardline/x402-guard": "workspace:*",
     "concurrently": "^9.2.5",
     "openai": "6.10.0",
+    "png-to-ico": "^3.0.2",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"
   }
