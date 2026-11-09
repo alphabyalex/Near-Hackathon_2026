@@ -1,5 +1,119 @@
 # Status: alexander
 
+## A9: phones, the wallet panel and leftover content (2026-11-09)
+
+Took about one hour, 23:00 to 23:55 UTC. That's under the two-to-three-hour budget, so P3 is done too. I didn't run Lighthouse, a fresh clone, or the Firefox and desktop WebKit suites, as asked.
+
+### Read first: OneDrive was hiding files from Playwright and tsc
+
+OneDrive had turned 916 source files into cloud placeholders (reparse points), including `a11y.spec.ts`, `member.spec.ts` and `packages/dao-adapter/src`.
+- Imports still read them, but Playwright's directory scan skips them. So the accessibility and #/me specs (16 tests) silently stopped running in every browser, with no error.
+- Later, `tsc` found no input files in `packages/dao-adapter`, so `pnpm test` failed in its build step.
+- I re-created all 916 files outside node_modules, .git and dist with identical bytes (each one hash-checked). Git shows no change, and everything is found again.
+- OneDrive can turn them back into placeholders.
+- **Fix it for good:** right-click the repo folder in Explorer and choose "Always keep on this device", or move the repo out of OneDrive.
+
+### Done
+
+**P1**
+1. **No sideways sliding on iPhone.**
+   - The cause was the header, not the hero. On a 320px iPhone SE, the logo, Connect wallet and Menu added up to 345px, so the whole page could be dragged sideways. Below 375px the header now shows the mark alone; the link keeps its accessible name.
+   - Safety net:
+     - `html, body { overflow-x: clip; overscroll-behavior-x: none }` (clip, not hidden, so the sticky header still works);
+     - the hero clips its line explicitly;
+     - long ids and `code` wrap; tables and code blocks scroll in their own box;
+     - every field is at least 16px.
+   - Viewport: `width=device-width, initial-scale=1, viewport-fit=cover`, with pinch zoom left on.
+   - Test: a new `iphone` project runs WebKit with Playwright's iPhone SE preset (320 x 568, touch). It covers every route and both dialogs: `scrollWidth` equals `innerWidth`, and pushing the page sideways leaves `scrollX` at 0.
+   - Playwright can't synthesize a native touch swipe or a wheel in mobile WebKit, so the test pushes the page's scroller with `scrollBy`, `scrollTo` and `scrollLeft`. A swipe moves that same scroller.
+2. **Connect wallet.**
+   - Root cause: the dialog rendered inside the sticky header, and the header's `backdrop-filter` makes it the containing block for `position: fixed` children. The backdrop was sized to the 72px header, so the panel opened with its top and close button cut off. Every dialog now renders on `<body>`.
+   - Wide screens: a panel anchored under the header button, fully on screen. Phones: a bottom sheet. Both have a title, a close button and Cancel, and close on Escape and on an outside click.
+   - Join uses the same account-and-wallet fields. Once connected, it shows "From <account>" with Change instead of asking again.
+   - "Couldn't open popup window to complete wallet action" now reads: "Your browser blocked the wallet window. Allow pop-ups for this site, then try again."
+   - Never frozen: while a wallet signs, Stop waiting brings the form back, and a late wallet answer is ignored. Escape still closes the dialog.
+3. **Wrong or leftover content.**
+   - The executed seed proposal is now "Set the Gold fee to 1.00%" (see the judgement calls below).
+   - Removed: the "Simulated Mutual" note, the stub-engine note on the Proof page, and the `VITE_WARDLINE_API_URL` and `VITE_WARDLINE_MCP_URL` notes on Developers.
+   - Snippets show a real URL: the configured one, or the hosted one from `repo.config.json`. Never `process.env.WARDLINE_API_URL`.
+   - **One source for the headline numbers:**
+     - Home's pooled figure is now `total_pooled` (members' USDC plus our stake), the same number the demo shows: 141.24.
+     - Our stake reads 20.00 in Join, the demo and the README.
+4. **max_tokens.** A non-integer, infinite, out-of-range or non-number `max_tokens` now gets 400 `invalid_request_error`, code `INVALID_MAX_TOKENS`: "max_tokens must be a whole number from 1 to 131072." This happens before anything is reserved, and `null` still means not set. The skipped test is now a real one (1.5, 1e999, 0, -5, 131073, a string, a boolean, plus 256 and null passing).
+
+**P2**
+
+5. **About** opens with the credit union:
+   - members pool USDC and get WARD;
+   - the pool backs agents' payments and earns a fee on every payment that proves itself;
+   - members vote on the risks.
+
+   Then "How the money moves", the payee example and the trust-levels table (both kept), and the three layers.
+6. **Developers** replaces Connect in the nav, at `#/developers`. `#/connect` still lands there and rewrites the address bar.
+7. **Home:**
+   - The hero is shorter, so the stats sit closer to the buttons.
+   - The cut line starts just left of the sphere, clear of the text.
+   - The Not a member yet card quotes 25.00 USDC, the WARD it buys at today's price, the price and our stake.
+   - One Become a member button in that section.
+8. **Governance:**
+   - A fixed action column, so the bars line up.
+   - No numbering, and a subtitle only when it adds something.
+   - "View transaction" links for real hashes.
+   - The reason the vote buttons are off sits beside them.
+9. **Demo:**
+   - On wide screens the stage is sticky at one height for every scene, so nothing jumps.
+   - Run scene brings the result into view: inside the stage on desktop, in the page on phones.
+   - `sim-...` ids are a short label; "WARD holders" is capitalized; model names read "DeepSeek V4.1 Flash" and "GLM-5.3 Flash" everywhere.
+   - Scene 6 has no red.
+10. **Proof page:** in sim mode, latest proofs follow any real calls with recent calls from the live seed's groups. They have the same public fields and no members or keys, so the feed is never empty. **Safest groups** leaves out groups with fewer than 10 proven calls.
+
+**P3**
+
+11. Group spheres are 64px (56px on phones). Start a group leads with the one-line plug-in, with the owner app as the secondary button.
+12. The footer has three columns (The Mutual, Build, Wardline) and no active underline.
+13. The small labels above headings are gone (Developers, Check a payee, Verify, the vault, scoring, About). Small descriptions are 15px, up from 13 and 14.
+
+### Judgement calls
+
+- **Seed proposal.** There is no "raise the leaked-key cap" governance action. Adding one means changing the action types the contracts mirror, and contracts were off limits.
+  - A "cover" proposal for any recorded model would claim a change that never happened, since every recorded model is covered at launch.
+  - So the executed proposal is "Set the Gold fee to 1.00%", which is true and already the state.
+- **Stake and pooled.** The live pool's stake really was 18.50, because it paid Kelp's 1.50 claim, while the demo and README start fresh at 20.00.
+  - Moving the demo onto 18.50 would have rewritten the payout scene, the README's step 7 and API tests.
+  - Instead the live seed's stake starts at 21.50, so it stands at 20.00 after the claim. Pooled is 141.24 in both places; the README and one API test are updated.
+- **Simulated transaction ids** have no explorer, so they're a short "Simulated transaction" label plus the last 8 characters, with the full id on hover, not a link. Real NEAR hashes get "View transaction".
+- **The Connect wallet dialog** opened from page buttons (Governance, #/me) stays centered. Only the header button anchors it.
+
+### Tests
+
+- `pnpm test`: passes (brand guard 7 of 7, API 217 with none skipped, web 77, every package).
+- One Chromium e2e run plus the iPhone WebKit project: 65 of 65 (53 Chromium, including the 4 new Connect wallet tests, and 12 iPhone).
+- Not run, as asked: Firefox, desktop WebKit, Lighthouse, a fresh clone.
+
+### Screenshots
+
+In `apps/web/screenshots/` (gitignored), at 1440 and iPhone SE (375 x 667, the current model), named `a9-<page>-<size>.png`:
+- home, about, developers, groups, proof;
+- demo-payout;
+- connect-wallet (the panel and the sheet);
+- join-connected.
+
+Looking at them caught two things, each fixed once:
+- a red row left in the payout scene;
+- the screenshot script shooting before lazy pages had loaded.
+
+### Run it (PowerShell)
+
+```powershell
+cd "C:\Users\alexs\OneDrive\Desktop\Homework USC\Personal Coding\Near_Hackathon2026"
+git checkout alexander; git pull
+pnpm install
+pnpm test
+pnpm --filter @wardline/web test:e2e:chromium
+pnpm --filter @wardline/web test:e2e:iphone
+pnpm --filter @wardline/web exec playwright test --project=screenshots -g "a9 "
+```
+
 ## Morning report: overnight polish and hardening (2026-11-09)
 
 ### Read first: one bug found in metering, left for you
