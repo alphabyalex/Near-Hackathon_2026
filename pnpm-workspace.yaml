@@ -9,3 +9,8 @@ allowBuilds:
   esbuild: true
   # Optional native speedup pulled in by the NEAR wallet SDKs. Its JS fallback is used instead.
   secp256k1: false
+# Patched versions for audit findings in transitive dependencies (pnpm audit, 2026-11-09).
+overrides:
+  "near-sandbox>tar": ">=7.5.21"
+  "@meteorwallet/sdk>nanoid": "^5.1.16"
+  "query-string>decode-uri-component": ">=0.5.1 <0.6.0"

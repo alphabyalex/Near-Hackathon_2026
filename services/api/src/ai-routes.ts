@@ -101,6 +101,10 @@ const PoolChallenge = z.union([
   z.object({ account: Account, action: z.literal("propose"), description: z.string().trim().min(4).max(200), proposal: MutualActionSchema }),
 ]);
 type PoolRequest = z.infer<typeof PoolChallenge>;
+const BudgetId = z.string().regex(/^[a-z0-9_]{3,64}$/);
+const ProposalId = z.coerce.number().int().min(0).max(1_000_000);
+const ProofsQuery = z.object({ limit: z.coerce.number().int().min(1).max(50).default(12) });
+const badParam = (what: string) => ({ error: "BAD_REQUEST", message: `Not a valid ${what}.` });
 const PoolSigned = z.object({ nonce: z.string(), publicKey: z.string(), signature: z.string() });
 const MeterKeyBody = z.object({ budget_id: z.string().min(1).default(GROUP_BUDGET), member: z.string().min(2).max(64), label: z.string().max(60).optional(), models: z.array(z.string()).min(1).optional() });
 
@@ -130,7 +134,11 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
 
   app.get("/v1/pool", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, pool: await pool.getPool(), claims: await pool.listClaims() }));
 
-  app.get("/v1/pool/positions/:account", async (c) => c.json(await pool.getPosition(c.req.param("account"))));
+  app.get("/v1/pool/positions/:account", async (c) => {
+    const account = Account.safeParse(c.req.param("account"));
+    if (!account.success) return c.json(badParam("NEAR account id"), 400);
+    return c.json(await pool.getPosition(account.data));
+  });
 
   const chain = deps.ai.chain;
   const groups = async () => {
@@ -150,7 +158,9 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
 
   // The latest metered calls, without members, keys or content: what happened, for which group, and which side of the line.
   app.get("/v1/proofs", async (c) => {
-    const limit = Math.min(50, Math.max(1, Number(c.req.query("limit") ?? 12) || 12));
+    const query = ProofsQuery.safeParse({ limit: c.req.query("limit") ?? undefined });
+    if (!query.success) return c.json(badParam("limit (1 to 50)"), 400);
+    const limit = query.data.limit;
     const names = new Map((await chain.reputation.listReputations()).map((r) => [r.budget_id, r.name]));
     const calls = deps.ai.meter.listCalls(undefined, limit);
     return c.json({
@@ -193,26 +203,33 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
 
   // get_reputation(budget_id)
   app.get("/v1/reputation/:budget", async (c) => {
-    const r = await chain.reputation.getReputation(c.req.param("budget"));
-    return r ? c.json(r) : c.json({ error: "NOT_FOUND", message: `No group with budget ${c.req.param("budget")}.` }, 404);
+    const budget = BudgetId.safeParse(c.req.param("budget"));
+    if (!budget.success) return c.json(badParam("budget id"), 400);
+    const r = await chain.reputation.getReputation(budget.data);
+    return r ? c.json(r) : c.json({ error: "NOT_FOUND", message: "No group with that budget." }, 404);
   });
 
   app.get("/v1/mutual/proposals", async (c) => c.json({ mode: chain.governance.mode, ...(await chain.governance.params()), proposals: await chain.governance.listProposals() }));
 
   app.get("/v1/mutual/proposals/:id/weight/:account", async (c) => {
-    const id = Number(c.req.param("id"));
-    if (!Number.isInteger(id) || !(await chain.governance.getProposal(id))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
-    return c.json({ id, account: c.req.param("account"), weight: await chain.governance.weightOf(id, c.req.param("account")) });
+    const id = ProposalId.safeParse(c.req.param("id"));
+    const account = Account.safeParse(c.req.param("account"));
+    if (!id.success || !account.success) return c.json(badParam("proposal id or account"), 400);
+    if (!(await chain.governance.getProposal(id.data))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
+    return c.json({ id: id.data, account: account.data, weight: await chain.governance.weightOf(id.data, account.data) });
   });
 
   // Anyone can execute a passed proposal. It runs once.
   app.post("/v1/mutual/proposals/:id/execute", async (c) => {
-    const id = Number(c.req.param("id"));
-    if (!Number.isInteger(id) || !(await chain.governance.getProposal(id))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
+    const parsed = ProposalId.safeParse(c.req.param("id"));
+    if (!parsed.success) return c.json(badParam("proposal id"), 400);
+    const id = parsed.data;
+    if (!(await chain.governance.getProposal(id))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
     try {
       return c.json({ proposal: await chain.governance.execute(id) });
     } catch (error) {
-      return c.json({ error: "REFUSED", message: error instanceof Error ? error.message : "Execution refused." }, 409);
+      const message = error instanceof Error ? error.message : "Execution refused.";
+      return c.json({ error: refusalCode(message), message }, 409);
     }
   });
 

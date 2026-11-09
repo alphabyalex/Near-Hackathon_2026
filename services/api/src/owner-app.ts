@@ -35,6 +35,7 @@ import {
 } from "./review-desk.js";
 import { ownerPay, processIntake, rejectReview, type Deps, type ServiceResult } from "./service.js";
 import { historyView, invoiceDetail, invoiceList, reviewQueue } from "./views.js";
+import { bodyLimits, securityHeaders } from "./security.js";
 
 const IntakeBodySchema = z.object({
   vault_id: AccountIdSchema.default(VAULT_A),
@@ -64,6 +65,9 @@ const loginFailed = { error: "LOGIN_FAILED", message: "This challenge cannot be 
  */
 export function createOwnerApp(deps: Deps): Hono<{ Variables: OwnerVariables }> {
   const app = new Hono<{ Variables: OwnerVariables }>();
+  // The owner app may run on its own port, so it carries the same headers and body limits.
+  app.use("*", securityHeaders(deps.ai.env));
+  app.use("*", bodyLimits());
   const { store, auth } = deps;
   const nowMs = () => deps.payee.nowDate().getTime();
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
