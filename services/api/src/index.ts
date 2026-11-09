@@ -22,6 +22,13 @@ if (deps.ai.chain.mode === "sim" && process.env.WARDLINE_SEED_METER_KEYS === "tr
     console.log(`Meter key for ${member} (${GROUP_BUDGET}, sim): ${key}`);
   }
 }
+// Local walkthroughs only: a fixed meter key for alice.testnet, so README commands need no copying. Sim mode only.
+const demoKey = process.env.WARDLINE_DEMO_METER_KEY;
+if (demoKey) {
+  if (deps.ai.chain.mode !== "sim") throw new Error("WARDLINE_DEMO_METER_KEY works in sim mode only.");
+  deps.ai.meter.createKey({ budgetId: GROUP_BUDGET, member: "alice.testnet", label: "local walkthrough", models: null, createdBy: "seed", now: new Date(), key: demoKey });
+  console.log(`Demo meter key for alice.testnet (${GROUP_BUDGET}, sim) is set from WARDLINE_DEMO_METER_KEY`);
+}
 const ownerAuth = auth.enabled ? `${auth.owners.size} owner(s), ${auth.approvers.size} approver(s)` : "auth off";
 
 serve({ fetch: createApp(deps, { mountOwner: config.ownerPort === null }).fetch, port: config.port, hostname: config.host }, (info) => {

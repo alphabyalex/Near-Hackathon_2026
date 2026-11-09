@@ -111,8 +111,9 @@ export class MeterStore {
   }
 
   /** Returns the key once. Only its hash is stored. */
-  createKey(args: { budgetId: string; member: string; label: string; models: string[] | null; createdBy: string; now: Date }): { key: string; row: MeterKeyRow } {
-    const key = `wk_${randomBytes(24).toString("base64url")}`;
+  createKey(args: { budgetId: string; member: string; label: string; models: string[] | null; createdBy: string; now: Date; key?: string }): { key: string; row: MeterKeyRow } {
+    if (args.key !== undefined && !/^wk_[A-Za-z0-9_-]{8,64}$/.test(args.key)) throw new Error("A meter key is wk_ followed by 8 to 64 letters, digits, _ or -.");
+    const key = args.key ?? `wk_${randomBytes(24).toString("base64url")}`;
     const id = `mk_${randomBytes(6).toString("hex")}`;
     const row: MeterKeyRow = { id, prefix: key.slice(0, 9), budgetId: args.budgetId, member: args.member, label: args.label, models: args.models, createdAt: args.now.toISOString(), createdBy: args.createdBy, revokedAt: null };
     this.db
