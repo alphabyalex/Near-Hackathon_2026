@@ -31,7 +31,8 @@ function ease(x: number): number {
 
 /** The line through the sphere's centre, extended far past it so it crosses the whole hero. */
 function CutLine({ animate }: { animate: boolean }) {
-  const x1 = -2400,
+  // The line starts just left of the sphere, so it never runs through the headline or the paragraph.
+  const x1 = -100,
     x2 = 3000;
   const y = (x: number) => HERO.cy + (x - HERO.cx) * LINE_SLOPE;
   return <line className={animate ? "hero-cut" : "hero-cut drawn"} x1={x1} y1={y(x1)} x2={x2} y2={y(x2)} pathLength={1} />;

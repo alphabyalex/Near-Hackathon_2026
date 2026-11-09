@@ -231,9 +231,6 @@ export function Home() {
               {HOME.shareBody.map((p) => (
                 <p key={p}>{p}</p>
               ))}
-              <button type="button" className="btn" onClick={join}>
-                {HOME.shareCta}
-              </button>
               {m.mode !== "sim" && <p className="mode-note">{HOME.modeMixed}</p>}
             </div>
             <MemberCard pool={m.pool} version={tick} onJoin={join} onChanged={refresh} />

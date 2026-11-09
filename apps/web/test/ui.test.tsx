@@ -184,7 +184,7 @@ describe("states and explorer links", () => {
     expect(unknown).toMatchObject({ kind: "unknown", title: "Something specific", retry: false });
   });
 
-  it("links real NEAR transaction hashes to NearBlocks and leaves simulated ids as text", async () => {
+  it("links real NEAR transaction hashes to NearBlocks and shows simulated ids as a short label", async () => {
     const { TxLink, isTxHash, explorerUrl } = await import("../src/components/TxLink");
     const hash = "4au3yM4pPgkqHPqKd8DSPyAo61PaUaXcroPgpYEDqVyk";
     expect(isTxHash(hash)).toBe(true);
@@ -195,6 +195,17 @@ describe("states and explorer links", () => {
     cleanup();
     const sim = render(<TxLink hash="sim-claim-abc" />);
     expect(sim.container.querySelector("a")).toBeNull();
-    expect(sim.container.textContent).toBe("sim-claim-abc");
+    // The last eight characters of the id.
+    expect(sim.container.textContent).toBe("Simulated transaction laim-abc");
+    expect(sim.container.querySelector(".tx-id")?.getAttribute("title")).toBe("sim-claim-abc");
+  });
+});
+
+describe("the blocked wallet window", () => {
+  it("reads as a pop-up problem, not the wallet's raw message", async () => {
+    const { explain, walletError } = await import("../src/data/errors");
+    const e = explain(walletError(new Error("Couldn't open popup window to complete wallet action")));
+    expect(e).toMatchObject({ kind: "walletPopup", title: "Your browser blocked the wallet window.", next: "Allow pop-ups for this site, then try again." });
+    expect(explain(new Error("Couldn't open popup window to complete wallet action")).kind).toBe("walletPopup");
   });
 });

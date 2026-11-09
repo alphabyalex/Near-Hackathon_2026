@@ -284,7 +284,24 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
       {!connected || !position || held === 0n ? (
         <>
           <b className="mc-value">{MEMBER.notMember}</b>
-          <p className="mc-note">{MEMBER.notMemberBody}</p>
+          <dl className="mc-quote num" data-testid="member-quote">
+            <div>
+              <dt>{MEMBER.quoteDeposit}</dt>
+              <dd>{formatUsdc(String(MEMBER.quoteAmount * 1_000_000))} USDC</dd>
+            </div>
+            <div>
+              <dt>{MEMBER.quoteReceive}</dt>
+              <dd>{formatUsdc(((BigInt(MEMBER.quoteAmount * 1_000_000) * 1_000_000n) / BigInt(pool.ward_price)).toString())} WARD</dd>
+            </div>
+            <div>
+              <dt>{MEMBER.quotePrice}</dt>
+              <dd>{price(pool.ward_price)} USDC</dd>
+            </div>
+            <div>
+              <dt>{MEMBER.quoteStake}</dt>
+              <dd>{formatUsdc(pool.junior)} USDC</dd>
+            </div>
+          </dl>
           <button type="button" className="btn" onClick={onJoin}>
             {HOME.primary}
           </button>

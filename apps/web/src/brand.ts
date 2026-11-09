@@ -81,7 +81,6 @@ export const HOME = {
     "If Wardline approves something it shouldn't have, our own stake pays first. WARD holders cover only what is left after it, and WARD dips. That makes WARD yield-bearing and loss-sharing.",
     "WARD holders vote on fees, coverage, which models are covered and large payouts.",
   ],
-  shareCta: "Become a member",
   boardTitle: "Safest groups",
   boardLede: "A clean record moves a group up a tier: a lower fee and more coverage.",
   boardAll: "Every group and how tiers work",
@@ -93,7 +92,11 @@ export const HOME = {
 export const MEMBER = {
   title: "Your share",
   notMember: "Not a member yet",
-  notMemberBody: "Connect a wallet to see your share, or become a member.",
+  quoteDeposit: "You deposit",
+  quoteReceive: "You receive",
+  quotePrice: "Today's price",
+  quoteStake: "Our stake in front",
+  quoteAmount: 25,
   balance: "Balance",
   held: "WARD held",
   account: "Account",
@@ -619,6 +622,7 @@ export const GOV = {
   snapshot: "Snapshot",
   voteAs: "Voting as",
   connectToVote: "Connect a wallet that holds WARD to vote.",
+  checkingWeight: "Checking your vote weight.",
   connect: "Connect wallet",
   changeWallet: "Change wallet",
   voterNote: "Your wallet signs each vote. Only WARD you held when a proposal opened counts.",
@@ -704,7 +708,8 @@ export const ERRORS = {
 } as const;
 
 export const TX = {
-  view: "View on NearBlocks",
+  view: "View transaction",
+  simulated: (tail: string) => `Simulated transaction ${tail}`,
   label: (hash: string) => `View transaction ${hash.slice(0, 8)} on NearBlocks`,
 } as const;
 
