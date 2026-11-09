@@ -121,6 +121,34 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     );
   };
 
+  const flaggedNow = async () => {
+    const proposals = await deps.ai.dao.listProposals().catch(() => [] as ProposalView[]);
+    return (await payoutsAwaitingVote(deps, proposals)).filter((p) => p.flagged).length;
+  };
+
+  // The latest metered calls, without members, keys or content: what happened, for which group, and which side of the line.
+  app.get("/v1/proofs", async (c) => {
+    const limit = Math.min(50, Math.max(1, Number(c.req.query("limit") ?? 12) || 12));
+    const names = new Map((await chain.reputation.listReputations()).map((r) => [r.budget_id, r.name]));
+    const calls = deps.ai.meter.listCalls(undefined, limit);
+    return c.json({
+      mode: chain.mode,
+      proofs: calls.map((x) => ({
+        call_id: x.callId,
+        budget_id: x.budgetId,
+        group: names.get(x.budgetId) ?? x.budgetId,
+        side: x.status === "verified" ? "above" : "below",
+        status: x.status,
+        reason: x.reason,
+        model_claimed: x.modelClaimed,
+        model_proven: x.modelProven,
+        amount: x.amount,
+        refund: x.refund,
+        created_at: x.createdAt,
+      })),
+    });
+  });
+
   // Everything the Mutual home page shows, in one call.
   app.get("/v1/mutual", async (c) => {
     const [poolView, claims, list, proposals, tiers, params] = await Promise.all([pool.getPool(), pool.listClaims(), groups(), chain.governance.listProposals(), chain.reputation.tierRules(), chain.governance.params()]);
@@ -131,7 +159,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
       contract: deps.ai.contracts.pool,
       pool: poolView,
       claims,
-      stats: await mutualStats(chain),
+      stats: await mutualStats(chain, await flaggedNow()),
       groups: list,
       tiers,
       governance: { ...params, proposals },

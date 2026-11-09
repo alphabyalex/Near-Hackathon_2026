@@ -107,9 +107,9 @@ export function liveSimSeed(): SimChainSeed {
     seed.budgets.push({ budget_id: g.budget_id, name: g.name, owner: g.owner, deposit: W(40), period: "week", members: g.members.map((m) => ({ member: m, allowance: W(10) })) });
   }
   seed.reputation = {
-    bgt_mission: { tier: "gold", proven_calls: 412, refused_calls: 9, claims: 0, clean_calls: 377, spent: W(61.8), fees_paid: W(0.74) },
-    bgt_nightshade: { tier: "silver", proven_calls: 186, refused_calls: 4, claims: 0, clean_calls: 14, spent: W(23.4), fees_paid: W(0.38) },
-    bgt_kelp: { tier: "silver", proven_calls: 57, refused_calls: 2, claims: 0, clean_calls: 47, spent: W(6.1), fees_paid: W(0.12) },
+    bgt_mission: { tier: "gold", proven_calls: 412, refused_calls: 9, capped_calls: 31, blocked_payees: 2, claims: 0, clean_calls: 377, spent: W(61.8), fees_paid: W(0.74) },
+    bgt_nightshade: { tier: "silver", proven_calls: 186, refused_calls: 4, capped_calls: 12, blocked_payees: 1, claims: 0, clean_calls: 14, spent: W(23.4), fees_paid: W(0.38) },
+    bgt_kelp: { tier: "silver", proven_calls: 57, refused_calls: 2, capped_calls: 40, blocked_payees: 0, claims: 0, clean_calls: 47, spent: W(6.1), fees_paid: W(0.12) },
   };
   seed.claims = [
     { subject: "rcpt_kelp_parts_0331", claimant: "kelp-robotics.sputnikv2.testnet", amount: W(1.5), reason: "Wardline answered PAY for a parts vendor whose website had been taken over a day earlier.", budget_id: "bgt_kelp" },
@@ -199,8 +199,8 @@ export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = de
   return { mode: "near", meter, registry, pool: nearPool, reputation: new MeterBackedReputation(mutual.reputation, meter), governance: mutual.governance };
 }
 
-/** The numbers on the Mutual home page. */
-export async function mutualStats(chain: Chain) {
+/** The numbers on the Mutual home page. extraBlocked: look-alike payouts flagged right now, not yet in any group's record. */
+export async function mutualStats(chain: Chain, extraBlocked = 0) {
   const [pool, claims, groups] = await Promise.all([chain.pool.getPool(), chain.pool.listClaims(), chain.reputation.listReputations()]);
   return {
     total_pooled: pool.tvl,
@@ -210,5 +210,12 @@ export async function mutualStats(chain: Chain) {
     groups_covered: groups.length,
     proven_payments: groups.reduce((n, g) => n + g.proven_calls, 0),
     payouts: claims.filter((c) => c.status === "paid").length,
+    // Below the line: never paid, and refunded where anything was held.
+    below: (() => {
+      const swapped = groups.reduce((n, g) => n + g.refused_calls, 0);
+      const lookalike = groups.reduce((n, g) => n + g.blocked_payees, 0) + extraBlocked;
+      const capped = groups.reduce((n, g) => n + g.capped_calls, 0);
+      return { swapped, lookalike, capped, total: swapped + lookalike + capped };
+    })(),
   };
 }

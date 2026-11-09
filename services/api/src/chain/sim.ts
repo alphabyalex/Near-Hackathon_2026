@@ -76,6 +76,8 @@ export interface MeterHooks {
   onFees?: (amount: string) => Promise<void>;
   onProven?: (budgetId: string, amount: bigint, fee: bigint) => void;
   onRefused?: (budgetId: string) => void;
+  /** A reservation refused at an allowance or the deposit. */
+  onCapped?: (budgetId: string) => void;
 }
 
 export class SimRegistry implements ModelRegistryClient {
@@ -165,9 +167,11 @@ export class SimMeter implements MeterClient {
     if (this.reservations.has(args.call_id)) return { ok: false, reason: "DUPLICATE_CALL", detail: `Call ${args.call_id} already has a reservation.` };
     const amount = big(args.max_amount);
     if (m.used + m.reserved + amount > m.allowance) {
+      this.hooks.onCapped?.(b.budget_id);
       return { ok: false, reason: "ALLOWANCE_EXHAUSTED", detail: `${args.member} has ${(m.allowance - m.used - m.reserved).toString()} of ${m.allowance.toString()} left this ${b.period}.` };
     }
     if (b.spent + b.reserved + amount > b.deposit) {
+      this.hooks.onCapped?.(b.budget_id);
       return { ok: false, reason: "BUDGET_EXHAUSTED", detail: `The budget has ${(b.deposit - b.spent - b.reserved).toString()} of its ${b.deposit.toString()} deposit left.` };
     }
     m.reserved += amount;
@@ -531,6 +535,7 @@ export function createSimChain(seed: SimChainSeed, now: Clock): Chain {
     feeBps: (budgetId) => reputation.feeBps(budgetId),
     onProven: (budgetId, amount, fee) => reputation.recordProven(budgetId, amount, fee),
     onRefused: (budgetId) => reputation.recordRefused(budgetId),
+    onCapped: (budgetId) => reputation.recordCapped(budgetId),
     onFees: (fee) => pool.addFees(fee),
   });
   // History from before this run: fees its groups already paid, and claims already settled.

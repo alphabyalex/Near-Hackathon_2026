@@ -227,3 +227,23 @@ describe("near mode wiring", () => {
     expect(c.governance.mode).toBe("sim");
   });
 });
+
+describe("below the line counts and the proofs feed", () => {
+  it("a reservation stopped at an allowance or the deposit counts as capped for the group", async () => {
+    const { c } = chain();
+    const r = await c.meter.reserve({ budget_id: GROUP_BUDGET, member: "alice.testnet", call_id: "call_big", model_id: "m", max_amount: W(6) });
+    expect(r.ok).toBe(false);
+    expect((await c.reputation.getReputation(GROUP_BUDGET))!.capped_calls).toBe(1);
+  });
+
+  it("GET /v1/mutual counts swapped, look-alike and capped, and GET /v1/proofs lists calls without members or keys", async () => {
+    nowMs = START;
+    const deps = bootstrap(":memory:", () => BigInt(nowMs) * 1_000_000n, {}, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" } });
+    const app = createApp(deps);
+    const m = (await (await app.request("/v1/mutual")).json()) as { stats: { below: { swapped: number; lookalike: number; capped: number; total: number } } };
+    // Seeded history (15 refused, 3 blocked, 83 capped) plus the look-alike payout awaiting a vote in the group's DAO.
+    expect(m.stats.below).toEqual({ swapped: 15, lookalike: 4, capped: 83, total: 102 });
+    const empty = (await (await app.request("/v1/proofs")).json()) as { proofs: unknown[] };
+    expect(empty.proofs).toEqual([]);
+  });
+});

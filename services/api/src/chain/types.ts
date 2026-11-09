@@ -204,6 +204,10 @@ export interface ReputationView {
   tier: Tier;
   proven_calls: number;
   refused_calls: number;
+  /** Calls stopped at a member allowance or the budget's deposit before reaching a model. */
+  capped_calls: number;
+  /** Payouts from this group's treasury that the payee check blocked before a vote. */
+  blocked_payees: number;
   claims: number;
   /** Clean proven calls since the last tier change or claim. */
   clean_calls: number;

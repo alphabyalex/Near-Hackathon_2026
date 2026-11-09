@@ -36,6 +36,8 @@ export interface ReputationSeed {
   tier?: Tier;
   proven_calls?: number;
   refused_calls?: number;
+  capped_calls?: number;
+  blocked_payees?: number;
   claims?: number;
   clean_calls?: number;
   spent?: string;
@@ -49,6 +51,8 @@ interface Rep {
   tier: number;
   proven: number;
   refused: number;
+  capped: number;
+  blocked: number;
   claims: number;
   clean: number;
   spent: bigint;
@@ -77,6 +81,8 @@ export class SimReputation implements ReputationClient {
       tier: TIER_INDEX[s.tier ?? "bronze"],
       proven: s.proven_calls ?? 0,
       refused: s.refused_calls ?? 0,
+      capped: s.capped_calls ?? 0,
+      blocked: s.blocked_payees ?? 0,
       claims: s.claims ?? 0,
       clean: s.clean_calls ?? 0,
       spent: BigInt(s.spent ?? "0"),
@@ -97,6 +103,8 @@ export class SimReputation implements ReputationClient {
       tier: rule.tier,
       proven_calls: r.proven,
       refused_calls: r.refused,
+      capped_calls: r.capped,
+      blocked_payees: r.blocked,
       claims: r.claims,
       clean_calls: r.clean,
       next_tier_at: rule.promote_after,
@@ -141,6 +149,12 @@ export class SimReputation implements ReputationClient {
   recordRefused(budgetId: string): void {
     const r = this.records.get(budgetId);
     if (r) r.refused++;
+  }
+
+  /** A call stopped at an allowance or the deposit. It stays below the line and never reached a model. */
+  recordCapped(budgetId: string): void {
+    const r = this.records.get(budgetId);
+    if (r) r.capped++;
   }
 
   /** A paid claim moves the group down one tier and restarts its clean streak. */
