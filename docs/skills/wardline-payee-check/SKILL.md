@@ -5,6 +5,8 @@ description: Confirm who you are paying before any payment. Use before sending m
 
 # Wardline payee check
 
+Wardline is a credit union for the AI economy: communities pool USDC, cover each other's AI agents and earn from every payment those agents make safely. This skill is the part an agent calls before it pays anyone. For model calls, point your OpenAI client's base URL at the Wardline API's `/v1/ai` with a meter key instead; those calls are paid only on a NEAR AI TEE signature.
+
 Vendors link their payout accounts to their website domain. Wardline verifies control of each account and its link to the domain, and reports the trust level. Read that record before money moves.
 
 ## Choose

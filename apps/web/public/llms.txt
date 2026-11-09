@@ -1,6 +1,11 @@
 # Wardline
 
-> AI that only pays on proof. Wardline pays for a model call only when a NEAR AI TEE signature shows the model you asked for signed that exact response, spends from a deposit that caps every member, and checks who an agent is about to pay before money moves. If a Wardline approval was wrong, Wardline Mutual pays the customer back, and Wardline's own first-loss stake pays first.
+> Wardline is a credit union for the AI economy. Communities pool USDC on NEAR, earn yield by backing AI agents' payments, and vote together on the risks they take. For an agent, Wardline is a payment layer that only pays on proof: a model call is paid only when a NEAR AI TEE signature shows the model you asked for signed that exact response, spending comes from a group's deposit that caps every member, and every payee is checked before money moves. Agents integrate with one line (the OpenAI client's base URL), MCP or the SDK.
+
+Three layers:
+1. The Mutual: anyone deposits USDC and gets WARD, a share of the pool. WARD holders earn 2% of every proven AI payment, vote on payouts, fees and covered models, and cover a wrong approval after Wardline's own first-loss stake.
+2. Groups: a team, hacker house or DAO funds a shared AI budget from its Sputnik DAO or Trezu treasury. Reputation tiers: Bronze 2%, Silver 1.5%, Gold 1% fee; clean proven calls move a group up, a paid claim moves it down.
+3. The proof engine: the right party, the model you actually got, a hard cap.
 
 ## Paying for AI calls
 
@@ -27,7 +32,17 @@ SDK: createWardline({ mode: "hosted", baseUrl, meterKey }).openai(OpenAI) return
 
 Signers attested per model: GET /v1/ai-registry.
 
-Money is Circle's USDC on NEAR (6 decimals). Wardline Mutual (GET /v1/pool) pays customers back when a Wardline approval was wrong. Wardline's own first-loss stake pays first; after that, holders of WARD ("Wardline Mutual share", NEP-141, 6 decimals) cover the rest. WARD is minted for USDC at price = pool assets / WARD supply, starting at 1 USDC. It is yield-bearing and loss-sharing: it rises with fees and falls when a payout goes past Wardline's stake. Redeem with the pool after a 7-day wait, or sell on a DEX.
+Money is Circle's USDC on NEAR (6 decimals). Wardline Mutual (GET /v1/mutual, GET /v1/pool) pays a group back when a Wardline approval was wrong. Wardline's own first-loss stake pays first; after that, holders of WARD ("Wardline Mutual share", NEP-141, 6 decimals) cover the rest. WARD is minted for USDC at price = pool assets / WARD supply, starting at 1 USDC. It is yield-bearing and loss-sharing: it rises with fees and falls when a payout goes past Wardline's stake. Redeem with the pool after a 7-day wait, or sell on a DEX.
+
+## The Mutual, groups and voting
+
+- GET /v1/mutual: pool, WARD price, yield earned, groups covered, proven payments, payouts, the leaderboard, tier rules and proposals.
+- GET /v1/groups and GET /v1/reputation/{budget_id}: get_reputation answers tier, proven_calls, refused_calls, claims, fee_bps and coverage_cap.
+- GET /v1/mutual/proposals, GET /v1/mutual/proposals/{id}/weight/{account}, POST /v1/mutual/proposals/{id}/execute (anyone, once, after it passed).
+- Deposit, redeem, vote and propose are signed by the holder's NEAR wallet: POST /v1/pool/challenge with {account, action: "deposit" | "withdraw" | "redeem" | "vote" | "propose", ...}, sign the message (NEP-413, recipient "wardline-mutual"), then POST /v1/pool/submit.
+- Votes weigh WARD at the proposal's snapshot. Quorum is 20% of the snapshot; the window is 3 days; more than half of the snapshot voting for passes it early.
+
+Reputation tiers and voting are simulated until their contracts deploy; the pool, budgets and model registry are NEAR contracts on testnet.
 
 ## When to use which
 

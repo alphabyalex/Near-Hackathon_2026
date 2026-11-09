@@ -1,15 +1,21 @@
 # Wardline
 
-Wardline lets AI agents spend USDC on NEAR only on proof. A model call is paid only when NEAR AI's TEE signature shows the model you asked for signed that exact response, and an invoice is paid only to an account the vendor's own domain links; a deposit caps every budget, a group can govern its budget from a Sputnik DAO, and if a Wardline approval was wrong, Wardline Mutual pays the customer back with Wardline's own stake losing first.
+Wardline is a credit union for the AI economy. Communities pool USDC on NEAR, earn yield by backing AI agents' payments, and vote together on the risks they take.
 
-The problem: agents now pay for things. A model provider can quietly serve a cheaper model than the one you pay for, a leaked key can drain a budget, and a "bank details changed" email can send an invoice payment to a look-alike account. Developers plug in by changing one line, the OpenAI client's base URL.
+Back the AI economy and earn from it: Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely. It has three layers:
 
-## Live Hosted Endpoints & Testnet Deployment
+1. **The Mutual.** Anyone deposits USDC and gets WARD, their share of the pool. WARD holders earn 2% of every proven AI payment. If a Wardline approval was wrong, Wardline's own stake pays first, then WARD holders. WARD holders vote on payouts, fees and which models are covered.
+2. **Groups.** A team, hacker house or DAO funds a shared AI budget from its own Sputnik DAO or Trezu treasury. Members get allowances. Groups with a clean record move up reputation tiers (Bronze, Silver, Gold) and pay lower fees (2%, 1.5%, 1%) for more coverage.
+3. **The proof engine** (why the yield is safe). A call is paid only to the right party, for the model you actually got (NEAR AI TEE signatures), up to a hard cap. Agents plug in by changing one line, the OpenAI client's base URL.
 
-- **Web App:** https://lean-ballot-ref-script.trycloudflare.com
-- **API Endpoint:** `https://attempt-caused-antique-four.trycloudflare.com`
-- **MCP Server (HTTP):** `https://realize-russell-societies-incl.trycloudflare.com/mcp`
-- **Testnet Deployment:** `scripts/contracts/deployments/testnet-wardline.json` (deployed contracts on `wardline-labs.testnet` using Circle's testnet USDC `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`)
+## Hosted
+
+- Web app: https://lean-ballot-ref-script.trycloudflare.com
+- API: `https://attempt-caused-antique-four.trycloudflare.com`
+- MCP (streamable HTTP): `https://realize-russell-societies-incl.trycloudflare.com/mcp`
+- NEAR testnet deployment: `scripts/contracts/deployments/testnet-wardline.json`, contracts under `wardline-labs.testnet`, Circle testnet USDC `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`
+
+These links live in `repo.config.json` (`hosted`); `pnpm test` fails if this file, `llms.txt`, `SKILL.md` or `services/mcp/server.json` disagree with it.
 
 ## Try it in 5 minutes
 
@@ -119,7 +125,7 @@ curl -s http://127.0.0.1:$WARDLINE_API_PORT/v1/check -H 'content-type: applicati
 
 See: the first answers `"verdict":"PAY"`, `"account":"near:testnet:northwind.testnet"`, `"evidenceTier":"T2_DOMAIN_LINKED"` and a signed `receipt`. The second answers `"verdict":"BLOCK"` with `"code":"LOOKALIKE_ACCOUNT"`: `northw1nd` imitates the account Northwind's domain links.
 
-### 7. Run Wardline Mutual
+### 7. Join the Mutual, then watch a payout
 
 Do:
 
@@ -127,9 +133,61 @@ Do:
 pnpm demo:mutual
 ```
 
-See: two payouts run against the mutual pool. In the first, Wardline's first-loss stake absorbs the whole payout: WARD stays at 1.000000 USDC and outside investors lose nothing. In the second, a larger loss exceeds the remaining first-loss stake: WARD absorbs the difference and dips to 0.999600 USDC. Subsequent fee inflows raise the price again.
+See:
 
-### 8. See the benchmark numbers
+```
+Mutual: 141.24 USDC pooled, 4 groups covered, 655 proven AI payments, 1.24 USDC earned by WARD holders
+Deposit: maya.testnet puts in 25.00 USDC and receives 24.74 WARD at 1.0103
+Pool: Wardline's first-loss stake 20.00 USDC, behind WARD 120.00 USDC, WARD price 1.0000
+Payout 1: 8.00 USDC paid. From Wardline's stake 8.00, from WARD holders 0.00. Stake left 12.00. WARD 1.0000 to 1.0000
+Payout 2: 12.50 USDC paid. From Wardline's stake 12.00, from WARD holders 0.50. Stake left 0.00. WARD 1.0000 to 0.9958
+Refill: 78 proven calls (39.00 USDC) paid 0.5025 USDC in fees. WARD 0.9958 to 1.0000
+```
+
+Anyone can deposit; no group membership is needed. Wardline's own stake pays a wrong approval first, so WARD does not move. A bigger payout uses up the stake, WARD holders cover the rest and WARD dips, then fees from proven calls refill it.
+
+### 8. Vote with WARD
+
+Do:
+
+```sh
+pnpm demo:vote
+```
+
+See:
+
+```
+WARD holders: lp-north.testnet 70.00 WARD, lp-harbor.testnet 50.00 WARD
+Proposal 0: "Lower the Silver fee to 1.25%". Snapshot 120.00 WARD, quorum 24.00 WARD, closes ...
+late.testnet votes: refused. late.testnet held no WARD when this proposal opened, so it has no vote on it.
+lp-harbor.testnet votes for with 50.00 WARD: open
+lp-north.testnet votes for: 120.00 of 120.00 WARD for, passed
+Executed by anyone: executed (sim-execute-...)
+Execute again: refused. This proposal was already executed.
+Silver fee is now 1.25%
+```
+
+Votes are weighted by WARD at the proposal's snapshot, so WARD deposited or moved later cannot vote twice. A proposal passes with quorum (20% of the snapshot) and more for than against when its 3-day window closes, or early once more than half of all WARD votes for it. Anyone can execute it, once.
+
+### 9. Watch a clean group move up a tier
+
+Do:
+
+```sh
+pnpm demo:tier
+```
+
+See:
+
+```
+Aurora Lab shared AI budget: bronze, 0 proven calls, 0 claims, fee 2.00%, coverage 25.00 USDC
+After 11 proven calls: silver, 11 proven calls, 0 claims, fee 1.50%, coverage 50.00 USDC
+Fee on call 1: 0.0100 USDC. Fee on call 11: 0.0075 USDC
+```
+
+Ten clean proven calls in a row move a group from Bronze to Silver; 25 more reach Gold. A paid claim moves it down one tier. The same numbers come from `GET /v1/reputation/bgt_aurora` on the API from step 2.
+
+### 10. See the scam-test numbers
 
 Do:
 
@@ -137,89 +195,121 @@ Do:
 pnpm redteam:numbers
 ```
 
-See: 250 attack prompts across look-alike payees, swapped models, leaked keys, fake invoices and replayed receipts. The benchmark runs against the local stack; all 250 attacks are stopped. Details in [docs/REDTEAM.md](docs/REDTEAM.md).
+See:
 
-### 9. Run the tests
+```
+Engine: stub
+Attacks stopped: 100% of 159 written and 48 model-invented scam payees
+Unsafe payments: 0
+False positives: 0% of 40 legitimate invoices
+...
+AI agent (z-ai/glm-5.3-flash, first payment to a vendor): alone 5 of 20 scams paid, with Wardline 0
+```
+
+Read from the committed report in `evidence/redteam/report.json`. Details in [docs/REDTEAM.md](docs/REDTEAM.md).
+
+### 11. Run the tests
 
 Do:
 
 ```sh
 pnpm test
-cargo test --workspace
+pnpm --filter @wardline/web exec playwright install chromium
+pnpm test:e2e
 ```
 
-See: 754 TypeScript tests pass across every package and service, the brand guard passes, and 66 Rust contract tests pass. For end-to-end browser tests run `pnpm test:e2e` (25 Playwright tests against the web UI).
+See: the brand guard (6 checks) and every package's tests pass, then 29 Playwright tests pass against the web app, including the Mutual home, WARD voting, Groups and all seven demo scenes. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
+
+### The web app
+
+Do, with the API from step 2 still running:
+
+```sh
+WARDLINE_DEV_API=http://127.0.0.1:$WARDLINE_API_PORT pnpm --filter @wardline/web dev
+```
+
+See: http://127.0.0.1:5173 opens on the Mutual: live stats, the safest groups, Join the Mutual, WARD-holder governance and payouts. Groups, Proof engine and the seven-scene Demo are in the nav.
 
 ## Live variants
 
-The quickstart above runs entirely offline. To connect to live systems, set the matching environment variable:
+Everything above runs offline. Each live variant needs its own environment variables:
 
-- **Live NEAR AI Cloud inference:** set `NEAR_AI_API_KEY=sk-...` and leave `WARDLINE_AI_PROVIDER_URL` unset. The gateway calls NEAR AI Cloud directly and verifies live `provider_tee` signatures.
-- **Live NEAR testnet:** set `WARDLINE_CHAIN=near` and configure testnet accounts. Contracts are deployed on `wardline-labs.testnet` using Circle's testnet USDC (`3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`).
-- **Live web UI:** start `pnpm --filter @wardline/web dev` and open http://127.0.0.1:5173. The UI talks to the API from step 2.
+| Variant | Set | Notes |
+| --- | --- | --- |
+| Live NEAR AI Cloud | `NEAR_AI_API_KEY`, and leave `WARDLINE_AI_PROVIDER_URL` unset | The gateway calls `cloud-api.near.ai` and verifies live `provider_tee` signatures |
+| Read the testnet deployment | nothing | `pnpm testnet:check` makes view calls only: pool, budgets, attested models, WARD balances |
+| NEAR testnet | `WARDLINE_CHAIN_MODE=near`, `WARDLINE_GATEWAY_ACCOUNT`, `WARDLINE_GATEWAY_KEY` (a function-call key for `reserve`, `settle`, `release` on the meter) | Contract ids come from `repo.config.json`; override with `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`. `WARDLINE_DEMO_METER_KEY` is refused in this mode |
+| A DEX for WARD | `WARDLINE_WARD_TRADE_URL` | Shows "Trade WARD" next to the price |
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    A[Agent] -->|1. OpenAI client call| B[Wardline Gateway]
-    B -->|2. Check deposit & allowance| C[(Budget Meter)]
-    B -->|3. Forward unchanged| D[NEAR AI Cloud / TEE]
-    D -->|4. Response + TEE signature| B
-    B -->|5. Verify signature & model| E[(Model Registry)]
-    E -->|Verified| F[Pay provider, charge deposit, refund remainder]
-    E -->|Refused / Swapped| G[Zero payment, release deposit, 502 to Agent]
-    F -->|Coverage fee| H[(Wardline Mutual Pool)]
+    LP[Anyone: USDC] -->|deposit| M[(Wardline Mutual<br/>our stake + WARD)]
+    DAO[Group DAO treasury<br/>Sputnik or Trezu] -->|fund by vote| B[(Group budget<br/>meter)]
+    A[Member's agent<br/>OpenAI client] -->|one line: baseURL| G[Wardline gateway]
+    G -->|reserve| B
+    G -->|request bytes| N[NEAR AI Cloud TEE]
+    N -->|response + signature| G
+    G -->|signer attested for this model?| R[(Model registry)]
+    G -->|proven: settle| B
+    B -->|fee by tier: 2%, 1.5%, 1%| M
+    B -->|clean record| T[Reputation tier]
+    W[WARD holders] -->|vote: fees, coverage, models, payouts| M
+    M -->|wrong approval: our stake first, then WARD| DAO
 ```
 
 ## What is on-chain vs. off-chain
 
-| Component | Where it lives | Notes |
+| Piece | Where | Notes |
 | --- | --- | --- |
-| Budget deposits, allowances, settlements | NEAR contract `contracts/meter` | Deployed on testnet (`meter.wardline-labs.testnet`); moves Circle testnet USDC |
-| Model registry: which signer is attested for which model | NEAR contract `contracts/model-registry` | Deployed on testnet (`model-registry.wardline-labs.testnet`); DeepSeek V4.1 Flash registered |
-| Wardline Mutual: junior stake, WARD, claims | NEAR contract `contracts/cover-pool` | Deployed on testnet (`pool.wardline-labs.testnet`); mints/burns WARD NEP-141 shares, delayed redeem |
-| Payee registry and per-business vaults | NEAR contracts `contracts/payee-registry`, `contracts/vault` | Deployed on testnet (`payee-registry.wardline-labs.testnet`, `vault.wardline-labs.testnet`) |
-| Group governance | Sputnik DAO v2 (existing contracts) | `packages/dao-adapter` builds and reads the proposals; deployed on `dao.wardline-labs.testnet` |
-| Gateway, payee check, signature checks, receipts, dashboard | Off chain: `services/api`, `apps/web` | Hosted on Cloudflare tunnels; also runs locally |
-| Model inference and response signatures | NEAR AI Cloud | Verified live with `NEAR_AI_API_KEY` |
+| Group budgets, allowances, reserve, settle, release | NEAR contract `contracts/meter` | `meter.wardline-labs.testnet`, moves Circle testnet USDC |
+| Which TEE signer is attested for which model | NEAR contract `contracts/model-registry` | `model-registry.wardline-labs.testnet` |
+| The Mutual: first-loss stake, WARD (NEP-141), claims, 7-day redemption | NEAR contract `contracts/cover-pool` | `pool.wardline-labs.testnet` |
+| Group governance | Sputnik DAO v2 | `packages/dao-adapter` builds and reads the proposals |
+| Reputation tiers and WARD-holder voting | Simulated in `services/api/src/chain/sim-mutual.ts` | Same names as the coming contracts: `get_reputation(budget_id)`, propose, vote, execute |
+| Payee registry and per-business vaults | NEAR contracts `contracts/payee-registry`, `contracts/vault` | For invoice payments |
+| Gateway, payee check, receipts, site | Off chain: `services/api`, `apps/web` | |
+| Model inference and response signatures | NEAR AI Cloud | |
 
 ### Honest limits
 
-- Token counts are not signed. The TEE signature shows which model's TEE signed the exact response bytes; Wardline charges by the provider's reported usage, capped at the reservation.
-- The attestor is trusted today. Signers enter the model registry from NEAR AI attestation reports; checking the TDX and GPU quotes inside those reports is the attestor's job and is not done independently here.
-- `provider_tee` signatures exist only for models NEAR AI serves itself. Models listed as "attested 3p" return gateway signatures, which Wardline refuses as proof of the model.
-- Wardline Mutual is protocol-backed coverage on testnet, not insurance. WARD is yield-bearing and loss-sharing; its price can fall.
-- Testnet only. Mainnet USDC is a configuration value and has not been used. Streaming responses are refused for now.
+- Testnet only. Mainnet USDC is a configuration value and has never been used.
+- The Mutual is protocol-backed coverage on testnet, not insurance. WARD is yield-bearing and loss-sharing; its price can fall.
+- Reputation tiers and WARD voting are simulated, also in near mode, until their contracts are deployed. The live sim starts with three groups that have a history, and two LPs.
+- Token counts are not signed. A TEE signature shows which attested model signed the exact response bytes; the charge uses the provider's reported usage, capped at the reservation.
+- The attestor is trusted. Signers enter the registry from NEAR AI attestation reports; checking the TDX and GPU quotes inside them is not done independently here.
+- `provider_tee` signatures exist only for models NEAR AI serves itself. Gateway signatures are refused as proof of the model. Streaming responses are refused for now.
 - The payee check verifies control of an account and its link to a domain, at a stated trust level. It does not establish who legally owns a business.
-- More in [docs/LIMITATIONS.md](docs/LIMITATIONS.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+- The hosted links are temporary tunnels and may be offline; everything above runs locally.
+- This was built during the NEAR hackathon. More in [docs/LIMITATIONS.md](docs/LIMITATIONS.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Tracks
 
 | Track | Why |
 | --- | --- |
-| `privacy` Privacy & Private AI | Pays only for responses signed inside NEAR AI's TEEs, and re-verifies each signature and attestation before money moves |
-| `social` Social Money | A group funds one AI budget from its Sputnik DAO or Trezu treasury and votes on allowances, providers, payouts and pool claims |
-| `business` Autonomous Business | Agents get metered budgets, per-member allowances and a payee check, so they can pay for models and vendors without a human on every call |
-| `realworld` Real-World Money | Circle USDC rails for invoice payments and model spend, with a vendor verification flow businesses can run on their own domain |
-| `security` AI Security & Defense | Hard caps, refusal of swapped models and replays, look-alike and changed-account detection, and a red-team benchmark |
+| `social` Social Money (lead) | Shared AI budgets funded from a group's own Sputnik or Trezu treasury, programmable rewards (2% of every proven payment to WARD holders), collective ownership of the Mutual through WARD, and reputation-based access: clean groups pay less and get more coverage |
+| `privacy` Privacy & Private AI | Pays only for responses signed inside NEAR AI's TEEs, re-verifying each signature against attested signers before money moves |
+| `business` Autonomous Business | Agents get metered budgets, allowances and a payee check, so they pay for models and vendors without a human on every call |
+| `realworld` Real-World Money | Circle USDC for deposits, model spend and invoice payments; vendors verify their payout accounts on their own domain |
+| `security` AI Security & Defense | Hard caps, refusal of swapped models and replays, look-alike detection before a DAO votes, and a red-team benchmark |
 
 ## Repository
 
 | Path | What |
 | --- | --- |
-| `services/api` | Metered AI gateway (`/v1/ai`), payee check (`/v1/check`, `/v1/resolve`), Wardline Mutual, owner routes |
+| `services/api` | Gateway (`/v1/ai`), the Mutual (`/v1/mutual`, `/v1/pool`, `/v1/mutual/proposals`), groups and tiers (`/v1/groups`, `/v1/reputation/:budget`), payee check (`/v1/check`, `/v1/resolve`), demo scenes |
+| `apps/web` | The Mutual home, Groups, Proof engine, Demo, Connect and the owner app |
 | `packages/sdk` | `@wardline/sdk`: `openai()`, `getCall`, `verifyProof`, payee checks |
-| `packages/dao-adapter` | Sputnik DAO v2 proposals for budgets, allowances, providers, payout changes and claims |
-| `services/demo-provider` | Offline upstreams: recorded NEAR AI traffic, `cheapai`, a local test TEE |
+| `packages/dao-adapter` | Sputnik DAO v2 proposals for group budgets, allowances, providers, payout changes and claims |
 | `services/mcp` | MCP server for agents |
+| `services/demo-provider` | Offline upstreams: recorded NEAR AI traffic, `cheapai`, a local test TEE |
 | `packages/x402-guard` | Checks each x402 offer's `payTo` before paying |
-| `apps/web` | Site, demo, Mutual page and owner dashboard |
 | `contracts` | NEAR contracts: meter, model registry, cover pool, payee registry, vault |
 | `fixtures/nearai` | Real NEAR AI requests, responses, signatures and attestation reports, recorded once |
 | `services/redteam`, `evidence/redteam` | Red-team benchmark and its committed results |
 
-Docs: [docs/PAYEE_SHIELD.md](docs/PAYEE_SHIELD.md) (payee check), [docs/DAO.md](docs/DAO.md) (governance), [docs/REDTEAM.md](docs/REDTEAM.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/LIMITATIONS.md](docs/LIMITATIONS.md), [docs/CONTEXT.md](docs/CONTEXT.md), [apps/web/public/llms.txt](apps/web/public/llms.txt) (for agents), [docs/skills/wardline-payee-check](docs/skills/wardline-payee-check/SKILL.md).
+Docs: [docs/DAO.md](docs/DAO.md) (governance), [docs/PAYEE_SHIELD.md](docs/PAYEE_SHIELD.md) (payee check), [docs/REDTEAM.md](docs/REDTEAM.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/LIMITATIONS.md](docs/LIMITATIONS.md), [apps/web/public/llms.txt](apps/web/public/llms.txt) (for agents), [docs/skills/wardline-payee-check](docs/skills/wardline-payee-check/SKILL.md).
 
 ## Disclosures
 
@@ -227,7 +317,7 @@ Docs: [docs/PAYEE_SHIELD.md](docs/PAYEE_SHIELD.md) (payee check), [docs/DAO.md](
 - Most code was written with Claude Code, directed and reviewed by the team.
 - Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@near-wallet-selector/*`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`.
 - External services: NEAR AI Cloud, Circle USDC on NEAR, NEAR RPC (FastNear, QuickNode optional), Sputnik DAO.
-- The full list with licenses, and what else to know: [docs/DISCLOSURES.md](docs/DISCLOSURES.md). To report a vulnerability: [SECURITY.md](SECURITY.md).
+- The full list with licenses: [docs/DISCLOSURES.md](docs/DISCLOSURES.md). To report a vulnerability: [SECURITY.md](SECURITY.md).
 
 ## License
 
