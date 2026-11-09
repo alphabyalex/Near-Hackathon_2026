@@ -25,7 +25,8 @@
     "demo:swapped-model": "tsx scripts/demo-swapped-model.ts",
     "demo:plugin": "tsx scripts/demo-plugin.ts",
     "demo:mutual": "tsx scripts/demo-mutual.ts",
-    "redteam:numbers": "tsx scripts/redteam-numbers.ts"
+    "redteam:numbers": "tsx scripts/redteam-numbers.ts",
+    "testnet:mint": "pnpm --filter @wardline/contract-scripts run mint-tokens"
   },
   "devDependencies": {
     "@wardline/demo-provider": "workspace:*",

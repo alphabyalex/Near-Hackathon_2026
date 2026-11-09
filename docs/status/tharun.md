@@ -256,6 +256,32 @@ All public endpoints are deployed, reachable over HTTPS, and verified:
 - **server.json:** updated at `services/mcp/server.json` with HTTP transport pointing to the public MCP URL.
 - **README.md:** updated with live hosted links for Web App, API, MCP, and NEAR testnet contract deployment manifest.
 
+## Token Minting, Usage Endpoints & Live NEAR AI Integration (2026-11-09)
+
+### 1. Testnet Token Infrastructure & Uniform Minting
+- **Deployed Test Token Contract:** Deployed `token.wardline-labs.testnet` using `wardline_mock_token.wasm` (NEP-141 with 6 decimals, owner: `wardline-labs.testnet`).
+- **Ref Finance Liquidity Swap:** Wrapped 3 additional NEAR on `wrap.testnet` and swapped for Circle USDC on Ref pool 1845 (tx `Joo65aUyw5Qg5Tw7Hq4f7gPcXANth6bUbqrvusEsN6P`), bringing root USDC to `2,235,352` atomic units.
+- **Mint Script:** Added `scripts/contracts/src/mint-tokens.ts` (runnable via root `pnpm testnet:mint`).
+- **Uniform Minting Verified on Chain:**
+  - `agent.wardline-labs.testnet`: 10,000,000 units (10 tokens), tx `2guVC4LqUm3G5fENjdDeXZyQcorg4tBabVDY7kYB7uy4`
+  - `investor1.wardline-labs.testnet`: 50,000,000 units (50 tokens), tx `2f5FanJCbL9nTDXsL6p2DV6wDPSrihMogM9DTGfDUVCA`
+  - `investor2.wardline-labs.testnet`: 50,000,000 units (50 tokens), tx `FSZstuKcn4JEdntAQbYJ8dnv6gGQSMaDCNctvF5HdhRV`
+  - `wardline-labs.testnet`: 100,000,000 units (100 tokens), tx `3rnbfbYDAsmwd2iqBX6EYPTBQ7MyeqFHmfAcd8DC5kER`
+- **Deployment Manifest:** Updated `scripts/contracts/deployments/testnet-wardline.json` with `test_token` contract details.
+
+### 2. Live NEAR AI Cloud Integration
+- Configured provided live API key in root `.env` (gitignored).
+- Verified model discovery against `https://cloud-api.near.ai/v1/models`: 64 models confirmed, including `deepseek-ai/DeepSeek-V4.1-Flash-1017` and `z-ai/glm-5.3-flash`.
+- Executed live decision test with `NearAiClient` and collected valid TEE evidence:
+  - Completion ID: `af5943657c664919ac9ee0ef977c9763`
+  - Token Usage: 2,935 prompt tokens, 1,026 completion tokens (3,961 total tokens)
+  - Cost: $0.000748 USDC
+  - Decision: `PAY` for `INV-1001` matching open payable `pay_1001`.
+
+### 3. Usage Endpoints (/usage & /v1/ai/usage)
+- Added `GET /usage`: Public overview returning overall verified vs refused AI calls, USDC spent, refunds, and vault limits.
+- Added `GET /v1/ai/usage`: Authenticated meter gateway route returning caller's specific budget deposit, member allowance, and spend series.
+
 ## Blockers
 
 None.

@@ -122,6 +122,18 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
     return c.json(await deps.spend(c.req.param("id")));
   });
 
+  app.get("/usage", async (c) => {
+    if (!deps.spend) return openAiError(c, 404, "not_found", "No spend tracker configured.");
+    const budgetId = c.get("key").budgetId;
+    const spendInfo = (await deps.spend(budgetId)) as Record<string, unknown>;
+    return c.json({
+      object: "usage",
+      budget_id: budgetId,
+      member: c.get("key").member,
+      ...(spendInfo ?? {}),
+    });
+  });
+
   app.get("/calls/:id", (c) => {
     const call = deps.store.getCall(c.req.param("id"));
     if (!call || call.budgetId !== c.get("key").budgetId) return openAiError(c, 404, "not_found", "No such call for this budget.");

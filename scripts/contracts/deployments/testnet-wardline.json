@@ -4,6 +4,10 @@
   "deployed_at": "2026-11-09T01:02:35.953Z",
   "root": "wardline-labs.testnet",
   "contracts": {
+    "test_token": {
+      "account_id": "token.wardline-labs.testnet",
+      "decimals": 6
+    },
     "payee_registry": {
       "account_id": "payee-registry.wardline-labs.testnet",
       "code_hash": "070fb4304fde21baf8e1a179d704e9bc5ca8f8620db60382d76e839162a62f2a"

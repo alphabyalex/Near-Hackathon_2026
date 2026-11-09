@@ -39,6 +39,26 @@ export function createApp(deps: Deps, options: { mountOwner?: boolean } = {}): H
     return c.json(await overviewView(deps, vaultId));
   });
 
+  app.get("/usage", async (c) => {
+    const vaultId = c.req.query("vault_id") ?? VAULT_A;
+    const vaultData = vaultExists(vaultId) ? await overviewView(deps, vaultId) : null;
+    const calls = deps.ai.meter.listCalls(undefined, 1000);
+    const ai = aiOverview(calls, toDateClock(deps.now)());
+    return c.json({
+      object: "usage",
+      mode: deps.ai.chain.mode,
+      ai,
+      vault: vaultData
+        ? {
+            vault_id: vaultData.vault_id,
+            usage: vaultData.usage,
+            policy: vaultData.policy,
+            headroom: vaultData.headroom,
+          }
+        : null,
+    });
+  });
+
   app.get("/evaluations", async (c) => c.json(await evaluationList(deps)));
 
   app.get("/evaluations/:id", async (c) => {

@@ -7,6 +7,8 @@
   "scripts": {
     "deploy-and-seed": "tsx src/deploy-and-seed.ts",
     "deploy-wardline": "tsx src/deploy-wardline-chain.ts",
+    "deploy-token": "tsx src/deploy-token.ts",
+    "mint-tokens": "tsx src/mint-tokens.ts",
     "malicious-signer": "tsx src/malicious-signer.ts",
     "inspect-keys": "tsx src/inspect-keys.ts"
   },
