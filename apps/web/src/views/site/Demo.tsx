@@ -160,7 +160,8 @@ function outcome(id: SceneName, raw: SceneResult): Outcome {
         rows: [
           ...r.payouts.flatMap(({ claim, pool }, i) => [
             { k: `${L.payout(i + 1)}: ${formatUsdc(claim.amount)} USDC`, v: `${L.junior} ${formatUsdc(claim.paid_from_junior)}, ${L.senior.charAt(0).toLowerCase() + L.senior.slice(1)} ${formatUsdc(claim.paid_from_senior)}` },
-            { k: L.wardPrice, v: `${p4(claim.ward_price_before)} to ${p4(claim.ward_price_after)}`, tone: claim.ward_price_after !== claim.ward_price_before ? ("below" as const) : undefined },
+            // The dip is shown plainly: shared losses after our stake are how WARD works, not a refusal.
+            { k: L.wardPrice, v: `${p4(claim.ward_price_before)} to ${p4(claim.ward_price_after)}` },
             ...(i === 1 ? [{ k: L.stakeLeft, v: `${formatUsdc(pool.junior)} USDC` }] : []),
           ]),
           { k: L.refill, v: L.refillCalls(r.refill.calls, formatUsdc(r.refill.spent)) },
