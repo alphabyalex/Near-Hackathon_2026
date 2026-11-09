@@ -154,6 +154,9 @@ function HomeSkeleton() {
   );
 }
 
+/** Groups with fewer proven calls than this are left off Safest groups: too little record to rank. */
+export const SAFEST_MIN_CALLS = 10;
+
 export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?: number }) {
   const rows = limit ? groups.slice(0, limit) : groups;
   return (
@@ -247,7 +250,8 @@ export function Home() {
               {HOME.boardTitle}
             </h2>
             <p className="lede">{HOME.boardLede}</p>
-            <Leaderboard groups={m.groups} limit={5} />
+            {/* A record needs at least 10 proven calls before it can rank as safe. */}
+            <Leaderboard groups={m.groups.filter((g) => g.proven_calls >= SAFEST_MIN_CALLS)} limit={5} />
             <p className="more">
               <a className="link" href="#/groups">
                 {HOME.boardAll}

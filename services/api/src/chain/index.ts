@@ -98,6 +98,19 @@ export const SIM_GROUPS = [
 ] as const;
 
 /**
+ * Recent calls from the live sim's groups, so the latest-proofs feed is never empty in sim mode.
+ * Shaped like the public /v1/proofs rows (no member, key or request content); minutes_ago sets the time.
+ */
+export const SIM_SEED_PROOFS = [
+  { call_id: "call_sim_seed_01", budget_id: "bgt_mission", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "98", refund: "641", minutes_ago: 3 },
+  { call_id: "call_sim_seed_02", budget_id: "bgt_nightshade", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "142", refund: "597", minutes_ago: 9 },
+  { call_id: "call_sim_seed_03", budget_id: "bgt_kelp", status: "refused", reason: "MODEL_MISMATCH", model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "z-ai/glm-5.3-flash", amount: "0", refund: "739", minutes_ago: 14 },
+  { call_id: "call_sim_seed_04", budget_id: "bgt_mission", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "117", refund: "622", minutes_ago: 22 },
+  { call_id: "call_sim_seed_05", budget_id: "bgt_kelp", status: "refused", reason: "ALLOWANCE_EXHAUSTED", model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: null, amount: "0", refund: "0", minutes_ago: 31 },
+  { call_id: "call_sim_seed_06", budget_id: "bgt_nightshade", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "105", refund: "634", minutes_ago: 47 },
+] as const;
+
+/**
  * The live sim: the launch seed plus three groups with a history (proven calls, the fees they paid,
  * one claim), and past and open WARD-holder proposals. Demo scenes and unit tests use defaultSimSeed.
  */

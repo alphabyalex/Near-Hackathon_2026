@@ -10,7 +10,7 @@ import type { ProposalView } from "@wardline/dao-adapter";
 import { normalizeDomain } from "@wardline/sdk";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { GROUP_BUDGET, mutualStats } from "./chain/index.js";
+import { GROUP_BUDGET, mutualStats, SIM_SEED_PROOFS } from "./chain/index.js";
 import { runScene, SCENES, type SceneName } from "./demo-scenes.js";
 import { publicCall } from "./meter/gateway.js";
 import type { CallRow } from "./meter/store.js";
@@ -163,22 +163,27 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     const limit = query.data.limit;
     const names = new Map((await chain.reputation.listReputations()).map((r) => [r.budget_id, r.name]));
     const calls = deps.ai.meter.listCalls(undefined, limit);
-    return c.json({
-      mode: chain.mode,
-      proofs: calls.map((x) => ({
-        call_id: x.callId,
-        budget_id: x.budgetId,
-        group: names.get(x.budgetId) ?? x.budgetId,
-        side: x.status === "verified" ? "above" : "below",
-        status: x.status,
-        reason: x.reason,
-        model_claimed: x.modelClaimed,
-        model_proven: x.modelProven,
-        amount: x.amount,
-        refund: x.refund,
-        created_at: x.createdAt,
-      })),
-    });
+    const proofs = calls.map((x) => ({
+      call_id: x.callId,
+      budget_id: x.budgetId,
+      group: names.get(x.budgetId) ?? x.budgetId,
+      side: x.status === "verified" ? "above" : "below",
+      status: x.status,
+      reason: x.reason,
+      model_claimed: x.modelClaimed,
+      model_proven: x.modelProven,
+      amount: x.amount,
+      refund: x.refund,
+      created_at: x.createdAt,
+    }));
+    // In sim mode the feed is never empty: the live seed's groups' recent calls follow any real ones.
+    if (chain.mode === "sim") {
+      for (const s of SIM_SEED_PROOFS.slice(0, Math.max(0, limit - proofs.length))) {
+        const { minutes_ago, ...row } = s;
+        proofs.push({ ...row, group: names.get(row.budget_id) ?? row.budget_id, side: row.status === "verified" ? "above" : "below", created_at: new Date(nowMs() - minutes_ago * 60_000).toISOString() });
+      }
+    }
+    return c.json({ mode: chain.mode, proofs });
   });
 
   // Everything the Mutual home page shows, in one call.

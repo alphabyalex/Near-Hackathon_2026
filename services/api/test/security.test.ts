@@ -79,7 +79,9 @@ describe("what public routes expose", () => {
     const { app, key } = setup();
     await app.request("/v1/ai/chat/completions", { ...json({ model: SIM_MODEL, messages: [{ role: "user", content: "my secret prompt text" }] }), headers: { "content-type": "application/json", authorization: `Bearer ${key}` } });
     const body = (await (await app.request("/v1/proofs")).json()) as { proofs: Record<string, unknown>[] };
-    expect(body.proofs).toHaveLength(1);
+    // The real call comes first; in sim mode seeded rows follow it, with the same fields.
+    expect(body.proofs[0]!.call_id).not.toMatch(/^call_sim_seed_/);
+    for (const p of body.proofs) expect(Object.keys(p).sort()).toEqual(Object.keys(body.proofs[0]!).sort());
     expect(Object.keys(body.proofs[0]!).sort()).toEqual(["amount", "budget_id", "call_id", "created_at", "group", "model_claimed", "model_proven", "reason", "refund", "side", "status"]);
     const text = JSON.stringify(body);
     for (const leak of ["alice.testnet", "secret prompt", key, "wk_", "key_id", "request_hash", "signature"]) expect(text).not.toContain(leak);
