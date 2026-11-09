@@ -734,4 +734,5 @@ export const ME = {
   sources: "Where your share came from",
   sourcesLede: "Your deposits, and every change in WARD's price since you joined.",
   youDeposited: (usdc: string) => `You deposited ${usdc} USDC`,
+  noPriceChange: "WARD's price hasn't changed since you joined.",
 } as const;

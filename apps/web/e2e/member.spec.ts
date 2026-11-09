@@ -36,6 +36,9 @@ test.describe("#/me, the member view", () => {
     await expect(me).toContainText(APPROVER_ACCOUNT);
     await expect(me.getByTestId("price-chart").locator(".pc-launch")).toHaveCount(1);
     await expect(me.locator('.sources li[data-event="joined"]')).toContainText("You deposited 12.00 USDC");
+    // Deposits never move the price, so the list says so rather than repeating them.
+    await expect(me.locator('.sources li[data-event="deposit"]')).toHaveCount(0);
+    await expect(me.locator('.sources li[data-event="none"]')).toHaveText("WARD's price hasn't changed since you joined.");
     // The header account button opens this page.
     await expect(page.getByTestId("connect-wallet")).toHaveAttribute("href", "#/me");
 

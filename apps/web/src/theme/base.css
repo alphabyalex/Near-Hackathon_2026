@@ -215,6 +215,9 @@ button.link{background:none;border:0;padding:0;font:inherit;font-weight:600;curs
 }
 @media (max-width:600px){
   .wrap{padding:0 20px}
+  /* On a phone the page intro sits close to its first section, not a screen away. */
+  .page-intro{padding-bottom:24px}
+  .page-intro+.sec{padding-top:24px}
   .head-end .btn.sm{padding:0 12px;font-size:13px;white-space:nowrap}
   .head-end{gap:8px}
   .menu-btn{padding:0 12px}
