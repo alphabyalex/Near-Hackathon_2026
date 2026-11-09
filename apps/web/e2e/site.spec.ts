@@ -3,7 +3,7 @@ import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
 import repo from "../../../repo.config.json" with { type: "json" };
 
-const PAGES = ["#/", "#/me", "#/groups", "#/proof", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
+const PAGES = ["#/", "#/me", "#/groups", "#/proof", "#/try", "#/demo", "#/developers", "#/verify", "#/about"];
 
 /** Connects the test wallet for an account through the header's Connect wallet dialog. */
 async function connectWallet(page: Page, account: string) {
@@ -56,7 +56,7 @@ test.describe("public site", () => {
     await expect(board.locator("tbody tr").first().locator(".tier-name")).toHaveText("Gold");
     await expect(board.locator('tr[data-budget="bgt_kelp"] .tier-name')).toHaveText("Bronze");
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
-    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "Demo", "Connect", "About"]);
+    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "Demo", "Developers", "About"]);
     await expect(nav.first()).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("link", { name: "Watch the demo" })).toHaveAttribute("href", "#/demo");
     await page.getByLabel("Wardline home").first().click();
@@ -304,10 +304,13 @@ test.describe("public site", () => {
     await expect(page.locator("main")).not.toContainText("stub rules engine");
   });
 
-  test("connect: with no API URL set, snippets show the hosted URL, never a variable or localhost; copy works", async ({ page, context, browserName }) => {
+  test("developers: with no API URL set, snippets show the hosted URL, never a variable or localhost; copy works", async ({ page, context, browserName }) => {
     // Only Chromium lets a test grant and read the clipboard; elsewhere the button label is the check.
     if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    // The old route still works: it lands here and the address bar shows the new one.
     await page.goto("/#/connect");
+    await expect(page).toHaveURL(/#\/developers$/);
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Developers" })).toHaveAttribute("aria-current", "page");
     await expect(page.locator('[data-unset]')).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("VITE_WARDLINE");
     await expect(page.locator("main")).not.toContainText("process.env.WARDLINE_API_URL");
@@ -325,8 +328,8 @@ test.describe("public site", () => {
     await expect(page.getByRole("link", { name: "/llms.txt" })).toHaveAttribute("href", "/llms.txt");
   });
 
-  test("connect: with VITE_ URLs set, snippets use them", async ({ page }) => {
-    await page.goto(`http://127.0.0.1:5198/#/connect`);
+  test("developers: with VITE_ URLs set, snippets use them", async ({ page }) => {
+    await page.goto(`http://127.0.0.1:5198/#/developers`);
     await expect(page.locator('[data-unset="api"]')).toHaveCount(0);
     await expect(page.locator("main")).toContainText("https://mcp.wardline.example/mcp");
     await expect(page.locator("main")).toContainText("https://api.wardline.example/v1/check");

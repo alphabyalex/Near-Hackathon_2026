@@ -133,7 +133,8 @@
 .spec b{font-weight:700;font-size:clamp(22px,2.2vw,28px);letter-spacing:-0.03em;line-height:1.1}
 .spec span{color:var(--text-2);font-size:17px}
 .flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;counter-reset:flow}
-.flow>div{position:relative;padding-top:20px;border-top:1px solid var(--rule-strong)}
+.flow{margin:0;padding:0;list-style:none}
+.flow>li{position:relative;padding-top:20px;border-top:1px solid var(--rule-strong)}
 .flow .node{display:none}
 .flow b{display:block;font-weight:700;font-size:18px;letter-spacing:-0.02em;margin:0 0 4px}
 .flow span:not(.node){color:var(--muted);font-size:15px}

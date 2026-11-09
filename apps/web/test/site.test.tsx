@@ -89,7 +89,7 @@ describe("routing", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("A credit union for the AI economy.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
     // About is lazy-loaded: wait for it.
-    expect((await screen.findByRole("heading", { level: 1, name: /Wardline decides where the money may go/ })).textContent).toContain("Wardline decides where the money may go");
+    expect((await screen.findByRole("heading", { level: 1, name: /credit union for the AI economy/ })).textContent).toBe("Wardline is a credit union for the AI economy.");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getAllByLabelText("Wardline home")[0] as HTMLElement);
@@ -107,7 +107,7 @@ describe("routing", () => {
     stubApi();
     render(<App />);
     const main = within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link");
-    expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "Demo", "Connect", "About"]);
+    expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "Demo", "Developers", "About"]);
     const footer = within(screen.getByRole("navigation", { name: "Footer" })).getAllByRole("link");
     expect(footer.at(-1)?.getAttribute("href")).toBe("#/app/overview");
     expect(footer.at(-1)?.textContent).toBe("Owner sign-in");
@@ -262,5 +262,14 @@ describe("source rules", () => {
   it("turns motion off under prefers-reduced-motion", () => {
     const base = Object.entries(SOURCES).find(([path]) => path.endsWith("theme/base.css"))?.[1] ?? "";
     expect(base).toMatch(/prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{animation:none!important;transition:none!important\}/);
+  });
+});
+
+describe("moved routes", () => {
+  it("send #/connect to #/developers", async () => {
+    const { redirected, parseRoute } = await import("../src/router");
+    expect(redirected("#/connect")).toBe("#/developers");
+    expect(redirected("#/groups")).toBe("#/groups");
+    expect(parseRoute(redirected("#/connect"))).toEqual({ kind: "site", page: "developers" });
   });
 });

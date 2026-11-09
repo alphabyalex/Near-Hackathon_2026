@@ -34,7 +34,7 @@ function PageFallback() {
 // The owner app loads on first visit to #/app, so public pages never download it.
 const OwnerApp = lazy(() => import("./views/Dashboard").then((m) => ({ default: m.OwnerApp })));
 
-const PAGES: Record<SitePage, React.ComponentType> = { home: Home, me: Me, groups: Groups, proof: Proof, try: TryIt, demo: Demo, connect: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
+const PAGES: Record<SitePage, React.ComponentType> = { home: Home, me: Me, groups: Groups, proof: Proof, try: TryIt, demo: Demo, developers: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
 
 export function App() {
   useLinkRouting();

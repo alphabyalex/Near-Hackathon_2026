@@ -165,7 +165,7 @@ export function Groups() {
             <a className="btn" href="#/app/group">
               {GROUPS.startCta}
             </a>
-            <a className="btn ghost" href="#/connect">
+            <a className="btn ghost" href="#/developers">
               {GROUPS.connectCta}
             </a>
           </div>

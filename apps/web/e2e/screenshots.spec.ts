@@ -145,8 +145,8 @@ const SHOTS: Shot[] = [
       await expect(page.getByTestId("proofs")).toBeVisible();
     },
   },
-  { name: "connect", path: "#/connect", base: `http://127.0.0.1:${SHOTS_PORT}/` },
-  { name: "connect-unset", path: "#/connect" },
+  { name: "developers", path: "#/developers", base: `http://127.0.0.1:${SHOTS_PORT}/` },
+  { name: "developers-default", path: "#/developers" },
   { name: "verify", path: "#/verify" },
   {
     name: "verify-wallets",

@@ -31,7 +31,7 @@ export const NAV = [
   { page: "groups", href: "#/groups", label: "Groups" },
   { page: "proof", href: "#/proof", label: "Proof engine" },
   { page: "demo", href: "#/demo", label: "Demo" },
-  { page: "connect", href: "#/connect", label: "Connect" },
+  { page: "developers", href: "#/developers", label: "Developers" },
   { page: "about", href: "#/about", label: "About" },
 ] as const;
 
@@ -427,23 +427,25 @@ export const VERIFY = {
 } as const;
 
 export const ABOUT = {
-  label: "About",
-  title: `Agents can pay bills. ${BRAND.name} decides where the money may go.`,
+  title: `${BRAND.name} is a credit union for the AI economy.`,
+  lede: "Members pool USDC on NEAR and get WARD, their share. The pool backs AI agents' payments, earns a fee on every payment that proves itself, and members vote on the risks it takes.",
+  flowTitle: "How the money moves",
   flow: [
-    ["Invoice", "Arrives as untrusted text."],
-    ["Agent", "PAY, REVIEW or FLAG."],
-    ["Payee check", "Account against the domain."],
-    ["Vault", "Checks every limit."],
-    ["Settled", "Or queued for you."],
+    ["Members", "Deposit USDC and get WARD at today's price."],
+    ["Groups", "Fund a shared AI budget from their DAO and give members allowances."],
+    ["Agents", "Change one line: the OpenAI client's base URL."],
+    ["Proof engine", "Pays only the right party, for the model proven, up to a hard cap."],
+    ["WARD holders", "Earn the fee, vote on payouts and fees, and share losses after our stake."],
   ],
-  exampleLabel: "A real decision",
-  trustLabel: "Trust levels",
-  trustTitle: "What each level verifies, and what it does not.",
+  exampleTitle: "A payout the proof engine stopped",
+  exampleLede: "An invoice arrives with a note telling the agent to pay a different account. The payee check compares that account with the one the vendor's domain links to.",
+  trustTitle: "What each trust level verifies, and what it does not.",
   trustNote: "PAY needs at least domain linked. An email from the same domain is never extra evidence.",
+  piecesTitle: "Three layers",
   pieces: [
-    ["Payee Proof", "Accounts that signed for themselves, listed by their domain."],
-    ["Vault", "One NEAR contract per business. One-method agent key."],
-    ["Evidence", "Who tested which agent version, on which suite, with what result."],
+    ["The Mutual", "Pooled USDC behind WARD. Our own stake pays a wrong approval first, then WARD holders."],
+    ["Groups", "Shared AI budgets with allowances. A clean record moves a group up a tier and lowers its fee."],
+    ["Proof engine", "NEAR AI TEE signatures, payee checks and hard caps on every call. Why the yield is safe."],
   ],
 } as const;
 
