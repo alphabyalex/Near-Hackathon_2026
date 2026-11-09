@@ -1,6 +1,7 @@
 import type { Provider } from "near-api-js";
 import {
   GAS_ADMIN,
+  GAS_PAYMENT,
   callFinal,
   makeProvider,
   viewCall,
@@ -188,7 +189,7 @@ export class NearCoverPoolClient {
           account,
           amount,
         },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -217,7 +218,7 @@ export class NearCoverPoolClient {
           shares: wardOrShares,
           ward: wardOrShares,
         },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -244,7 +245,7 @@ export class NearCoverPoolClient {
           account,
           id,
         },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -298,7 +299,7 @@ export class NearCoverPoolClient {
           amount: args.amount,
           reason: args.reason,
         },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -330,7 +331,7 @@ export class NearCoverPoolClient {
         contract_id: this.contractId,
         method: "approve_claim",
         args: { claim_id: claimId },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -349,7 +350,7 @@ export class NearCoverPoolClient {
         contract_id: this.contractId,
         method: "set_param",
         args: { name, value },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -367,7 +368,7 @@ export class NearCoverPoolClient {
         contract_id: this.contractId,
         method: "add_fees",
         args: { amount },
-        gas: GAS_ADMIN,
+        gas: GAS_PAYMENT,
       },
       this.options,
     );
@@ -385,5 +386,50 @@ export class NearCoverPoolClient {
 
   async ftMetadata(): Promise<{ spec: string; name: string; symbol: string; decimals: number }> {
     return viewCall(this.provider, this.contractId, "ft_metadata", {});
+  }
+
+  async ftTransfer(
+    receiverId: string,
+    amount: string,
+    memo?: string,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for ftTransfer");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "ft_transfer",
+        args: { receiver_id: receiverId, amount, memo: memo ?? null },
+        deposit: 1n,
+        gas: GAS_PAYMENT,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
+
+  async storageDeposit(
+    accountId?: string,
+    registrationOnly = false,
+    deposit: string | bigint = 1250000000000000000000n,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ total: string; available: string }> {
+    if (!signer) throw new Error("Signer required for storageDeposit");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "storage_deposit",
+        args: {
+          account_id: accountId ?? null,
+          registration_only: registrationOnly,
+        },
+        deposit: typeof deposit === "bigint" ? deposit : BigInt(deposit),
+        gas: GAS_PAYMENT,
+      },
+      this.options,
+    );
+    return outcome.value as { total: string; available: string };
   }
 }

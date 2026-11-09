@@ -47,7 +47,7 @@ export type ReserveRefusal = "UNKNOWN_BUDGET" | "UNKNOWN_MEMBER" | "ALLOWANCE_EX
 
 export type ReserveResult = { ok: true; reserved: string } | { ok: false; reason: ReserveRefusal; detail: string };
 
-export type SettleResult = { ok: true; tx: string; amount: string; refund: string } | { ok: false; reason: "NO_RESERVATION" | "PROOF_REJECTED" | "REPLAYED" | "OVER_RESERVATION"; detail: string };
+export type SettleResult = { ok: true; tx: string; amount: string; refund: string } | { ok: false; reason: "NO_RESERVATION" | "PROOF_REJECTED" | "REPLAYED" | "OVER_RESERVATION" | "TRANSFER_FAILED"; detail: string };
 
 export interface MeterClient {
   readonly mode: ChainMode;

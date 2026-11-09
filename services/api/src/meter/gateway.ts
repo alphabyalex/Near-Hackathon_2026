@@ -43,7 +43,7 @@ export interface GatewayDeps {
   spend?: (budgetId: string) => Promise<unknown>;
 }
 
-export type RefusalReason = ProofProblem | "REPLAYED" | "PROOF_REJECTED" | "UPSTREAM_TIMEOUT" | "UPSTREAM_ERROR" | "BAD_UPSTREAM_RESPONSE" | "ALLOWANCE_EXHAUSTED" | "BUDGET_EXHAUSTED" | "UNKNOWN_BUDGET" | "UNKNOWN_MEMBER" | "DUPLICATE_CALL" | "NO_RESERVATION" | "OVER_RESERVATION";
+export type RefusalReason = ProofProblem | "REPLAYED" | "PROOF_REJECTED" | "UPSTREAM_TIMEOUT" | "UPSTREAM_ERROR" | "BAD_UPSTREAM_RESPONSE" | "ALLOWANCE_EXHAUSTED" | "BUDGET_EXHAUSTED" | "UNKNOWN_BUDGET" | "UNKNOWN_MEMBER" | "DUPLICATE_CALL" | "NO_RESERVATION" | "OVER_RESERVATION" | "TRANSFER_FAILED";
 
 export const PROOF_HEADERS = ["X-Wardline-Proof", "X-Wardline-Call", "X-Wardline-Settlement", "X-Wardline-Model-Proven", "X-Wardline-Amount", "X-Wardline-Refund"];
 

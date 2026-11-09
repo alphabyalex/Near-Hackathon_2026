@@ -57,7 +57,8 @@ export type SettleResult =
         | "NO_RESERVATION"
         | "PROOF_REJECTED"
         | "REPLAYED"
-        | "OVER_RESERVATION";
+        | "OVER_RESERVATION"
+        | "TRANSFER_FAILED";
       detail: string;
     };
 
@@ -204,7 +205,7 @@ export class NearMeterClient {
       tx?: string;
       amount?: string;
       refund?: string;
-      reason?: "NO_RESERVATION" | "PROOF_REJECTED" | "REPLAYED" | "OVER_RESERVATION";
+      reason?: "NO_RESERVATION" | "PROOF_REJECTED" | "REPLAYED" | "OVER_RESERVATION" | "TRANSFER_FAILED";
       detail?: string;
     };
     if (val.ok && val.amount !== undefined && val.refund !== undefined) {
@@ -310,6 +311,27 @@ export class NearMeterClient {
           budget_id: budgetId,
           member,
           allowance,
+        },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
+
+  async updateAttestedModel(
+    args: { model_id: string; signing_address: string },
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for updateAttestedModel");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "update_attested_model",
+        args: {
+          model_id: args.model_id,
+          signing_address: args.signing_address,
         },
         gas: GAS_ADMIN,
       },

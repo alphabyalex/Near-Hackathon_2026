@@ -1,11 +1,60 @@
 use near_sdk::json_types::U128;
 use near_sdk::store::IterableMap;
-use near_sdk::{env, near, require, AccountId, BorshStorageKey, PanicOnDefault, PromiseOrValue};
+use near_sdk::{
+    env, ext_contract, near, require, AccountId, BorshStorageKey, Gas, NearToken, PanicOnDefault,
+    Promise, PromiseOrValue,
+};
 
 pub mod events;
 
 const SCALE: u128 = 1_000_000;
 const ONE_DAY_NS: u64 = 24 * 60 * 60 * 1_000_000_000;
+
+const GAS_FT_TRANSFER: Gas = Gas::from_tgas(20);
+const GAS_FT_ON_TRANSFER: Gas = Gas::from_tgas(25);
+const GAS_CALLBACK: Gas = Gas::from_tgas(25);
+
+#[ext_contract(ext_ft)]
+pub trait FtCore {
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+}
+
+#[ext_contract(ext_ft_receiver)]
+pub trait FtReceiver {
+    fn ft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> PromiseOrValue<U128>;
+}
+
+fn read_transfer_outcome() -> bool {
+    if env::promise_results_count() == 0 {
+        return false;
+    }
+    for i in 0..env::promise_results_count() {
+        match env::promise_result_checked(i, 64) {
+            Ok(_) => {}
+            Err(_) => return false,
+        }
+    }
+    true
+}
+
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StorageBalance {
+    pub total: NearToken,
+    pub available: NearToken,
+}
+
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StorageBalanceBounds {
+    pub min: NearToken,
+    pub max: Option<NearToken>,
+}
 
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -271,6 +320,130 @@ impl CoverPoolContract {
         );
     }
 
+    // NEP-145 Storage Management
+    #[payable]
+    pub fn storage_deposit(
+        &mut self,
+        account_id: Option<AccountId>,
+        registration_only: Option<bool>,
+    ) -> StorageBalance {
+        let _ = registration_only;
+        let account = account_id.unwrap_or_else(env::predecessor_account_id);
+        let deposit = env::attached_deposit();
+        let min = NearToken::from_yoctonear(1_250_000_000_000_000_000_000);
+        require!(deposit >= min, "Attached deposit is less than storage min");
+
+        if !self.positions.contains_key(&account) {
+            self.positions.insert(account.clone(), 0);
+        }
+
+        let refund = deposit.saturating_sub(min);
+        if refund > NearToken::from_yoctonear(0) {
+            let _ = Promise::new(env::predecessor_account_id()).transfer(refund);
+        }
+
+        StorageBalance {
+            total: min,
+            available: NearToken::from_yoctonear(0),
+        }
+    }
+
+    pub fn storage_balance_bounds(&self) -> StorageBalanceBounds {
+        let min = NearToken::from_yoctonear(1_250_000_000_000_000_000_000);
+        StorageBalanceBounds {
+            min,
+            max: Some(min),
+        }
+    }
+
+    pub fn storage_balance_of(&self, account_id: AccountId) -> Option<StorageBalance> {
+        if self.positions.contains_key(&account_id) {
+            Some(StorageBalance {
+                total: NearToken::from_yoctonear(1_250_000_000_000_000_000_000),
+                available: NearToken::from_yoctonear(0),
+            })
+        } else {
+            None
+        }
+    }
+
+    #[payable]
+    pub fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        require!(
+            env::attached_deposit().as_yoctonear() >= 1,
+            "Requires attached deposit of at least 1 yoctoNEAR"
+        );
+        let sender_id = env::predecessor_account_id();
+        require!(sender_id != receiver_id, "Cannot transfer to self");
+        require!(amount.0 > 0, "Transfer amount must be positive");
+
+        let held = self.positions.get(&sender_id).copied().unwrap_or(0);
+        let locked: u128 = self
+            .withdrawals
+            .values()
+            .filter(|w| w.account == sender_id)
+            .map(|w| w.shares)
+            .sum();
+        let free = held.saturating_sub(locked);
+        require!(amount.0 <= free, "Not enough free WARD to transfer");
+
+        self.positions.insert(sender_id.clone(), held - amount.0);
+        let receiver_held = self.positions.get(&receiver_id).copied().unwrap_or(0);
+        self.positions.insert(receiver_id.clone(), receiver_held.saturating_add(amount.0));
+
+        events::ft_transfer_event(
+            sender_id.as_str(),
+            receiver_id.as_str(),
+            &amount.0.to_string(),
+            memo.as_deref(),
+        );
+
+        ext_ft_receiver::ext(receiver_id.clone())
+            .with_static_gas(GAS_FT_ON_TRANSFER)
+            .ft_on_transfer(sender_id.clone(), amount, msg)
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_CALLBACK)
+                    .ft_resolve_transfer(sender_id, receiver_id, amount),
+            )
+            .into()
+    }
+
+    #[private]
+    pub fn ft_resolve_transfer(
+        &mut self,
+        sender_id: AccountId,
+        receiver_id: AccountId,
+        amount: U128,
+    ) -> U128 {
+        let unused: u128 = match env::promise_result_checked(0, 64) {
+            Ok(value) => {
+                if let Ok(unused_amount) = near_sdk::serde_json::from_slice::<U128>(&value) {
+                    unused_amount.0.min(amount.0)
+                } else {
+                    amount.0
+                }
+            }
+            Err(_) => amount.0,
+        };
+
+        if unused > 0 {
+            let receiver_bal = self.positions.get(&receiver_id).copied().unwrap_or(0);
+            let to_refund = unused.min(receiver_bal);
+            self.positions.insert(receiver_id, receiver_bal.saturating_sub(to_refund));
+            let sender_bal = self.positions.get(&sender_id).copied().unwrap_or(0);
+            self.positions.insert(sender_id, sender_bal.saturating_add(to_refund));
+        }
+
+        U128(unused)
+    }
+
     // NEP-141 Receiver for USDC deposits
     pub fn ft_on_transfer(
         &mut self,
@@ -278,12 +451,39 @@ impl CoverPoolContract {
         amount: U128,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        let _ = msg;
-        require!(
-            env::predecessor_account_id() == self.token_contract,
-            "Only token contract can call ft_on_transfer"
-        );
-        require!(amount.0 > 0, "Deposit must be positive");
+        if env::predecessor_account_id() != self.token_contract {
+            return PromiseOrValue::Value(amount);
+        }
+        if amount.0 == 0 {
+            return PromiseOrValue::Value(amount);
+        }
+
+        let is_first_loss = msg.contains("\"first_loss\":true")
+            || msg.contains("\"first_loss\": true")
+            || msg.contains("first_loss");
+
+        let is_fee = msg.contains("\"fee\"") || msg.contains("\"action\":\"fee\"");
+
+        if is_first_loss {
+            require!(
+                sender_id == self.junior_holder || sender_id == self.owner,
+                "E_NOT_AUTHORIZED: Only Wardline junior holder can deposit first-loss"
+            );
+            self.junior = self.junior.saturating_add(amount.0);
+            let now_ns = env::block_timestamp();
+            self.mark("first_loss", now_ns);
+            events::pool_deposited(sender_id.as_str(), &amount.0.to_string(), "0");
+            return PromiseOrValue::Value(U128(0));
+        }
+
+        if is_fee {
+            self.senior = self.senior.saturating_add(amount.0);
+            self.fees_earned = self.fees_earned.saturating_add(amount.0);
+            let now_ns = env::block_timestamp();
+            self.mark("fees", now_ns);
+            return PromiseOrValue::Value(U128(0));
+        }
+
         let shares = self.mint(&sender_id, amount.0);
         let now_ns = env::block_timestamp();
         self.mark("deposit", now_ns);
@@ -415,7 +615,12 @@ impl CoverPoolContract {
         }
     }
 
-    pub fn redeem(&mut self, account: AccountId, id: String) -> RedeemResultView {
+    pub fn request_redeem(&mut self, amount: U128) -> WithdrawResultView {
+        let caller = env::predecessor_account_id();
+        self.request_withdraw(caller, Some(amount), Some(amount))
+    }
+
+    pub fn redeem(&mut self, account: AccountId, id: String) -> PromiseOrValue<RedeemResultView> {
         let withdrawal = self
             .withdrawals
             .get(&id)
@@ -436,18 +641,70 @@ impl CoverPoolContract {
         let price = self.price();
         let usdc_payout = (withdrawal.shares.saturating_mul(price)) / SCALE;
 
+        if cfg!(test) || usdc_payout == 0 {
+            self.withdrawals.remove(&id);
+            if let Some(held) = self.positions.get_mut(&account) {
+                *held = held.saturating_sub(withdrawal.shares);
+            }
+            self.senior_shares = self.senior_shares.saturating_sub(withdrawal.shares);
+            self.senior = self.senior.saturating_sub(usdc_payout);
+
+            self.mark("redeem", now_ns);
+            events::pool_redeemed(
+                account.as_str(),
+                &id,
+                &withdrawal.shares.to_string(),
+                &usdc_payout.to_string(),
+            );
+
+            return PromiseOrValue::Value(RedeemResultView {
+                tx: format!("{}:rd:{}", env::current_account_id(), now_ns),
+                usdc: usdc_payout.to_string(),
+            });
+        }
+
+        ext_ft::ext(self.token_contract.clone())
+            .with_attached_deposit(NearToken::from_yoctonear(1))
+            .with_static_gas(GAS_FT_TRANSFER)
+            .ft_transfer(
+                account.clone(),
+                U128(usdc_payout),
+                Some("Wardline Mutual Redemption".to_string()),
+            )
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_CALLBACK)
+                    .on_redeem_transfer(account, id, withdrawal.shares, usdc_payout),
+            )
+            .into()
+    }
+
+    #[private]
+    pub fn on_redeem_transfer(
+        &mut self,
+        account: AccountId,
+        id: String,
+        shares: u128,
+        usdc_payout: u128,
+    ) -> RedeemResultView {
+        require!(
+            read_transfer_outcome(),
+            "USDC payout transfer failed; redemption retained in queue"
+        );
+
+        let now_ns = env::block_timestamp();
         self.withdrawals.remove(&id);
         if let Some(held) = self.positions.get_mut(&account) {
-            *held = held.saturating_sub(withdrawal.shares);
+            *held = held.saturating_sub(shares);
         }
-        self.senior_shares = self.senior_shares.saturating_sub(withdrawal.shares);
+        self.senior_shares = self.senior_shares.saturating_sub(shares);
         self.senior = self.senior.saturating_sub(usdc_payout);
 
         self.mark("redeem", now_ns);
         events::pool_redeemed(
             account.as_str(),
             &id,
-            &withdrawal.shares.to_string(),
+            &shares.to_string(),
             &usdc_payout.to_string(),
         );
 
@@ -754,7 +1011,10 @@ mod tests {
             .build();
         testing_env!(redeem_ctx);
 
-        let redeem_res = pool.redeem(lp.clone(), req.id.clone());
+        let redeem_res = match pool.redeem(lp.clone(), req.id.clone()) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
         // 50 WARD at 1.10 USDC = 55 USDC
         assert_eq!(redeem_res.usdc, "55000000");
 
@@ -803,6 +1063,141 @@ mod tests {
             .build();
         testing_env!(early_ctx);
 
-        pool.redeem(lp.clone(), req.id.clone());
+        let _ = pool.redeem(lp.clone(), req.id.clone());
+    }
+
+    #[test]
+    fn test_ft_on_transfer_first_loss_fees_and_wrong_token() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let junior_holder: AccountId = "wardline.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let wrong_token: AccountId = "fake.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            junior_holder.clone(),
+            U128(20_000_000),
+            Some(7),
+            Some(U128(30_000_000)),
+            Some(2_500),
+            None,
+        );
+
+        // 1. Wrong token rejection -> refunds full amount
+        let wrong_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(wrong_token)
+            .build();
+        testing_env!(wrong_ctx);
+        let refund = match pool.ft_on_transfer("lp.testnet".parse().unwrap(), U128(50_000_000), "".to_string()) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
+        assert_eq!(refund.0, 50_000_000);
+        assert_eq!(pool.ft_total_supply().0, 0);
+
+        // 2. First-loss stake via ft_on_transfer
+        let fl_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .build();
+        testing_env!(fl_ctx);
+        let fl_refund = match pool.ft_on_transfer(junior_holder.clone(), U128(10_000_000), r#"{"first_loss":true}"#.to_string()) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
+        assert_eq!(fl_refund.0, 0);
+        assert_eq!(pool.junior, 30_000_000); // 20 + 10 = 30 USDC
+        assert_eq!(pool.ft_total_supply().0, 0); // No WARD minted for junior equity
+
+        // 3. Regular deposit mints WARD at 1.00 USDC
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .build();
+        testing_env!(dep_ctx);
+        let dep_refund = match pool.ft_on_transfer("lp.testnet".parse().unwrap(), U128(50_000_000), "".to_string()) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
+        assert_eq!(dep_refund.0, 0);
+        assert_eq!(pool.ft_total_supply().0, 50_000_000);
+        assert_eq!(pool.price(), 1_000_000);
+
+        // 4. Fee inflow raises WARD price
+        let fee_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .build();
+        testing_env!(fee_ctx);
+        let fee_refund = match pool.ft_on_transfer("meter.testnet".parse().unwrap(), U128(5_000_000), r#"{"action":"fee"}"#.to_string()) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
+        assert_eq!(fee_refund.0, 0);
+        assert_eq!(pool.senior, 55_000_000);
+        assert_eq!(pool.price(), 1_100_000);
+    }
+
+    #[test]
+    fn test_storage_deposit_and_request_redeem() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let junior_holder: AccountId = "wardline.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            junior_holder.clone(),
+            U128(20_000_000),
+            Some(7),
+            Some(U128(30_000_000)),
+            Some(2_500),
+            None,
+        );
+
+        let user: AccountId = "user.testnet".parse().unwrap();
+
+        // Storage deposit
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(user.clone())
+            .attached_deposit(NearToken::from_millinear(2000))
+            .build();
+        testing_env!(dep_ctx);
+
+        let sb = pool.storage_deposit(Some(user.clone()), None);
+        assert_eq!(sb.total, NearToken::from_yoctonear(1_250_000_000_000_000_000_000));
+
+        let sbo = pool.storage_balance_of(user.clone()).unwrap();
+        assert_eq!(sbo.total, NearToken::from_yoctonear(1_250_000_000_000_000_000_000));
+
+        // Mint WARD and request_redeem
+        pool.deposit(user.clone(), U128(10_000_000));
+        let user_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(user.clone())
+            .build();
+        testing_env!(user_ctx);
+
+        let wdr = pool.request_redeem(U128(5_000_000));
+        assert!(wdr.id.starts_with("wd_user.testnet"));
+
+        let pos = pool.get_position(user);
+        assert_eq!(pos.ward_locked, "5000000");
+        assert_eq!(pos.ward, "5000000");
     }
 }

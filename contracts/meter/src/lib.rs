@@ -1,14 +1,46 @@
 use near_sdk::json_types::U128;
 use near_sdk::store::{IterableMap, LookupSet};
-use near_sdk::{env, near, require, AccountId, BorshStorageKey, PanicOnDefault, PromiseOrValue};
+use near_sdk::{
+    env, ext_contract, near, require, AccountId, BorshStorageKey, Gas, NearToken, PanicOnDefault,
+    PromiseOrValue,
+};
 
 pub mod events;
+
+const GAS_FT_TRANSFER: Gas = Gas::from_tgas(20);
+const GAS_CALLBACK: Gas = Gas::from_tgas(25);
+
+#[ext_contract(ext_ft)]
+pub trait FtCore {
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128>;
+}
+
+fn read_transfer_outcome() -> bool {
+    if env::promise_results_count() == 0 {
+        return false;
+    }
+    for i in 0..env::promise_results_count() {
+        match env::promise_result_checked(i, 64) {
+            Ok(_) => {}
+            Err(_) => return false,
+        }
+    }
+    true
+}
 
 #[derive(near_sdk::serde::Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 struct FundMsg {
-    action: String,
-    budget_id: String,
+    #[allow(dead_code)]
+    action: Option<String>,
+    budget_id: Option<String>,
 }
 
 const PERIOD_DAY_NS: u64 = 24 * 60 * 60 * 1_000_000_000;
@@ -413,24 +445,23 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         amount: U128,
         proof: SettlementProof,
         pay_to: Option<AccountId>,
-    ) -> SettleResultView {
-        let _ = pay_to;
+    ) -> PromiseOrValue<SettleResultView> {
         let reservation = match self.reservations.get(&call_id) {
             Some(r) => r.clone(),
             None => {
-                return SettleResultView {
+                return PromiseOrValue::Value(SettleResultView {
                     ok: false,
                     tx: None,
                     amount: None,
                     refund: None,
                     reason: Some("NO_RESERVATION".to_string()),
                     detail: Some(format!("No reservation for call {}.", call_id)),
-                };
+                });
             }
         };
 
         if amount.0 > reservation.amount {
-            return SettleResultView {
+            return PromiseOrValue::Value(SettleResultView {
                 ok: false,
                 tx: None,
                 amount: None,
@@ -440,18 +471,18 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                     "Requested amount {} exceeds reservation {}.",
                     amount.0, reservation.amount
                 )),
-            };
+            });
         }
 
         if self.settled_chats.contains(&proof.chat_id) {
-            return SettleResultView {
+            return PromiseOrValue::Value(SettleResultView {
                 ok: false,
                 tx: None,
                 amount: None,
                 refund: None,
                 reason: Some("REPLAYED".to_string()),
                 detail: Some(format!("Chat id {} was already settled.", proof.chat_id)),
-            };
+            });
         }
 
         // Validate proof text format
@@ -460,33 +491,33 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             proof.model_id, proof.request_hash, proof.response_hash
         );
         if proof.text != expected_text || proof.model_id != reservation.model_id {
-            return SettleResultView {
+            return PromiseOrValue::Value(SettleResultView {
                 ok: false,
                 tx: None,
                 amount: None,
                 refund: None,
                 reason: Some("PROOF_REJECTED".to_string()),
                 detail: Some("Signed text does not match model and content hashes.".to_string()),
-            };
+            });
         }
 
         // On-chain EIP-191 signature verification
         let recovered_signer = match recover_eth_signer(&proof.text, &proof.signature) {
             Ok(signer) => signer,
             Err(e) => {
-                return SettleResultView {
+                return PromiseOrValue::Value(SettleResultView {
                     ok: false,
                     tx: None,
                     amount: None,
                     refund: None,
                     reason: Some("PROOF_REJECTED".to_string()),
                     detail: Some(format!("Signature recovery failed: {}", e)),
-                };
+                });
             }
         };
 
         if recovered_signer.to_lowercase() != proof.signing_address.to_lowercase() {
-            return SettleResultView {
+            return PromiseOrValue::Value(SettleResultView {
                 ok: false,
                 tx: None,
                 amount: None,
@@ -496,7 +527,7 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                     "Recovered signer {} does not match signing address {}.",
                     recovered_signer, proof.signing_address
                 )),
-            };
+            });
         }
 
         // Check attestation
@@ -507,7 +538,7 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             .unwrap_or(false);
 
         if !is_attested {
-            return SettleResultView {
+            return PromiseOrValue::Value(SettleResultView {
                 ok: false,
                 tx: None,
                 amount: None,
@@ -517,13 +548,118 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                     "Signer {} is not attested for {}.",
                     recovered_signer, proof.model_id
                 )),
+            });
+        }
+
+        if let Some(recipient) = pay_to {
+            let cover_fee = (amount.0 * self.cover_fee_bps as u128) / 10_000;
+            let provider_payout = amount.0.saturating_sub(cover_fee);
+
+            let provider_promise = ext_ft::ext(self.token_contract.clone())
+                .with_attached_deposit(NearToken::from_yoctonear(1))
+                .with_static_gas(GAS_FT_TRANSFER)
+                .ft_transfer(
+                    recipient,
+                    U128(provider_payout),
+                    Some("Wardline AI Settlement".to_string()),
+                );
+
+            let combined_promise = if cover_fee > 0 {
+                let fee_promise = ext_ft::ext(self.token_contract.clone())
+                    .with_attached_deposit(NearToken::from_yoctonear(1))
+                    .with_static_gas(GAS_FT_TRANSFER)
+                    .ft_transfer(
+                        self.pool_contract.clone(),
+                        U128(cover_fee),
+                        Some("Coverage fee".to_string()),
+                    );
+                provider_promise.and(fee_promise)
+            } else {
+                provider_promise
+            };
+
+            combined_promise
+                .then(
+                    Self::ext(env::current_account_id())
+                        .with_static_gas(GAS_CALLBACK)
+                        .on_settlement_payout(call_id, amount, proof.chat_id, recovered_signer),
+                )
+                .into()
+        } else {
+            // In-state settlement without token transfer
+            self.settled_chats.insert(proof.chat_id.clone());
+            self.reservations.remove(&call_id);
+
+            let refund = reservation.amount.saturating_sub(amount.0);
+
+            if let Some(budget) = self.budgets.get_mut(&reservation.budget_id) {
+                budget.reserved = budget.reserved.saturating_sub(reservation.amount);
+                budget.spent = budget.spent.saturating_add(amount.0);
+
+                if let Some((_, member)) = budget
+                    .members
+                    .iter_mut()
+                    .find(|(m, _)| *m == reservation.member)
+                {
+                    member.reserved = member.reserved.saturating_sub(reservation.amount);
+                    member.used = member.used.saturating_add(amount.0);
+                }
+            }
+
+            let tx = format!("{}:{}", env::current_account_id(), call_id);
+            events::call_settled(
+                &call_id,
+                &proof.chat_id,
+                &amount.0.to_string(),
+                &refund.to_string(),
+                &recovered_signer,
+            );
+
+            PromiseOrValue::Value(SettleResultView {
+                ok: true,
+                tx: Some(tx),
+                amount: Some(amount),
+                refund: Some(U128(refund)),
+                reason: None,
+                detail: None,
+            })
+        }
+    }
+
+    #[private]
+    pub fn on_settlement_payout(
+        &mut self,
+        call_id: String,
+        amount: U128,
+        chat_id: String,
+        recovered_signer: String,
+    ) -> SettleResultView {
+        if !read_transfer_outcome() {
+            return SettleResultView {
+                ok: false,
+                tx: None,
+                amount: None,
+                refund: None,
+                reason: Some("TRANSFER_FAILED".to_string()),
+                detail: Some("Token payout transfer failed; reservation was restored".to_string()),
             };
         }
 
-        // Apply settlement
-        self.settled_chats.insert(proof.chat_id.clone());
-        self.reservations.remove(&call_id);
+        let reservation = match self.reservations.remove(&call_id) {
+            Some(r) => r,
+            None => {
+                return SettleResultView {
+                    ok: false,
+                    tx: None,
+                    amount: None,
+                    refund: None,
+                    reason: Some("NO_RESERVATION".to_string()),
+                    detail: Some("Reservation not found on callback".to_string()),
+                };
+            }
+        };
 
+        self.settled_chats.insert(chat_id.clone());
         let refund = reservation.amount.saturating_sub(amount.0);
 
         if let Some(budget) = self.budgets.get_mut(&reservation.budget_id) {
@@ -543,7 +679,7 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         let tx = format!("{}:{}", env::current_account_id(), call_id);
         events::call_settled(
             &call_id,
-            &proof.chat_id,
+            &chat_id,
             &amount.0.to_string(),
             &refund.to_string(),
             &recovered_signer,
@@ -594,16 +730,15 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         msg: String,
     ) -> PromiseOrValue<U128> {
         let _ = sender_id;
-        require!(
-            env::predecessor_account_id() == self.token_contract,
-            "Only token contract can call ft_on_transfer"
-        );
+        if env::predecessor_account_id() != self.token_contract {
+            return PromiseOrValue::Value(amount);
+        }
         if let Ok(parsed) = near_sdk::serde_json::from_str::<FundMsg>(&msg) {
-            if parsed.action == "fund" {
-                if let Some(budget) = self.budgets.get_mut(&parsed.budget_id) {
+            if let Some(budget_id) = parsed.budget_id {
+                if let Some(budget) = self.budgets.get_mut(&budget_id) {
                     budget.deposit = budget.deposit.saturating_add(amount.0);
                     events::budget_funded(
-                        &parsed.budget_id,
+                        &budget_id,
                         &amount.0.to_string(),
                         &budget.deposit.to_string(),
                     );
@@ -791,7 +926,10 @@ mod tests {
             chat_id: "chatcmpl-96068d70-a320-4475-a330-400be955d887".to_string(),
         };
 
-        let settle_res = meter.settle("call_deepseek".to_string(), U128(739), proof, None);
+        let settle_res = match meter.settle("call_deepseek".to_string(), U128(739), proof, None) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
         assert!(settle_res.ok);
         assert_eq!(settle_res.amount, Some(U128(739)));
         assert_eq!(settle_res.refund, Some(U128(261)));
@@ -815,7 +953,10 @@ mod tests {
             signing_address: "0xfe0071895500a9755c18044948ab4f4e1a7f337e".to_string(),
             chat_id: "chatcmpl-96068d70-a320-4475-a330-400be955d887".to_string(),
         };
-        let replay_res = meter.settle("call_deepseek_2".to_string(), U128(739), replay_proof, None);
+        let replay_res = match meter.settle("call_deepseek_2".to_string(), U128(739), replay_proof, None) {
+            PromiseOrValue::Value(v) => v,
+            _ => panic!("Expected Value"),
+        };
         assert!(!replay_res.ok);
         assert_eq!(replay_res.reason, Some("REPLAYED".to_string()));
     }

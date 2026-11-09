@@ -6,15 +6,18 @@ import {
   NearModelRegistryClient,
   ONE_YOCTO,
   callFinal,
+  viewCall,
   type SignerHandle,
 } from "@wardline/vault-client";
 import { Chain, registerWithToken, wasm } from "../src/harness.js";
+import { SIM_TEE_ACCOUNT } from "../../../services/demo-provider/dist/providers.js";
 
 describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
   let chain: Chain;
   let owner: SignerHandle;
   let stranger: SignerHandle;
   let tokenAccount: SignerHandle;
+  let fakeTokenAccount: SignerHandle;
   let registryAccount: SignerHandle;
   let poolAccount: SignerHandle;
   let meterAccount: SignerHandle;
@@ -44,8 +47,13 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
     poolAccount = await chain.account("cover-pool");
     meterAccount = await chain.account("ai-meter");
 
-    // 0. Deploy Mock USDC
+    // 0. Deploy Mock USDC and Fake Token
     await chain.deploy(tokenAccount, wasm("mock-token"), {
+      method: "new",
+      args: { owner: owner.account_id },
+    });
+    fakeTokenAccount = await chain.account("fake-token");
+    await chain.deploy(fakeTokenAccount, wasm("mock-token"), {
       method: "new",
       args: { owner: owner.account_id },
     });
@@ -323,13 +331,32 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
 
     it("9. Request withdraw locks WARD and redeem burns locked shares for USDC", async () => {
       const redeemLp = await chain.account("redeem-lp");
-      await poolClient.deposit(redeemLp.account_id, "4000000", redeemLp);
+      await registerWithToken(tokenAccount, owner, redeemLp.account_id);
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "mint",
+        args: { account_id: redeemLp.account_id, amount: "4000000" },
+      });
+      await callFinal(redeemLp, {
+        contract_id: tokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: poolAccount.account_id,
+          amount: "4000000",
+          msg: "",
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
 
-      const withdrawReq = await poolClient.requestWithdraw(redeemLp.account_id, "2000000", redeemLp);
+      const pos = await poolClient.getPosition(redeemLp.account_id);
+      const sharesToRedeem = (BigInt(pos.ward) / 2n).toString();
+
+      const withdrawReq = await poolClient.requestWithdraw(redeemLp.account_id, sharesToRedeem, redeemLp);
       expect(withdrawReq.id).toBeDefined();
 
       const posLocked = await poolClient.getPosition(redeemLp.account_id);
-      expect(posLocked.ward_locked).toBe("2000000");
+      expect(posLocked.ward_locked).toBe(sharesToRedeem);
 
       // Immediate redemption fails because 7-day wait is not over
       await expect(
@@ -345,6 +372,137 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
 
       const posAfter = await poolClient.getPosition(redeemLp.account_id);
       expect(posAfter.ward_locked).toBe("0");
+    });
+
+    it("10. Accepts first-loss deposit via ft_on_transfer without minting WARD", async () => {
+      const poolBefore = await poolClient.getPool();
+      await registerWithToken(tokenAccount, owner, owner.account_id);
+
+      // Mint USDC to owner
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "mint",
+        args: { account_id: owner.account_id, amount: "5000000" },
+      });
+
+      // Transfer with first_loss: true
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: poolAccount.account_id,
+          amount: "5000000",
+          msg: JSON.stringify({ first_loss: true }),
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
+
+      const poolAfter = await poolClient.getPool();
+      expect(BigInt(poolAfter.junior) - BigInt(poolBefore.junior)).toBe(5000000n);
+      expect(poolAfter.ward_supply).toBe(poolBefore.ward_supply);
+    });
+
+    it("11. Storage deposit and WARD NEP-141 transfer between holders", async () => {
+      const holder1 = await chain.account("ward-h1");
+      const holder2 = await chain.account("ward-h2");
+      await registerWithToken(tokenAccount, owner, holder1.account_id);
+
+      // Holder1 deposits USDC into pool to get WARD
+      await callFinal(owner, {
+        contract_id: tokenAccount.account_id,
+        method: "mint",
+        args: { account_id: holder1.account_id, amount: "2000000" },
+      });
+      await callFinal(holder1, {
+        contract_id: tokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: poolAccount.account_id,
+          amount: "2000000",
+          msg: "",
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
+
+      // Holder2 registers storage with pool for WARD
+      await poolClient.storageDeposit(holder2.account_id, false, undefined, holder2);
+
+      const bal1Before = await poolClient.ftBalanceOf(holder1.account_id);
+
+      // Holder1 transfers WARD to Holder2
+      await poolClient.ftTransfer(holder2.account_id, "500000", "test gift", holder1);
+
+      const bal1 = await poolClient.ftBalanceOf(holder1.account_id);
+      const bal2 = await poolClient.ftBalanceOf(holder2.account_id);
+      expect(bal2).toBe("500000");
+      expect(BigInt(bal1) + 500000n).toBe(BigInt(bal1Before));
+    });
+
+    it("12. Wrong-token rejection refunds tokens without minting WARD", async () => {
+      const wrongLp = await chain.account("wrong-lp");
+      await registerWithToken(fakeTokenAccount, owner, wrongLp.account_id);
+      await registerWithToken(fakeTokenAccount, owner, poolAccount.account_id);
+
+      await callFinal(owner, {
+        contract_id: fakeTokenAccount.account_id,
+        method: "mint",
+        args: { account_id: wrongLp.account_id, amount: "5000000" },
+      });
+
+      // Attempt to deposit wrong token into pool
+      await callFinal(wrongLp, {
+        contract_id: fakeTokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: poolAccount.account_id,
+          amount: "5000000",
+          msg: "",
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
+
+      // Check fake token was refunded back to sender
+      const wrongBal = await viewCall<string>(chain.provider, fakeTokenAccount.account_id, "ft_balance_of", {
+        account_id: wrongLp.account_id,
+      });
+      expect(wrongBal).toBe("5000000");
+
+      const pos = await poolClient.getPosition(wrongLp.account_id);
+      expect(pos.ward).toBe("0");
+    });
+
+    it("13. Claim payout exhausting first-loss stake dips senior assets and decreases WARD price", async () => {
+      const poolBefore = await poolClient.getPool();
+      const juniorAmt = BigInt(poolBefore.junior);
+      expect(juniorAmt).toBeGreaterThan(0n);
+
+      // Temporarily set large_claim_threshold high so we can test a claim that exceeds junior
+      await poolClient.setParam("large_claim_threshold", "100000000", owner);
+      await poolClient.setParam("max_claim_bps", "10000", owner);
+
+      // File claim for junior + 2 USDC
+      const claimAmount = (juniorAmt + 2000000n).toString();
+      const claim = await poolClient.fileClaim(
+        {
+          subject: "DeepSeek outage loss",
+          claimant: stranger.account_id,
+          amount: claimAmount,
+          reason: "Major outage payout exceeding first-loss junior tranche",
+        },
+        owner,
+      );
+
+      expect(claim.status).toBe("paid");
+      expect(claim.paid_from_junior).toBe(juniorAmt.toString());
+      expect(claim.paid_from_senior).toBe("2000000");
+
+      const poolAfter = await poolClient.getPool();
+      expect(poolAfter.junior).toBe("0");
+      // Price dipped below 1.00 USDC (1000000)
+      expect(BigInt(poolAfter.ward_price)).toBeLessThan(1000000n);
     });
   });
 
@@ -548,6 +706,160 @@ describe("on-chain meter, model registry, and cover pool sandbox tests", () => {
       const budget = await meterClient.getBudget("bgt_marketing");
       // Originally 50000000, funded with 10000000 -> 60000000
       expect(budget?.deposit).toBe("60000000");
+    });
+
+    it("9. Wrong-token rejection on meter refunds tokens without funding budget", async () => {
+      await registerWithToken(fakeTokenAccount, owner, meterAccount.account_id);
+      await registerWithToken(fakeTokenAccount, owner, owner.account_id);
+
+      await callFinal(owner, {
+        contract_id: fakeTokenAccount.account_id,
+        method: "mint",
+        args: { account_id: owner.account_id, amount: "5000000" },
+      });
+
+      const budgetBefore = await meterClient.getBudget("bgt_marketing");
+
+      // Attempt to fund budget with fake token
+      await callFinal(owner, {
+        contract_id: fakeTokenAccount.account_id,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: meterAccount.account_id,
+          amount: "5000000",
+          msg: JSON.stringify({ action: "fund", budget_id: "bgt_marketing" }),
+        },
+        deposit: ONE_YOCTO,
+        gas: GAS_PAYMENT,
+      });
+
+      // Budget deposit is untouched
+      const budgetAfter = await meterClient.getBudget("bgt_marketing");
+      expect(budgetAfter?.deposit).toBe(budgetBefore?.deposit);
+
+      // Fake tokens were refunded back to owner
+      const fakeBal = await viewCall<string>(chain.provider, fakeTokenAccount.account_id, "ft_balance_of", {
+        account_id: owner.account_id,
+      });
+      expect(fakeBal).toBe("5000000");
+    });
+
+    it("10. Payout failure rollback restores reservation and leaves budget deposit intact", async () => {
+      // Register SIM_TEE signer in meter
+      await meterClient.updateAttestedModel(
+        {
+          model_id: "wardline/sim-echo-1",
+          signing_address: SIM_TEE_ACCOUNT.address.toLowerCase(),
+        },
+        owner,
+      );
+
+      const budgetBefore = await meterClient.getBudget("bgt_marketing");
+
+      // Reserve call
+      const res = await meterClient.reserve({
+        budget_id: "bgt_marketing",
+        member: owner.account_id,
+        call_id: "call_fail_payout_1",
+        model_id: "wardline/sim-echo-1",
+        max_amount: "5000",
+        signer: owner,
+      });
+      expect(res.ok).toBe(true);
+
+      // Create provider that is NOT registered with mock USDC
+      const unregisteredProv = await chain.account("unregistered-prov");
+
+      const reqHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+      const resHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+      const text = `wardline/sim-echo-1:${reqHash}:${resHash}`;
+      const sig = await SIM_TEE_ACCOUNT.signMessage({ message: text });
+
+      const proof = {
+        model_id: "wardline/sim-echo-1",
+        request_hash: reqHash,
+        response_hash: resHash,
+        text,
+        signature: sig,
+        signing_address: SIM_TEE_ACCOUNT.address.toLowerCase(),
+        chat_id: "chatcmpl-fail-payout-test-1",
+      };
+
+      // Attempt settlement to unregistered provider -> token transfer fails
+      const settleRes = await meterClient.settle({
+        call_id: "call_fail_payout_1",
+        amount: "5000",
+        proof,
+        pay_to: unregisteredProv.account_id,
+        signer: owner,
+      });
+
+      expect(settleRes.ok).toBe(false);
+      if (!settleRes.ok) {
+        expect(settleRes.reason).toBe("TRANSFER_FAILED");
+      }
+
+      // State is restored: reservation is still reserved, budget spent is unchanged
+      const budgetAfter = await meterClient.getBudget("bgt_marketing");
+      expect(budgetAfter?.spent).toBe(budgetBefore?.spent);
+      expect(BigInt(budgetAfter?.reserved ?? "0")).toBeGreaterThanOrEqual(5000n);
+    });
+
+    it("11. Successful payout with pay_to transfers USDC to provider and coverage fee to pool", async () => {
+      const goodProv = await chain.account("good-prov");
+      await registerWithToken(tokenAccount, owner, goodProv.account_id);
+
+      // Reserve call
+      const res = await meterClient.reserve({
+        budget_id: "bgt_marketing",
+        member: owner.account_id,
+        call_id: "call_good_payout_1",
+        model_id: "wardline/sim-echo-1",
+        max_amount: "1000000",
+        signer: owner,
+      });
+      expect(res.ok).toBe(true);
+
+      const poolBalBefore = await viewCall<string>(chain.provider, tokenAccount.account_id, "ft_balance_of", {
+        account_id: poolAccount.account_id,
+      });
+
+      const reqHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+      const resHash = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+      const text = `wardline/sim-echo-1:${reqHash}:${resHash}`;
+      const sig = await SIM_TEE_ACCOUNT.signMessage({ message: text });
+
+      const proof = {
+        model_id: "wardline/sim-echo-1",
+        request_hash: reqHash,
+        response_hash: resHash,
+        text,
+        signature: sig,
+        signing_address: SIM_TEE_ACCOUNT.address.toLowerCase(),
+        chat_id: "chatcmpl-good-payout-test-1",
+      };
+
+      const settleRes = await meterClient.settle({
+        call_id: "call_good_payout_1",
+        amount: "1000000",
+        proof,
+        pay_to: goodProv.account_id,
+        signer: owner,
+      });
+
+      expect(settleRes.ok).toBe(true);
+
+      // Provider payout is 1,000,000 - 200 bps (2%) = 980,000
+      const provBal = await viewCall<string>(chain.provider, tokenAccount.account_id, "ft_balance_of", {
+        account_id: goodProv.account_id,
+      });
+      expect(provBal).toBe("980000");
+
+      // Coverage fee of 20,000 sent to cover pool
+      const poolBalAfter = await viewCall<string>(chain.provider, tokenAccount.account_id, "ft_balance_of", {
+        account_id: poolAccount.account_id,
+      });
+      expect(BigInt(poolBalAfter) - BigInt(poolBalBefore)).toBe(20000n);
     });
   });
 });
