@@ -11,7 +11,7 @@
 /* Text fields match :focus-visible on a mouse click too, so the ring shows only while the keyboard is in use (src/modality.ts). */
 .field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:none;border-color:var(--violet)}
 [data-kbd] .field input:focus-visible,[data-kbd] .field select:focus-visible,[data-kbd] .field textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.field.compact input,.field.compact select{min-height:44px;padding:9px 12px;font-size:15px}
+.field.compact input,.field.compact select{min-height:44px;padding:9px 12px;font-size:16px}
 .form-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
 .hint{margin:0;font-size:14px;color:var(--muted)}
 .tablist{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin-bottom:26px;overflow-x:auto}
