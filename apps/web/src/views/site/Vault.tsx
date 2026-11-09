@@ -14,7 +14,6 @@ export function Vault() {
       <section className="sec night pagetop">
         <div className="wrap split">
           <div>
-            <span className="label">The vault</span>
             <h2 className="h2">Steal the agent's key. The money stays put.</h2>
             <p className="lede">No AI here. Just the agent's own key, trying every way out.</p>
           </div>
@@ -24,7 +23,6 @@ export function Vault() {
 
       <section className="sec">
         <div className="wrap">
-          <span className="label">Limits</span>
           <h2 className="h2" style={{ marginBottom: 56 }}>
             Four limits the agent cannot move.
           </h2>

@@ -94,7 +94,6 @@ export function Connect() {
     <main>
       <section className="sec pagetop page-intro">
         <div className="wrap">
-          <span className="label">{CONNECT.label}</span>
           <h1 className="h2">{CONNECT.title}</h1>
           <p className="lede ink">{CONNECT.lede}</p>
         </div>

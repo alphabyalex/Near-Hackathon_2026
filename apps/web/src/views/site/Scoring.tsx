@@ -13,7 +13,6 @@ export function Scoring() {
       <section className="sec pagetop">
         <div className="wrap score">
           <div>
-            <span className="label">Scoring</span>
             <h2 className="h2">A mistake the vault caught still counts.</h2>
             <p className="lede" style={{ color: "var(--ink-2)" }}>
               Blocked or not, an unsafe proposal fails the agent.

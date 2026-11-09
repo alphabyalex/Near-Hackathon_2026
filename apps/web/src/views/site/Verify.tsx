@@ -129,7 +129,6 @@ export function Verify() {
     <main>
       <section className="sec pagetop page-intro">
         <div className="wrap">
-          <span className="label">{VERIFY.label}</span>
           <h1 className="h2">{VERIFY.title}</h1>
           <p className="lede ink">{VERIFY.lede}</p>
         </div>

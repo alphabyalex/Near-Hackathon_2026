@@ -41,6 +41,12 @@ export const FOOTER = {
   llms: "llms.txt",
   try: "Check a payee",
   verify: "Verify your business",
+  /** Footer columns: [title, [label, href][]]. */
+  columns: [
+    ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["Demo", "#/demo"]]],
+    ["Build", [["Developers", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"], ["llms.txt", "/llms.txt"]]],
+    ["Wardline", [["About", "#/about"], ["The vault", "#/vault"], ["Owner sign-in", "#/app/overview"]]],
+  ],
 } as const;
 
 /** The Mutual, which is the home page. */
