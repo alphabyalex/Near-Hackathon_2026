@@ -1,5 +1,5 @@
 /** Seven scenes, each calling the real /v1/demo endpoint and showing its real numbers. */
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
 import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
 import { Problem } from "../../components/Problem";
@@ -8,8 +8,10 @@ import { callWords, modelName } from "../../ai/words";
 import { DEMO, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
-import { ResultCard } from "../../payee/ResultCard";
 import { firstContact, onFile } from "../../redteam";
+
+// The payee result card carries receipt verification (ed25519); only the invoice scene needs it.
+const ResultCard = lazy(() => import("../../payee/ResultCard").then((m) => ({ default: m.ResultCard })));
 
 const SCENES = Object.keys(DEMO.scenes) as SceneName[];
 const L = DEMO.labels;
@@ -224,10 +226,12 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
               ))}
             </dl>
             {id === "invoice" && run?.state === "done" && (
-              <ResultCard
-                result={{ ...(run.result as InvoiceResult).result, receipt: null }}
-                request={{ payee: (run.result as InvoiceResult).payee, vendor: { domain: (run.result as InvoiceResult).vendor } } as PayeeCheckRequest}
-              />
+              <Suspense fallback={null}>
+                <ResultCard
+                  result={{ ...(run.result as InvoiceResult).result, receipt: null }}
+                  request={{ payee: (run.result as InvoiceResult).payee, vendor: { domain: (run.result as InvoiceResult).vendor } } as PayeeCheckRequest}
+                />
+              </Suspense>
             )}
             {hasNext && (
               <button type="button" className="btn ghost" onClick={onNext}>
