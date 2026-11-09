@@ -154,11 +154,12 @@ function outcome(id: SceneName, raw: SceneResult): Outcome {
     case "payout": {
       const r = raw as PayoutResult;
       return {
-        tone: "below",
+        // Our stake paying a wrong approval is the protection working, so this is not a below-the-line red.
+        tone: "tier",
         verdict: DEMO.verdicts.payout,
         rows: [
           ...r.payouts.flatMap(({ claim, pool }, i) => [
-            { k: `${L.payout(i + 1)}: ${formatUsdc(claim.amount)} USDC`, v: `${L.junior} ${formatUsdc(claim.paid_from_junior)}, ${L.senior.toLowerCase()} ${formatUsdc(claim.paid_from_senior)}` },
+            { k: `${L.payout(i + 1)}: ${formatUsdc(claim.amount)} USDC`, v: `${L.junior} ${formatUsdc(claim.paid_from_junior)}, ${L.senior.charAt(0).toLowerCase() + L.senior.slice(1)} ${formatUsdc(claim.paid_from_senior)}` },
             { k: L.wardPrice, v: `${p4(claim.ward_price_before)} to ${p4(claim.ward_price_after)}`, tone: claim.ward_price_after !== claim.ward_price_before ? ("below" as const) : undefined },
             ...(i === 1 ? [{ k: L.stakeLeft, v: `${formatUsdc(pool.junior)} USDC` }] : []),
           ]),
@@ -189,6 +190,15 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
   const scene = DEMO.scenes[id];
   const n = SCENES.indexOf(id) + 1;
   const out = run?.state === "done" ? outcome(id, run.result) : null;
+  // After Run scene, bring the result into view: inside the sticky stage on wide screens, in the page on phones.
+  const result = useRef<HTMLDivElement>(null);
+  const shown = useRef<Run>(undefined);
+  useEffect(() => {
+    if (run?.state !== "done" || shown.current === run) return;
+    shown.current = run;
+    const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    result.current?.scrollIntoView?.({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+  }, [run]);
   return (
     <div className="stage" data-testid="stage">
       <div className="stage-head">
@@ -215,7 +225,7 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
         )}
         {run?.state === "error" && <Problem error={run.error} onRetry={onRun} />}
         {out && (
-          <div className="stage-result" data-outcome={out.tone} data-scene-result={id}>
+          <div ref={result} className="stage-result" data-outcome={out.tone} data-scene-result={id}>
             <p className={`verdict v-${out.tone}`}>{out.verdict}</p>
             <dl className="result-rows">
               {out.rows.map((r, i) => (

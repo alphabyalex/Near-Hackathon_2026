@@ -152,18 +152,21 @@ test.describe("public site", () => {
     await expect(out).toHaveAttribute("data-outcome", "above");
     await expect(out.locator(".verdict")).toContainText("Above the line:");
     await expect(out).toContainText("maya.testnet");
-    await expect(out).toContainText("sim-deposit-");
+    // A simulated id is a short label with the full id on hover, never a raw sim-... string.
+    await expect(out.locator(".tx-id")).toContainText("Simulated transaction");
+    await expect(out.locator(".tx-id")).toHaveAttribute("title", /^sim-deposit-/);
+    await expect(out).not.toContainText("sim-deposit-");
 
     out = await run("group");
     await expect(out.locator(".verdict")).toHaveText("Above the line: 8 calls paid on proof");
-    await expect(out).toContainText("DeepSeek-V4.1-Flash-1017");
+    await expect(out).toContainText("DeepSeek V4.1 Flash");
     await expect(out).toContainText("1.000000 to 1.000500");
 
     out = await run("swap");
     await expect(out).toHaveAttribute("data-outcome", "below");
     await expect(out.locator(".verdict")).toHaveText("Below the line: refused and refunded");
     await expect(out).toContainText("The signature names a different model.");
-    await expect(out.locator("dd.t-below")).toContainText("glm-5.3-flash");
+    await expect(out.locator("dd.t-below")).toContainText("GLM-5.3 Flash");
 
     out = await run("leak");
     await expect(out.locator(".verdict")).toHaveText("Below the line: capped at 15.00 USDC");
@@ -176,7 +179,9 @@ test.describe("public site", () => {
     await expect(out.locator(".result")).toHaveAttribute("data-verdict", "BLOCK");
 
     out = await run("payout");
-    await expect(out).toContainText("Paid by Wardline's stake 8.00, paid by ward holders 0.00");
+    // Our stake paying is the protection working: not a below-the-line red.
+    await expect(out).toHaveAttribute("data-outcome", "tier");
+    await expect(out).toContainText("Paid by Wardline's stake 8.00, paid by WARD holders 0.00");
     await expect(out).toContainText("1.0000 to 0.9958");
     await expect(out).toContainText("0.9958 to 1.0000");
 
@@ -530,7 +535,7 @@ test.describe("owner app", () => {
     await expect(page.getByTestId("group-tier")).toContainText("more clean proven calls to Silver");
     await expect(page.getByTestId("group-tier")).toContainText("Fee 2.00%");
     const calls = page.locator("table.calls tbody tr");
-    await expect(calls.filter({ hasText: "DeepSeek-V4.1-Flash-1017" })).toHaveAttribute("data-status", "verified");
+    await expect(calls.filter({ hasText: "DeepSeek V4.1 Flash" })).toHaveAttribute("data-status", "verified");
     await expect(calls.filter({ hasText: "bob.testnet" })).toContainText("Signed by the gateway, not by a model TEE.");
     const bad = page.locator('.payouts li[data-receiver="northw1nd.testnet"]');
     await expect(bad).toHaveClass(/flagged/);

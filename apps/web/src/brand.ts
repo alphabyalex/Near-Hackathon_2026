@@ -263,7 +263,7 @@ export const DEMO = {
     swap: "Below the line: refused and refunded",
     leak: (cap: string) => `Below the line: capped at ${cap} USDC`,
     invoice: "Below the line: blocked before the vote",
-    payout: "Below the line: our stake paid first, then fees refilled WARD",
+    payout: "Protection working: our stake paid first, then fees refilled WARD",
     tier: (tier: string, fee: string) => `${tier}: the fee drops to ${fee}`,
   },
   scenes: {
