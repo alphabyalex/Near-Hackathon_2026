@@ -1,5 +1,5 @@
 /** The Mutual, which is the home page: the hero, the two sides of the line, holding a share, voting and the safest groups. */
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import type { GroupSummary, MutualSummary } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { getMutual } from "../../data/mutual";
@@ -197,14 +197,17 @@ export function Home() {
   const refresh = () => setTick((t) => t + 1);
   useEffect(() => {
     getMutual().then(
-      (v) => {
-        setM(v);
-        setError(null);
-      },
+      // A transition lets React render the page in small slices, so the main thread never blocks long.
+      (v) =>
+        startTransition(() => {
+          setM(v);
+          setError(null);
+        }),
       (e: unknown) => setError(e),
     );
   }, [tick]);
-  const join = () => m && setJoining(true);
+  // A click before the numbers arrive still opens Join, as soon as they do.
+  const join = () => setJoining(true);
 
   return (
     <main>

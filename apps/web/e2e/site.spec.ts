@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
 
-const PAGES = ["#/", "#/groups", "#/proof", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
+const PAGES = ["#/", "#/me", "#/groups", "#/proof", "#/try", "#/demo", "#/connect", "#/verify", "#/about"];
 
 /** Connects the test wallet for an account through the header's Connect wallet dialog. */
 async function connectWallet(page: Page, account: string) {
@@ -62,28 +62,40 @@ test.describe("public site", () => {
     await expect(page).toHaveURL(/#\/$/);
   });
 
-  test("hero: a static sphere under reduced motion, the cut and assembly otherwise", async ({ page }) => {
+  test("hero: a static sphere under reduced motion; otherwise the cut, the assembly and a drift that stops off screen", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");
-    const hero = page.locator("svg.hero-horizon");
-    await expect(hero).toHaveAttribute("data-static", "true");
-    await expect(hero.locator("circle.rise, circle.drop")).toHaveCount(0);
-    expect(await hero.locator(".hero-cut").evaluate((el) => getComputedStyle(el).strokeDashoffset)).toMatch(/^0(px)?$/);
-    const r1 = await hero.locator("circle").nth(40).getAttribute("r");
+    const still = page.locator("svg.hero-horizon");
+    await expect(still).toHaveAttribute("data-static", "true");
+    expect(await still.locator("circle").count()).toBeGreaterThan(500);
+    await expect(page.locator(".hero canvas")).toHaveCount(0);
+    expect(await still.locator(".hero-cut").evaluate((el) => getComputedStyle(el).strokeDashoffset)).toMatch(/^0(px)?$/);
+    const r1 = await still.locator("circle").nth(40).getAttribute("r");
     await page.waitForTimeout(600);
-    expect(await hero.locator("circle").nth(40).getAttribute("r")).toBe(r1);
+    expect(await still.locator("circle").nth(40).getAttribute("r")).toBe(r1);
 
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
-    await expect(hero).toHaveAttribute("data-static", "false");
-    expect(await hero.locator("circle.rise").count()).toBeGreaterThan(100);
-    expect(await hero.locator("circle.drop").count()).toBeGreaterThan(100);
-    // After the cut and the assembly, the light drifts: radii change without any React render.
-    const before = await hero.locator("circle").nth(40).getAttribute("r");
-    await expect.poll(async () => hero.locator("circle").nth(40).getAttribute("r"), { timeout: 8_000 }).not.toBe(before);
+    const live = page.locator("div.hero-horizon");
+    await expect(live).toHaveAttribute("data-static", "false");
+    await expect(live.locator("canvas.hero-dots")).toHaveCount(1);
+    await expect(live).toHaveAttribute("role", "img");
+    // The line draws, the dots assemble, then the light drifts.
+    await expect(live).toHaveAttribute("data-phase", "assemble", { timeout: 3_000 });
+    await expect(live).toHaveAttribute("data-phase", "drift", { timeout: 8_000 });
+    await expect.poll(async () => Number(await live.getAttribute("data-frames")), { timeout: 5_000 }).toBeGreaterThan(3);
+    // Off screen, the drift stops.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(400);
+    const offscreen = Number(await live.getAttribute("data-frames"));
+    await page.waitForTimeout(1200);
+    expect(Number(await live.getAttribute("data-frames"))).toBe(offscreen);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(async () => Number(await live.getAttribute("data-frames")), { timeout: 5_000 }).toBeGreaterThan(offscreen);
   });
 
   test("hero: nothing listens to the mouse", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.addInitScript(() => {
       const seen: string[] = [];
       (window as unknown as { __moves: string[] }).__moves = seen;
@@ -98,7 +110,7 @@ test.describe("public site", () => {
       };
     });
     await page.goto("/#/");
-    await expect(page.locator("svg.hero-horizon")).toBeVisible();
+    await expect(page.locator(".hero-horizon")).toBeVisible();
     await page.waitForTimeout(800);
     const moves = await page.evaluate(() => (window as unknown as { __moves: string[] }).__moves);
     // React delegates its own events at its root; nothing else may listen for mouse movement.
@@ -291,8 +303,9 @@ test.describe("public site", () => {
     await expect(page.locator(".engine-note")).toContainText("stub rules engine");
   });
 
-  test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  test("connect: no API URL set shows the set-your-URL state, never localhost; copy works", async ({ page, context, browserName }) => {
+    // Only Chromium lets a test grant and read the clipboard; elsewhere the button label is the check.
+    if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/#/connect");
     await expect(page.locator('[data-unset="api"]')).toContainText("Set your API URL");
     await expect(page.locator('[data-unset="mcp"]')).toBeVisible();
@@ -305,7 +318,7 @@ test.describe("public site", () => {
     await expect(openai).toContainText('os.environ["WARDLINE_API_URL"] + "/v1/ai"');
     await page.getByRole("button", { name: "Copy curl resolve example" }).click();
     await expect(page.getByRole("button", { name: "Copy curl resolve example" })).toHaveText("Copied");
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");
+    if (browserName === "chromium") expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");
     await expect(page.getByRole("link", { name: "/llms.txt" })).toHaveAttribute("href", "/llms.txt");
   });
 

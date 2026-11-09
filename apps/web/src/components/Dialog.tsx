@@ -1,6 +1,20 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { JOIN } from "../brand";
 
+/**
+ * Safari does not focus a button when it is clicked, so remember the last control a pointer pressed:
+ * focus returns there when a dialog closes. This listens to presses only, never to movement.
+ */
+let lastPressed: HTMLElement | null = null;
+if (typeof document !== "undefined") {
+  const remember = (e: Event) => {
+    const hit = (e.target as HTMLElement | null)?.closest?.("button,a[href],input,select,[tabindex]:not([tabindex=\"-1\"])");
+    if (hit) lastPressed = hit as HTMLElement;
+  };
+  document.addEventListener("pointerdown", remember, true);
+  document.addEventListener("mousedown", remember, true);
+}
+
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 /** A modal dialog: focus moves in and is trapped, Escape and the backdrop close it, and focus returns to the opener. */
@@ -10,7 +24,9 @@ export function Dialog({ title, onClose, children, testId }: { title: string; on
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    // In Safari a click focuses the nearest tabindex=-1 container, not the button: prefer the pressed control then.
+    const opener = active && active !== document.body && active.getAttribute("tabindex") !== "-1" ? active : (lastPressed ?? active);
     const first = box.current?.querySelector<HTMLElement>("input,select,button:not(.dlg-x)") ?? box.current;
     first?.focus();
     const onKey = (e: KeyboardEvent) => {

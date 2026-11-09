@@ -214,11 +214,11 @@ Do:
 
 ```sh
 pnpm test
-pnpm --filter @wardline/web exec playwright install chromium
+pnpm --filter @wardline/web exec playwright install chromium firefox webkit
 pnpm test:e2e
 ```
 
-See: the brand guard (6 checks) and every package's tests pass, then 29 Playwright tests pass against the web app, including the Mutual home, WARD voting, Groups and all seven demo scenes. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
+See: the brand guard (7 checks) and every package's tests pass, then the Playwright suite passes in Chromium, Firefox and WebKit (E2E_COUNT tests in each): the Mutual home, #/me, Join the Mutual, WARD voting, Groups, all seven demo scenes, the error states, a keyboard-only walk, and axe accessibility checks at desktop and 390px. `pnpm --filter @wardline/web test:e2e:chromium` runs Chromium only. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
 
 ### The web app
 
@@ -228,7 +228,7 @@ Do, with the API from step 2 still running:
 WARDLINE_DEV_API=http://127.0.0.1:$WARDLINE_API_PORT pnpm --filter @wardline/web dev
 ```
 
-See: http://127.0.0.1:5173 opens on the Mutual: live stats, the safest groups, Join the Mutual, WARD-holder governance and payouts. Groups, Proof engine and the seven-scene Demo are in the nav.
+See: http://127.0.0.1:5173 opens on the Mutual, in the Horizon design (a dark page, a halftone sphere cut by one line): the hero, pooled USDC and WARD's price, the two sides of the line (paid above it; refused, blocked or capped below it), Hold a share, WARD-holder votes and the safest groups. Connect wallet sits in the header, and once connected your account opens #/me with your share, your votes and your redemptions. Groups, Proof engine and the seven-scene Demo are in the nav.
 
 ## Live variants
 

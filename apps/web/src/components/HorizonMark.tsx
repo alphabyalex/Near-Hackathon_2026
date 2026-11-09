@@ -25,7 +25,7 @@ export function GroupHorizon({ id, size = 56 }: { id: string; size?: number }) {
 export function Fingerprint({ id, side, size = 22 }: { id: string; side: "above" | "below"; size?: number }) {
   const cells = useMemo(() => fingerprintCells(id), [id]);
   return (
-    <svg className={`fingerprint fp-${side}`} width={size} height={size} viewBox="0 0 25 25" aria-hidden="true">
+    <svg className={`fingerprint fp-${side}`} width={size} height={size} viewBox="0 0 25 25" role="img" aria-label={`Call ${id.replace(/^call_/, "").slice(0, 8)}, ${side === "above" ? "above the line" : "below the line"}`}>
       {cells.map((on, i) => (on ? <rect key={i} x={(i % 5) * 5 + 0.5} y={Math.floor(i / 5) * 5 + 0.5} width="4" height="4" /> : null))}
     </svg>
   );

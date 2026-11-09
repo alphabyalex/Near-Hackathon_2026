@@ -34,6 +34,59 @@ const SHOTS: Shot[] = [
     },
   },
   {
+    name: "me-member",
+    path: "#/me",
+    prepare: async (page, wallets) => {
+      wallets.setNearAccount(APPROVER_ACCOUNT);
+      await page.getByTestId("me-connect").getByRole("button", { name: "Connect wallet" }).click();
+      const dlg = page.getByTestId("connect-dialog");
+      await dlg.getByLabel("NEAR account").fill(APPROVER_ACCOUNT);
+      await dlg.locator('[data-wallet="test-wallet"]').click();
+      await dlg.getByRole("button", { name: "Use this wallet" }).click();
+      await expect(page.getByTestId("me-position")).toBeVisible();
+    },
+  },
+  {
+    name: "me-empty",
+    path: "#/me",
+    prepare: async (page, wallets) => {
+      wallets.setNearAccount(VENDOR_NEAR_ACCOUNT);
+      await page.getByTestId("me-connect").getByRole("button", { name: "Connect wallet" }).click();
+      const dlg = page.getByTestId("connect-dialog");
+      await dlg.getByLabel("NEAR account").fill(VENDOR_NEAR_ACCOUNT);
+      await dlg.locator('[data-wallet="test-wallet"]').click();
+      await dlg.getByRole("button", { name: "Use this wallet" }).click();
+      await expect(page.getByTestId("me-empty")).toBeVisible();
+    },
+  },
+  {
+    name: "state-api-down",
+    path: "#/",
+    prepare: async (page) => {
+      await page.route("**/api/v1/mutual", (r) => r.abort("connectionrefused"));
+      await page.reload();
+      await expect(page.locator('[data-problem="apiDown"]')).toBeVisible();
+    },
+  },
+  {
+    name: "state-wallet-rejected",
+    path: "#/",
+    viewport: true,
+    prepare: async (page, wallets) => {
+      wallets.setNearAccount(OWNER_ACCOUNT);
+      await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+      const dlg = page.getByTestId("join-dialog");
+      await dlg.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
+      await dlg.locator('[data-wallet="test-wallet"]').click();
+      await page.evaluate(() => {
+        const w = window as unknown as { __wardlineTestWallet: { signMessage: () => Promise<never> } };
+        w.__wardlineTestWallet.signMessage = () => Promise.reject(new Error("User rejected the request"));
+      });
+      await dlg.getByRole("button", { name: "Deposit 25.00 USDC" }).click();
+      await expect(dlg.locator('[data-problem="walletRejected"]')).toBeVisible();
+    },
+  },
+  {
     name: "try-it",
     path: "#/try",
     prepare: async (page) => {

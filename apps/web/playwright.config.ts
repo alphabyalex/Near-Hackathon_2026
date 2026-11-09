@@ -8,10 +8,16 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],
-  timeout: 60_000,
+  timeout: 90_000,
+  // Firefox and WebKit are slower here; give assertions room without hiding real failures.
+  expect: { timeout: 10_000 },
   use: { baseURL: `http://127.0.0.1:${WEB_PORT}`, trace: "retain-on-failure" },
   projects: [
-    { name: "e2e", testIgnore: /screenshots\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    // Reduced motion by default, so axe never samples a half-faded button and the canvas hero stays out
+    // of the way; the hero tests opt back in with page.emulateMedia({ reducedMotion: "no-preference" }).
+    { name: "e2e", testIgnore: /screenshots\.spec\.ts/, use: { ...devices["Desktop Chrome"], contextOptions: { reducedMotion: "reduce" } } },
+    { name: "firefox", testIgnore: /screenshots\.spec\.ts/, use: { ...devices["Desktop Firefox"], contextOptions: { reducedMotion: "reduce" } } },
+    { name: "webkit", testIgnore: /screenshots\.spec\.ts/, use: { ...devices["Desktop Safari"], contextOptions: { reducedMotion: "reduce" } } },
     { name: "screenshots", testMatch: /screenshots\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
