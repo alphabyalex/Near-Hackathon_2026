@@ -4,6 +4,7 @@ import { createApp, OWNER_PREFIX } from "./app.js";
 import { ownerAuthFromEnv } from "./auth.js";
 import { GROUP_BUDGET } from "./chain/index.js";
 import { bootstrap } from "./bootstrap.js";
+import { demoMeterKeyFromEnv, seedMeterKeysFromEnv } from "./demo-key.js";
 import { createOwnerApp } from "./owner-app.js";
 import { ensureAttestorKey } from "./payee/attestor.js";
 import { loadPayeeBackends } from "./payee/runtime.js";
@@ -16,16 +17,16 @@ const auth = ownerAuthFromEnv();
 const config = serverConfigFromEnv(process.env, auth);
 const deps = bootstrap(process.env.API_DB_PATH ?? ":memory:", undefined, backends, auth);
 // Local walkthroughs only: sim mode can print meter keys for the seeded group, so the README works without the UI.
-if (deps.ai.chain.mode === "sim" && process.env.WARDLINE_SEED_METER_KEYS === "true") {
+if (seedMeterKeysFromEnv(process.env, deps.ai.chain.mode)) {
   for (const member of ["alice.testnet", "ci-agent.testnet"]) {
     const { key } = deps.ai.meter.createKey({ budgetId: GROUP_BUDGET, member, label: "local walkthrough", models: null, createdBy: "seed", now: new Date() });
     console.log(`Meter key for ${member} (${GROUP_BUDGET}, sim): ${key}`);
   }
 }
-// Local walkthroughs only: a fixed meter key for alice.testnet, so README commands need no copying. Sim mode only.
-const demoKey = process.env.WARDLINE_DEMO_METER_KEY ?? (deps.ai.chain.mode === "sim" ? "wk_demo_alice_key" : undefined);
+// Local walkthroughs only: a fixed meter key for alice.testnet, so README commands need no copying.
+// Opt-in: set WARDLINE_DEMO_METER_KEY. Refused in near mode, on a public bind and in production.
+const demoKey = demoMeterKeyFromEnv(process.env, deps.ai.chain.mode);
 if (demoKey) {
-  if (deps.ai.chain.mode !== "sim") throw new Error("WARDLINE_DEMO_METER_KEY works in sim mode only.");
   deps.ai.meter.createKey({ budgetId: GROUP_BUDGET, member: "alice.testnet", label: "local walkthrough", models: null, createdBy: "seed", now: new Date(), key: demoKey });
   console.log(`Demo meter key for alice.testnet (${GROUP_BUDGET}, sim) is set from WARDLINE_DEMO_METER_KEY`);
 }
