@@ -171,9 +171,11 @@ export interface CoverPoolClient {
   redeem(account: string, id: string): Promise<{ tx: string; usdc: string }>;
   listClaims(): Promise<ClaimView[]>;
   /** Pays small claims at once (junior first, then senior). Large ones wait for a DAO vote. */
-  fileClaim(args: { subject: string; claimant: string; amount: string; reason: string }): Promise<ClaimView>;
+  fileClaim(args: { subject: string; claimant: string; amount: string; reason: string; budget_id?: string }): Promise<ClaimView>;
   /** Adds coverage fees from settled calls. They raise WARD's price. */
   addFees(amount: string): Promise<void>;
+  /** Pays a claim that was waiting for a vote, after WARD holders approve it. */
+  payClaim?(claimId: string): Promise<ClaimView>;
 }
 
 export interface Chain {
@@ -181,4 +183,104 @@ export interface Chain {
   meter: MeterClient;
   registry: ModelRegistryClient;
   pool: CoverPoolClient;
+  /** Reputation tiers. Sim until T4.6 lands on chain, even in near mode. */
+  reputation: ReputationClient;
+  /** WARD-holder voting. Sim until T4.6 lands on chain, even in near mode. */
+  governance: GovernanceClient;
+}
+
+/** Reputation tiers. A group with a clean record pays a lower fee and gets more coverage. */
+export type Tier = "bronze" | "silver" | "gold";
+
+/**
+ * get_reputation(budget_id). Tharun's T4.6 adds this on chain; until then the sim answers with the
+ * same shape. Amounts are atomic USDC.
+ */
+export interface ReputationView {
+  budget_id: string;
+  /** Display name of the group behind the budget. */
+  name: string;
+  owner: string;
+  tier: Tier;
+  proven_calls: number;
+  refused_calls: number;
+  claims: number;
+  /** Clean proven calls since the last tier change or claim. */
+  clean_calls: number;
+  /** Clean proven calls that earn the next tier, or null at the top. */
+  next_tier_at: number | null;
+  /** Coverage fee on each proven call, in basis points. */
+  fee_bps: number;
+  /** Largest claim the Mutual covers for this group without a WARD vote. */
+  coverage_cap: string;
+  /** Total paid for proven calls. */
+  spent: string;
+  /** Fees this group's calls paid to the Mutual. */
+  fees_paid: string;
+}
+
+export interface TierRule {
+  tier: Tier;
+  fee_bps: number;
+  /** Base coverage cap before the coverage multiplier. */
+  coverage: string;
+  /** Clean proven calls needed to move up from this tier, or null at the top. */
+  promote_after: number | null;
+}
+
+export interface ReputationClient {
+  readonly mode: ChainMode;
+  getReputation(budgetId: string): Promise<ReputationView | null>;
+  listReputations(): Promise<ReputationView[]>;
+  tierRules(): Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }>;
+}
+
+/** What a WARD-holder proposal does when executed. */
+export type MutualAction =
+  | { type: "set_fee_bps"; tier: Tier; fee_bps: number }
+  | { type: "set_coverage_multiplier"; multiplier_bps: number }
+  | { type: "cover_model"; model_id: string; signing_address: string }
+  | { type: "uncover_model"; model_id: string }
+  | { type: "approve_payout"; claim_id: string };
+
+export type MutualProposalStatus = "open" | "passed" | "rejected" | "executed";
+
+export interface MutualProposalView {
+  id: number;
+  proposer: string;
+  description: string;
+  action: MutualAction;
+  /** WARD balances are read once, when the proposal opens. Later transfers do not change weights. */
+  snapshot_at: string;
+  snapshot_supply: string;
+  votes_for: string;
+  votes_against: string;
+  voters: number;
+  /** For plus against must reach this much WARD. */
+  quorum: string;
+  opens_at: string;
+  closes_at: string;
+  status: MutualProposalStatus;
+  executed_at: string | null;
+  tx: string | null;
+}
+
+export type VoteSupport = "for" | "against";
+
+/**
+ * WARD-holder governance of the Mutual: fees, coverage, which models are covered and large payouts.
+ * One WARD, one vote, weighted at the snapshot. A proposal passes when the window closes with quorum
+ * and more for than against, or early once votes for exceed half the snapshot supply. Anyone can
+ * execute a passed proposal, once.
+ */
+export interface GovernanceClient {
+  readonly mode: ChainMode;
+  listProposals(): Promise<MutualProposalView[]>;
+  getProposal(id: number): Promise<MutualProposalView | null>;
+  propose(args: { proposer: string; description: string; action: MutualAction }): Promise<MutualProposalView>;
+  vote(args: { id: number; voter: string; support: VoteSupport }): Promise<MutualProposalView>;
+  execute(id: number): Promise<MutualProposalView>;
+  /** The voter's weight on a proposal: their WARD at its snapshot. */
+  weightOf(id: number, voter: string): Promise<string>;
+  params(): Promise<{ quorum_bps: number; voting_days: number }>;
 }

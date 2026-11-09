@@ -3,6 +3,8 @@ import { base58 } from "@scure/base";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { bootstrap } from "../src/bootstrap.js";
+import { createChain, defaultSimSeed } from "../src/chain/index.js";
+import { toDateClock } from "../src/time.js";
 import { signNep413, type NearKeyLookup } from "../src/payee/proofs.js";
 import { LOCAL_AUTH } from "./helpers.js";
 
@@ -15,9 +17,11 @@ const lp = (() => {
 })();
 const lookupKeys: NearKeyLookup = async (_n, accountId) => (accountId === lp.account ? [{ publicKey: lp.publicKey, fullAccess: true }] : []);
 
-function setup() {
+/** live: the server's sim with groups, history and proposals. Otherwise the launch seed, for exact numbers. */
+function setup({ live = false }: { live?: boolean } = {}) {
   nowMs = START;
-  const deps = bootstrap(":memory:", clock, { lookupKeys }, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" } });
+  const chain = live ? undefined : createChain("sim", toDateClock(clock), defaultSimSeed());
+  const deps = bootstrap(":memory:", clock, { lookupKeys }, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" }, ...(chain ? { chain } : {}) });
   return { deps, app: createApp(deps) };
 }
 const post = (body: unknown): RequestInit => ({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -125,42 +129,69 @@ describe("Wardline Mutual and WARD", () => {
 describe("demo scenes run the real code paths", () => {
   const scene = async (name: string) => (await (await setup().app.request(`/v1/demo/${name}`, { method: "POST" })).json()) as Record<string, unknown>;
 
-  it("1. plug-in: two recorded NEAR AI calls, both verified and settled", async () => {
-    const s = (await scene("plugin")) as { calls: { proof: string; call: { status: string; settlement_tx: string; amount: string } }[] };
-    expect(s.calls.map((c) => c.proof)).toEqual(["verified", "verified"]);
-    expect(s.calls.every((c) => c.call.settlement_tx.startsWith("sim-settle-") && BigInt(c.call.amount) > 0n)).toBe(true);
+  it("1. the Mutual: stats, then an investor's USDC deposit mints WARD at today's price", async () => {
+    const s = (await scene("mutual")) as { stats: { groups_covered: number; proven_payments: number; yield_earned: string; ward_price: string }; deposit: { usdc: string; ward: string; price: string }; position: { value: string } };
+    expect(s.stats.groups_covered).toBe(4);
+    expect(s.stats.proven_payments).toBeGreaterThan(600);
+    expect(BigInt(s.stats.yield_earned)).toBeGreaterThan(0n);
+    expect(BigInt(s.deposit.ward)).toBe((BigInt(s.deposit.usdc) * 1_000_000n) / BigInt(s.deposit.price));
+    expect(Number(s.position.value)).toBeGreaterThanOrEqual(24_999_999);
   });
 
-  it("2. swapped model: refused and refunded", async () => {
+  it("2. a group plugs in: its DAO funds the budget, calls are paid only on proof, fees lift WARD", async () => {
+    const s = (await scene("group")) as { proposal: { status: string; fund_tx: string }; calls: { proof: string; call: { status: string; settlement_tx: string; amount: string } }[]; batch: { proven: number; sent: number }; budget: { deposit: string }; ward: { before: string; after: string } };
+    expect(s.proposal.status).toBe("Approved");
+    expect(s.proposal.fund_tx).toMatch(/^sim-fund-/);
+    expect(s.budget.deposit).toBe("20000000");
+    expect(s.calls.map((c) => c.proof)).toEqual(["verified", "verified"]);
+    expect(s.calls.every((c) => c.call.settlement_tx.startsWith("sim-settle-") && BigInt(c.call.amount) > 0n)).toBe(true);
+    expect(s.batch.proven).toBe(s.batch.sent);
+    expect(BigInt(s.ward.after)).toBeGreaterThan(BigInt(s.ward.before));
+  });
+
+  it("3. swapped model: refused and refunded", async () => {
     const s = (await scene("swap")) as { proof: string; error: { code: string }; call: { refund: string; reserved: string; amount: string } };
     expect(s).toMatchObject({ proof: "refused", error: { code: "MODEL_MISMATCH" } });
     expect(s.call.amount).toBe("0");
     expect(s.call.refund).toBe(s.call.reserved);
   });
 
-  it("3. leaked key: stops at the member allowance, then the budget's hard cap", async () => {
+  it("4. leaked key: stops at the member allowance, then the budget's hard cap", async () => {
     const s = (await scene("leak")) as { bursts: { paid: number; refused: number; reasons: string[] }[]; spent: string; cap: string; refused: number };
     expect(s.bursts[0]).toMatchObject({ paid: 20, refused: 20, reasons: ["ALLOWANCE_EXHAUSTED"] });
     expect(s.bursts[1]).toMatchObject({ paid: 10, refused: 30, reasons: ["BUDGET_EXHAUSTED"] });
     expect(s).toMatchObject({ spent: "15000000", cap: "15000000", refused: 50 });
   });
 
-  it("4. fake bank details: blocked", async () => {
-    const s = (await scene("invoice")) as { result: { verdict: string } };
+  it("5. look-alike payout: blocked before the DAO votes", async () => {
+    const s = (await scene("invoice")) as { result: { verdict: string }; flagged: boolean; proposal: { receiver: string } };
     expect(s.result.verdict).toBe("BLOCK");
+    expect(s.flagged).toBe(true);
+    expect(s.proposal.receiver).toBe("northw1nd.testnet");
   });
 
-  it("5. wrong approvals: the first payout is all Wardline's stake and WARD holds; the bigger second dips WARD a little", async () => {
-    const s = (await scene("mutual")) as {
-      before: { junior: string; ward_price: string };
-      payouts: { claim: { status: string; paid_from_junior: string; paid_from_senior: string; ward_price_before: string; ward_price_after: string }; pool: { junior: string; ward_price: string } }[];
+  it("6. wrong approvals: our stake pays first and WARD holds; a bigger one dips WARD; fees refill it", async () => {
+    const s = (await scene("payout")) as {
+      before: { junior: string; ward_price: string; launch_price: string };
+      payouts: { claim: { status: string; paid_from_junior: string; paid_from_senior: string }; pool: { junior: string; ward_price: string } }[];
+      refill: { calls: number; ward_before: string; ward_after: string };
     };
     const [first, second] = s.payouts;
     expect(first!.claim).toMatchObject({ status: "paid", paid_from_junior: "8000000", paid_from_senior: "0" });
-    expect(first!.pool.ward_price).toBe(s.before.ward_price);
-    expect(second!.claim).toMatchObject({ status: "paid", paid_from_junior: "12000000", paid_from_senior: "6000000" });
+    expect(first!.pool.ward_price).toBe("1000000");
+    expect(second!.claim).toMatchObject({ status: "paid", paid_from_junior: "12000000", paid_from_senior: "500000" });
     expect(second!.pool.junior).toBe("0");
-    expect(second!.pool.ward_price).toBe("950000");
+    expect(second!.pool.ward_price).toBe("995833");
+    expect(s.refill.ward_before).toBe("995833");
+    expect(BigInt(s.refill.ward_after)).toBeGreaterThanOrEqual(BigInt(s.before.launch_price));
+    expect(s.refill.calls).toBeGreaterThan(0);
   });
 
+  it("7. a clean group moves up a tier and its fee drops", async () => {
+    const s = (await scene("tier")) as { before: { tier: string; fee_bps: number }; after: { tier: string; fee_bps: number; coverage_cap: string }; first: { fee: string }; last: { fee: string } };
+    expect(s.before).toMatchObject({ tier: "bronze", fee_bps: 200 });
+    expect(s.after).toMatchObject({ tier: "silver", fee_bps: 150, coverage_cap: "50000000" });
+    expect(s.first.fee).toBe("10000");
+    expect(s.last.fee).toBe("7500");
+  });
 });

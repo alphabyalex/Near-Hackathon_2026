@@ -1,6 +1,7 @@
 /**
  * Routes for the group page, the AI dashboard, meter keys, Wardline Mutual and the demo scenes.
- * Public: /v1/pool (read, plus wallet-signed deposit and withdraw), /v1/demo/:scene.
+ * Public: /v1/mutual (home page summary), /v1/groups, /v1/reputation, /v1/mutual/proposals (read,
+ * execute), /v1/pool (read, plus wallet-signed deposit, redeem, vote and propose), /v1/demo/:scene.
  * Owner (session): /owner/group, /owner/ai/overview, /owner/meter-keys.
  */
 
@@ -9,7 +10,7 @@ import type { ProposalView } from "@wardline/dao-adapter";
 import { normalizeDomain } from "@wardline/sdk";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { GROUP_BUDGET } from "./chain/index.js";
+import { GROUP_BUDGET, mutualStats } from "./chain/index.js";
 import { runScene, SCENES, type SceneName } from "./demo-scenes.js";
 import { publicCall } from "./meter/gateway.js";
 import type { CallRow } from "./meter/store.js";
@@ -79,10 +80,22 @@ export function aiOverview(calls: CallRow[], now: Date) {
   };
 }
 
-const PoolChallenge = z.union([
-  z.object({ account: z.string().min(2).max(64), action: z.enum(["deposit", "withdraw"]), amount: z.string().regex(/^[1-9][0-9]{0,30}$/) }),
-  z.object({ account: z.string().min(2).max(64), action: z.literal("redeem"), id: z.string().regex(/^[a-z0-9_]{3,40}$/) }),
+const TierName = z.enum(["bronze", "silver", "gold"]);
+export const MutualActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("set_fee_bps"), tier: TierName, fee_bps: z.number().int().min(0).max(1_000) }),
+  z.object({ type: z.literal("set_coverage_multiplier"), multiplier_bps: z.number().int().min(2_500).max(40_000) }),
+  z.object({ type: z.literal("cover_model"), model_id: z.string().min(3).max(120), signing_address: z.string().regex(/^0x[0-9a-fA-F]{40}$/) }),
+  z.object({ type: z.literal("uncover_model"), model_id: z.string().min(3).max(120) }),
+  z.object({ type: z.literal("approve_payout"), claim_id: z.string().regex(/^clm_[a-z0-9]{6,20}$/) }),
 ]);
+const Account = z.string().min(2).max(64);
+const PoolChallenge = z.union([
+  z.object({ account: Account, action: z.enum(["deposit", "withdraw"]), amount: z.string().regex(/^[1-9][0-9]{0,30}$/) }),
+  z.object({ account: Account, action: z.literal("redeem"), id: z.string().regex(/^[a-z0-9_]{3,40}$/) }),
+  z.object({ account: Account, action: z.literal("vote"), id: z.number().int().min(0), support: z.enum(["for", "against"]) }),
+  z.object({ account: Account, action: z.literal("propose"), description: z.string().trim().min(4).max(200), proposal: MutualActionSchema }),
+]);
+type PoolRequest = z.infer<typeof PoolChallenge>;
 const PoolSigned = z.object({ nonce: z.string(), publicKey: z.string(), signature: z.string() });
 const MeterKeyBody = z.object({ budget_id: z.string().min(1).default(GROUP_BUDGET), member: z.string().min(2).max(64), label: z.string().max(60).optional(), models: z.array(z.string()).min(1).optional() });
 
@@ -96,6 +109,61 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   app.get("/v1/pool", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, pool: await pool.getPool(), claims: await pool.listClaims() }));
 
   app.get("/v1/pool/positions/:account", async (c) => c.json(await pool.getPosition(c.req.param("account"))));
+
+  const chain = deps.ai.chain;
+  const groups = async () => {
+    const reps = await chain.reputation.listReputations();
+    return Promise.all(
+      reps.map(async (r) => {
+        const b = await chain.meter.getBudget(r.budget_id).catch(() => null);
+        return { ...r, deposit: b?.deposit ?? "0", members: b?.members.length ?? 0, period: b?.period ?? null };
+      }),
+    );
+  };
+
+  // Everything the Mutual home page shows, in one call.
+  app.get("/v1/mutual", async (c) => {
+    const [poolView, claims, list, proposals, tiers, params] = await Promise.all([pool.getPool(), pool.listClaims(), groups(), chain.governance.listProposals(), chain.reputation.tierRules(), chain.governance.params()]);
+    return c.json({
+      mode: chain.mode,
+      // Reputation and voting are simulated until Tharun's T4.6 contracts are deployed.
+      mutual_mode: chain.governance.mode,
+      contract: deps.ai.contracts.pool,
+      pool: poolView,
+      claims,
+      stats: await mutualStats(chain),
+      groups: list,
+      tiers,
+      governance: { ...params, proposals },
+    });
+  });
+
+  app.get("/v1/groups", async (c) => c.json({ mode: chain.reputation.mode, groups: await groups(), tiers: await chain.reputation.tierRules() }));
+
+  // get_reputation(budget_id)
+  app.get("/v1/reputation/:budget", async (c) => {
+    const r = await chain.reputation.getReputation(c.req.param("budget"));
+    return r ? c.json(r) : c.json({ error: "NOT_FOUND", message: `No group with budget ${c.req.param("budget")}.` }, 404);
+  });
+
+  app.get("/v1/mutual/proposals", async (c) => c.json({ mode: chain.governance.mode, ...(await chain.governance.params()), proposals: await chain.governance.listProposals() }));
+
+  app.get("/v1/mutual/proposals/:id/weight/:account", async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id) || !(await chain.governance.getProposal(id))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
+    return c.json({ id, account: c.req.param("account"), weight: await chain.governance.weightOf(id, c.req.param("account")) });
+  });
+
+  // Anyone can execute a passed proposal. It runs once.
+  app.post("/v1/mutual/proposals/:id/execute", async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id) || !(await chain.governance.getProposal(id))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
+    try {
+      return c.json({ proposal: await chain.governance.execute(id) });
+    } catch (error) {
+      return c.json({ error: "REFUSED", message: error instanceof Error ? error.message : "Execution refused." }, 409);
+    }
+  });
 
   // Deposit and withdraw are signed by the LP's own wallet (NEP-413). In near mode the wallet sends
   // ft_transfer_call to the pool contract directly instead.
@@ -120,11 +188,13 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
       deps.payee.lookupKeys,
     ).catch(() => "Your account's keys could not be read.");
     if (reason) return c.json({ error: "REFUSED", message: reason }, 401);
-    const req = JSON.parse(challenge.message.slice("wardline-mutual:v1:".length)) as { action: "deposit" | "withdraw" | "redeem"; account: string; amount?: string; id?: string };
+    const req = JSON.parse(challenge.message.slice("wardline-mutual:v1:".length)) as PoolRequest;
     try {
-      if (req.action === "deposit") return c.json({ action: "deposit", ...(await pool.deposit(req.account, req.amount!)), position: await pool.getPosition(req.account) });
-      if (req.action === "redeem") return c.json({ action: "redeem", ...(await pool.redeem(req.account, req.id!)), position: await pool.getPosition(req.account) });
-      return c.json({ action: "withdraw", ...(await pool.requestWithdraw(req.account, req.amount!)), position: await pool.getPosition(req.account) });
+      if (req.action === "deposit") return c.json({ action: "deposit", ...(await pool.deposit(req.account, req.amount)), position: await pool.getPosition(req.account) });
+      if (req.action === "redeem") return c.json({ action: "redeem", ...(await pool.redeem(req.account, req.id)), position: await pool.getPosition(req.account) });
+      if (req.action === "vote") return c.json({ action: "vote", proposal: await chain.governance.vote({ id: req.id, voter: req.account, support: req.support }) });
+      if (req.action === "propose") return c.json({ action: "propose", proposal: await chain.governance.propose({ proposer: req.account, description: req.description, action: req.proposal }) });
+      return c.json({ action: "withdraw", ...(await pool.requestWithdraw(req.account, req.amount)), position: await pool.getPosition(req.account) });
     } catch (error) {
       return c.json({ error: "REFUSED", message: error instanceof Error ? error.message : "Pool refused the request." }, 409);
     }
@@ -148,8 +218,11 @@ export function registerAiOwnerRoutes(app: Hono<never>, deps: Deps, requireOwner
     if (!budget) return c.json({ error: "NOT_FOUND", message: `No budget ${budgetId}.` }, 404);
     const proposals = await deps.ai.dao.listProposals().catch(() => [] as ProposalView[]);
     const calls = meter.listCalls(budgetId, 100);
+    const [reputation, tiers] = await Promise.all([deps.ai.chain.reputation.getReputation(budgetId), deps.ai.chain.reputation.tierRules()]);
     return c.json({
       mode: deps.ai.chain.mode,
+      reputation,
+      tiers,
       dao: deps.ai.dao.dao,
       budget,
       calls: calls.map(publicCall),

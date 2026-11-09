@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { verifyProviderProof } from "@wardline/sdk";
 import type { DateClock as Clock } from "../time.js";
+import { SimGovernance, SimReputation, type GovernanceSeed, type ReputationSeed } from "./sim-mutual.js";
 import type {
   AttestedModel,
   BudgetView,
@@ -16,6 +17,7 @@ import type {
   CoverPoolClient,
   MeterClient,
   ModelRegistryClient,
+  MutualAction,
   PoolPosition,
   PoolView,
   WardPricePoint,
@@ -64,8 +66,17 @@ export interface SimBudgetSeed {
   members: { member: string; allowance: string }[];
 }
 
-/** Coverage fee taken from each settled call into the pool, in basis points. */
+/** Coverage fee taken from each settled call into the pool, in basis points: the Bronze rate. */
 export const COVER_FEE_BPS = 200n;
+
+/** What the meter tells the rest of the sim chain. */
+export interface MeterHooks {
+  /** Fee for a budget's call, in basis points. Defaults to COVER_FEE_BPS. */
+  feeBps?: (budgetId: string) => bigint;
+  onFees?: (amount: string) => Promise<void>;
+  onProven?: (budgetId: string, amount: bigint, fee: bigint) => void;
+  onRefused?: (budgetId: string) => void;
+}
 
 export class SimRegistry implements ModelRegistryClient {
   readonly mode = "sim" as const;
@@ -77,7 +88,12 @@ export class SimRegistry implements ModelRegistryClient {
     return [...this.models];
   }
   add(model: AttestedModel): void {
-    this.models.push(model);
+    const i = this.models.findIndex((m) => m.model_id === model.model_id && m.signing_address.toLowerCase() === model.signing_address.toLowerCase());
+    if (i < 0) this.models.push(model);
+  }
+  /** Stops covering a model: every signer for it is removed. */
+  remove(modelId: string): void {
+    for (let i = this.models.length - 1; i >= 0; i--) if (this.models[i]!.model_id === modelId) this.models.splice(i, 1);
   }
 }
 
@@ -91,7 +107,7 @@ export class SimMeter implements MeterClient {
     seeds: SimBudgetSeed[],
     private readonly registry: ModelRegistryClient,
     private readonly now: Clock,
-    private readonly onFees: (amount: string) => Promise<void> = async () => {},
+    private readonly hooks: MeterHooks = {},
   ) {
     for (const s of seeds) {
       this.budgets.set(s.budget_id, {
@@ -190,12 +206,16 @@ export class SimMeter implements MeterClient {
     freed.m.used += amount;
     freed.b.spent += amount;
     this.settledChats.add(args.proof.chat_id);
-    await this.onFees(((amount * COVER_FEE_BPS) / 10_000n).toString());
+    const fee = (amount * (this.hooks.feeBps?.(r.budget_id) ?? COVER_FEE_BPS)) / 10_000n;
+    this.hooks.onProven?.(r.budget_id, amount, fee);
+    await this.hooks.onFees?.(fee.toString());
     return { ok: true, tx: simTx("settle", args.call_id), amount: amount.toString(), refund: (r.amount - amount).toString() };
   }
 
   async release(args: { call_id: string; reason: string }): Promise<{ tx: string; refund: string }> {
     const freed = this.free(args.call_id);
+    // A refused proof counts in the group's history. An upstream outage does not.
+    if (freed && !args.reason.startsWith("UPSTREAM") && args.reason !== "BAD_UPSTREAM_RESPONSE") this.hooks.onRefused?.(freed.r.budget_id);
     return { tx: simTx("release", args.call_id), refund: freed ? freed.r.amount.toString() : "0" };
   }
 
@@ -229,6 +249,15 @@ export interface SimPoolSeed {
   trade_url?: string | null;
 }
 
+export interface PoolHooks {
+  /** The group's coverage cap from its reputation tier. A claim above it waits for a WARD vote. */
+  coverageCap?: (budgetId: string) => bigint | null;
+  /** A claim was paid for this group. */
+  onClaimPaid?: (budgetId: string) => void;
+  /** A claim is waiting for a WARD-holder vote. */
+  onPendingClaim?: (claim: ClaimView) => void;
+}
+
 const SCALE = 1_000_000n;
 
 interface Redemption {
@@ -255,6 +284,8 @@ export class SimPool implements CoverPoolClient {
   private readonly redemptions: Redemption[] = [];
   private readonly claims: ClaimView[] = [];
   private readonly history: WardPricePoint[] = [];
+  private readonly claimBudgets = new Map<string, string>();
+  hooks: PoolHooks = {};
 
   constructor(
     private readonly seed: SimPoolSeed,
@@ -355,11 +386,56 @@ export class SimPool implements CoverPoolClient {
     return { tx: simTx("redeem", account), usdc: usdc.toString() };
   }
 
+  /** NEP-141 ft_transfer of free WARD. */
+  async transfer(from: string, to: string, ward: string): Promise<{ tx: string }> {
+    const amount = big(ward);
+    const free = (this.balances.get(from) ?? 0n) - this.locked(from);
+    if (amount <= 0n || amount > free) throw new Error("Not enough free WARD to transfer");
+    this.balances.set(from, (this.balances.get(from) ?? 0n) - amount);
+    this.balances.set(to, (this.balances.get(to) ?? 0n) + amount);
+    return { tx: simTx("transfer", `${from}:${to}`) };
+  }
+
+  /** Free WARD per holder, for governance snapshots. WARD locked for redemption does not vote. */
+  holders(): Map<string, bigint> {
+    const out = new Map<string, bigint>();
+    for (const [account, balance] of this.balances) {
+      const free = balance - this.locked(account);
+      if (free > 0n) out.set(account, free);
+    }
+    return out;
+  }
+
+  private pay(claim: ClaimView): void {
+    const amount = big(claim.amount);
+    // We lose first: Wardline's junior stake absorbs the loss before WARD holders are touched.
+    const fromJunior = min(amount, this.junior);
+    const fromSenior = amount - fromJunior;
+    this.junior -= fromJunior;
+    this.senior -= fromSenior;
+    this.paid += amount;
+    Object.assign(claim, { status: "paid", paid_from_junior: fromJunior.toString(), paid_from_senior: fromSenior.toString(), ward_price_after: this.price().toString(), tx: simTx("claim", claim.claim_id) });
+    this.mark("claim");
+    const budget = this.claimBudgets.get(claim.claim_id);
+    if (budget) this.hooks.onClaimPaid?.(budget);
+  }
+
+  /** Pays a claim that was waiting for a vote, after WARD holders approve it. */
+  async payClaim(claimId: string): Promise<ClaimView> {
+    const claim = this.claims.find((c) => c.claim_id === claimId);
+    if (!claim) throw new Error(`No claim ${claimId}`);
+    if (claim.status !== "pending_vote") throw new Error(`Claim ${claimId} is ${claim.status}, not waiting for a vote`);
+    if (big(claim.amount) > this.junior + this.senior) throw new Error("The pool cannot cover this claim");
+    claim.ward_price_before = this.price().toString();
+    this.pay(claim);
+    return claim;
+  }
+
   async listClaims(): Promise<ClaimView[]> {
     return [...this.claims].reverse();
   }
 
-  async fileClaim(args: { subject: string; claimant: string; amount: string; reason: string }): Promise<ClaimView> {
+  async fileClaim(args: { subject: string; claimant: string; amount: string; reason: string; budget_id?: string }): Promise<ClaimView> {
     const amount = big(args.amount);
     const before = this.price().toString();
     const claim: ClaimView = {
@@ -376,18 +452,12 @@ export class SimPool implements CoverPoolClient {
       filed_at: this.now().toISOString(),
       tx: null,
     };
+    if (args.budget_id) this.claimBudgets.set(claim.claim_id, args.budget_id);
     const capacity = big((await this.getPool()).coverage_capacity);
-    if (amount <= big(this.seed.large_claim_threshold) && amount <= capacity) {
-      // We lose first: Wardline's junior stake absorbs the loss before WARD holders are touched.
-      const fromJunior = min(amount, this.junior);
-      const fromSenior = amount - fromJunior;
-      this.junior -= fromJunior;
-      this.senior -= fromSenior;
-      this.paid += amount;
-      Object.assign(claim, { status: "paid", paid_from_junior: fromJunior.toString(), paid_from_senior: fromSenior.toString(), ward_price_after: this.price().toString(), tx: simTx("claim", claim.claim_id) });
-      this.mark("claim");
-    }
+    const groupCap = args.budget_id ? (this.hooks.coverageCap?.(args.budget_id) ?? null) : null;
     this.claims.push(claim);
+    if (amount <= big(this.seed.large_claim_threshold) && amount <= capacity && (groupCap === null || amount <= groupCap)) this.pay(claim);
+    else this.hooks.onPendingClaim?.(claim);
     return claim;
   }
 
@@ -404,11 +474,64 @@ export interface SimChainSeed {
   budgets: SimBudgetSeed[];
   models: AttestedModel[];
   pool: SimPoolSeed;
+  /** Track record for groups that existed before this run, keyed by budget id. */
+  reputation?: Record<string, Omit<ReputationSeed, "budget_id" | "name" | "owner">>;
+  /** Claims from before this run, paid through the real claim path. */
+  claims?: { subject: string; claimant: string; amount: string; reason: string; budget_id: string }[];
+  /** Past and open WARD-holder proposals. */
+  proposals?: GovernanceSeed[];
+}
+
+export interface SimMutual {
+  reputation: SimReputation;
+  governance: SimGovernance;
+}
+
+/** Reputation and governance for a chain, simulated. Shared by sim mode and by near mode until T4.6. */
+export function createSimMutual(args: { budgets: SimBudgetSeed[]; reputation?: SimChainSeed["reputation"]; pool: SimPool; registry: SimRegistry | null; now: Clock }): SimMutual {
+  const reputation = new SimReputation(args.budgets.map((b) => ({ budget_id: b.budget_id, name: b.name, owner: b.owner, ...(args.reputation?.[b.budget_id] ?? {}) })));
+  const apply = async (action: MutualAction): Promise<void> => {
+    switch (action.type) {
+      case "set_fee_bps":
+        return reputation.setFee(action.tier, action.fee_bps);
+      case "set_coverage_multiplier":
+        return reputation.setMultiplier(action.multiplier_bps);
+      case "cover_model":
+        if (!args.registry) throw new Error("Covering a model on chain needs the T4.6 registry hook");
+        return args.registry.add({ model_id: action.model_id, signing_address: action.signing_address.toLowerCase(), signing_algo: "ecdsa", source: "Covered by a WARD-holder vote", attested_at: args.now().toISOString() });
+      case "uncover_model":
+        if (!args.registry) throw new Error("Uncovering a model on chain needs the T4.6 registry hook");
+        return args.registry.remove(action.model_id);
+      case "approve_payout":
+        await args.pool.payClaim(action.claim_id);
+        return;
+    }
+  };
+  const governance = new SimGovernance({ now: args.now, balances: () => args.pool.holders(), apply });
+  args.pool.hooks = {
+    coverageCap: (budgetId) => reputation.coverageCap(budgetId),
+    onClaimPaid: (budgetId) => reputation.recordClaim(budgetId),
+    onPendingClaim: (claim) => {
+      governance.open({ proposer: "wardline-labs.testnet", description: `Approve a ${(Number(BigInt(claim.amount)) / 1e6).toFixed(2)} USDC payout for ${claim.subject}`, action: { type: "approve_payout", claim_id: claim.claim_id } }, undefined, true);
+    },
+  };
+  return { reputation, governance };
 }
 
 export function createSimChain(seed: SimChainSeed, now: Clock): Chain {
   const registry = new SimRegistry([...seed.models]);
   const pool = new SimPool(seed.pool, now);
-  const meter = new SimMeter(seed.budgets, registry, now, (fee) => pool.addFees(fee));
-  return { mode: "sim", meter, registry, pool };
+  const { reputation, governance } = createSimMutual({ budgets: seed.budgets, reputation: seed.reputation, pool, registry, now });
+  const meter = new SimMeter(seed.budgets, registry, now, {
+    feeBps: (budgetId) => reputation.feeBps(budgetId),
+    onProven: (budgetId, amount, fee) => reputation.recordProven(budgetId, amount, fee),
+    onRefused: (budgetId) => reputation.recordRefused(budgetId),
+    onFees: (fee) => pool.addFees(fee),
+  });
+  // History from before this run: fees its groups already paid, and claims already settled.
+  const pastFees = Object.values(seed.reputation ?? {}).reduce((n, r) => n + BigInt(r.fees_paid ?? "0"), 0n);
+  if (pastFees > 0n) void pool.addFees(pastFees.toString());
+  for (const c of seed.claims ?? []) void pool.fileClaim(c);
+  if (seed.proposals) governance.seed(seed.proposals);
+  return { mode: "sim", meter, registry, pool, reputation, governance };
 }

@@ -27,7 +27,10 @@
     "demo:plugin": "tsx scripts/demo-plugin.ts",
     "demo:mutual": "tsx scripts/demo-mutual.ts",
     "redteam:numbers": "tsx scripts/redteam-numbers.ts",
-    "testnet:mint": "pnpm --filter @wardline/contract-scripts run mint-tokens"
+    "testnet:mint": "pnpm --filter @wardline/contract-scripts run mint-tokens",
+    "testnet:check": "pnpm --filter @wardline/api exec tsx scripts/check-testnet.ts",
+    "demo:vote": "tsx scripts/demo-vote.ts",
+    "demo:tier": "tsx scripts/demo-tier.ts"
   },
   "devDependencies": {
     "@wardline/demo-provider": "workspace:*",

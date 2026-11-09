@@ -7,12 +7,29 @@ import {
   makeProvider,
   makeSigner,
 } from "@wardline/vault-client";
+import { readFileSync } from "node:fs";
 import type { DateClock as Clock } from "../time.js";
-import { createSimChain, type SimChainSeed } from "./sim.js";
-import type { AttestedModel, Chain, ChainMode, CoverPoolClient } from "./types.js";
+import { createSimChain, createSimMutual, SimPool, type SimChainSeed } from "./sim.js";
+import type { SimReputation } from "./sim-mutual.js";
+import type { AttestedModel, Chain, ChainMode, MeterClient, ReputationClient, ReputationView, TierRule } from "./types.js";
 
 export * from "./types.js";
-export { createSimChain, COVER_FEE_BPS, SimMeter, SimPool, SimRegistry, type SimBudgetSeed, type SimChainSeed, type SimPoolSeed } from "./sim.js";
+export { createSimChain, createSimMutual, COVER_FEE_BPS, SimMeter, SimPool, SimRegistry, type MeterHooks, type PoolHooks, type SimBudgetSeed, type SimChainSeed, type SimMutual, type SimPoolSeed } from "./sim.js";
+export { DEFAULT_TIER_RULES, SimGovernance, SimReputation, type GovernanceSeed, type ReputationSeed } from "./sim-mutual.js";
+
+/** NEAR testnet ids of the deployed contracts, from repo.config.json at the repository root. */
+export interface RepoNear {
+  network: string;
+  rootAccount: string;
+  contracts: { payeeRegistry: string; vault: string; modelRegistry: string; meter: string; coverPool: string; dao: string };
+}
+
+let repoNearCache: RepoNear | null = null;
+export function repoNear(): RepoNear {
+  // src/chain and dist/chain are both four levels below the repository root.
+  repoNearCache ??= (JSON.parse(readFileSync(new URL("../../../../repo.config.json", import.meta.url), "utf8")) as { near: RepoNear }).near;
+  return repoNearCache;
+}
 
 const W = (whole: number): string => (BigInt(Math.round(whole * 1_000_000))).toString();
 
@@ -71,6 +88,65 @@ export function defaultSimSeed(): SimChainSeed {
   };
 }
 
+const DAY = 86_400_000;
+
+/** More groups with a track record, for the live sim: the leaderboard, the Groups page and the home stats. */
+export const SIM_GROUPS = [
+  { budget_id: "bgt_mission", name: "Mission Street hacker house", owner: "mission-house.sputnikv2.testnet", members: ["dana.testnet", "eli.testnet", "build-bot.testnet"] },
+  { budget_id: "bgt_nightshade", name: "Nightshade research DAO", owner: "nightshade.sputnikv2.testnet", members: ["ruth.testnet", "tomas.testnet"] },
+  { budget_id: "bgt_kelp", name: "Kelp Robotics club", owner: "kelp-robotics.sputnikv2.testnet", members: ["ana.testnet", "kelp-agent.testnet"] },
+] as const;
+
+/**
+ * The live sim: the launch seed plus three groups with a history (proven calls, the fees they paid,
+ * one claim), and past and open WARD-holder proposals. Demo scenes and unit tests use defaultSimSeed.
+ */
+export function liveSimSeed(): SimChainSeed {
+  const seed = defaultSimSeed();
+  for (const g of SIM_GROUPS) {
+    seed.budgets.push({ budget_id: g.budget_id, name: g.name, owner: g.owner, deposit: W(40), period: "week", members: g.members.map((m) => ({ member: m, allowance: W(10) })) });
+  }
+  seed.reputation = {
+    bgt_mission: { tier: "gold", proven_calls: 412, refused_calls: 9, claims: 0, clean_calls: 377, spent: W(61.8), fees_paid: W(0.74) },
+    bgt_nightshade: { tier: "silver", proven_calls: 186, refused_calls: 4, claims: 0, clean_calls: 14, spent: W(23.4), fees_paid: W(0.38) },
+    bgt_kelp: { tier: "silver", proven_calls: 57, refused_calls: 2, claims: 0, clean_calls: 47, spent: W(6.1), fees_paid: W(0.12) },
+  };
+  seed.claims = [
+    { subject: "rcpt_kelp_parts_0331", claimant: "kelp-robotics.sputnikv2.testnet", amount: W(1.5), reason: "Wardline answered PAY for a parts vendor whose website had been taken over a day earlier.", budget_id: "bgt_kelp" },
+  ];
+  const glm = recordedModels().find((m) => m.model_id === "z-ai/glm-5.3-flash");
+  seed.proposals = [
+    ...(glm ? [{ proposer: "lp-north.testnet", description: "Cover GLM-5.3 Flash calls, signed by its NEAR AI TEE key", action: { type: "cover_model" as const, model_id: glm.model_id, signing_address: glm.signing_address }, opened_days_ago: 12, votes: [["lp-north.testnet", "for"], ["lp-harbor.testnet", "for"]] as [string, "for" | "against"][], execute: true }] : []),
+    { proposer: "lp-harbor.testnet", description: "Raise the Bronze fee to 2.50%", action: { type: "set_fee_bps", tier: "bronze", fee_bps: 250 }, opened_days_ago: 9, votes: [["lp-harbor.testnet", "for"], ["lp-north.testnet", "against"]] },
+    { proposer: "lp-north.testnet", description: "Raise coverage to 1.25x for every tier", action: { type: "set_coverage_multiplier", multiplier_bps: 12_500 }, opened_days_ago: 1, votes: [["lp-north.testnet", "for"]] },
+    { proposer: "lp-harbor.testnet", description: "Lower the Silver fee to 1.25%", action: { type: "set_fee_bps", tier: "silver", fee_bps: 125 }, opened_days_ago: 0.5, votes: [["lp-harbor.testnet", "for"]] },
+  ];
+  return seed;
+}
+
+/** Reputation in near mode until T4.6: simulated, with groups read from the meter contract's budgets. */
+class MeterBackedReputation implements ReputationClient {
+  readonly mode = "sim" as const;
+  constructor(
+    private readonly inner: SimReputation,
+    private readonly meter: MeterClient,
+  ) {}
+  private async sync(): Promise<void> {
+    for (const b of await this.meter.listBudgets().catch(() => [])) this.inner.ensure({ budget_id: b.budget_id, name: b.name || b.budget_id, owner: b.owner });
+  }
+  async getReputation(budgetId: string): Promise<ReputationView | null> {
+    await this.sync();
+    return this.inner.getReputation(budgetId);
+  }
+  async listReputations(): Promise<ReputationView[]> {
+    await this.sync();
+    return this.inner.listReputations();
+  }
+  tierRules(): Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }> {
+    return this.inner.tierRules();
+  }
+}
+
 export function chainModeFromEnv(env: Record<string, string | undefined> = process.env): ChainMode {
   const mode = readEnv("WARDLINE_CHAIN_MODE", env) ?? "sim";
   if (mode !== "sim" && mode !== "near") throw new Error(`WARDLINE_CHAIN_MODE must be sim or near, not ${mode}`);
@@ -78,24 +154,18 @@ export function chainModeFromEnv(env: Record<string, string | undefined> = proce
 }
 
 /**
- * sim: the simulations in sim.ts. near: Tharun's typed clients from @wardline/vault-client, which do
- * not exist yet; this refuses to start rather than fall back silently.
+ * sim: the simulations in sim.ts. near: Tharun's typed clients from @wardline/vault-client against the
+ * contracts in repo.config.json (each overridable by env). Reputation and WARD voting stay simulated
+ * in near mode until T4.6 deploys them.
  */
 export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = defaultSimSeed()): Chain {
   if (mode === "sim") return createSimChain(seed, now);
 
-  const rpcUrl =
-    readEnv("WARDLINE_NEAR_RPC_URL", process.env) ??
-    readEnv("NEAR_RPC_URL", process.env) ??
-    "https://rpc.testnet.near.org";
-  const meterContract =
-    readEnv("WARDLINE_METER_CONTRACT", process.env) ?? "meter.wardline.testnet";
-  const registryContract =
-    readEnv("WARDLINE_MODEL_REGISTRY_CONTRACT", process.env) ??
-    "models.wardline.testnet";
-  const poolContract =
-    readEnv("WARDLINE_COVER_POOL_CONTRACT", process.env) ??
-    "mutual.wardline.testnet";
+  const ids = repoNear().contracts;
+  const rpcUrl = readEnv("WARDLINE_NEAR_RPC_URL", process.env) ?? readEnv("NEAR_RPC_URL", process.env) ?? "https://test.rpc.fastnear.com";
+  const meterContract = readEnv("WARDLINE_METER_CONTRACT", process.env) ?? ids.meter;
+  const registryContract = readEnv("WARDLINE_MODEL_REGISTRY_CONTRACT", process.env) ?? ids.modelRegistry;
+  const poolContract = readEnv("WARDLINE_COVER_POOL_CONTRACT", process.env) ?? ids.coverPool;
 
   const provider = makeProvider(rpcUrl);
 
@@ -122,5 +192,23 @@ export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = de
     signer,
   });
 
-  return { mode: "near", meter, registry, pool: nearPool };
+  // Until T4.6: voting weights come from a simulated WARD ledger, and tiers from a simulated record
+  // of the meter's budgets. Both report mode "sim" so the UI can say so.
+  const shadow = new SimPool(seed.pool, now);
+  const mutual = createSimMutual({ budgets: [], pool: shadow, registry: null, now });
+  return { mode: "near", meter, registry, pool: nearPool, reputation: new MeterBackedReputation(mutual.reputation, meter), governance: mutual.governance };
+}
+
+/** The numbers on the Mutual home page. */
+export async function mutualStats(chain: Chain) {
+  const [pool, claims, groups] = await Promise.all([chain.pool.getPool(), chain.pool.listClaims(), chain.reputation.listReputations()]);
+  return {
+    total_pooled: pool.tvl,
+    ward_price: pool.ward_price,
+    launch_price: pool.launch_price,
+    yield_earned: pool.fees_earned,
+    groups_covered: groups.length,
+    proven_payments: groups.reduce((n, g) => n + g.proven_calls, 0),
+    payouts: claims.filter((c) => c.status === "paid").length,
+  };
 }

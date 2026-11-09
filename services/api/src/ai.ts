@@ -4,7 +4,7 @@ import type Database from "better-sqlite3";
 import { buildProposal, createSimDao, createSputnikClient, type DaoClient, type WardlineContracts } from "@wardline/dao-adapter";
 import { SIM_MODEL } from "@wardline/demo-provider";
 import { readEnv, usdcAccount } from "@wardline/schemas";
-import { chainModeFromEnv, createChain, GROUP_BUDGET, GROUP_DAO, type Chain } from "./chain/index.js";
+import { chainModeFromEnv, createChain, GROUP_BUDGET, GROUP_DAO, liveSimSeed, repoNear, type Chain } from "./chain/index.js";
 import type { GatewayOptions } from "./meter/gateway.js";
 import { routesFromEnv, type RouteTable } from "./meter/models.js";
 import { MeterStore } from "./meter/store.js";
@@ -30,13 +30,15 @@ export interface AiOverrides {
   env?: Record<string, string | undefined>;
 }
 
+/** Contract ids: env first, then the testnet deployment in repo.config.json. */
 export function contractsFromEnv(env: Record<string, string | undefined>): WardlineContracts {
+  const ids = repoNear().contracts;
   return {
-    meter: readEnv("WARDLINE_METER_CONTRACT", env) ?? "meter.wardline.testnet",
-    registry: readEnv("WARDLINE_MODEL_REGISTRY_CONTRACT", env) ?? "models.wardline.testnet",
-    pool: readEnv("WARDLINE_COVER_POOL_CONTRACT", env) ?? "mutual.wardline.testnet",
+    meter: readEnv("WARDLINE_METER_CONTRACT", env) ?? ids.meter,
+    registry: readEnv("WARDLINE_MODEL_REGISTRY_CONTRACT", env) ?? ids.modelRegistry,
+    pool: readEnv("WARDLINE_COVER_POOL_CONTRACT", env) ?? ids.coverPool,
     token: usdcAccount(env),
-    vault: readEnv("WARDLINE_GROUP_VAULT", env) ?? "vault-a.wardline.testnet",
+    vault: readEnv("WARDLINE_GROUP_VAULT", env) ?? ids.vault,
   };
 }
 
@@ -86,7 +88,7 @@ export function createAiDeps(db: Database.Database, now: Clock, overrides: AiOve
       ? simGroupDao(nowDate(), contracts)
       : createSputnikClient({ dao: readEnv("WARDLINE_DAO_ACCOUNT", env) ?? GROUP_DAO, contracts, rpcUrl: env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com" }));
   return {
-    chain: overrides.chain ?? createChain(mode, nowDate),
+    chain: overrides.chain ?? createChain(mode, nowDate, liveSimSeed()),
     meter,
     routes: overrides.routes ?? aiRoutesFromEnv(env, mode === "sim"),
     ...(overrides.fetch ? { fetch: overrides.fetch } : {}),
