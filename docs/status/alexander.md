@@ -1,5 +1,95 @@
 # Status: alexander
 
+## Horizon: the web app redesign (2026-11-09)
+
+Before starting, main had Tharun's T4.6 (43ed86d), and alexander was fast-forwarded to it. The redesign changes the look, not the behavior: every route, API call, wallet flow and test stays. contracts/, services/attestor and the API's verification and settlement logic are untouched.
+
+### What changed
+
+- **One mark, one generator.**
+  - `apps/web/src/brand/horizon.ts` holds `horizonDots` exactly as specified. It also has the seeded group light and the FNV-1a/xorshift fingerprint.
+  - It feeds `<HorizonMark>`, the lockup, the animated hero, the group horizons and `scripts/brand/generate-assets.ts`.
+- **Assets** (`pnpm brand:assets`, committed) all go into `apps/web/public`:
+  - `favicon.svg`, `favicon.ico` (16, 32, 48) and `favicon-32.png`;
+  - `apple-touch-icon.png`, `icon-192.png` and `icon-512.png`;
+  - `site.webmanifest` and `og-image.png`;
+  - `brand/wardline-mark{,-ink}.svg` and `brand/wardline-lockup{,-ink}.svg`.
+
+  `index.html` links the icons, touch icon and manifest, sets `theme-color` and carries `og:image` (absolute, from `repo.config.json` `hosted.web`) and `twitter:card`. I looked at each PNG. The 16px favicon still shows a sphere cut by a dark line; for it I used a coarser step (16) and a slightly larger sphere.
+- **Tokens.**
+  - `tokens.css` is replaced with the Horizon palette.
+  - The four theme files are rewritten on it, and every class the components use is restyled.
+  - Red is used only below the line. There are no pills, gradients or emoji.
+- **Type.**
+  - Geist is self-hosted as one variable woff2 (300 to 800), vendored from the official `geist` package (OFL in `public/fonts/OFL-Geist.txt`).
+  - **Geist Mono is not shipped.** Its zero is slashed: I rendered it and checked its OpenType features, and it has no plain-zero feature. Account ids, hashes and code all contain digits, so they use Geist with tabular figures.
+  - The old Spline Sans Mono ("Wardline Mono") files and the Google Fonts link are gone.
+- **The hero** (`components/HeroHorizon.tsx`) follows the spec:
+  - the line draws first and crosses the whole hero;
+  - then the dots assemble outward from the line;
+  - then the light drifts, updating `r` through refs in a requestAnimationFrame loop throttled to about 20fps;
+  - the drift pauses while the tab is hidden or the hero is off screen;
+  - under reduced motion the sphere is static;
+  - there is no mouse listener.
+- **Pages.**
+  - **Mutual home:** the hero, the stats strip, "Every payment lands on one side of the line." as two joined panels with real counts, the light "Hold a share" section with the dark member card, governance as vote rows, the safest groups, and the footer call to action.
+  - **Groups:** "One shared AI budget for your crew.", tier cards, group cards with their own horizon, and four steps to start a group.
+  - **Proof engine:** "Nothing crosses the line without proof.", the snippet, Reserve, Forward, Prove, Settle, the latest proofs table with fingerprints and the side of the line, and the red-team results.
+  - **Demo:** "Seven scenes, real code paths", with a scene list and a stage card. The stage runs the real `/v1/demo` endpoint, shows a spinner with what it is doing, then the verdict (white, red or violet) and the rows one by one, then "Next scene".
+  - **Join the Mutual:** a modal dialog (focus trapped, Escape closes, focus returns to the opener) with quick picks, "You receive X WARD", "Our stake in front of yours", a wallet approval state, "You received X WARD" and "Go to my share". The same wallet-signed challenge runs underneath.
+  - **Connect wallet** in the header: the account and wallet are chosen once, for the tab. Joining, the member card and voting all use it.
+  - **Owner app:** the same header and tokens, plus a new My share tab (`#/app/share`) with a value card, the WARD price chart (dashed 1.0000 launch line, light above and red below via clip paths, violet dot on the latest price), where the share came from, and the vote panel. Every other tab still works.
+  - Connect, Verify, About and Try it are restyled.
+- **API, read-only additions only.**
+  - `/v1/mutual` `stats.below`: swapped (refused proofs), look-alike (blocked payees plus flagged payouts awaiting a vote) and capped (reservations stopped at an allowance or deposit, now counted per group).
+  - `GET /v1/proofs`: the latest calls with group, outcome, amount and side of the line. It returns no members, keys or content.
+- **Cleanup.**
+  - The old sphere, its dot data, `TextLink`, `Button`, `design/wardline-reference.html`, the paper mark and the old fonts are deleted.
+  - `docs/BRAND.md` is rewritten: mark, tokens, type, the red rule and the animation spec.
+  - Geist, `@resvg/resvg-js` (MPL-2.0, dev only) and `png-to-ico` are added to `docs/DISCLOSURES.md` and the README's library list.
+  - The brand guard now also fails on any old palette hex or pre-Horizon font name in `apps/web/src`.
+
+### Tests
+
+- `pnpm test`: the brand guard passes 7 checks, including the new palette and font check, and 777 package tests pass:
+  - 202 in `services/api`, covering the below-the-line counts, capped calls and `/v1/proofs`;
+  - 73 in `apps/web`, covering the Horizon generator, fingerprints, seeded lights and the Geist-only rule.
+- `pnpm test:e2e`: 32 of 32 pass. Coverage:
+  - favicon, manifest and social links in index.html;
+  - the home page with real counts;
+  - a static hero under reduced motion, plus the cut, assembly and drift otherwise;
+  - no mousemove listeners;
+  - Try it;
+  - all seven demo scenes against the real endpoints, and Next scene;
+  - Join the Mutual: quick picks, Escape and focus return, the wallet deposit, the member card and the 7-day redemption;
+  - the governance vote and execute-once;
+  - Groups and the Proof engine;
+  - Connect, Verify and About;
+  - axe and no horizontal scroll at 390px on every public page;
+  - the owner app, including My share and the owner Group tier.
+
+### Screenshots
+
+In `apps/web/screenshots/` (gitignored, regenerate with `pnpm --filter @wardline/web screenshots`), each at desktop 1440 and 390px:
+
+| Shot | Files |
+| --- | --- |
+| Home, after the animation settles | `home-desktop.png`, `home-390.png` |
+| Groups | `groups-desktop.png`, `groups-390.png` |
+| Proof engine | `proof-desktop.png`, `proof-390.png` |
+| Demo after running scene 3 | `demo-desktop.png`, `demo-390.png` |
+| Join dialog | `join-desktop.png`, `join-390.png` |
+| My share | `my-share-desktop.png`, `my-share-390.png` |
+
+I looked at each one and fixed what was off, then shot them again:
+- the headline running into the sphere at 1440;
+- governance numbers wrapping into stacks;
+- the header wrapping at 390;
+- the leaderboard squeezing at 390;
+- the "Verify your business" link misaligned;
+- the footer links on mobile;
+- the demo stage stuck on "busy" (a StrictMode ref bug).
+
 ## A credit union for the AI economy (2026-11-09)
 
 ### Step 0: Tharun's T4.5 merged into main
