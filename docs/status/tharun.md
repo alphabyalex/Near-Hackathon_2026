@@ -29,6 +29,10 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | DAO Governance Spec | `docs/DAO.md` | Done, Sputnik v2 proposal mappings and methods |
 | Live Sandbox Meter and Pool Tests | `tests/sandbox/test/chain-meter-pool.test.ts` | Done, 20/20 tests passing on live sandbox |
 | Testnet Deployment Prep | `scripts/contracts/src/deploy-wardline-chain.ts` | Done, automated deployment and manifest generator |
+| Cover Fee Settlement (`fees_earned`) | `contracts/meter`, `contracts/cover-pool` | Done, `ft_transfer_call` with `{"fee":true}` increments `senior` and `fees_earned` |
+| On-Chain Reputation Tiers | `contracts/meter` | Done, `get_reputation`, `list_reputations`, `record_claim`, Bronze/Silver/Gold progression |
+| WARD-Holder Governance | `contracts/cover-pool` | Done, `propose`, `vote`, `execute`, snapshot weights, 20% quorum, execute-once |
+| Typed Client Extensions | `packages/vault-client` | Done, typed reputation and governance methods on NearMeterClient and NearCoverPoolClient |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
 
@@ -39,18 +43,21 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | Restricted key moves REDL in sandbox, a forbidden request does not | Nov 4 | **Met** on Nov 5, one day late |
 | Reservations, replay, concurrency, known-failure accounting | Nov 8 | **Met** |
 | Testnet deployment with two vaults and a manifest | Nov 9 | **Met.** See below |
+| T4.5 USDC Movement & Deployment | Nov 11 | **Met** |
+| T4.6 Reputation Tiers & WARD Governance | Nov 12 | **Met** |
 
 ### Test results, last full run on the deployed wasm
 
 | Suite | Result |
 | --- | --- |
-| Rust unit tests (`cargo test --workspace`) | 64 passed across all 8 contract crates (38 vault, 5 payee-registry, 4 meter, 2 model-registry, 4 cover-pool, 10 evidence, 1 mock-token) |
+| Rust unit tests (`cargo test --workspace`) | 68 passed across all 8 contract crates (38 vault, 5 payee-registry, 5 meter, 5 cover-pool, 2 model-registry, 10 evidence, 1 mock-token, 2 test-proxy) |
 | `packages/vault-sim` | 50 passed |
 | `packages/vault-client` | 12 passed |
 | `tests/sandbox/test/chain-meter-pool.test.ts` | 20 passed |
 | `tests/sandbox/test/v2-endpoint-release.test.ts` | 11 passed |
 | `tests/sandbox`, on a real local node | All suites pass |
-| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass (754+ unit and integration tests) |
+| Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass (773+ unit and integration tests) |
+| Playwright E2E Suite (`pnpm test:e2e`) | 29 passed (100% pass rate, axe WCAG AA accessibility verified) |
 
 Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
 

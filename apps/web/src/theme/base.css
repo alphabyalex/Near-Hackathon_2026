@@ -158,9 +158,9 @@ section{border-bottom:1px solid var(--rule)}
 .strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);margin-bottom:28px}
 .strip>div{padding:18px 20px 20px 0;min-width:0}
 .strip>div+div{padding-left:20px;border-left:1px solid var(--rule)}
-.strip .l{font-size:13px;color:var(--muted)}
+.strip .l{font-size:13px;color:var(--ink-2)}
 .strip .v{font-size:28px;font-weight:500;letter-spacing:-0.03em;margin-top:6px}
-.strip .s{font:12px/1.3 var(--mono);color:var(--muted);margin-top:4px}
+.strip .s{font:12px/1.3 var(--mono);color:var(--ink-2);margin-top:4px}
 .pause{font:500 13px/1 var(--sans);padding:11px 14px;border-radius:0;border:1px solid var(--red-ink);background:transparent;color:var(--red-ink);cursor:pointer}
 .pause:hover{background:var(--red-ink);color:var(--paper)}
 .paused .live i{background:var(--red);animation:none}

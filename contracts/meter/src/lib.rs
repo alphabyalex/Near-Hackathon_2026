@@ -8,6 +8,7 @@ use near_sdk::{
 pub mod events;
 
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(20);
+const GAS_FT_TRANSFER_CALL: Gas = Gas::from_tgas(40);
 const GAS_CALLBACK: Gas = Gas::from_tgas(25);
 
 #[ext_contract(ext_ft)]
@@ -103,6 +104,82 @@ pub struct BudgetView {
     pub members: Vec<MemberView>,
 }
 
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReputationView {
+    pub budget_id: String,
+    pub name: String,
+    pub owner: AccountId,
+    pub tier: String,
+    pub proven_calls: u32,
+    pub refused_calls: u32,
+    pub claims: u32,
+    pub clean_calls: u32,
+    pub next_tier_at: Option<u32>,
+    pub fee_bps: u32,
+    pub coverage_cap: String,
+    pub spent: String,
+    pub fees_paid: String,
+}
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug)]
+pub struct StoredReputation {
+    pub tier_idx: u8,
+    pub proven_calls: u32,
+    pub refused_calls: u32,
+    pub claims: u32,
+    pub clean_calls: u32,
+    pub spent: u128,
+    pub fees_paid: u128,
+}
+
+impl StoredReputation {
+    pub fn default() -> Self {
+        Self {
+            tier_idx: 0,
+            proven_calls: 0,
+            refused_calls: 0,
+            claims: 0,
+            clean_calls: 0,
+            spent: 0,
+            fees_paid: 0,
+        }
+    }
+
+    pub fn tier_name(&self) -> &'static str {
+        match self.tier_idx {
+            0 => "bronze",
+            1 => "silver",
+            _ => "gold",
+        }
+    }
+
+    pub fn fee_bps(&self) -> u32 {
+        match self.tier_idx {
+            0 => 200,
+            1 => 150,
+            _ => 100,
+        }
+    }
+
+    pub fn coverage_cap(&self) -> U128 {
+        match self.tier_idx {
+            0 => U128(25_000_000),
+            1 => U128(50_000_000),
+            _ => U128(100_000_000),
+        }
+    }
+
+    pub fn next_tier_at(&self) -> Option<u32> {
+        match self.tier_idx {
+            0 => Some(10),
+            1 => Some(25),
+            _ => None,
+        }
+    }
+}
+
 #[near(serializers = [json])]
 #[derive(Clone, Debug)]
 pub struct MemberInput {
@@ -195,6 +272,7 @@ pub enum StorageKey {
     Reservations,
     SettledChats,
     AttestedCache,
+    Reputations,
 }
 
 #[near(contract_state)]
@@ -209,6 +287,7 @@ pub struct MeterContract {
     reservations: IterableMap<String, StoredReservation>,
     settled_chats: LookupSet<String>,
     attested_cache: IterableMap<String, String>,
+    reputations: IterableMap<String, StoredReputation>,
 }
 
 #[near]
@@ -232,6 +311,7 @@ impl MeterContract {
             reservations: IterableMap::new(StorageKey::Reservations),
             settled_chats: LookupSet::new(StorageKey::SettledChats),
             attested_cache: IterableMap::new(StorageKey::AttestedCache),
+            reputations: IterableMap::new(StorageKey::Reputations),
         };
 
         // Seed default model signers for self-contained verification
@@ -257,6 +337,40 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         }
     }
 }
+
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        #[near(serializers = [borsh])]
+        struct OldMeterContract {
+            owner: AccountId,
+            token_contract: AccountId,
+            registry_contract: AccountId,
+            pool_contract: AccountId,
+            cover_fee_bps: u64,
+            budgets: IterableMap<String, StoredBudget>,
+            reservations: IterableMap<String, StoredReservation>,
+            settled_chats: LookupSet<String>,
+            attested_cache: IterableMap<String, String>,
+        }
+
+        if let Some(old) = env::state_read::<OldMeterContract>() {
+            Self {
+                owner: old.owner,
+                token_contract: old.token_contract,
+                registry_contract: old.registry_contract,
+                pool_contract: old.pool_contract,
+                cover_fee_bps: old.cover_fee_bps,
+                budgets: old.budgets,
+                reservations: old.reservations,
+                settled_chats: old.settled_chats,
+                attested_cache: old.attested_cache,
+                reputations: IterableMap::new(StorageKey::Reputations),
+            }
+        } else {
+            env::state_read::<Self>().expect("Failed to deserialize state")
+        }
+    }
 
     pub fn create_budget(
         &mut self,
@@ -547,10 +661,15 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             });
         }
 
-        if let Some(recipient) = pay_to {
-            let cover_fee = (amount.0 * self.cover_fee_bps as u128) / 10_000;
-            let provider_payout = amount.0.saturating_sub(cover_fee);
+        let fee_bps = self
+            .reputations
+            .get(&reservation.budget_id)
+            .map(|r| r.fee_bps())
+            .unwrap_or(self.cover_fee_bps as u32);
+        let cover_fee = (amount.0 * fee_bps as u128) / 10_000;
+        let provider_payout = amount.0.saturating_sub(cover_fee);
 
+        if let Some(recipient) = pay_to {
             let provider_promise = ext_ft::ext(self.token_contract.clone())
                 .with_attached_deposit(NearToken::from_yoctonear(1))
                 .with_static_gas(GAS_FT_TRANSFER)
@@ -563,11 +682,12 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             let combined_promise = if cover_fee > 0 {
                 let fee_promise = ext_ft::ext(self.token_contract.clone())
                     .with_attached_deposit(NearToken::from_yoctonear(1))
-                    .with_static_gas(GAS_FT_TRANSFER)
-                    .ft_transfer(
+                    .with_static_gas(GAS_FT_TRANSFER_CALL)
+                    .ft_transfer_call(
                         self.pool_contract.clone(),
                         U128(cover_fee),
                         Some("Coverage fee".to_string()),
+                        "{\"fee\":true}".to_string(),
                     );
                 provider_promise.and(fee_promise)
             } else {
@@ -601,6 +721,25 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                     member.used = member.used.saturating_add(amount.0);
                 }
             }
+
+            // Update reputation in-state
+            let mut rep = self
+                .reputations
+                .get(&reservation.budget_id)
+                .cloned()
+                .unwrap_or_else(StoredReputation::default);
+            rep.proven_calls = rep.proven_calls.saturating_add(1);
+            rep.clean_calls = rep.clean_calls.saturating_add(1);
+            rep.spent = rep.spent.saturating_add(amount.0);
+            rep.fees_paid = rep.fees_paid.saturating_add(cover_fee);
+            if rep.tier_idx == 0 && rep.clean_calls >= 10 {
+                rep.tier_idx = 1;
+                rep.clean_calls = 0;
+            } else if rep.tier_idx == 1 && rep.clean_calls >= 25 {
+                rep.tier_idx = 2;
+                rep.clean_calls = 0;
+            }
+            self.reputations.insert(reservation.budget_id.clone(), rep);
 
             let tx = format!("{}:{}", env::current_account_id(), call_id);
             events::call_settled(
@@ -672,6 +811,32 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             }
         }
 
+        // Update reputation
+        let fee_bps = self
+            .reputations
+            .get(&reservation.budget_id)
+            .map(|r| r.fee_bps())
+            .unwrap_or(self.cover_fee_bps as u32);
+        let cover_fee = (amount.0 * fee_bps as u128) / 10_000;
+
+        let mut rep = self
+            .reputations
+            .get(&reservation.budget_id)
+            .cloned()
+            .unwrap_or_else(StoredReputation::default);
+        rep.proven_calls = rep.proven_calls.saturating_add(1);
+        rep.clean_calls = rep.clean_calls.saturating_add(1);
+        rep.spent = rep.spent.saturating_add(amount.0);
+        rep.fees_paid = rep.fees_paid.saturating_add(cover_fee);
+        if rep.tier_idx == 0 && rep.clean_calls >= 10 {
+            rep.tier_idx = 1;
+            rep.clean_calls = 0;
+        } else if rep.tier_idx == 1 && rep.clean_calls >= 25 {
+            rep.tier_idx = 2;
+            rep.clean_calls = 0;
+        }
+        self.reputations.insert(reservation.budget_id.clone(), rep);
+
         let tx = format!("{}:{}", env::current_account_id(), call_id);
         events::call_settled(
             &call_id,
@@ -709,6 +874,14 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             }
         }
 
+        let mut rep = self
+            .reputations
+            .get(&reservation.budget_id)
+            .cloned()
+            .unwrap_or_else(StoredReputation::default);
+        rep.refused_calls = rep.refused_calls.saturating_add(1);
+        self.reputations.insert(reservation.budget_id.clone(), rep);
+
         let refund = reservation.amount;
         let tx = format!("{}:{}", env::current_account_id(), call_id);
         events::call_released(&call_id, &reason, &refund.to_string());
@@ -717,6 +890,55 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             tx,
             refund: U128(refund),
         }
+    }
+
+    pub fn record_claim(&mut self, budget_id: String) {
+        require!(
+            env::predecessor_account_id() == self.owner || env::predecessor_account_id() == self.pool_contract,
+            "Unauthorized caller"
+        );
+        let mut rep = self
+            .reputations
+            .get(&budget_id)
+            .cloned()
+            .unwrap_or_else(StoredReputation::default);
+        rep.claims = rep.claims.saturating_add(1);
+        if rep.tier_idx > 0 {
+            rep.tier_idx -= 1;
+        }
+        rep.clean_calls = 0;
+        self.reputations.insert(budget_id, rep);
+    }
+
+    pub fn get_reputation(&self, budget_id: String) -> Option<ReputationView> {
+        let budget = self.budgets.get(&budget_id)?;
+        let rep = self
+            .reputations
+            .get(&budget_id)
+            .cloned()
+            .unwrap_or_else(StoredReputation::default);
+        Some(ReputationView {
+            budget_id: budget_id.clone(),
+            name: budget.name.clone(),
+            owner: budget.owner.clone(),
+            tier: rep.tier_name().to_string(),
+            proven_calls: rep.proven_calls,
+            refused_calls: rep.refused_calls,
+            claims: rep.claims,
+            clean_calls: rep.clean_calls,
+            next_tier_at: rep.next_tier_at(),
+            fee_bps: rep.fee_bps(),
+            coverage_cap: rep.coverage_cap().0.to_string(),
+            spent: rep.spent.to_string(),
+            fees_paid: rep.fees_paid.to_string(),
+        })
+    }
+
+    pub fn list_reputations(&self) -> Vec<ReputationView> {
+        self.budgets
+            .keys()
+            .filter_map(|bid| self.get_reputation(bid.clone()))
+            .collect()
     }
 
     pub fn ft_on_transfer(
@@ -1038,5 +1260,108 @@ mod tests {
 
         let b = meter.get_budget("bgt_ft".to_string()).unwrap();
         assert_eq!(b.deposit, U128(15_000_000));
+    }
+
+    #[test]
+    fn test_reputation_progression_and_claim() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut meter = MeterContract::new(
+            owner.clone(),
+            "token.testnet".parse().unwrap(),
+            "registry.testnet".parse().unwrap(),
+            "pool.testnet".parse().unwrap(),
+            Some(200),
+        );
+
+        meter.create_budget(
+            "bgt_rep".to_string(),
+            "Reputation House".to_string(),
+            owner.clone(),
+            U128(100_000_000),
+            "week".to_string(),
+            vec![MemberInput {
+                member: "agent.testnet".to_string(),
+                allowance: U128(100_000_000),
+            }],
+        );
+
+        // 1. Initial reputation is Bronze
+        let rep = meter.get_reputation("bgt_rep".to_string()).unwrap();
+        assert_eq!(rep.tier, "bronze");
+        assert_eq!(rep.fee_bps, 200);
+        assert_eq!(rep.coverage_cap, "25000000");
+        assert_eq!(rep.next_tier_at, Some(10));
+        assert_eq!(rep.clean_calls, 0);
+
+        // 2. Perform 10 settlements to promote from Bronze to Silver
+        for i in 0..10 {
+            let call_id = format!("call_{}", i);
+            let res = meter.reserve(
+                "bgt_rep".to_string(),
+                "agent.testnet".to_string(),
+                call_id.clone(),
+                "deepseek-ai/DeepSeek-V4.1-Flash-1017".to_string(),
+                U128(1_000),
+            );
+            assert!(res.ok);
+
+            let proof = SettlementProof {
+                model_id: "deepseek-ai/DeepSeek-V4.1-Flash-1017".to_string(),
+                request_hash: "ce6c1665d87a3a276478aac4111c299e3e35a220cda09647310b708390b6b66c".to_string(),
+                response_hash: "2f3005787eeb988e39090f62298cda16aa43971208c4eeb40fc6109af9a8cdb9".to_string(),
+                text: "deepseek-ai/DeepSeek-V4.1-Flash-1017:ce6c1665d87a3a276478aac4111c299e3e35a220cda09647310b708390b6b66c:2f3005787eeb988e39090f62298cda16aa43971208c4eeb40fc6109af9a8cdb9".to_string(),
+                signature: "0xa3486136dcb0e7592a5aacef44edb867648ed75ac98e8b3e4621468a68795dc564e006f5aa2d192530c6a87437e76c0a1ce45fdc8c8edd576c84bc94da717e641c".to_string(),
+                signing_address: "0xfe0071895500a9755c18044948ab4f4e1a7f337e".to_string(),
+                chat_id: format!("chat_rep_{}", i),
+            };
+
+            let s = meter.settle(call_id, U128(500), proof, None);
+            match s {
+                PromiseOrValue::Value(res) => assert!(res.ok),
+                _ => panic!("Expected Value in in-state settlement"),
+            }
+        }
+
+        // Now should be Silver
+        let rep_silver = meter.get_reputation("bgt_rep".to_string()).unwrap();
+        assert_eq!(rep_silver.tier, "silver");
+        assert_eq!(rep_silver.fee_bps, 150);
+        assert_eq!(rep_silver.coverage_cap, "50000000");
+        assert_eq!(rep_silver.next_tier_at, Some(25));
+        assert_eq!(rep_silver.proven_calls, 10);
+        assert_eq!(rep_silver.clean_calls, 0);
+
+        // 3. Claim moves it back down to Bronze
+        meter.record_claim("bgt_rep".to_string());
+        let rep_demoted = meter.get_reputation("bgt_rep".to_string()).unwrap();
+        assert_eq!(rep_demoted.tier, "bronze");
+        assert_eq!(rep_demoted.fee_bps, 200);
+        assert_eq!(rep_demoted.claims, 1);
+        assert_eq!(rep_demoted.clean_calls, 0);
+
+        // 4. Release records refused call without demoting
+        let res_ref = meter.reserve(
+            "bgt_rep".to_string(),
+            "agent.testnet".to_string(),
+            "call_refused".to_string(),
+            "deepseek-ai/DeepSeek-V4.1-Flash-1017".to_string(),
+            U128(1_000),
+        );
+        assert!(res_ref.ok);
+        meter.release("call_refused".to_string(), "provider_timeout".to_string());
+
+        let rep_after_refuse = meter.get_reputation("bgt_rep".to_string()).unwrap();
+        assert_eq!(rep_after_refuse.refused_calls, 1);
+        assert_eq!(rep_after_refuse.tier, "bronze");
+
+        let reps = meter.list_reputations();
+        assert_eq!(reps.len(), 1);
+        assert_eq!(reps[0].budget_id, "bgt_rep");
     }
 }

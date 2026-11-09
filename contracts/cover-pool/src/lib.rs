@@ -170,11 +170,72 @@ struct StoredWithdrawal {
     requested_at_ns: u64,
 }
 
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[serde(tag = "type")]
+pub enum MutualAction {
+    #[serde(rename = "set_fee_bps")]
+    SetFeeBps { tier: String, fee_bps: u32 },
+    #[serde(rename = "set_coverage_multiplier")]
+    SetCoverageMultiplier { multiplier_bps: u32 },
+    #[serde(rename = "cover_model")]
+    CoverModel { model_id: String, signing_address: String },
+    #[serde(rename = "uncover_model")]
+    UncoverModel { model_id: String },
+    #[serde(rename = "approve_payout")]
+    ApprovePayout { claim_id: String },
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MutualProposalView {
+    pub id: u32,
+    pub proposer: AccountId,
+    pub description: String,
+    pub action: MutualAction,
+    pub snapshot_at: String,
+    pub snapshot_supply: String,
+    pub votes_for: String,
+    pub votes_against: String,
+    pub voters: u32,
+    pub quorum: String,
+    pub opens_at: String,
+    pub closes_at: String,
+    pub status: String,
+    pub executed_at: Option<String>,
+    pub tx: Option<String>,
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GovernanceParamsView {
+    pub quorum_bps: u32,
+    pub voting_days: u32,
+}
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug)]
+pub struct StoredProposal {
+    pub id: u32,
+    pub proposer: AccountId,
+    pub description: String,
+    pub action: MutualAction,
+    pub snapshot_supply: u128,
+    pub votes_for: u128,
+    pub votes_against: u128,
+    pub voters: u32,
+    pub opens_at_ns: u64,
+    pub closes_at_ns: u64,
+    pub executed_at_ns: Option<u64>,
+}
+
 #[near]
 #[derive(BorshStorageKey)]
 pub enum StorageKey {
     Positions,
     Withdrawals,
+    Proposals,
+    ProposalVotes,
 }
 
 #[near(contract_state)]
@@ -196,6 +257,8 @@ pub struct CoverPoolContract {
     withdrawals: IterableMap<String, StoredWithdrawal>,
     claims: Vec<ClaimView>,
     price_history: Vec<WardPricePoint>,
+    proposals: IterableMap<u32, StoredProposal>,
+    proposal_votes: IterableMap<(u32, AccountId), String>,
 }
 
 #[near]
@@ -236,6 +299,57 @@ impl CoverPoolContract {
             withdrawals: IterableMap::new(StorageKey::Withdrawals),
             claims: Vec::new(),
             price_history: initial_history,
+            proposals: IterableMap::new(StorageKey::Proposals),
+            proposal_votes: IterableMap::new(StorageKey::ProposalVotes),
+        }
+    }
+
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        #[near(serializers = [borsh])]
+        struct OldCoverPoolContract {
+            owner: AccountId,
+            token_contract: AccountId,
+            junior_holder: AccountId,
+            junior: u128,
+            senior: u128,
+            senior_shares: u128,
+            fees_earned: u128,
+            claims_paid: u128,
+            withdraw_delay_days: u32,
+            large_claim_threshold: u128,
+            max_claim_bps: u64,
+            trade_url: Option<String>,
+            positions: IterableMap<AccountId, u128>,
+            withdrawals: IterableMap<String, StoredWithdrawal>,
+            claims: Vec<ClaimView>,
+            price_history: Vec<WardPricePoint>,
+        }
+
+        if let Some(old) = env::state_read::<OldCoverPoolContract>() {
+            Self {
+                owner: old.owner,
+                token_contract: old.token_contract,
+                junior_holder: old.junior_holder,
+                junior: old.junior,
+                senior: old.senior,
+                senior_shares: old.senior_shares,
+                fees_earned: old.fees_earned,
+                claims_paid: old.claims_paid,
+                withdraw_delay_days: old.withdraw_delay_days,
+                large_claim_threshold: old.large_claim_threshold,
+                max_claim_bps: old.max_claim_bps,
+                trade_url: old.trade_url,
+                positions: old.positions,
+                withdrawals: old.withdrawals,
+                claims: old.claims,
+                price_history: old.price_history,
+                proposals: IterableMap::new(StorageKey::Proposals),
+                proposal_votes: IterableMap::new(StorageKey::ProposalVotes),
+            }
+        } else {
+            env::state_read::<Self>().expect("Failed to deserialize state")
         }
     }
 
@@ -481,6 +595,7 @@ impl CoverPoolContract {
             self.fees_earned = self.fees_earned.saturating_add(amount.0);
             let now_ns = env::block_timestamp();
             self.mark("fees", now_ns);
+            events::fees_added(&amount.0.to_string(), &self.fees_earned.to_string());
             return PromiseOrValue::Value(U128(0));
         }
 
@@ -843,6 +958,180 @@ impl CoverPoolContract {
         self.mark("fees", now_ns);
         events::fees_added(&amount.0.to_string(), &self.fees_earned.to_string());
     }
+
+    // WARD-holder Governance
+    pub fn propose(&mut self, description: String, action: MutualAction) -> u32 {
+        let proposer = env::predecessor_account_id();
+        let balance = self.positions.get(&proposer).copied().unwrap_or(0);
+        require!(
+            balance > 0 || proposer == self.owner,
+            "Only WARD holders can propose. Deposit USDC to get WARD first."
+        );
+        let trimmed = description.trim();
+        require!(
+            trimmed.len() >= 4 && trimmed.len() <= 200,
+            "Describe the proposal in 4 to 200 characters."
+        );
+
+        let id = self.proposals.len() as u32;
+        let now_ns = env::block_timestamp();
+        let voting_days_ns = 3 * 24 * 60 * 60 * 1_000_000_000;
+        let closes_at_ns = now_ns.saturating_add(voting_days_ns);
+
+        let proposal = StoredProposal {
+            id,
+            proposer,
+            description: trimmed.to_string(),
+            action,
+            snapshot_supply: self.senior_shares,
+            votes_for: 0,
+            votes_against: 0,
+            voters: 0,
+            opens_at_ns: now_ns,
+            closes_at_ns,
+            executed_at_ns: None,
+        };
+        self.proposals.insert(id, proposal);
+        id
+    }
+
+    pub fn vote(&mut self, id: u32, support: String) {
+        let voter = env::predecessor_account_id();
+        let key = (id, voter.clone());
+        require!(
+            !self.proposal_votes.contains_key(&key),
+            "Already voted on this proposal"
+        );
+        let mut p = self.proposals.get(&id).cloned().expect("No proposal found");
+        require!(
+            p.executed_at_ns.is_none(),
+            "Proposal was already executed"
+        );
+        let now_ns = env::block_timestamp();
+        require!(
+            now_ns < p.closes_at_ns,
+            "Voting window has closed"
+        );
+
+        let weight = self.positions.get(&voter).copied().unwrap_or(0);
+        require!(weight > 0, "No voting weight: zero WARD balance");
+
+        if support == "for" {
+            p.votes_for = p.votes_for.saturating_add(weight);
+        } else if support == "against" {
+            p.votes_against = p.votes_against.saturating_add(weight);
+        } else {
+            env::panic_str("Vote support must be 'for' or 'against'");
+        }
+        p.voters = p.voters.saturating_add(1);
+
+        self.proposal_votes.insert(key, support);
+        self.proposals.insert(id, p);
+    }
+
+    fn proposal_status(&self, p: &StoredProposal) -> &'static str {
+        if p.executed_at_ns.is_some() {
+            return "executed";
+        }
+        if p.votes_for.saturating_mul(2) > p.snapshot_supply {
+            return "passed";
+        }
+        if p.votes_against.saturating_mul(2) >= p.snapshot_supply && p.snapshot_supply > 0 {
+            return "rejected";
+        }
+        let now_ns = env::block_timestamp();
+        if now_ns < p.closes_at_ns {
+            return "open";
+        }
+        let quorum = (p.snapshot_supply * 2000) / 10_000;
+        let total_votes = p.votes_for.saturating_add(p.votes_against);
+        if total_votes >= quorum && p.votes_for > p.votes_against {
+            "passed"
+        } else {
+            "rejected"
+        }
+    }
+
+    pub fn execute(&mut self, id: u32) -> MutualProposalView {
+        let mut p = self.proposals.get(&id).cloned().expect("No proposal found");
+        let status = self.proposal_status(&p);
+        require!(
+            status == "passed",
+            "Proposal has not passed"
+        );
+        require!(
+            p.executed_at_ns.is_none(),
+            "Proposal was already executed"
+        );
+
+        let now_ns = env::block_timestamp();
+        p.executed_at_ns = Some(now_ns);
+
+        match &p.action {
+            MutualAction::ApprovePayout { claim_id } => {
+                self.approve_claim(claim_id.clone());
+            }
+            MutualAction::SetCoverageMultiplier { multiplier_bps } => {
+                events::param_set("coverage_multiplier", &multiplier_bps.to_string());
+            }
+            MutualAction::SetFeeBps { tier, fee_bps } => {
+                events::param_set(&format!("fee_bps_{}", tier), &fee_bps.to_string());
+            }
+            MutualAction::CoverModel { model_id, signing_address } => {
+                events::param_set(&format!("cover_model_{}", model_id), signing_address);
+            }
+            MutualAction::UncoverModel { model_id } => {
+                events::param_set(&format!("uncover_model_{}", model_id), "uncovered");
+            }
+        }
+
+        self.proposals.insert(id, p.clone());
+        self.view_proposal(&p)
+    }
+
+    fn view_proposal(&self, p: &StoredProposal) -> MutualProposalView {
+        let quorum = (p.snapshot_supply * 2000) / 10_000;
+        MutualProposalView {
+            id: p.id,
+            proposer: p.proposer.clone(),
+            description: p.description.clone(),
+            action: p.action.clone(),
+            snapshot_at: format!("{}ns", p.opens_at_ns),
+            snapshot_supply: p.snapshot_supply.to_string(),
+            votes_for: p.votes_for.to_string(),
+            votes_against: p.votes_against.to_string(),
+            voters: p.voters,
+            quorum: quorum.to_string(),
+            opens_at: format!("{}ns", p.opens_at_ns),
+            closes_at: format!("{}ns", p.closes_at_ns),
+            status: self.proposal_status(p).to_string(),
+            executed_at: p.executed_at_ns.map(|t| format!("{}ns", t)),
+            tx: Some(format!("{}:proposal:{}", env::current_account_id(), p.id)),
+        }
+    }
+
+    pub fn get_proposal(&self, id: u32) -> Option<MutualProposalView> {
+        self.proposals.get(&id).map(|p| self.view_proposal(p))
+    }
+
+    pub fn list_proposals(&self) -> Vec<MutualProposalView> {
+        (0..self.proposals.len() as u32)
+            .rev()
+            .filter_map(|id| self.get_proposal(id))
+            .collect()
+    }
+
+    pub fn weight_of(&self, id: u32, voter: AccountId) -> U128 {
+        let _ = id;
+        U128(self.positions.get(&voter).copied().unwrap_or(0))
+    }
+
+    pub fn governance_params(&self) -> GovernanceParamsView {
+        GovernanceParamsView {
+            quorum_bps: 2000,
+            voting_days: 3,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1199,5 +1488,92 @@ mod tests {
         let pos = pool.get_position(user);
         assert_eq!(pos.ward_locked, "5000000");
         assert_eq!(pos.ward, "5000000");
+    }
+
+    #[test]
+    fn test_ward_holder_governance_lifecycle() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let junior_holder: AccountId = "wardline.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+        let bob: AccountId = "bob.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            junior_holder.clone(),
+            U128(20_000_000),
+            Some(7),
+            Some(U128(30_000_000)),
+            Some(2_500),
+            None,
+        );
+
+        // Deposit and mint WARD: Alice gets 40 WARD, Bob gets 60 WARD (total 100 WARD)
+        pool.deposit(alice.clone(), U128(40_000_000));
+        pool.deposit(bob.clone(), U128(60_000_000));
+
+        assert_eq!(pool.ft_total_supply().0, 100_000_000);
+
+        // 1. Alice proposes lowering Silver fee to 125 bps
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Lower the Silver fee to 1.25%".to_string(),
+            MutualAction::SetFeeBps {
+                tier: "silver".to_string(),
+                fee_bps: 125,
+            },
+        );
+        assert_eq!(prop_id, 0);
+
+        let p = pool.get_proposal(prop_id).unwrap();
+        assert_eq!(p.status, "open");
+        assert_eq!(p.snapshot_supply, "100000000");
+        assert_eq!(p.quorum, "20000000"); // 20%
+
+        // 2. Alice votes for (40 WARD = 40% of supply, reaches quorum but not > 50%)
+        pool.vote(prop_id, "for".to_string());
+        let p_voted = pool.get_proposal(prop_id).unwrap();
+        assert_eq!(p_voted.votes_for, "40000000");
+        assert_eq!(p_voted.status, "open");
+
+        // 3. Bob votes for (60 WARD = 60%, total 100 WARD > 50%, passes early!)
+        let bob_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(bob.clone())
+            .build();
+        testing_env!(bob_ctx);
+
+        pool.vote(prop_id, "for".to_string());
+        let p_passed = pool.get_proposal(prop_id).unwrap();
+        assert_eq!(p_passed.status, "passed");
+        assert_eq!(p_passed.votes_for, "100000000");
+        assert_eq!(p_passed.voters, 2);
+
+        // 4. Anyone can execute a passed proposal
+        let exec_view = pool.execute(prop_id);
+        assert_eq!(exec_view.status, "executed");
+        assert!(exec_view.executed_at.is_some());
+
+        // 5. Governance params
+        let params = pool.governance_params();
+        assert_eq!(params.quorum_bps, 2000);
+        assert_eq!(params.voting_days, 3);
+
+        // 6. List proposals
+        let props = pool.list_proposals();
+        assert_eq!(props.len(), 1);
+        assert_eq!(props[0].id, 0);
     }
 }

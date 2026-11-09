@@ -16,6 +16,22 @@ export interface MemberView {
   reserved: string;
 }
 
+export interface ReputationView {
+  budget_id: string;
+  name: string;
+  owner: string;
+  tier: "bronze" | "silver" | "gold";
+  proven_calls: number;
+  refused_calls: number;
+  claims: number;
+  clean_calls: number;
+  next_tier_at: number | null;
+  fee_bps: number;
+  coverage_cap: string;
+  spent: string;
+  fees_paid: string;
+}
+
 export interface BudgetView {
   budget_id: string;
   name: string;
@@ -333,6 +349,50 @@ export class NearMeterClient {
           model_id: args.model_id,
           signing_address: args.signing_address,
         },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
+
+  async getReputation(budgetId: string): Promise<ReputationView | null> {
+    try {
+      return await viewCall<ReputationView>(
+        this.provider,
+        this.contractId,
+        "get_reputation",
+        { budget_id: budgetId },
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async listReputations(): Promise<ReputationView[]> {
+    try {
+      return await viewCall<ReputationView[]>(
+        this.provider,
+        this.contractId,
+        "list_reputations",
+        {},
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  async recordClaim(
+    budgetId: string,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for recordClaim");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "record_claim",
+        args: { budget_id: budgetId },
         gas: GAS_ADMIN,
       },
       this.options,

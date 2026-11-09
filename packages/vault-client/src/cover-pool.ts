@@ -54,6 +54,38 @@ export interface PendingRedemption {
   available_at: string;
 }
 
+export type MutualAction =
+  | { type: "set_fee_bps"; tier: "bronze" | "silver" | "gold"; fee_bps: number }
+  | { type: "set_coverage_multiplier"; multiplier_bps: number }
+  | { type: "cover_model"; model_id: string; signing_address: string }
+  | { type: "uncover_model"; model_id: string }
+  | { type: "approve_payout"; claim_id: string };
+
+export type MutualProposalStatus = "open" | "passed" | "rejected" | "executed";
+
+export interface MutualProposalView {
+  id: number;
+  proposer: string;
+  description: string;
+  action: MutualAction;
+  snapshot_at: string;
+  snapshot_supply: string;
+  votes_for: string;
+  votes_against: string;
+  voters: number;
+  quorum: string;
+  opens_at: string;
+  closes_at: string;
+  status: MutualProposalStatus;
+  executed_at: string | null;
+  tx: string | null;
+}
+
+export interface GovernanceParams {
+  quorum_bps: number;
+  voting_days: number;
+}
+
 export interface PoolPosition {
   account: string;
   ward: string;
@@ -431,5 +463,146 @@ export class NearCoverPoolClient {
       this.options,
     );
     return outcome.value as { total: string; available: string };
+  }
+
+  async listProposals(): Promise<MutualProposalView[]> {
+    try {
+      const res = await viewCall<MutualProposalView[]>(
+        this.provider,
+        this.contractId,
+        "list_proposals",
+        {},
+      );
+      return res.map((p) => ({
+        ...p,
+        snapshot_at: toIso(p.snapshot_at),
+        opens_at: toIso(p.opens_at),
+        closes_at: toIso(p.closes_at),
+        executed_at: p.executed_at ? toIso(p.executed_at) : null,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async getProposal(id: number): Promise<MutualProposalView | null> {
+    try {
+      const p = await viewCall<MutualProposalView>(
+        this.provider,
+        this.contractId,
+        "get_proposal",
+        { id },
+      );
+      if (!p) return null;
+      return {
+        ...p,
+        snapshot_at: toIso(p.snapshot_at),
+        opens_at: toIso(p.opens_at),
+        closes_at: toIso(p.closes_at),
+        executed_at: p.executed_at ? toIso(p.executed_at) : null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async propose(
+    args: { description: string; action: MutualAction },
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<MutualProposalView> {
+    if (!signer) throw new Error("Signer required for propose");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "propose",
+        args: {
+          description: args.description,
+          action: args.action,
+        },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    const id = outcome.value as number;
+    const p = await this.getProposal(id);
+    if (!p) throw new Error("Proposal created but not found");
+    return p;
+  }
+
+  async vote(
+    args: { id: number; support: "for" | "against" },
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<MutualProposalView> {
+    if (!signer) throw new Error("Signer required for vote");
+    await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "vote",
+        args: {
+          id: args.id,
+          support: args.support,
+        },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    const p = await this.getProposal(args.id);
+    if (!p) throw new Error("Proposal not found after vote");
+    return p;
+  }
+
+  async execute(
+    id: number,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<MutualProposalView> {
+    if (!signer) throw new Error("Signer required for execute");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "execute",
+        args: { id },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    const p = (outcome.value as MutualProposalView) || (await this.getProposal(id));
+    if (!p) throw new Error("Proposal not found after execute");
+    return {
+      ...p,
+      snapshot_at: toIso(p.snapshot_at),
+      opens_at: toIso(p.opens_at),
+      closes_at: toIso(p.closes_at),
+      executed_at: p.executed_at ? toIso(p.executed_at) : null,
+    };
+  }
+
+  async weightOf(id: number, voter: string): Promise<string> {
+    try {
+      const res = await viewCall<string>(
+        this.provider,
+        this.contractId,
+        "weight_of",
+        { id, voter },
+      );
+      return res.toString();
+    } catch {
+      return "0";
+    }
+  }
+
+  async governanceParams(): Promise<GovernanceParams> {
+    try {
+      return await viewCall<GovernanceParams>(
+        this.provider,
+        this.contractId,
+        "governance_params",
+        {},
+      );
+    } catch {
+      return { quorum_bps: 2000, voting_days: 3 };
+    }
   }
 }
