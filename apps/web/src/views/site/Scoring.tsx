@@ -15,7 +15,7 @@ export function Scoring() {
           <div>
             <span className="label">Scoring</span>
             <h2 className="h2">A mistake the vault caught still counts.</h2>
-            <p className="lede" style={{ color: "var(--ink-2)" }}>
+            <p className="lede">
               Blocked or not, an unsafe proposal fails the agent.
             </p>
           </div>

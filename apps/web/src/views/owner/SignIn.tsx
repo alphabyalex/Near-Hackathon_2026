@@ -44,7 +44,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: (session: Session) => void 
       </header>
       <main className="signin">
         <h1>{OWNER.signInTitle}</h1>
-        <p className="lede ink">{OWNER.signInLede}</p>
+        <p className="lede">{OWNER.signInLede}</p>
         <form className="form" onSubmit={submit}>
           <label className="field">
             <span>{OWNER.account}</span>

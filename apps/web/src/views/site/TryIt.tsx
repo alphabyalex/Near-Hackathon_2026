@@ -86,7 +86,7 @@ export function TryIt() {
         <div className="wrap">
           <span className="label">{TRY.label}</span>
           <h1 className="h2">{TRY.title}</h1>
-          <p className="lede ink">{TRY.lede}</p>
+          <p className="lede">{TRY.lede}</p>
         </div>
       </section>
       <section className="sec tight">

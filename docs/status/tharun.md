@@ -315,6 +315,21 @@ All public endpoints are deployed, reachable over HTTPS, and verified:
 - **Accessibility & Color Contrast:** Enhanced design token colors (`--muted`, `--amber`, `--green`, `--red-ink`) and typography contrast across `.apphead`, `.di-facts`, `.desk-intro`, and table statuses to fully satisfy WCAG AA 4.5:1 ratio requirements.
 - **Playwright Test Suite:** 25/25 e2e browser tests passing (`pnpm test:e2e`).
 
+### 5. Horizon UI Polish & Accessibility Refinement (2026-11-09)
+- **Synchronized with latest main & alexander:** Fast-forwarded local tharun branch to incorporate Alexander's Horizon web redesign (dc0151c) and member/undesigned states work (7ccf6a9).
+- **Axe WCAG AA color contrast fix for modal dialogs:** Refined `apps/web/src/components/Dialog.tsx` to properly isolate background DOM elements outside modal dialogs with `aria-hidden="true"` and `inert=""` upon mounting, restoring original attributes on unmount. This resolves backdrop scrim contrast calculation false positives in axe-core and strictly aligns with W3C WAI-ARIA Modal Dialog authoring practices.
+- **UI slop & legacy token elimination:**
+  - `apps/web/src/views/Invoices.tsx`: Replaced obsolete inline styles referencing undefined `--mono`, `--panel`, `--ink`, and `--ink-2` with standard design tokens (`--font`, `tabular-nums`, `--surface-2`, `--text`, `--rule-2`, `--r-btn`).
+  - `apps/web/src/views/Overview.tsx`: Removed undefined color variables (`--green`, `--amber`, `--red-ink`) in favor of Horizon tokens (`--text`, `--red-text`, `--muted`).
+  - `apps/web/src/views/site/Scoring.tsx`: Removed inline dark ink color override on the lede paragraph.
+  - `apps/web/src/views/site/Connect.tsx`, `TryIt.tsx`, `Verify.tsx`, `owner/SignIn.tsx`: Cleaned up unstyled `.ink` classes on `.lede` containers.
+- **Full Verification:**
+  - 42 of 42 Playwright E2E tests passing (`pnpm test:e2e`).
+  - 75 package tests passing in `apps/web` (`pnpm --filter @wardline/web test`).
+  - 7 of 7 Brand Guard checks passing (`node --test tests/brand.test.mjs`).
+  - 68 of 68 contract unit tests passing (`cargo test --workspace`).
+  - Total package tests passing: 777.
+
 ## Blockers
 
 None.

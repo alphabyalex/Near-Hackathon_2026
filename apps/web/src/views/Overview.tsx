@@ -15,9 +15,9 @@ import { dueIn, formatShort, nowNs, shortDigest } from "../format";
 const RECENT_DECISIONS = 5;
 
 const OUTCOME_NOTE = {
-  MET_THRESHOLDS: { text: "met thresholds", color: "var(--green)" },
-  BELOW_THRESHOLDS: { text: "below thresholds", color: "var(--red-ink)" },
-  NOT_ASSESSED: { text: "not assessed", color: "var(--amber)" },
+  MET_THRESHOLDS: { text: "met thresholds", color: "var(--text)" },
+  BELOW_THRESHOLDS: { text: "below thresholds", color: "var(--red-text)" },
+  NOT_ASSESSED: { text: "not assessed", color: "var(--muted)" },
 } as const;
 
 function waitingNote(queue: readonly ReviewQueueEntry[]): string | null {
@@ -71,7 +71,7 @@ function LimitsPanel({ data }: { data: OverviewView }) {
 
 function EvaluationPanel({ version }: { version: number }) {
   const score = useScore(version);
-  const note = score.outcome ? OUTCOME_NOTE[score.outcome] : { text: "not run yet", color: "var(--amber)" };
+  const note = score.outcome ? OUTCOME_NOTE[score.outcome] : { text: "not run yet", color: "var(--muted)" };
   return (
     <div className="panel pb">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>

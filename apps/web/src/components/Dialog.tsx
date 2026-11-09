@@ -35,9 +35,31 @@ export function Dialog({ title, onClose, children, testId }: { title: string; on
     document.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const hiddenElements: HTMLElement[] = [];
+    let current: HTMLElement | null = box.current?.closest(".dlg-back") ?? null;
+    while (current && current !== document.body) {
+      const parent: HTMLElement | null = current.parentElement;
+      if (parent) {
+        for (let i = 0; i < parent.children.length; i++) {
+          const child = parent.children[i];
+          if (child !== current && child instanceof HTMLElement && !child.hasAttribute("aria-hidden")) {
+            child.setAttribute("aria-hidden", "true");
+            child.setAttribute("inert", "");
+            hiddenElements.push(child);
+          }
+        }
+      }
+      current = parent;
+    }
+
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
+      for (const el of hiddenElements) {
+        el.removeAttribute("aria-hidden");
+        el.removeAttribute("inert");
+      }
       opener?.focus?.();
     };
   }, []);

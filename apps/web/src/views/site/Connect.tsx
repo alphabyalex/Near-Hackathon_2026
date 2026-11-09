@@ -96,7 +96,7 @@ export function Connect() {
         <div className="wrap">
           <span className="label">{CONNECT.label}</span>
           <h1 className="h2">{CONNECT.title}</h1>
-          <p className="lede ink">{CONNECT.lede}</p>
+          <p className="lede">{CONNECT.lede}</p>
         </div>
       </section>
       <section className="sec tight">

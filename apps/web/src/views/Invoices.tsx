@@ -155,11 +155,12 @@ function SubmitInvoicePanel({ vaultId, onChanged }: { vaultId: string; onChanged
               rows={6}
               style={{
                 width: "100%",
-                font: "13.5px/1.6 var(--mono)",
-                background: "var(--panel)",
-                color: "var(--ink)",
-                border: "1px solid var(--rule)",
-                borderRadius: 0,
+                font: "13.5px/1.6 var(--font)",
+                fontVariantNumeric: "tabular-nums",
+                background: "var(--surface-2)",
+                color: "var(--text)",
+                border: "1px solid var(--rule-2)",
+                borderRadius: "var(--r-btn)",
                 padding: "12px 14px",
                 resize: "vertical",
               }}
@@ -187,12 +188,12 @@ function SubmitInvoicePanel({ vaultId, onChanged }: { vaultId: string; onChanged
               </span>
               <Status status={lastResult.payment_status} />
             </div>
-            <div className="kv" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ink-2)", padding: "4px 0" }}>
+            <div className="kv" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-2)", padding: "4px 0" }}>
               <span>Agent decision:</span>
               <span className="code">{lastResult.decision?.decision ?? "None (Review)"}</span>
             </div>
             {lastResult.decision?.reason_codes && lastResult.decision.reason_codes.length > 0 && (
-              <div className="kv" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ink-2)", padding: "4px 0" }}>
+              <div className="kv" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-2)", padding: "4px 0" }}>
                 <span>Reason codes:</span>
                 <span className="codes">
                   {lastResult.decision.reason_codes.map((c) => (
@@ -202,7 +203,7 @@ function SubmitInvoicePanel({ vaultId, onChanged }: { vaultId: string; onChanged
               </div>
             )}
             {lastResult.review?.vault_rejection && (
-              <div className="kv" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--ink-2)", padding: "4px 0" }}>
+              <div className="kv" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-2)", padding: "4px 0" }}>
                 <span>Vault rejection:</span>
                 <span className="code danger">{lastResult.review.vault_rejection}</span>
               </div>
