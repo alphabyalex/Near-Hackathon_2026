@@ -135,19 +135,18 @@ describe("owner session cookie", () => {
   });
 });
 
-describe("known bug, left for Alexander (metering is out of scope for this pass)", () => {
-  /**
-   * BUG: a non-integer or infinite max_tokens (1.5, 1e999) reaches BigInt() in reservationFor
-   * (src/meter/models.ts) and throws, so the gateway answers 500 instead of 400. Nothing is reserved
-   * or paid: it fails before reserve(). Fix: in the gateway, refuse max_tokens unless it is a positive
-   * safe integer, with 400 invalid_request_error, before computing the reservation. Unskip this test
-   * with the fix.
-   */
-  it.skip("refuses a non-integer max_tokens with 400, not a 500", async () => {
+describe("max_tokens", () => {
+  // Found in the A8 security pass: 1.5 or 1e999 reached BigInt() in reservationFor and answered 500.
+  it("refuses anything but a whole number in range with 400, before reserving", async () => {
     const { app, key } = setup();
-    for (const mt of ["1.5", "1e999"]) {
+    for (const mt of ["1.5", "1e999", "0", "-5", "131073", '"256"', "true"]) {
       const res = await app.request("/v1/ai/chat/completions", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${key}` }, body: `{"model":"${SIM_MODEL}","max_tokens":${mt},"messages":[{"role":"user","content":"x"}]}` });
       expect(res.status, `max_tokens ${mt}`).toBe(400);
+      expect(await res.json(), `max_tokens ${mt}`).toMatchObject({ error: { type: "invalid_request_error", code: "INVALID_MAX_TOKENS", message: "max_tokens must be a whole number from 1 to 131072." } });
+    }
+    for (const mt of ["256", "null"]) {
+      const res = await app.request("/v1/ai/chat/completions", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${key}` }, body: `{"model":"${SIM_MODEL}","max_tokens":${mt},"messages":[{"role":"user","content":"x"}]}` });
+      expect(res.status, `max_tokens ${mt}`).toBe(200);
     }
   });
 });
