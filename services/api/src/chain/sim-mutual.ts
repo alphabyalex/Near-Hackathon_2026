@@ -340,6 +340,11 @@ export class SimGovernance implements GovernanceClient {
     return this.view(p);
   }
 
+  async voteOf(id: number, voter: string): Promise<{ support: VoteSupport; weight: string } | null> {
+    const v = this.get(id).votes.get(voter);
+    return v ? { support: v.support, weight: v.weight.toString() } : null;
+  }
+
   async weightOf(id: number, voter: string): Promise<string> {
     return (this.get(id).snapshot.get(voter) ?? 0n).toString();
   }

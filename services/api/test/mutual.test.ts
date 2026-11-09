@@ -247,3 +247,83 @@ describe("below the line counts and the proofs feed", () => {
     expect(empty.proofs).toEqual([]);
   });
 });
+
+describe("member view data and refusal codes", () => {
+  const holder = (() => {
+    const secret = ed25519.utils.randomSecretKey();
+    return { account: "member.testnet", secret, publicKey: `ed25519:${base58.encode(ed25519.getPublicKey(secret))}` };
+  })();
+  const lookupKeys: NearKeyLookup = async (_n, accountId) => (accountId === holder.account ? [{ publicKey: holder.publicKey, fullAccess: true }] : []);
+  const post = (body: unknown): RequestInit => ({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  function setup() {
+    nowMs = START;
+    const clock = () => BigInt(nowMs) * 1_000_000n;
+    const deps = bootstrap(":memory:", clock, { lookupKeys }, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" }, chain: createChain("sim", toDateClock(clock), defaultSimSeed()) });
+    const app = createApp(deps);
+    const signed = async (body: Record<string, unknown>) => {
+      const ch = (await (await app.request("/v1/pool/challenge", post({ account: holder.account, ...body }))).json()) as { message: string; nonce: string; recipient: string };
+      const signature = signNep413(ch.message, Buffer.from(ch.nonce, "base64"), holder.secret, ch.recipient);
+      return app.request("/v1/pool/submit", post({ nonce: ch.nonce, publicKey: holder.publicKey, signature }));
+    };
+    return { app, signed };
+  }
+
+  it("a position knows what the member put in, took out and when they joined", async () => {
+    const { app, signed } = setup();
+    expect((await signed({ action: "deposit", amount: W(30) })).status).toBe(200);
+    const pos = (await (await app.request(`/v1/pool/positions/${holder.account}`)).json()) as { deposited: string; redeemed: string; joined_at: string };
+    expect(pos).toMatchObject({ deposited: W(30), redeemed: "0" });
+    expect(Date.parse(pos.joined_at)).toBe(START);
+  });
+
+  it("lists how an account voted, and refuses a bad account id", async () => {
+    const { app, signed } = setup();
+    await signed({ action: "deposit", amount: W(200) });
+    const p = (await (await signed({ action: "propose", description: "Lower the Gold fee to 0.75%", proposal: { type: "set_fee_bps", tier: "gold", fee_bps: 75 } })).json()) as { proposal: { id: number } };
+    await signed({ action: "vote", id: p.proposal.id, support: "for" });
+    const votes = (await (await app.request(`/v1/mutual/votes/${holder.account}`)).json()) as { votes: { id: number; support: string; weight: string }[] };
+    expect(votes.votes).toEqual([{ id: p.proposal.id, support: "for", weight: W(200) }]);
+    expect((await app.request("/v1/mutual/votes/NOT%20AN%20ACCOUNT")).status).toBe(400);
+  });
+
+  it("refuses a deposit below 1 USDC before anyone signs, with BELOW_MINIMUM", async () => {
+    const { app } = setup();
+    const res = await app.request("/v1/pool/challenge", post({ account: holder.account, action: "deposit", amount: "999999" }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: "BELOW_MINIMUM", min: "1000000" });
+    expect(((await (await app.request("/v1/mutual")).json()) as { min_deposit: string }).min_deposit).toBe("1000000");
+  });
+
+  it("answers COOLDOWN for an early redeem and VOTING_CLOSED for a late vote", async () => {
+    const { signed } = setup();
+    await signed({ action: "deposit", amount: W(10) });
+    const lock = (await (await signed({ action: "withdraw", amount: W(5) })).json()) as { id: string };
+    const early = await signed({ action: "redeem", id: lock.id });
+    expect(early.status).toBe(409);
+    expect(await early.json()).toMatchObject({ error: "COOLDOWN" });
+    const p = (await (await signed({ action: "propose", description: "Raise coverage to 1.25x", proposal: { type: "set_coverage_multiplier", multiplier_bps: 12_500 } })).json()) as { proposal: { id: number } };
+    nowMs = START + 4 * DAY;
+    const late = await signed({ action: "vote", id: p.proposal.id, support: "for" });
+    expect(late.status).toBe(409);
+    expect(await late.json()).toMatchObject({ error: "VOTING_CLOSED" });
+  });
+
+  it("answers 503 CHAIN_UNAVAILABLE when the chain RPC fails, and a plain 500 otherwise", async () => {
+    nowMs = START;
+    const chain = createChain("sim", now, defaultSimSeed());
+    let fail: Error = new TypeError("fetch failed");
+    chain.pool.getPool = async () => {
+      throw fail;
+    };
+    const app = createApp(bootstrap(":memory:", () => BigInt(nowMs) * 1_000_000n, {}, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" }, chain }));
+    const down = await app.request("/v1/pool");
+    expect(down.status).toBe(503);
+    expect(await down.json()).toMatchObject({ error: "CHAIN_UNAVAILABLE" });
+    fail = new Error("secret internal detail");
+    const other = await app.request("/v1/pool");
+    expect(other.status).toBe(500);
+    const body = await other.json();
+    expect(body).toMatchObject({ error: "INTERNAL" });
+    expect(JSON.stringify(body)).not.toContain("secret internal detail");
+  });
+});

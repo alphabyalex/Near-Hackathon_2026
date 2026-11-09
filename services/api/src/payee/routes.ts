@@ -147,11 +147,7 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
     return next();
   });
 
-  app.onError((error, c) => {
-    if (error instanceof InvalidPayeeInputError) return badRequest(c, error.message);
-    console.error(error);
-    return c.json({ error: "INTERNAL", message: "Internal error." }, 500);
-  });
+  // Errors, including InvalidPayeeInputError as a 400, are handled once for the whole app in app.ts.
 
   app.post("/v1/check", async (c) => {
     const raw = await c.req.json().catch(() => null);

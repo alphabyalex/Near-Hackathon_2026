@@ -289,6 +289,8 @@ export class SimPool implements CoverPoolClient {
   private readonly claims: ClaimView[] = [];
   private readonly history: WardPricePoint[] = [];
   private readonly claimBudgets = new Map<string, string>();
+  /** Per account: USDC put in, USDC taken out, and when it first joined. */
+  private readonly ledger = new Map<string, { deposited: bigint; redeemed: bigint; joined: number }>();
   hooks: PoolHooks = {};
 
   constructor(
@@ -355,6 +357,10 @@ export class SimPool implements CoverPoolClient {
       pending_withdrawals: this.redemptions
         .filter((r) => r.account === account)
         .map((r) => ({ id: r.id, ward: r.ward.toString(), value: ((r.ward * price) / SCALE).toString(), requested_at: new Date(r.requested).toISOString(), available_at: new Date(r.requested + delay).toISOString() })),
+      ...(() => {
+        const entry = this.ledger.get(account);
+        return entry ? { deposited: entry.deposited.toString(), redeemed: entry.redeemed.toString(), joined_at: new Date(entry.joined).toISOString() } : { deposited: "0", redeemed: "0", joined_at: null };
+      })(),
     };
   }
 
@@ -362,6 +368,9 @@ export class SimPool implements CoverPoolClient {
     const usdc = big(amount);
     if (usdc <= 0n) throw new Error("Deposit must be positive");
     const ward = this.mint(account, usdc);
+    const entry = this.ledger.get(account) ?? { deposited: 0n, redeemed: 0n, joined: this.now().getTime() };
+    entry.deposited += usdc;
+    this.ledger.set(account, entry);
     this.mark("deposit");
     return { tx: simTx("deposit", account), ward: ward.toString() };
   }
@@ -386,6 +395,8 @@ export class SimPool implements CoverPoolClient {
     this.balances.set(account, (this.balances.get(account) ?? 0n) - r.ward);
     this.supply -= r.ward;
     this.senior -= usdc;
+    const entry = this.ledger.get(account);
+    if (entry) entry.redeemed += usdc;
     this.mark("redeem");
     return { tx: simTx("redeem", account), usdc: usdc.toString() };
   }

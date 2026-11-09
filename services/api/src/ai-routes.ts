@@ -88,9 +88,14 @@ export const MutualActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("uncover_model"), model_id: z.string().min(3).max(120) }),
   z.object({ type: z.literal("approve_payout"), claim_id: z.string().regex(/^clm_[a-z0-9]{6,20}$/) }),
 ]);
-const Account = z.string().min(2).max(64);
+/** NEAR account ids: 2 to 64 characters of lowercase letters, digits, - _ and dots. */
+export const Account = z.string().min(2).max(64).regex(/^[a-z0-9._-]+$/, "Not a NEAR account id.");
+/** The smallest deposit: 1 USDC. Smaller ones cost more in gas than they earn. */
+export const MIN_DEPOSIT_ATOMIC = 1_000_000n;
+const Atomic = z.string().regex(/^[1-9][0-9]{0,30}$/);
 const PoolChallenge = z.union([
-  z.object({ account: Account, action: z.enum(["deposit", "withdraw"]), amount: z.string().regex(/^[1-9][0-9]{0,30}$/) }),
+  z.object({ account: Account, action: z.literal("deposit"), amount: Atomic.refine((v) => BigInt(v) >= MIN_DEPOSIT_ATOMIC, { message: "BELOW_MINIMUM" }) }),
+  z.object({ account: Account, action: z.literal("withdraw"), amount: Atomic }),
   z.object({ account: Account, action: z.literal("redeem"), id: z.string().regex(/^[a-z0-9_]{3,40}$/) }),
   z.object({ account: Account, action: z.literal("vote"), id: z.number().int().min(0), support: z.enum(["for", "against"]) }),
   z.object({ account: Account, action: z.literal("propose"), description: z.string().trim().min(4).max(200), proposal: MutualActionSchema }),
@@ -98,6 +103,23 @@ const PoolChallenge = z.union([
 type PoolRequest = z.infer<typeof PoolChallenge>;
 const PoolSigned = z.object({ nonce: z.string(), publicKey: z.string(), signature: z.string() });
 const MeterKeyBody = z.object({ budget_id: z.string().min(1).default(GROUP_BUDGET), member: z.string().min(2).max(64), label: z.string().max(60).optional(), models: z.array(z.string()).min(1).optional() });
+
+/** A stable code for a refused Mutual request, so the site can say what happened and what to do next. */
+export function refusalCode(message: string): string {
+  if (/closed/i.test(message)) return "VOTING_CLOSED";
+  if (/wait is not over|cooldown|unlock/i.test(message)) return "COOLDOWN";
+  if (/already voted/i.test(message)) return "ALREADY_VOTED";
+  if (/held no WARD|no vote/i.test(message)) return "NO_WEIGHT";
+  if (/not enough free WARD/i.test(message)) return "NOT_ENOUGH_WARD";
+  if (/already executed/i.test(message)) return "ALREADY_EXECUTED";
+  return "REFUSED";
+}
+
+/** Errors from a chain client that mean the RPC is down, not that the request was wrong. */
+export function isChainOutage(error: unknown): boolean {
+  const text = error instanceof Error ? `${error.name} ${error.message} ${String((error as { cause?: unknown }).cause ?? "")}` : String(error);
+  return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|socket hang up|network|timed? ?out|RPC|503|502|504|Server error/i.test(text);
+}
 
 export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   const nowMs = () => Number(deps.now() / 1_000_000n);
@@ -157,6 +179,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
       // Reputation and voting are simulated until Tharun's T4.6 contracts are deployed.
       mutual_mode: chain.governance.mode,
       contract: deps.ai.contracts.pool,
+      min_deposit: MIN_DEPOSIT_ATOMIC.toString(),
       pool: poolView,
       claims,
       stats: await mutualStats(chain, await flaggedNow()),
@@ -197,7 +220,10 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   // ft_transfer_call to the pool contract directly instead.
   app.post("/v1/pool/challenge", async (c) => {
     const body = PoolChallenge.safeParse(await c.req.json().catch(() => null));
-    if (!body.success) return c.json({ error: "BAD_REQUEST", message: z.prettifyError(body.error) }, 400);
+    if (!body.success) {
+      if (body.error.issues.some((i) => i.message === "BELOW_MINIMUM")) return c.json({ error: "BELOW_MINIMUM", message: "The smallest deposit is 1.00 USDC.", min: MIN_DEPOSIT_ATOMIC.toString() }, 400);
+      return c.json({ error: "BAD_REQUEST", message: z.prettifyError(body.error) }, 400);
+    }
     const expiresAt = new Date(nowMs() + POOL_TTL_MS).toISOString();
     const message = `wardline-mutual:v1:${JSON.stringify({ ...body.data, pool: deps.ai.contracts.pool, expiresAt })}`;
     const nonce = randomBytes(32).toString("base64");
@@ -224,8 +250,22 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
       if (req.action === "propose") return c.json({ action: "propose", proposal: await chain.governance.propose({ proposer: req.account, description: req.description, action: req.proposal }) });
       return c.json({ action: "withdraw", ...(await pool.requestWithdraw(req.account, req.amount)), position: await pool.getPosition(req.account) });
     } catch (error) {
-      return c.json({ error: "REFUSED", message: error instanceof Error ? error.message : "Pool refused the request." }, 409);
+      const message = error instanceof Error ? error.message : "Pool refused the request.";
+      return c.json({ error: refusalCode(message), message }, 409);
     }
+  });
+
+  // How one account voted, across every proposal. Votes are public on chain; this is the same view.
+  app.get("/v1/mutual/votes/:account", async (c) => {
+    const account = Account.safeParse(c.req.param("account"));
+    if (!account.success) return c.json({ error: "BAD_REQUEST", message: "Not a NEAR account id." }, 400);
+    const proposals = await chain.governance.listProposals();
+    const votes = [];
+    for (const p of proposals) {
+      const v = (await chain.governance.voteOf?.(p.id, account.data)) ?? null;
+      if (v) votes.push({ id: p.id, support: v.support, weight: v.weight });
+    }
+    return c.json({ account: account.data, votes });
   });
 
   app.post("/v1/demo/:scene", async (c) => {

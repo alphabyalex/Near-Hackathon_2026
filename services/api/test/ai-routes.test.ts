@@ -98,7 +98,7 @@ describe("Wardline Mutual and WARD", () => {
     expect(redeemed.position).toMatchObject({ ward: "0", ward_locked: "0" });
 
     // A signature from the wrong key is refused, and the nonce cannot be reused.
-    const ch = (await (await app.request("/v1/pool/challenge", post({ account: lp.account, action: "deposit", amount: "5" }))).json()) as { message: string; nonce: string; recipient: string };
+    const ch = (await (await app.request("/v1/pool/challenge", post({ account: lp.account, action: "deposit", amount: "5000000" }))).json()) as { message: string; nonce: string; recipient: string };
     const forged = signNep413(ch.message, Buffer.from(ch.nonce, "base64"), ed25519.utils.randomSecretKey(), ch.recipient);
     expect((await app.request("/v1/pool/submit", post({ nonce: ch.nonce, publicKey: lp.publicKey, signature: forged }))).status).toBe(401);
     expect((await app.request("/v1/pool/submit", post({ nonce: ch.nonce, publicKey: lp.publicKey, signature: forged }))).status).toBe(401);

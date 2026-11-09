@@ -140,6 +140,11 @@ export interface PoolPosition {
   /** USDC value of free plus locked WARD at today's price. */
   value: string;
   pending_withdrawals: PendingRedemption[];
+  /** USDC this account has put in, and taken out by redeeming. Optional: not every backend tracks them. */
+  deposited?: string;
+  redeemed?: string;
+  /** When this account first deposited. */
+  joined_at?: string | null;
 }
 
 export interface ClaimView {
@@ -286,5 +291,7 @@ export interface GovernanceClient {
   execute(id: number): Promise<MutualProposalView>;
   /** The voter's weight on a proposal: their WARD at its snapshot. */
   weightOf(id: number, voter: string): Promise<string>;
+  /** How an account voted on a proposal, or null if it did not. */
+  voteOf?(id: number, voter: string): Promise<{ support: VoteSupport; weight: string } | null>;
   params(): Promise<{ quorum_bps: number; voting_days: number }>;
 }
