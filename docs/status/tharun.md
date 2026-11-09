@@ -44,7 +44,7 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | Reservations, replay, concurrency, known-failure accounting | Nov 8 | **Met** |
 | Testnet deployment with two vaults and a manifest | Nov 9 | **Met.** See below |
 | T4.5 USDC Movement & Deployment | Nov 11 | **Met** |
-| T4.6 Reputation Tiers & WARD Governance | Nov 12 | **Met** |
+| T4.6 Reputation Tiers & WARD Governance | Nov 12 | **Met.** Deployed to testnet and verified |
 
 ### Test results, last full run on the deployed wasm
 
@@ -58,6 +58,7 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | `tests/sandbox`, on a real local node | All suites pass |
 | Root `pnpm test`, Linux/macOS, in a clean clone | All workspaces pass (773+ unit and integration tests) |
 | Playwright E2E Suite (`pnpm test:e2e`) | 29 passed (100% pass rate, axe WCAG AA accessibility verified) |
+| Live Testnet Governance Lifecycle | Proposal #0 created, voted, passed, and executed on `pool.wardline-labs.testnet` |
 
 Eight safety rules were broken on purpose in a separate clone (vendor cap off by one, failed transfer not released, window edge off by 1 ns, digest ignored, proxy allowed, withdraw ignoring pending, reservation not counted, key check dropped). The tests caught all eight.
 
@@ -82,6 +83,25 @@ The token rename on Nov 5 needed new contracts, so this root replaced the earlie
 Malicious-signer on testnet made 21 attempts: 8 rejected by the vault, 11 refused by NEAR, 1 retry returned the existing operation, and 1 paid. That one is `pay_replay`, a real approved 1 REDL bill. So vault A now shows `op_1` settled and 1 REDL of weekly usage.
 
 **Keys:** the only copies are in WSL at `~/.redline/testnet/` (`credentials.json`, `signers.json`), owner-only, not in the repo. They control the owner accounts and the root. Tharun needs them passed privately. Losing them means nobody can act as owner on these vaults, and the fix is a new deployment.
+
+### Wardline Testnet Deployment (T4.6 Upgraded)
+
+Root `wardline-labs.testnet`. Deployed and active on NEAR testnet:
+
+| Account | Role | Features / State |
+| --- | --- | --- |
+| `meter.wardline-labs.testnet` | Meter Gateway | EIP-191 proof verification, USDC `ft_on_transfer`, reputation tiers (`get_reputation`, `list_reputations`, `record_claim`). Upgraded tx `4itdktdsgiToWjyHiHn3yKT2Qvw4mQPpsG16Mkscsh5s` |
+| `pool.wardline-labs.testnet` | Mutual Cover Pool | Senior/junior tranches, WARD NEP-141 shares, delayed redeem, and WARD-holder governance (`propose`, `vote`, `execute`, `weight_of`, `governance_params`). Upgraded tx `6DnfbLDRtEyy8cvpPcWv9mUqZEd2Fv8MXbKBHCAmVt4r` |
+| `model-registry.wardline-labs.testnet` | Attested Models | Model TEE signers (DeepSeek V4.1 Flash, sim-echo) |
+| `payee-registry.wardline-labs.testnet` | Public Payees | Domain-to-account directory with cooling-off |
+| `vault.wardline-labs.testnet` | Business Vault | Payment authority and Release Guard |
+| `dao.wardline-labs.testnet` | Sputnik DAO v2 | Council governance over budgets and allocations |
+
+Verified live transactions on testnet:
+- Proposal #0 created: `pool.wardline-labs.testnet:proposal:0`
+- Proposal #0 voted by `investor1.wardline-labs.testnet` (100% snapshot weight, passed early)
+- Proposal #0 executed: status `executed`
+- Meter reputations queried live: `bgt_engineering` and `bgt_leaked_1794187233942` tracking Bronze tier at 200 bps
 
 ### Beyond the brief, and why
 

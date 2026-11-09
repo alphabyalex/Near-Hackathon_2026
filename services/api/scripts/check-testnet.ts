@@ -27,3 +27,10 @@ for (const who of ["investor1.wardline-labs.testnet", "investor2.wardline-labs.t
   const pos = await pool.getPosition(who);
   console.log(`  ${who}: ${usdc(pos.ward)} WARD free, ${usdc(pos.ward_locked)} locked`);
 }
+const reps = await meter.listReputations();
+console.log(`${c.meter}: ${reps.length} reputations`);
+for (const r of reps) console.log(`  ${r.budget_id} tier ${r.tier} fee ${r.fee_bps} bps clean ${r.clean_calls} proven ${r.proven_calls} cap ${usdc(r.coverage_cap)} USDC`);
+const props = await pool.listProposals();
+const gov = await pool.governanceParams();
+console.log(`${c.coverPool}: ${props.length} proposals (quorum ${gov.quorum_bps} bps, window ${gov.voting_days} days)`);
+for (const pr of props) console.log(`  #${pr.id} status ${pr.status} for ${usdc(pr.votes_for)} against ${usdc(pr.votes_against)}: ${pr.description}`);
