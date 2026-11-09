@@ -31,7 +31,9 @@ export default defineConfig(({ mode }) => {
       { name: "wardline-brand-html", transformIndexHtml: (html: string) => html.replaceAll("%BRAND_NAME%", BRAND.name).replaceAll("%BRAND_DESCRIPTION%", BRAND.metaDescription) },
     ],
     server: {
+      host: "127.0.0.1",
       port: 5173,
+      allowedHosts: true,
       proxy: {
         "/api": { target: process.env.WARDLINE_DEV_API ?? `http://127.0.0.1:${process.env.WARDLINE_API_PORT ?? 8787}`, rewrite: (path: string) => path.replace(/^\/api/, "") },
       },

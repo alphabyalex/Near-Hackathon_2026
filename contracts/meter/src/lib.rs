@@ -240,10 +240,6 @@ impl MeterContract {
             "0xfe0071895500a9755c18044948ab4f4e1a7f337e".to_string(),
         );
         contract.attested_cache.insert(
-            "z-ai/glm-5.3-flash".to_string(),
-            "0x3b753b4406613c5e70ae640508632b600424fa0c".to_string(),
-        );
-        contract.attested_cache.insert(
             "wardline/sim-echo-1".to_string(),
             "0x90f79bf6eb2c4f870365e785982e1f101e93b906".to_string(),
         );
@@ -543,7 +539,7 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                 tx: None,
                 amount: None,
                 refund: None,
-                reason: Some("PROOF_REJECTED".to_string()),
+                reason: Some("MODEL_NOT_ATTESTED".to_string()),
                 detail: Some(format!(
                     "Signer {} is not attested for {}.",
                     recovered_signer, proof.model_id
@@ -788,6 +784,44 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         }
 
         events::allowance_set(&budget_id, &member, &allowance.0.to_string());
+    }
+
+    pub fn set_owner(&mut self, owner: AccountId) {
+        require!(
+            env::predecessor_account_id() == self.owner,
+            "E_NOT_OWNER: unauthorized"
+        );
+        self.owner = owner;
+    }
+
+    pub fn set_cover_fee_bps(&mut self, cover_fee_bps: u64) {
+        require!(
+            env::predecessor_account_id() == self.owner
+                || env::predecessor_account_id().as_str().starts_with("dao."),
+            "E_NOT_OWNER: only owner or DAO can change cover fee"
+        );
+        require!(cover_fee_bps <= 10_000, "Invalid fee bps");
+        self.cover_fee_bps = cover_fee_bps;
+    }
+
+    pub fn set_param(&mut self, name: String, value: String) {
+        require!(
+            env::predecessor_account_id() == self.owner
+                || env::predecessor_account_id().as_str().starts_with("dao."),
+            "E_NOT_OWNER: only owner or DAO can change parameters"
+        );
+        match name.as_str() {
+            "cover_fee_bps" => {
+                let bps: u64 = value.parse().expect("Invalid u64");
+                require!(bps <= 10_000, "Invalid fee bps");
+                self.cover_fee_bps = bps;
+            }
+            _ => env::panic_str("Unknown parameter"),
+        }
+    }
+
+    pub fn get_cover_fee_bps(&self) -> u64 {
+        self.cover_fee_bps
     }
 
     pub fn update_attested_model(&mut self, model_id: String, signing_address: String) {

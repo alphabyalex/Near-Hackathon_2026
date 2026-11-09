@@ -144,7 +144,7 @@ export function createHttpServer(wardline: Wardline, options: { allowedHosts?: r
       res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message }, id: null }));
     };
     const host = (req.headers.host ?? "").replace(/:\d+$/, "");
-    if (!allowed.has(host)) return fail(403, "Host not allowed.");
+    if (!allowed.has("*") && !allowed.has(host)) return fail(403, "Host not allowed.");
     if (new URL(req.url ?? "/", "http://local").pathname !== "/mcp") return fail(404, "Not found.");
     if (req.method !== "POST") return fail(405, "Use POST.");
     let body: unknown;

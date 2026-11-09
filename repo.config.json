@@ -1,5 +1,17 @@
 {
   "$comment": "TODO(alexander): the GitHub repo will be renamed to \"wardline\". Change url here; pnpm test then names any other file that must follow.",
   "url": "https://github.com/alphabyalex/Near-Hackathon_2026",
-  "plannedName": "wardline"
+  "plannedName": "wardline",
+  "near": {
+    "network": "testnet",
+    "rootAccount": "wardline-labs.testnet",
+    "contracts": {
+      "payeeRegistry": "payee-registry.wardline-labs.testnet",
+      "vault": "vault.wardline-labs.testnet",
+      "modelRegistry": "model-registry.wardline-labs.testnet",
+      "meter": "meter.wardline-labs.testnet",
+      "coverPool": "pool.wardline-labs.testnet",
+      "dao": "dao.wardline-labs.testnet"
+    }
+  }
 }

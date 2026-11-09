@@ -169,6 +169,93 @@ Alexander, here is the exact snippet to wire `PayeeRegistryClient` at the marked
 - Deploy under `*.redline.testnet`: **not possible for us.** That account exists and we do not hold its key. If it is yours, tell me and I can redeploy under it. Otherwise names are `*.redline-labs.testnet`.
 - Real attack output: saved, linked above. `KEY NOT PERMITTED` matches your wording, and it comes with the NEAR reason such as `MethodNameMismatch`.
 
+## T4.5 Testnet Deployment and Phase 3 Proof Results (2026-11-08)
+
+All T4.5 contracts are deployed to NEAR testnet, configured with Circle testnet USDC, and all 6 Phase 3 end-to-end verification flows are proven with live on-chain transaction hashes.
+
+### Deployed Contracts and Accounts (NEAR Testnet)
+
+- **Network:** `testnet`
+- **Circle USDC Account:** `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af` (6 decimals)
+- **Deployment Manifest:** `scripts/contracts/deployments/testnet-wardline.json`
+- **Root Account:** `wardline-labs.testnet`
+
+| Contract | Testnet Account ID | Code Hash / Description |
+| --- | --- | --- |
+| Payee Registry | `payee-registry.wardline-labs.testnet` | `070fb4304fde21baf8e1a179d704e9bc5ca8f8620db60382d76e839162a62f2a` |
+| Vault | `vault.wardline-labs.testnet` | `e4473c15f3ef33cd97077735d432fa20279486f5f8a0f7306aca8df0d4f8aa6e` |
+| Model Registry | `model-registry.wardline-labs.testnet` | `bb0073f7dd9e1ae66b334f8faa0e98f40d1cef53ff48fff636fa1f720fa8a995` |
+| Cover Pool | `pool.wardline-labs.testnet` | `2b99a2bac9242ad6224c3d4fe14e1fb54174ea2f8659adde81abe66cd6ecea5a` |
+| Meter | `meter.wardline-labs.testnet` | `12fd0d4c87fb8624161878adb6d4e690bbc7a361a34c95a6927a0a42e2a3a1cb` |
+| Sputnik DAO v2 | `dao.wardline-labs.testnet` | `880bae9a58c99ec1efe8b10cf834b3f0c0ebc7a05d71206f3c1202c4280952da` |
+
+### Demo Accounts and Signers
+
+- **Provider:** `provider.wardline-labs.testnet`
+- **Investor 1:** `investor1.wardline-labs.testnet`
+- **Investor 2:** `investor2.wardline-labs.testnet`
+- **Agent:** `agent.wardline-labs.testnet`
+- **Meter Gateway Key:** `ed25519:8GCuoS7j5w8KPqcuUWPkva4La2EVz2BYNyvcUDHJ7dbX` (granted function-call access for `reserve`, `settle`, `release`)
+- **DAO Council:** `["wardline-labs.testnet", "investor1.wardline-labs.testnet", "investor2.wardline-labs.testnet"]` (threshold: 2-of-3)
+
+### Phase 3 Live End-to-End Proofs and Transaction Hashes
+
+All 6 testnet verification flows were executed on NEAR testnet and verified on-chain:
+
+#### 1. One Paid AI Call (DeepSeek V4.1 Flash)
+- **Reservation Tx:** `4au3yM4pPgkqHPqKd8DSPyAo61PaUaXcroPgpYEDqVyk` (reserved 0.05 USDC on `bgt_engineering`)
+- **Settlement Tx:** `2S7GMteqbPLF2cysyyn7FZwzYYxyBKgzZRbHxhhod7CS`
+- **Outcome:** Genuine NEAR AI EIP-191 signature (`0xfe0071895500a9755c18044948ab4f4e1a7f337e`) verified on-chain. USDC transferred from budget: 48,750 units paid to provider `provider.wardline-labs.testnet`, 1,250 units cover fee transferred to `pool.wardline-labs.testnet`.
+
+#### 2. One Refused Swapped-Model Call
+- **Reservation Tx:** `5PzQVZLfnCEyD5CApMZvi4de3K6MtsKhiHjVfKiEmGzb`
+- **Refused Settlement Tx:** `FRzvoZ8bevbrvLKSSNnef3uEvAwp5xNGwtcNiKYmLkbp`
+- **Release / Refund Tx:** `3ML4vKLGisUqy5zBodQf2rJ2J44vY1ytTxE1zDwQsskE`
+- **Outcome:** Model inference returned an un-attested signer (`0x111111...`). Settle refused on-chain with `MODEL_NOT_ATTESTED`. Reservation released and 100% of reserved funds refunded to the budget. Provider received zero USDC.
+
+#### 3. Leaked-Key Cap (20 Rapid Calls)
+- **Budget Deposit Cap:** 50,000 units on `bgt_leaked_1794187233942`
+- **Calls 1 to 4:** OK (each reserved 10,000 units: `GkN4ik9hsCBzosdqg7SWZQsznpb9b6kXgokYTsaNFMSs`, `5RkHxrhJprUDxefCyiq454XB4LBjEf1LnkvTQWPc2qhb`, `APNF6iJMo9u4GCLrYJYFZhohRbFj5hppWnz7p6RtYVEg`, `8hhSxzVoCGbuA3rxxqkX8B5hLRbcBrpwEVMExUZmnWWw`)
+- **Call 5 (Drains Budget) Tx:** `82bGdEmVChKafZigVuNW5RjxSjRb3ZkSyHgAKSbQRBFd`
+- **Call 6 (Refused) Tx:** `Gqn92MuM3TcKYwE19anX512H51hRPfvNHEroE5thnmPn` (blocked with `ALLOWANCE_EXHAUSTED` / `BUDGET_EXHAUSTED`)
+- **Calls 7 to 20:** All refused on-chain before any provider spend could occur.
+
+#### 4. One DAO Proposal (2-of-3 Council Vote and Execution)
+- **Proposal Submission Tx:** `AcccRAo52udzzZduutmv41oFEJCwYwX29o5Zd6G78uuy` (proposes setting meter cover fee to 2.5% / 250 bps)
+- **Council Vote 1 (wardline-labs) Tx:** `BzhsfiKx1faBMg5wfZhz2WjSQUxv86yRKCQmPtFFydJH`
+- **Council Vote 2 & Execution (investor1) Tx:** `4wC4aa1xUQwG2VUhsU78UmBamFGpDqBBGckvfRjGdbsZ`
+- **Verification:** Querying `get_cover_fee_bps` on `meter.wardline-labs.testnet` returns `250`.
+
+#### 5. One Mutual Payout (First-Loss Absorption)
+- **First-Loss Stake Deposit Tx:** `Akb8hNQtV2DqRocZt3UvfQDS8xqUWREJdjbmewQFPQVT` (Wardline junior holder deposited 300,000 units USDC)
+- **Claim Filing and Payout Tx:** `EvGCpfGDWs8Vx7by6qGvzu3VgCihHTuEyHyeZ6X2ssHM` (simulated 50,000 unit invalid settlement claim)
+- **Verification:** Claim recorded as `paid`, `paid_from_junior = 50000`, `paid_from_senior = 0`. Junior first-loss stake absorbed 100% of the claim while senior LP capital remained untouched.
+
+#### 6. One WARD Redeem (Investor Burn and Cooldown)
+- **Investor USDC Funding Tx:** `4RfbZ1SjhQXbDwCVVb73Yg9F1FM3pJJeU8zPYzuAPC2K` (200,000 units USDC)
+- **Deposit and WARD Minting Tx:** `6wD6dMQTUTihVAzthPNnEZy72HY14LhANX4HYM3ApvZa` (minted 200,000 WARD shares at 1.0 USDC)
+- **Redeem Request Tx:** `AEojaiWVZTNA8E5VpdTAgjm9YHwftXyq7uzXAcAFyB5s` (requested withdrawal of 100,000 WARD)
+- **Redeem Execution Tx:** `69sso4RGoiDeaLPkweoCsKhnsZDWWE2kaWpS8b3XxaLB` (burned WARD and returned 100,000 units USDC to investor)
+
+## Phase 4: Hosted Endpoints and Deployment
+
+All public endpoints are deployed, reachable over HTTPS, and verified:
+
+| Service | Public Hosted URL | Local Binding | Notes |
+| --- | --- | --- | --- |
+| API | `https://attempt-caused-antique-four.trycloudflare.com` | `127.0.0.1:8787` | Express/Hono on Node 20+, AI gateway, payee checks, receipts |
+| MCP Server | `https://realize-russell-societies-incl.trycloudflare.com/mcp` | `127.0.0.1:8790` | Streamable HTTP, registered in `~/.wardline/mcp/config.json` |
+| Web App | `https://lean-ballot-ref-script.trycloudflare.com` | `127.0.0.1:5173` | Vite React SPA, interactive demo, owner views, try-it UI |
+
+### Configuration and Tool Registration
+
+- **Claude Desktop:** configured in `~/Library/Application Support/Claude/claude_desktop_config.json` pointing to `https://realize-russell-societies-incl.trycloudflare.com/mcp`.
+- **Local MCP Config:** registered in `~/.wardline/mcp/config.json`.
+- **llms.txt:** updated at `apps/web/public/llms.txt` and `apps/web/dist/llms.txt` with hosted API and MCP endpoints.
+- **SKILL.md:** updated at `docs/skills/wardline-payee-check/SKILL.md` with hosted API and MCP endpoints.
+- **server.json:** updated at `services/mcp/server.json` with HTTP transport pointing to the public MCP URL.
+- **README.md:** updated with live hosted links for Web App, API, MCP, and NEAR testnet contract deployment manifest.
+
 ## Blockers
 
 None.

@@ -1,27 +1,51 @@
 {
   "network": "testnet",
   "rpc_url": "https://test.rpc.fastnear.com",
-  "deployed_at": "2026-11-08T21:46:46.671Z",
+  "deployed_at": "2026-11-09T01:02:35.953Z",
   "root": "wardline-labs.testnet",
   "contracts": {
-    "model_registry": {
-      "account_id": "model-reg.wardline-labs.testnet",
-      "code_hash": "55d9590bc8bdd23f2c01ad997bcf8ebcb280845a2dd9ecaa511f0d2d39da589e"
+    "payee_registry": {
+      "account_id": "payee-registry.wardline-labs.testnet",
+      "code_hash": "070fb4304fde21baf8e1a179d704e9bc5ca8f8620db60382d76e839162a62f2a"
     },
-    "cover_pool": {
-      "account_id": "cover-pool.wardline-labs.testnet",
-      "code_hash": "72478b0db801ff0acaf9d6c32c97ebf113f7f2d7bf792dbb5b37ccd3ab1fd465",
-      "junior": "5000000",
-      "large_claim_threshold": "1000000"
+    "vault": {
+      "account_id": "vault.wardline-labs.testnet",
+      "code_hash": "e4473c15f3ef33cd97077735d432fa20279486f5f8a0f7306aca8df0d4f8aa6e",
+      "token_contract": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
+    },
+    "model_registry": {
+      "account_id": "model-registry.wardline-labs.testnet",
+      "code_hash": "bb0073f7dd9e1ae66b334f8faa0e98f40d1cef53ff48fff636fa1f720fa8a995"
     },
     "meter": {
-      "account_id": "ai-meter.wardline-labs.testnet",
-      "code_hash": "aa35419bfb8ae99467915fcfc9a4bc6041d9cf3d3cf80dec7d0ed8066f90e22a",
+      "account_id": "meter.wardline-labs.testnet",
+      "code_hash": "12fd0d4c87fb8624161878adb6d4e690bbc7a361a34c95a6927a0a42e2a3a1cb",
       "cover_fee_bps": 200
     },
-    "payee_registry": {
-      "account_id": "payee-reg.wardline-labs.testnet",
-      "code_hash": "070fb4304fde21baf8e1a179d704e9bc5ca8f8620db60382d76e839162a62f2a"
+    "cover_pool": {
+      "account_id": "pool.wardline-labs.testnet",
+      "code_hash": "2b99a2bac9242ad6224c3d4fe14e1fb54174ea2f8659adde81abe66cd6ecea5a",
+      "token_contract": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "large_claim_threshold": "1000000"
+    },
+    "dao": {
+      "account_id": "dao.wardline-labs.testnet",
+      "code_hash": "880bae9a58c99ec1efe8b10cf834b3f0c0ebc7a05d71206f3c1202c4280952da",
+      "council": [
+        "wardline-labs.testnet",
+        "investor1.wardline-labs.testnet",
+        "investor2.wardline-labs.testnet"
+      ]
     }
+  },
+  "demo_accounts": {
+    "provider": "provider.wardline-labs.testnet",
+    "investor1": "investor1.wardline-labs.testnet",
+    "investor2": "investor2.wardline-labs.testnet",
+    "agent": "agent.wardline-labs.testnet"
+  },
+  "gateway_signer": {
+    "account_id": "meter.wardline-labs.testnet",
+    "public_key": "ed25519:8GCuoS7j5w8KPqcuUWPkva4La2EVz2BYNyvcUDHJ7dbX"
   }
 }

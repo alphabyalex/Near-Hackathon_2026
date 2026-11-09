@@ -2,6 +2,13 @@
 
 AI that only pays on proof. Wardline pays for a model call only when NEAR AI's TEE signature shows the model you asked for signed that exact response. It spends from a deposit that caps every member, and checks who an agent is about to pay before money moves. If a Wardline approval was wrong, Wardline Mutual pays the customer back, and our own first-loss stake pays first. Developers plug in by changing one line: the OpenAI client's base URL. Read [docs/PAYEE_SHIELD.md](docs/PAYEE_SHIELD.md) for the payee check.
 
+## Live Hosted Endpoints
+
+- **Web App:** https://lean-ballot-ref-script.trycloudflare.com
+- **API Endpoint:** `https://attempt-caused-antique-four.trycloudflare.com`
+- **MCP Server (HTTP):** `https://realize-russell-societies-incl.trycloudflare.com/mcp`
+- **Testnet Deployment:** `scripts/contracts/deployments/testnet-wardline.json` (on NEAR testnet)
+
 ## Try it
 
 Needs Node 20.19 or later and pnpm 12. Run these from the repo root. No keys or accounts are needed, and nothing here calls NEAR AI: AI calls replay real NEAR AI traffic recorded in `fixtures/nearai`. Commands are for a POSIX shell.

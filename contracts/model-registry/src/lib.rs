@@ -56,13 +56,6 @@ impl ModelRegistryContract {
             "2026-11-08T11:08:11.113Z",
         );
         contract.insert_model(
-            "z-ai/glm-5.3-flash",
-            "0x3b753b4406613c5e70ae640508632b600424fa0c",
-            "ecdsa",
-            "NEAR AI model attestation report, recorded 2026-11-08",
-            "2026-11-08T11:08:11.113Z",
-        );
-        contract.insert_model(
             "wardline/sim-echo-1",
             "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
             "ecdsa",
@@ -71,6 +64,11 @@ impl ModelRegistryContract {
         );
 
         contract
+    }
+
+    pub fn remove_model(&mut self, model_id: String) {
+        self.assert_owner();
+        self.models.remove(&model_id);
     }
 
     fn assert_owner(&self) {
@@ -175,7 +173,7 @@ mod tests {
             "deepseek-ai/DeepSeek-V4.1-Flash-1017".to_string(),
             "0x1111111111111111111111111111111111111111".to_string(),
         ));
-        assert_eq!(registry.list_models().len(), 3);
+        assert_eq!(registry.list_models().len(), 2);
     }
 
     #[test]
