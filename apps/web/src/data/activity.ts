@@ -3,7 +3,7 @@
  * sim: built from /v1/proofs and /v1/mutual. testnet: T4.7's /v1/activity and /v1/activity/stats.
  * Rows carry a transaction hash when one exists.
  */
-import { getMutual, getProofs } from "../api/ai";
+import { getMutual, getProofs, type WardPricePoint } from "../api/ai";
 import { apiGet } from "../api/client";
 import { DATA_SOURCE } from "./source";
 
@@ -18,24 +18,20 @@ export interface ActivityItem {
   tx: string | null;
 }
 
+/** /v1/activity/stats: every number from chain views (pool, claims, reputations). */
 export interface ActivityStats {
-  total_items: number;
-  total_pooled?: string;
-  pooled_usdc?: string;
+  total_pooled: string;
   ward_price: string;
-  yield_earned?: string;
-  fees_earned_usdc?: string;
-  claims_paid_usdc?: string;
-  paid_above_line: number;
-  kept_below_line: number;
-  kept_below_line_by_reason?: Record<string, number>;
-  price_series?: Array<{ at: string; price: string; event: string }>;
-  below?: {
-    swapped: number;
-    lookalike: number;
-    capped: number;
-    total: number;
-  };
+  launch_price: string;
+  yield_earned: string;
+  groups_covered: number;
+  proven_payments: number;
+  payouts: number;
+  price_history: WardPricePoint[];
+  below: { swapped: number; lookalike: number; capped: number; total: number };
+  paid_above: number;
+  fees_earned: string;
+  claims: { count: number; total: string };
 }
 
 export async function getActivity(limit = 20): Promise<ActivityItem[]> {

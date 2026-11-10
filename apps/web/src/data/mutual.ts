@@ -1,13 +1,32 @@
 /** The Mutual: summary, positions, votes and every wallet-signed request. */
 import { executeProposal as postExecute, getMutual as fetchMutual, getPosition as fetchPosition, getVoteWeight as fetchWeight, poolChallenge, poolSubmit, type PoolRequest } from "../api/ai";
 import { apiGet } from "../api/client";
+import type { MutualSummary } from "../api/ai";
+import { getActivityStats } from "./activity";
+import { getGroups } from "./groups";
+import { DATA_SOURCE } from "./source";
 import { API_BASE, LOCAL_SIGNER } from "../config";
 import { fromBase64, signNep413, type NearWalletId } from "../wallets/near";
 import { walletError } from "./errors";
 
 export type { MutualSummary, PoolPosition, PoolView, MutualProposalView, ClaimView, WardPricePoint } from "../api/ai";
 
-export const getMutual = fetchMutual;
+/**
+ * The Mutual summary. sim: /v1/mutual. testnet: /v1/mutual (pool, claims, proposals and tiers from the
+ * contracts in near mode) with its stats, price series and groups taken from the testnet routes
+ * (/v1/activity/stats and /v1/communities). A failing route is an error, never sim numbers.
+ */
+export async function getMutual(): Promise<MutualSummary> {
+  if (DATA_SOURCE !== "testnet") return fetchMutual();
+  const [m, stats, groups] = await Promise.all([fetchMutual(), getActivityStats(), getGroups()]);
+  return {
+    ...m,
+    pool: { ...m.pool, price_history: stats.price_history },
+    stats: { total_pooled: stats.total_pooled, ward_price: stats.ward_price, launch_price: stats.launch_price, yield_earned: stats.yield_earned, groups_covered: stats.groups_covered, proven_payments: stats.proven_payments, payouts: stats.payouts, below: stats.below },
+    groups: groups.groups,
+    tiers: groups.tiers,
+  };
+}
 export const getPosition = fetchPosition;
 export const getVoteWeight = fetchWeight;
 export const executeProposal = postExecute;

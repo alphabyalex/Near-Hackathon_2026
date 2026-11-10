@@ -28,5 +28,11 @@ export async function getProofs(limit = 12): Promise<{ mode: "sim" | "near"; pro
     created_at: a.at,
     tx: a.tx,
   }));
-  return { mode: "near", proofs };
+  // Calls made through this API just now (the one-line plug-in, for example) carry their own settle or
+  // release hash; they join the audited rows until the next batch writes and audits them.
+  const live = await fetchProofs(limit);
+  const seen = new Set(proofs.map((p) => p.tx));
+  for (const p of live.proofs) if (p.tx && /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(p.tx) && !seen.has(p.tx)) proofs.push(p);
+  proofs.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return { mode: "near", proofs: proofs.slice(0, limit) };
 }

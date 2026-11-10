@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import type { GroupSummary, TierRules } from "../../api/ai";
 import { Problem } from "../../components/Problem";
-import { getGroups } from "../../data/groups";
+import { getCommunity, getGroups } from "../../data/groups";
+import { DATA_SOURCE } from "../../data/source";
+import { TxLink } from "../../components/TxLink";
 import { GROUPS, REP } from "../../brand";
 import { GroupHorizon } from "../../components/HorizonMark";
 import { feeText, TierBadge } from "../../components/TierBadge";
@@ -21,6 +23,25 @@ export function NextTier({ g }: { g: Pick<GroupSummary, "tier" | "clean_calls" |
       </span>
       <span>{REP.next(left, next)}</span>
     </span>
+  );
+}
+
+/** testnet: the community's latest transaction, linked quietly. Nothing in sim mode. */
+function LatestTx({ id }: { id: string }) {
+  const [row, setRow] = useState<{ text: string; tx: string | null } | null>(null);
+  useEffect(() => {
+    if (DATA_SOURCE !== "testnet") return;
+    let live = true;
+    getCommunity(id).then((r) => live && setRow(r.recent_activity.find((a) => a.tx) ?? null), () => live && setRow(null));
+    return () => {
+      live = false;
+    };
+  }, [id]);
+  if (!row?.tx) return null;
+  return (
+    <p className="gcard-tx muted">
+      {row.text} <TxLink hash={row.tx} plain={false} />
+    </p>
   );
 }
 
@@ -64,6 +85,7 @@ function GroupCard({ g }: { g: GroupSummary }) {
         </div>
       </dl>
       <NextTier g={g} />
+      <LatestTx id={g.budget_id} />
       <p className="gcard-foot muted">{GROUPS.members(g.members)}</p>
     </article>
   );

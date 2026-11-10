@@ -127,6 +127,24 @@ function Sources({ person }: { person: Person }) {
   );
 }
 
+/** testnet: every audited transaction from this account, each linked to the explorer. */
+function History({ person }: { person: Person }) {
+  if (!person.history) return null;
+  return (
+    <section className="panel" aria-labelledby="me-history-title">
+      <h2 id="me-history-title" className="h3">{ME.historyTitle}</h2>
+      <ul className="me-history">
+        {person.history.map((h) => (
+          <li key={h.tx ?? h.at} className={h.side === "above" ? "side-above" : "side-below"}>
+            <span className="muted num">{new Date(h.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span> {h.text} <TxLink hash={h.tx} plain={false} />
+          </li>
+        ))}
+        {person.history.length === 0 && <li className="muted">{ME.historyNone}</li>}
+      </ul>
+    </section>
+  );
+}
+
 function Votes({ person, onChanged }: { person: Person; onChanged: () => void }) {
   const connected = useConnected();
   const now = useNow();
@@ -275,6 +293,7 @@ export function Me() {
               <Redemptions person={person} onChanged={refresh} />
               <Votes person={person} onChanged={refresh} />
               <Sources person={person} />
+              <History person={person} />
             </div>
           )}
         </div>

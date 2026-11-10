@@ -327,6 +327,7 @@ export function Demo() {
       </section>
       <section className="sec tight">
         <div className="wrap demo">
+          <div className="scenes-col">
           <ol className="scenes">
             {SCENES.map((id, i) => (
               <li key={id} className={id === current ? "scene on" : "scene"}>
@@ -340,6 +341,10 @@ export function Demo() {
               </li>
             ))}
           </ol>
+          <p className="scenes-live">
+            {DEMO.liveLine} <a href="#/proof">{DEMO.liveLink}</a>
+          </p>
+          </div>
           <Stage id={current} run={runs[current] ?? null} onRun={() => play(current)} onNext={() => setCurrent(SCENES[idx + 1]!)} hasNext={idx < SCENES.length - 1} />
         </div>
       </section>

@@ -66,3 +66,8 @@ export async function getGroups(): Promise<{ mode: "sim" | "near"; groups: Group
   }));
   return { mode: "near", groups, tiers };
 }
+
+/** One community and its latest audited transactions (the testnet data source). */
+export async function getCommunity(id: string): Promise<{ community: CommunitySummary; recent_activity: Array<{ at: string; text: string; tx: string | null; side: "above" | "below" }> }> {
+  return apiGet(`/v1/communities/${encodeURIComponent(id)}`);
+}

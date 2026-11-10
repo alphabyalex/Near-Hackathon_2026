@@ -36,6 +36,7 @@ export const NAV = [
 ] as const;
 
 export const FOOTER = {
+  testnet: "NEAR testnet",
   owner: "Owner sign-in",
   vault: "The vault",
   llms: "llms.txt",
@@ -251,6 +252,8 @@ export const TIERS: Record<EvidenceTier, { short: string; verified: string; notE
 export const DEMO = {
   label: "Demo",
   title: "Seven scenes, real code paths",
+  liveLine: "These scenes run offline. The same checks run live on NEAR testnet:",
+  liveLink: "see the latest proofs",
   lede: "Each scene runs the real Mutual, gateway, payee check, pool and reputation code against simulated contracts and recorded NEAR AI traffic.",
   run: "Run scene",
   replay: "Run again",
@@ -723,6 +726,8 @@ export const TX = {
 
 /** The member page, #/me, for any connected wallet. */
 export const ME = {
+  historyTitle: "Your transactions",
+  historyNone: "No transactions from this account yet.",
   title: "Your share",
   lede: "Your WARD, what it earned, the votes you can cast and where your share came from.",
   connectTitle: "Connect a wallet to see your share.",
