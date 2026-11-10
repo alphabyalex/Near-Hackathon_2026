@@ -1,8 +1,9 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { castBudgetIds, onlyCast } from "../src/chain/index.js";
+import { castBudgetIds, liveSimSeed, onlyCast, SIM_GROUPS } from "../src/chain/index.js";
+import { HOUSE } from "../src/demo-scenes.js";
 
 describe("near-mode group lists show only the testnet cast", () => {
   it("reads every community and individual budget from the repo's cast.json", () => {
@@ -24,5 +25,16 @@ describe("near-mode group lists show only the testnet cast", () => {
   it("filters nothing when there is no cast file", () => {
     expect(castBudgetIds(join(tmpdir(), "no-such-dir", "cast.json"))).toBeNull();
     expect(onlyCast([{ budget_id: "bgt_engineering" }], null)).toHaveLength(1);
+  });
+});
+
+describe("the sim's groups carry the testnet cast's names", () => {
+  const cast = JSON.parse(readFileSync(new URL("../../../scripts/testnet/cast.json", import.meta.url), "utf8")) as { communities: Array<{ id: string; name: string }> };
+  const names = new Map(cast.communities.map((c) => [c.id, c.name]));
+
+  it("every sim group and demo budget with a cast id has the cast's name", () => {
+    const sim = [...SIM_GROUPS, HOUSE, ...liveSimSeed().budgets].filter((g) => names.has(g.budget_id));
+    expect(sim.length).toBeGreaterThan(3);
+    for (const g of sim) expect(g.name, g.budget_id).toBe(names.get(g.budget_id));
   });
 });

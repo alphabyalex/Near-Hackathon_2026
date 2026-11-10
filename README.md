@@ -179,7 +179,7 @@ pnpm demo:tier
 See:
 
 ```
-Aurora Lab shared AI budget: bronze, 0 proven calls, 0 claims, fee 2.00%, coverage 25.00 USDC
+Aurora Lab: bronze, 0 proven calls, 0 claims, fee 2.00%, coverage 25.00 USDC
 After 11 proven calls: silver, 11 proven calls, 0 claims, fee 1.50%, coverage 50.00 USDC
 Fee on call 1: 0.0100 USDC. Fee on call 11: 0.0075 USDC
 ```

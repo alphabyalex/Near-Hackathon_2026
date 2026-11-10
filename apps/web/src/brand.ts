@@ -293,7 +293,7 @@ export const DEMO = {
       name: "A group plugs in",
       line: "A hacker house funds its AI budget by DAO vote.",
       steps: [
-        "Hayes Valley hacker house proposes 20 USDC for this week's AI budget. Two members approve.",
+        "Hayes Valley house proposes 20 USDC for this week's AI budget. Two members approve.",
         "A member's app changes one line: baseURL becomes <wardline>/v1/ai.",
         "Every call is paid only on proof. 2% of each goes to WARD holders, and WARD ticks up.",
       ],

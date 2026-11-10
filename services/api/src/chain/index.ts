@@ -62,7 +62,7 @@ export function defaultSimSeed(): SimChainSeed {
     budgets: [
       {
         budget_id: GROUP_BUDGET,
-        name: "Aurora Lab shared AI budget",
+        name: "Aurora Lab",
         owner: GROUP_DAO,
         deposit: W(25),
         period: "week",
@@ -94,8 +94,8 @@ const DAY = 86_400_000;
 /** More groups with a track record, for the live sim: the leaderboard, the Groups page and the home stats. */
 export const SIM_GROUPS = [
   { budget_id: "bgt_mission", name: "Mission Street hacker house", owner: "mission-house.sputnikv2.testnet", members: ["dana.testnet", "eli.testnet", "build-bot.testnet"] },
-  { budget_id: "bgt_nightshade", name: "Nightshade research DAO", owner: "nightshade.sputnikv2.testnet", members: ["ruth.testnet", "tomas.testnet"] },
-  { budget_id: "bgt_kelp", name: "Kelp Robotics club", owner: "kelp-robotics.sputnikv2.testnet", members: ["ana.testnet", "kelp-agent.testnet"] },
+  { budget_id: "bgt_nightshade", name: "Nightshade DAO", owner: "nightshade.sputnikv2.testnet", members: ["ruth.testnet", "tomas.testnet"] },
+  { budget_id: "bgt_kelp", name: "Kelp Collective", owner: "kelp-robotics.sputnikv2.testnet", members: ["ana.testnet", "kelp-agent.testnet"] },
 ] as const;
 
 /**
