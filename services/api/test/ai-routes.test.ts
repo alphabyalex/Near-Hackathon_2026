@@ -197,3 +197,42 @@ describe("demo scenes run the real code paths", () => {
     expect(s.last.fee).toBe("7500");
   });
 });
+
+describe("near mode: the Mutual takes wallet transactions, never a signed message", () => {
+  it("refuses the NEP-413 challenge and submit for deposit, withdraw, redeem, vote and propose, and never calls a pool", async () => {
+    nowMs = START;
+    const sim = createChain("sim", toDateClock(clock), defaultSimSeed());
+    const calls: string[] = [];
+    const spy = <T extends object>(target: T, label: string, methods: string[]): T =>
+      new Proxy(target, {
+        get(obj, prop, receiver) {
+          const value = Reflect.get(obj, prop, receiver) as unknown;
+          if (typeof prop === "string" && methods.includes(prop) && typeof value === "function") {
+            return (...args: unknown[]) => {
+              calls.push(`${label}.${prop}`);
+              return (value as (...a: unknown[]) => unknown).apply(obj, args);
+            };
+          }
+          return typeof value === "function" ? (value as (...a: unknown[]) => unknown).bind(obj) : value;
+        },
+      });
+    const chain = { ...sim, mode: "near" as const, pool: spy(sim.pool, "pool", ["deposit", "requestWithdraw", "redeem"]), governance: spy(sim.governance, "governance", ["vote", "propose"]) };
+    const deps = bootstrap(":memory:", clock, { lookupKeys }, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "near" }, chain: chain as never });
+    const app = createApp(deps);
+
+    for (const body of [
+      { action: "deposit", amount: "10000000" },
+      { action: "withdraw", amount: "1000000" },
+      { action: "redeem", id: "wd_1" },
+      { action: "vote", id: 1, support: "for" },
+      { action: "propose", description: "Raise coverage", proposal: { type: "set_coverage_multiplier", bps: 11_000 } },
+    ]) {
+      const res = await app.request("/v1/pool/challenge", post({ account: lp.account, ...body }));
+      expect(res.status, body.action).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toBe("WALLET_TRANSACTION");
+    }
+    const submit = await app.request("/v1/pool/submit", post({ nonce: Buffer.alloc(32).toString("base64"), publicKey: lp.publicKey, signature: "AAAA" }));
+    expect(submit.status).toBe(409);
+    expect(calls).toEqual([]);
+  });
+});

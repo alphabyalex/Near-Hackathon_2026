@@ -240,9 +240,17 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     }
   });
 
-  // Deposit and withdraw are signed by the LP's own wallet (NEP-413). In near mode the wallet sends
-  // ft_transfer_call to the pool contract directly instead.
+  // Deposit and withdraw are signed by the LP's own wallet (NEP-413), in sim mode only. In near mode
+  // the wallet sends the transaction itself (ft_transfer_call, vote, request_redeem, redeem on the pool
+  // contract), and these routes refuse before touching any pool: a signed message moves no USDC, and the
+  // pool's own deposit(account, amount) would mint WARD for nothing.
+  const walletTransactionOnly = () => ({
+    error: "WALLET_TRANSACTION",
+    message: "On NEAR testnet the Mutual takes real transactions: your wallet signs them and sends them to the pool contract. A signed message moves no USDC.",
+    pool: deps.ai.contracts.pool,
+  });
   app.post("/v1/pool/challenge", async (c) => {
+    if (deps.ai.chain.mode === "near") return c.json(walletTransactionOnly(), 409);
     const body = PoolChallenge.safeParse(await c.req.json().catch(() => null));
     if (!body.success) {
       if (body.error.issues.some((i) => i.message === "BELOW_MINIMUM")) return c.json({ error: "BELOW_MINIMUM", message: "The smallest deposit is 1.00 USDC.", min: MIN_DEPOSIT_ATOMIC.toString() }, 400);
@@ -256,6 +264,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   });
 
   app.post("/v1/pool/submit", async (c) => {
+    if (deps.ai.chain.mode === "near") return c.json(walletTransactionOnly(), 409);
     const body = PoolSigned.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: "BAD_REQUEST", message: "Send nonce, publicKey and signature." }, 400);
     const challenge = deps.store.consumeChallenge(body.data.nonce, nowMs());
