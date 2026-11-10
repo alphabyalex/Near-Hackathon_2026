@@ -53,6 +53,7 @@ test.describe("keyboard only", () => {
 
     // Run a demo scene.
     await page.goto("/#/demo");
+    await expect(page.getByRole("heading", { name: "Seven scenes, real code paths" })).toBeVisible();
     await tabTo(page, (el) => el.tag === "button" && el.name.includes("Swapped model"));
     await page.keyboard.press("Enter");
     await tabTo(page, (el) => el.tag === "button" && el.name === "Run scene");

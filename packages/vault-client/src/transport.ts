@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions, baseEncode, type Action, type KeyPairString, type Provider, type SignedTransaction } from "near-api-js";
 import { TransactionRefusedError, VaultExecutionError, VaultOutcomeUnknownError } from "./errors.js";
 
+export { actions, KeyPair, type KeyPairString } from "near-api-js";
 export const GAS_PAYMENT = 100_000_000_000_000n;
 export const GAS_ADMIN = 30_000_000_000_000n;
 export const ONE_YOCTO = 1n;

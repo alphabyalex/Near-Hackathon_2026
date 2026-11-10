@@ -330,6 +330,153 @@ All public endpoints are deployed, reachable over HTTPS, and verified:
   - 68 of 68 contract unit tests passing (`cargo test --workspace`).
   - Total package tests passing: 777.
 
+## T4.7 Testnet Communities & Activity API (2026-11-10)
+
+All T4.7 deliverables are completed and verified:
+1. **The Cast (`scripts/testnet/cast.json`)**:
+   - 5 communities with Sputnik DAOs: Mission Street hacker house (`bgt_mission`, 6 members, Gold tier), Nightshade DAO (`bgt_nightshade`, 5 members, Silver tier), Hayes Valley house (`bgt_hayes`, 4 members, Silver tier), Aurora Lab (`bgt_aurora`, 5 members, Bronze tier, 1 claim history), Kelp Collective (`bgt_kelp`, 4 members, Bronze tier).
+   - 10 individual builders (`bgt_ind_*`) with custom allowances.
+   - 6 pure Liquidity Providers backing the Mutual (`lp-north`, `lp-harbor`, `lp-solano`, `lp-pacific`, `lp-summit`, `lp-valencia`).
+   - Bad actors: unverified model swap (`cheapai.wardline-labs.testnet`), look-alike payee (`northw1nd.testnet`), leaked member keys (`tariq`, `zara`).
+   - Verified vendor: `Northwind Hardware` (`northwind.io`).
+
+2. **Wallets and Activity Engine (`scripts/testnet/setup.ts`, `simulate.ts`, `schedule.ts`)**:
+   - Subaccounts managed under `wardline-labs.testnet` using `CredentialStore`.
+   - Batch simulation script (`pnpm testnet:batch`) executing legitimate proven DeepSeek V4.1 Flash calls, refusing swapped models, enforcing hard budget caps, and recording LP deposits and price adjustments.
+   - Controlled spend ledger (`data/testnet/nearai-spend.json`) enforcing a hard stop at 450 calls or $1 USD spend.
+
+3. **Audit Suite (`scripts/testnet/audit.ts`)**:
+   - Runnable via `pnpm testnet:audit`.
+   - Validates logged activities in `data/testnet/activity.jsonl`, cross-references hashes with testnet RPC, verifies outcome integrity, and reconciles pool balances and community budgets.
+
+4. **Activity API Endpoints (`services/api/src/activity/`)**:
+   - Mounted in `services/api/src/app.ts` via `registerActivityRoutes(app as never, deps)`.
+   - Seamless dual-mode support: integrates on-chain view clients in `near` mode and uses simulated state in `sim` mode.
+
+### API Shapes for Alexander (A8 Data Layer)
+
+#### 1. `GET /v1/activity`
+Query parameters: `limit` (default 50, max 200), `offset` (default 0), `community`, `actor`, `kind`, `outcome`, `side`.
+
+```json
+{
+  "total": 24,
+  "limit": 50,
+  "offset": 0,
+  "items": [
+    {
+      "at": "2026-11-10T04:04:50.059Z",
+      "actor": "priya.wardline-labs.testnet",
+      "community": "bgt_nightshade",
+      "kind": "call",
+      "amount": "15000",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+      "outcome": "paid",
+      "side": "above",
+      "reason": null,
+      "tx": "tx_fc5fe69527fef6340356bfde3a07727e466385cf5804",
+      "explorer_url": "https://testnet.nearblocks.io/txns/tx_fc5fe69527fef6340356bfde3a07727e466385cf5804",
+      "block_height": 277000000,
+      "text": "Nightshade DAO: proven and paid (Draft release notes for Wardline v1.2.0 ...)"
+    }
+  ]
+}
+```
+
+#### 2. `GET /v1/activity/stats`
+
+```json
+{
+  "total_items": 24,
+  "pooled_usdc": "350000",
+  "ward_price": "1000000",
+  "fees_earned_usdc": "4800",
+  "claims_paid_usdc": "50000",
+  "paid_above_line": 18,
+  "kept_below_line": 6,
+  "kept_below_line_by_reason": {
+    "MODEL_MISMATCH": 2,
+    "BUDGET_CAP_EXCEEDED": 2,
+    "UNVERIFIED_PAYEE_LOOKALIKE": 2
+  },
+  "price_series": [
+    { "at": "2026-11-10T03:58:09.930Z", "price": "1.000000", "event": "genesis" },
+    { "at": "2026-11-10T04:04:50.063Z", "price": "1.000300", "event": "fee" }
+  ]
+}
+```
+
+#### 3. `GET /v1/communities`
+
+```json
+{
+  "communities": [
+    {
+      "id": "bgt_mission",
+      "name": "Mission Street hacker house",
+      "dao_account": "mission-dao.wardline-labs.testnet",
+      "target_tier": "gold",
+      "deposit": "40000000",
+      "spent": "45000",
+      "tier": "gold",
+      "fee_bps": 100,
+      "coverage_cap": "100000000",
+      "members": [
+        { "member": "dana.wardline-labs.testnet", "allowance": "15000000", "used": "15000" }
+      ],
+      "proven_calls": 3,
+      "clean_calls": 3,
+      "refused_calls": 0,
+      "capped_calls": 0,
+      "blocked_payees": 0,
+      "fees_paid": "450"
+    }
+  ]
+}
+```
+
+#### 4. `GET /v1/communities/:id`
+Returns a community object matching the shape above, plus `tier_history` and `recent_activity` (the last 10 activity items for this community).
+
+#### 5. `GET /v1/people/:account`
+
+```json
+{
+  "account": "alice.wardline-labs.testnet",
+  "position": {
+    "account": "alice.wardline-labs.testnet",
+    "ward": "50000000",
+    "ward_locked": "0",
+    "usdc_value": "50000000"
+  },
+  "mutual": {
+    "pool": {
+      "tvl": "350000",
+      "junior": "250000",
+      "senior": "100000",
+      "ward_supply": "100000",
+      "ward_price": "1000000",
+      "fees_earned": "0",
+      "claims_paid": "50000"
+    },
+    "claims": [],
+    "governance": {
+      "proposals": [],
+      "voting_period_days": 3,
+      "vote_threshold_bps": 2000,
+      "quorum_bps": 2000,
+      "timelock_days": 0
+    }
+  },
+  "votes": [],
+  "weights": {
+    "0": "50000000"
+  },
+  "open": [],
+  "history": []
+}
+```
+
 ## Blockers
 
 None.

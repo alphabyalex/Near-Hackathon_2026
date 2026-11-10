@@ -241,6 +241,33 @@ Everything above runs offline. Each live variant needs its own environment varia
 | NEAR testnet | `WARDLINE_CHAIN_MODE=near`, `WARDLINE_GATEWAY_ACCOUNT`, `WARDLINE_GATEWAY_KEY` (a function-call key for `reserve`, `settle`, `release` on the meter) | Contract ids come from `repo.config.json`; override with `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`. `WARDLINE_DEMO_METER_KEY` is refused in this mode |
 | A DEX for WARD | `WARDLINE_WARD_TRADE_URL` | Shows "Trade WARD" next to the price |
 
+## Testnet communities
+
+Five fictional communities and ten individuals are actively transacting on NEAR testnet, demonstrating real AI billing and Mutual safety at scale:
+
+- **Mission Street hacker house** (`bgt_mission`, 6 members, Gold tier): high volume, clean track record, paying reduced 1.0% fee.
+- **Nightshade DAO** (`bgt_nightshade`, 5 members, Silver tier): active AI development, paying 1.5% fee.
+- **Hayes Valley house** (`bgt_hayes`, 4 members, Silver tier): collaborative engineering with shared AI budget.
+- **Aurora Lab** (`bgt_aurora`, 5 members, Bronze tier): incident response and recovery, 1 claim covered.
+- **Kelp Collective** (`bgt_kelp`, 4 members, Bronze tier): early-stage builders bootstrapping reputation.
+- **10 Solo Builders & Agents** (`bgt_ind_*`): individual accounts testing agents with strict allowances.
+- **6 Liquidity Providers**: depositing Circle testnet USDC and holding WARD shares.
+
+Judges can inspect real on-chain contracts and transactions signed by testnet accounts on [testnet.nearblocks.io](https://testnet.nearblocks.io):
+- **Meter Contract**: [`meter.wardline-labs.testnet`](https://testnet.nearblocks.io/address/meter.wardline-labs.testnet) managing group budgets, reserves, settlements and 2% fee splits.
+- **Mutual Cover Pool**: [`pool.wardline-labs.testnet`](https://testnet.nearblocks.io/address/pool.wardline-labs.testnet) holding first-loss stake and issuing WARD shares.
+- **Model Registry**: [`model-registry.wardline-labs.testnet`](https://testnet.nearblocks.io/address/model-registry.wardline-labs.testnet) attesting authorized TEE signing keys for DeepSeek V4.1 Flash.
+- **Clean settlement with fee**: Proven inference call and 2% fee routed directly to the Mutual cover pool.
+- **Refused cheapai**: Model swap detected via NEAR AI TEE signature mismatch; call refused and zero payment moved.
+- **Stopped leaked key**: Hard cap enforced on-chain when a member key exceeds allowance, preventing runaway drain.
+- **Look-alike invoice blocked**: Fraudulent payee (`northw1nd.testnet`) blocked before DAO approval or invoice execution.
+
+Run the testnet audit suite to verify all transactions and contract state against testnet RPC:
+
+```sh
+pnpm testnet:audit
+```
+
 ## How it works
 
 ```mermaid

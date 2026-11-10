@@ -1,0 +1,16 @@
+{
+  "total_calls": 16,
+  "hard_cap": 450,
+  "current_key": "key_1",
+  "key_1_spend": {
+    "calls": 16,
+    "estimated_tokens": 2880,
+    "estimated_cost_usd": 0.0024
+  },
+  "key_2_spend": {
+    "calls": 0,
+    "estimated_tokens": 0,
+    "estimated_cost_usd": 0
+  },
+  "last_call_at": "2026-11-10T04:04:50.059Z"
+}
