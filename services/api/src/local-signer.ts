@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { actions, makeProvider, makeSigner } from "@wardline/vault-client";
+import { actions, makeProvider, makeSigner, NearCoverPoolClient } from "@wardline/vault-client";
 import { activityPaths, makeRpc, rowFromChain, type RowFields } from "./activity/log.js";
 import { repoNear } from "./chain/index.js";
 import type { Deps } from "./service.js";
@@ -83,6 +83,10 @@ export function registerLocalSigner(app: Hono, deps: Deps, env: Record<string, s
     return next();
   });
 
+  // Uncached: after a transaction the answer must be the chain's state now.
+  const pool = new NearCoverPoolClient({ contractId: contracts.pool, provider });
+  const wardOf = async (account: string) => BigInt(await pool.ftBalanceOf(account));
+
   app.get("/v1/local-signer", (c) => c.json({ signer: "local test signer", network: "testnet", accounts: [...castAccounts(paths).keys()].sort() }));
 
   app.post("/v1/local-signer/mutual", async (c) => {
@@ -99,6 +103,8 @@ export function registerLocalSigner(app: Hono, deps: Deps, env: Record<string, s
       : req.action === "vote" ? [contracts.pool, "vote", { id: req.id, support: req.support }, 0n]
       : [contracts.pool, "execute", { id: req.id }, 0n];
     let out: { transaction: { hash: string }; status: { SuccessValue?: string; Failure?: unknown } };
+    // ft_transfer_call returns the USDC the pool kept, not the WARD it minted: read WARD before and after.
+    const wardBefore = req.action === "deposit" ? await wardOf(req.account) : 0n;
     try {
       out = (await signer.account.signAndSendTransaction({ receiverId, actions: [actions.functionCall(method, args, 100n * TGAS, deposit)], waitUntil: "FINAL" })) as unknown as typeof out;
     } catch (error) {
@@ -124,9 +130,10 @@ export function registerLocalSigner(app: Hono, deps: Deps, env: Record<string, s
       // The transaction stands; the row waits for the batch writer's rules. Nothing is invented here.
     }
 
-    const position = await deps.ai.chain.pool.getPosition(req.account);
+    const position = await pool.getPosition(req.account);
+    const minted = req.action === "deposit" ? (await wardOf(req.account)) - wardBefore : null;
     const proposal = req.action === "vote" || req.action === "execute" ? await deps.ai.chain.governance.getProposal(req.id) : undefined;
     const extra = typeof value === "object" && value ? value : {};
-    return c.json({ action: req.action, tx, explorer_url: `https://testnet.nearblocks.io/txns/${tx}`, ...("ward" in extra ? { ward: extra.ward } : {}), ...("usdc" in extra ? { usdc: extra.usdc } : {}), ...("available_at" in extra ? { id: extra.id, available_at: nsToIso(extra.available_at!) } : {}), position, ...(proposal ? { proposal } : {}) });
+    return c.json({ action: req.action, tx, explorer_url: `https://testnet.nearblocks.io/txns/${tx}`, ...(minted !== null ? { ward: minted.toString() } : "ward" in extra ? { ward: extra.ward } : {}), ...("usdc" in extra ? { usdc: extra.usdc } : {}), ...("available_at" in extra ? { id: extra.id, available_at: nsToIso(extra.available_at!) } : {}), position, ...(proposal ? { proposal } : {}) });
   });
 }

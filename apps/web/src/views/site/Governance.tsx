@@ -12,7 +12,11 @@ import type { NearWalletId } from "../../wallets/near";
 import { ConnectDialog } from "./Member";
 import { countdown, signMutual, useNow } from "./Mutual";
 
-const ward = (atomic: string): string => formatUsdc(atomic);
+/** Whole WARD to two decimals; a fraction of one to four, so small testnet holdings fit their column. */
+const ward = (atomic: string): string => {
+  const n = Number(atomic) / 1e6;
+  return n === 0 || n >= 1 ? formatUsdc(atomic) : n.toFixed(4);
+};
 const pctOf = (part: string, whole: string): number => (BigInt(whole) === 0n ? 0 : Number((BigInt(part) * 10_000n) / BigInt(whole)) / 100);
 
 /** True when the action line only restates the title: every number in it is already in the title. */

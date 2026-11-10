@@ -180,6 +180,12 @@ describe("free tier", () => {
     expect((await via("8.8.8.8, 2.2.2.2")).status).toBe(402);
   });
 
+  it("does not count the Mutual's public pages or the AI gateway", async () => {
+    const app = createApp(bootstrap(":memory:", () => NOW_NS, { freeCallsPerDay: 0 }, LOCAL_AUTH));
+    for (const path of ["/v1/mutual", "/v1/groups", "/v1/proofs", "/v1/activity/stats", "/v1/communities"]) expect((await app.request(path)).status).not.toBe(402);
+    expect((await app.request("/v1/vendors")).status).toBe(402);
+  });
+
   it("does not limit the owner routes or the attestor key", async () => {
     const app = createApp(bootstrap(":memory:", () => NOW_NS, { freeCallsPerDay: 0 }, LOCAL_AUTH));
     expect((await app.request("/owner/review-queue")).status).toBe(200);

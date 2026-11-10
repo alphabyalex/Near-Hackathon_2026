@@ -19,7 +19,12 @@ const txs: Record<string, string> = {};
 test.describe.configure({ mode: "serial" });
 mkdirSync(SHOTS, { recursive: true });
 
-const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/testnet-${name}.png`, fullPage: true });
+/** Waits for the page's requests to settle, so no screenshot catches a loading skeleton. */
+async function shot(page: Page, name: string): Promise<void> {
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${SHOTS}/testnet-${name}.png`, fullPage: true });
+}
 
 /** The hash in a View transaction link. */
 async function hashOf(link: ReturnType<Page["locator"]>): Promise<string> {
@@ -61,7 +66,9 @@ test("home: testnet numbers, and the footer says so", async ({ page }) => {
   await page.goto("/#/");
   await expect(page.locator("footer")).toContainText("NEAR testnet");
   await expect(page.locator(".stats")).toBeVisible();
+  await expect(page.locator(".stats dd").first()).toContainText(/\d/);
   await expect(page.locator(".stats")).not.toContainText("141.24");
+  await page.waitForLoadState("networkidle");
   await shot(page, "home");
 });
 

@@ -94,6 +94,7 @@ export const HOME = {
   ctaTitle: "Back the AI economy and earn from it.",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
   modeMixed: "Pool, budgets and model registry on NEAR testnet. Reputation tiers and WARD voting are simulated until their contracts are deployed.",
+  modeNear: "Pool, budgets, model registry, reputation tiers and WARD voting run on NEAR testnet.",
 } as const;
 
 export const MEMBER = {

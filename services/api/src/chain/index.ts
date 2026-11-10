@@ -207,14 +207,18 @@ class NearReputation implements ReputationClient {
  * WARD-holder voting in near mode: the pool contract's proposals and weights (T4.6). Votes and proposals
  * are signed by the holder's own wallet against the pool, so the API never casts one for them.
  */
+const realTx = <T extends { tx?: string | null }>(p: T): T => ({ ...p, tx: p.tx && /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(p.tx) ? p.tx : null });
+
 class NearGovernance implements GovernanceClient {
   readonly mode = "near" as const;
   constructor(private readonly pool: NearCoverPoolClient) {}
+  // The pool labels an executed proposal "<contract>:proposal:<id>", which is not a transaction hash.
   async listProposals(): Promise<MutualProposalView[]> {
-    return (await this.pool.listProposals()) as unknown as MutualProposalView[];
+    return ((await this.pool.listProposals()) as unknown as MutualProposalView[]).map(realTx);
   }
   async getProposal(id: number): Promise<MutualProposalView | null> {
-    return (await this.pool.getProposal(id)) as unknown as MutualProposalView | null;
+    const p = (await this.pool.getProposal(id)) as unknown as MutualProposalView | null;
+    return p ? realTx(p) : null;
   }
   propose(): Promise<MutualProposalView> {
     return Promise.reject(new Error("On testnet, a WARD holder proposes from their own wallet: call propose on the pool contract."));
