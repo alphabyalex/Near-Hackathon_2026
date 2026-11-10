@@ -1,13 +1,14 @@
 /** The Mutual: summary, positions, votes and every wallet-signed request. */
 import { executeProposal as postExecute, getMutual as fetchMutual, getPosition as fetchPosition, getVoteWeight as fetchWeight, poolChallenge, poolSubmit, type PoolRequest } from "../api/ai";
 import { apiGet } from "../api/client";
-import type { MutualSummary } from "../api/ai";
+import type { MutualSummary, PoolPosition } from "../api/ai";
 import { getActivityStats } from "./activity";
 import { getGroups } from "./groups";
 import { DATA_SOURCE } from "./source";
 import { API_BASE, LOCAL_SIGNER } from "../config";
 import { fromBase64, signNep413, type NearWalletId } from "../wallets/near";
 import { walletError } from "./errors";
+import { planDeposit, sendDeposit, sendPoolAction, type WalletPoolAction } from "./wallet-pool";
 
 export type { MutualSummary, PoolPosition, PoolView, MutualProposalView, ClaimView, WardPricePoint } from "../api/ai";
 
@@ -39,12 +40,32 @@ export interface MemberVote {
 
 export const getVotes = (account: string) => apiGet<{ account: string; votes: MemberVote[] }>(`/v1/mutual/votes/${encodeURIComponent(account)}`);
 
+/** What every Mutual action answers, whichever way it was signed. */
+export interface MutualResult {
+  action: string;
+  tx?: string;
+  ward?: string | undefined;
+  usdc?: string | undefined;
+  id?: string | undefined;
+  available_at?: string | undefined;
+  position?: PoolPosition | undefined;
+  proposal?: { id: number } | undefined;
+}
+
 /**
- * Signs a Mutual request (deposit, redeem, vote, propose) with the account's own NEAR wallet. The
- * API refuses bad input before anything is signed; a wallet failure comes back as a WalletError.
+ * A Mutual request (deposit, redeem, vote, propose) from the account's own NEAR wallet.
+ * - testnet data with a NEAR Connect wallet: a real transaction from the wallet (data/wallet-pool.ts).
+ *   Nothing goes through the API's pool.
+ * - the local test signer: the local API sends the transaction as a cast account.
+ * - sim: a NEP-413 signed request to the API's sim pool, for the offline steps in the README.
+ * A wallet failure comes back as a WalletError.
  */
-export async function signMutual(walletId: NearWalletId, body: PoolRequest) {
+export async function signMutual(walletId: NearWalletId, body: PoolRequest): Promise<MutualResult> {
   if (walletId === "local-signer") return localSigner(body);
+  if (walletId === "near-connect" && DATA_SOURCE === "testnet") {
+    if (body.action === "deposit") return sendDeposit(await planDeposit(body.account, body.amount));
+    return sendPoolAction(body.account, body as WalletPoolAction);
+  }
   const ch = await poolChallenge(body);
   let signed;
   try {
@@ -78,10 +99,11 @@ export async function localSignerAccounts(): Promise<string[]> {
 }
 
 /**
- * Executes a passed proposal. Through the local test signer when that is the connected wallet (on
- * testnet anyone executes on the pool contract); otherwise the API's own route (sim mode).
+ * Executes a passed proposal. On testnet anyone executes on the pool contract: from the connected
+ * wallet, or through the local test signer. Otherwise the API's own route (sim mode).
  */
 export async function executeAs(connected: { account: string; wallet: NearWalletId } | null, id: number) {
   if (connected?.wallet === "local-signer") return localSigner({ account: connected.account, action: "execute", id });
+  if (connected?.wallet === "near-connect" && DATA_SOURCE === "testnet") return sendPoolAction(connected.account, { action: "execute", id });
   return postExecute(id);
 }

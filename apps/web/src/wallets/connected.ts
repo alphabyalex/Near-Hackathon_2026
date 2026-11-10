@@ -4,7 +4,7 @@
  * every money action is still signed by the wallet itself.
  */
 import { useSyncExternalStore } from "react";
-import type { NearWalletId } from "./near";
+import { NEAR_WALLET_IDS, type NearWalletId } from "./near";
 
 export interface Connected {
   account: string;
@@ -19,7 +19,8 @@ function read(): Connected | null {
     const raw = window.sessionStorage.getItem(KEY);
     if (!raw) return null;
     const v = JSON.parse(raw) as Connected;
-    return typeof v.account === "string" && typeof v.wallet === "string" ? v : null;
+    // A wallet from before NEAR Connect (meteor-wallet, my-near-wallet) is dropped: connect again.
+    return typeof v.account === "string" && NEAR_WALLET_IDS.includes(v.wallet) ? v : null;
   } catch {
     return null;
   }

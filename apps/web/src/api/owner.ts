@@ -1,5 +1,5 @@
 import type { EvidenceTier, PayeeReason, PayeeVerdict } from "@wardline/schemas";
-import { fromBase64, signNep413, type NearWalletId } from "../wallets/near";
+import { accountFrom, fromBase64, signNep413, type NearWalletId } from "../wallets/near";
 import { apiGet, apiPost } from "./client";
 
 export interface Session {
@@ -20,7 +20,8 @@ export const getSession = (): Promise<Session> => apiGet<Session>("/owner/auth/s
 
 /** NEP-413 sign-in: the API issues a single-use challenge, the wallet signs it, the API sets a session cookie. */
 export async function signIn(account: string, walletId: NearWalletId): Promise<Session> {
-  const challenge = await apiPost<Challenge>("/owner/auth/challenge", { account: account.trim() });
+  // NEAR Connect: the account is the one the wallet signs in with, never a typed one.
+  const challenge = await apiPost<Challenge>("/owner/auth/challenge", { account: await accountFrom(walletId, account) });
   const signed = await signNep413(walletId, { message: challenge.message, recipient: challenge.recipient, nonce: fromBase64(challenge.nonce) }, challenge.account);
   return apiPost<Session>("/owner/auth/login", { account: challenge.account, publicKey: signed.publicKey, signature: signed.signature, nonce: challenge.nonce });
 }

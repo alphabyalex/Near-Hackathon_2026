@@ -7,7 +7,7 @@ import { CodeBlock } from "../../components/CodeBlock";
 import { API_BASE, NEAR_NETWORK } from "../../config";
 import { TierBadge, TierFacts } from "../../payee/ResultCard";
 import { connectEvm, hasEvmWallet, signEvm } from "../../wallets/evm";
-import { nearWallets, randomNonce, signNep413, type NearWalletId } from "../../wallets/near";
+import { accountFrom, nearWallets, randomNonce, signNep413, typesAccount, type NearWalletId } from "../../wallets/near";
 import { connectSolana, hasPhantom, signSolana } from "../../wallets/solana";
 
 export const PAYEE_RECIPIENT = "wardline-payee-registry";
@@ -89,7 +89,8 @@ export function Verify() {
 
   const signNear = (walletId: NearWalletId) =>
     guarded(`near-${walletId}`, async () => {
-      const caip10 = normalizeAccount(nearAccount, NEAR_NETWORK);
+      // NEAR Connect: the account the wallet signs in with. The test wallet takes the typed one.
+      const caip10 = normalizeAccount(await accountFrom(walletId, nearAccount), NEAR_NETWORK);
       if (!caip10.startsWith("near:")) throw new Error("Enter a NEAR account id, like yourname.testnet.");
       const nonce = randomNonce();
       const accountId = caip10.split(":")[2] as string;
@@ -183,13 +184,15 @@ export function Verify() {
                   <span>NEP-413 message signing</span>
                 </div>
                 <div className="wr-act">
-                  <label className="field compact">
-                    <span>{VERIFY.nearAccount}</span>
-                    <input value={nearAccount} onChange={(e) => setNearAccount(e.target.value)} placeholder={`yourname.${NEAR_NETWORK}`} autoComplete="off" spellCheck={false} />
-                  </label>
+                  {wallets.some((w) => typesAccount(w.id)) && (
+                    <label className="field compact">
+                      <span>{VERIFY.nearAccount}</span>
+                      <input value={nearAccount} onChange={(e) => setNearAccount(e.target.value)} placeholder={`yourname.${NEAR_NETWORK}`} autoComplete="off" spellCheck={false} />
+                    </label>
+                  )}
                   <div className="wr-buttons">
                     {wallets.map((w) => (
-                      <button key={w.id} type="button" className="sbtn" disabled={!nearAccount.trim() || busy !== null} onClick={() => void signNear(w.id)}>
+                      <button key={w.id} type="button" className="sbtn" disabled={(typesAccount(w.id) && !nearAccount.trim()) || busy !== null} onClick={() => void signNear(w.id)}>
                         {busy === `near-${w.id}` ? "Waiting for wallet" : `Sign with ${w.name}`}
                       </button>
                     ))}

@@ -44,6 +44,13 @@ export const API_BASE = API_URL ?? "/api";
 /** Owner routes. Serve them on the same site as this app, so the session cookie is sent. */
 export const OWNER_BASE = clean(env.VITE_WARDLINE_OWNER_URL) ?? `${API_BASE}/owner`;
 export const NEAR_NETWORK = env.VITE_NEAR_NETWORK?.trim() || "testnet";
+/** NEAR RPC endpoints the browser reads balances from, tried in order (VITE_NEAR_RPC_URL takes a comma list). */
+export const NEAR_RPC_URLS: string[] = (env.VITE_NEAR_RPC_URL?.trim() || (NEAR_NETWORK === "mainnet" ? "https://free.rpc.fastnear.com,https://rpc.mainnet.near.org" : "https://test.rpc.fastnear.com,https://rpc.testnet.near.org"))
+  .split(",")
+  .map((u: string) => u.trim())
+  .filter(Boolean);
+/** The Mutual's pool contract, which is also the WARD token. */
+export const POOL_CONTRACT = repo.near.contracts.coverPool;
 /**
  * The local test signer (dev server only, loopback bind, testnet, VITE_WARDLINE_LOCAL_SIGNER=1; see
  * vite/local-signer.ts). import.meta.env.DEV is false in every production build, so it is never there.

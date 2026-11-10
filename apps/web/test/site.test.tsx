@@ -190,8 +190,9 @@ describe("dashboard", () => {
     navigate("#/app/overview");
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Meteor/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /MyNearWallet/ })).toBeTruthy();
+    // One NEAR Connect button: the wallet list is NEAR Connect's, and the account comes from the wallet.
+    expect(screen.getByRole("button", { name: /NEAR wallet/ })).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: /account/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /Test wallet/ })).toBeNull();
   });
 

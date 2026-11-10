@@ -65,6 +65,7 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [doneTx, setDoneTx] = useState<string | null>(null);
   const account = voter.account.trim();
 
   useEffect(() => {
@@ -89,7 +90,8 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
     setDone(null);
     setBusy(true);
     try {
-      await signMutual(voter.wallet, { account, action: "vote", id: p.id, support });
+      const res = await signMutual(voter.wallet, { account, action: "vote", id: p.id, support });
+      setDoneTx(res.tx ?? null);
       setDone(GOV.voted(support === "for" ? GOV.votesFor.toLowerCase() : GOV.votesAgainst.toLowerCase()));
       onChange();
     } catch (e) {
@@ -103,7 +105,8 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
     setError(null);
     setBusy(true);
     try {
-      await executeAs(voter.wallet ? { account: voter.account.trim(), wallet: voter.wallet } : null, p.id);
+      const res = (await executeAs(voter.wallet ? { account: voter.account.trim(), wallet: voter.wallet } : null, p.id)) as { tx?: string };
+      setDoneTx(res.tx ?? null);
       setDone(GOV.executed);
       onChange();
     } catch (e) {
@@ -172,7 +175,7 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
       {error !== null && <Problem error={error} compact />}
       {done && (
         <p className="ok-line" role="status">
-          {done}
+          {done} {doneTx && <TxLink hash={doneTx} />}
         </p>
       )}
     </article>

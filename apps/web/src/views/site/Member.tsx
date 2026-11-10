@@ -4,6 +4,8 @@ import { toAtomic, type PoolPosition, type PoolView } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
 import { getPosition, localSignerAccounts } from "../../data/mutual";
+import { DATA_SOURCE } from "../../data/source";
+import { planDeposit, sendDeposit, type DepositPlan } from "../../data/wallet-pool";
 import { navigate } from "../../router";
 import { HOME, JOIN, MEMBER, WALLET } from "../../brand";
 import { Dialog } from "../../components/Dialog";
@@ -11,11 +13,13 @@ import { HorizonMark } from "../../components/HorizonMark";
 import { NEAR_NETWORK } from "../../config";
 import { formatUsdc } from "../../format";
 import { setConnected, useConnected, type Connected } from "../../wallets/connected";
-import { nearWallets, type NearWalletId } from "../../wallets/near";
+import { connectNear, disconnectNear, loadConnector, nearWallets, typesAccount, type NearWalletId } from "../../wallets/near";
 import { countdown, price, signMutual, useNow } from "./Mutual";
 
+/** Wallets that sign as a typed account: the e2e test wallet and the local test signer. NEAR Connect never does. */
 function WalletPick({ value, onChange }: { value: NearWalletId | null; onChange: (w: NearWalletId) => void }) {
   const wallets = useMemo(() => nearWallets(), []);
+  if (wallets.length < 2) return null;
   return (
     <fieldset className="wallet-choice">
       <legend>{WALLET.wallet}</legend>
@@ -28,16 +32,16 @@ function WalletPick({ value, onChange }: { value: NearWalletId | null; onChange:
   );
 }
 
-/** Account and wallet fields, prefilled from the connected wallet. */
+/** Account and wallet fields, prefilled from the connected wallet. NEAR Connect is the default. */
 function useWalletFields(connected: Connected | null) {
-  const [account, setAccount] = useState(connected?.account ?? "");
+  const [account, setAccount] = useState(connected && typesAccount(connected.wallet) ? connected.account : "");
   const [wallet, setWallet] = useState<NearWalletId | null>(connected?.wallet ?? nearWallets()[0]?.id ?? null);
   return { account, setAccount, wallet, setWallet };
 }
 type WalletFieldsState = ReturnType<typeof useWalletFields>;
 
-/** The one connect form: a NEAR account and the wallet that signs for it. Used by Connect wallet and by Join. */
-function WalletFields({ f, label }: { f: WalletFieldsState; label: string }) {
+/** The typed account field, only for the test wallet and the local test signer. */
+function TypedAccount({ f, label }: { f: WalletFieldsState; label: string }) {
   const local = f.wallet === "local-signer";
   const [accounts, setAccounts] = useState<string[]>([]);
   useEffect(() => {
@@ -48,6 +52,7 @@ function WalletFields({ f, label }: { f: WalletFieldsState; label: string }) {
       live = false;
     };
   }, [local]);
+  if (!typesAccount(f.wallet)) return null;
   return (
     <>
       <label className="field">
@@ -61,31 +66,75 @@ function WalletFields({ f, label }: { f: WalletFieldsState; label: string }) {
           </datalist>
         )}
       </label>
-      <WalletPick value={f.wallet} onChange={f.setWallet} />
       {local && <p className="local-signer-note" role="note">{WALLET.localSigner}</p>}
     </>
   );
 }
 
+/**
+ * The NEAR Connect button. NEAR Connect is loaded when this mounts, so the click opens its wallet list
+ * at once and the wallet's own window opens from a click. The account comes from the wallet.
+ */
+function NearConnectButton({ onConnected, className = "btn wide" }: { onConnected: (account: string) => void; className?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => {
+    void loadConnector().catch(() => undefined);
+  }, []);
+  return (
+    <>
+      <button
+        type="button"
+        className={className}
+        disabled={busy}
+        data-testid="near-connect"
+        onClick={() => {
+          setBusy(true);
+          setError(null);
+          connectNear()
+            .then(
+              (account) => {
+                setConnected({ account, wallet: "near-connect" });
+                onConnected(account);
+              },
+              (e: unknown) => setError(e),
+            )
+            .finally(() => setBusy(false));
+        }}
+      >
+        {busy ? WALLET.connecting : WALLET.nearConnect}
+      </button>
+      <p className="hint">{WALLET.nearConnectNote}</p>
+      {error !== null && <Problem error={error} compact />}
+    </>
+  );
+}
+
+/** Connect wallet: NEAR Connect first; the typed field only for the test wallet and the local test signer. */
 export function ConnectDialog({ onClose, anchor }: { onClose: () => void; anchor?: HTMLElement | null }) {
   const connected = useConnected();
   const f = useWalletFields(connected);
+  const typed = typesAccount(f.wallet);
   return (
     <Dialog title={WALLET.title} onClose={onClose} testId="connect-dialog" anchor={anchor}>
       <p className="dlg-lede">{WALLET.lede}</p>
-      <WalletFields f={f} label={WALLET.account} />
+      <WalletPick value={f.wallet} onChange={f.setWallet} />
+      {f.wallet === "near-connect" && <NearConnectButton onConnected={() => onClose()} />}
+      <TypedAccount f={f} label={WALLET.account} />
       <div className="dlg-actions">
-        <button
-          type="button"
-          className="btn"
-          disabled={!f.account.trim() || !f.wallet}
-          onClick={() => {
-            setConnected({ account: f.account.trim(), wallet: f.wallet! });
-            onClose();
-          }}
-        >
-          {WALLET.save}
-        </button>
+        {typed && (
+          <button
+            type="button"
+            className="btn"
+            disabled={!f.account.trim()}
+            onClick={() => {
+              setConnected({ account: f.account.trim(), wallet: f.wallet! });
+              onClose();
+            }}
+          >
+            {WALLET.save}
+          </button>
+        )}
         <button type="button" className="btn ghost" onClick={onClose}>
           {WALLET.cancel}
         </button>
@@ -94,6 +143,7 @@ export function ConnectDialog({ onClose, anchor }: { onClose: () => void; anchor
             type="button"
             className="btn ghost"
             onClick={() => {
+              if (connected.wallet === "near-connect") void disconnectNear();
               setConnected(null);
               onClose();
             }}
@@ -131,6 +181,8 @@ export function ConnectWallet() {
 
 type JoinStep = { step: "form" } | { step: "approving"; usdc: string } | { step: "done"; ward: string; tx: string };
 
+const nearText = (yocto: bigint): string => (Number(yocto / 1_000_000_000_000_000_000n) / 1_000_000).toFixed(3);
+
 /** Join the Mutual: amount, what you receive, our stake in front, then the wallet signs the deposit. */
 export function JoinDialog({ pool, onClose, onJoined, minDeposit = "1000000" }: { pool: PoolView; onClose: () => void; onJoined: () => void; minDeposit?: string }) {
   const connected = useConnected();
@@ -139,33 +191,73 @@ export function JoinDialog({ pool, onClose, onJoined, minDeposit = "1000000" }: 
   const [amount, setAmount] = useState("25");
   const [state, setState] = useState<JoinStep>({ step: "form" });
   const [error, setError] = useState<unknown>(null);
+  // On testnet with NEAR Connect: balances, registration and WARD before, read before the click.
+  const [plan, setPlan] = useState<DepositPlan | null>(null);
+  const [planning, setPlanning] = useState(false);
   // Each signing attempt gets a number; Stop waiting moves it on, so a late wallet answer is ignored.
   const attempt = useRef(0);
   const atomic = toAtomic(amount);
   const belowMin = atomic !== null && BigInt(atomic) < BigInt(minDeposit);
   const ward = atomic ? ((BigInt(atomic) * 1_000_000n) / BigInt(pool.ward_price)).toString() : null;
   const usdcText = atomic ? formatUsdc(atomic) : "0.00";
+  const viaWallet = f.wallet === "near-connect";
+  const onChain = viaWallet && DATA_SOURCE === "testnet";
+  const account = viaWallet ? (connected?.wallet === "near-connect" ? connected.account : "") : f.account.trim();
   const showFields = !connected || changing;
 
-  const deposit = async () => {
+  useEffect(() => {
+    setPlan(null);
+    if (!onChain || !account || !atomic || belowMin) return;
+    let live = true;
+    setPlanning(true);
+    const t = window.setTimeout(() => {
+      planDeposit(account, atomic)
+        .then(
+          (p) => {
+            if (!live) return;
+            setPlan(p);
+            setError(null);
+          },
+          (e: unknown) => {
+            if (live) setError(e);
+          },
+        )
+        .finally(() => {
+          if (live) setPlanning(false);
+        });
+    }, 300);
+    return () => {
+      live = false;
+      window.clearTimeout(t);
+    };
+  }, [onChain, account, atomic, belowMin]);
+
+  const deposit = () => {
     if (!atomic) return setError(new Error(JOIN.badAmount));
-    if (!f.wallet || !f.account.trim()) return;
+    if (!f.wallet || !account) return;
+    if (onChain && (!plan || plan.problem)) return;
     const mine = ++attempt.current;
+    const wallet = f.wallet;
     setError(null);
     setState({ step: "approving", usdc: atomic });
-    try {
-      const res = await signMutual(f.wallet, { account: f.account.trim(), action: "deposit", amount: atomic });
-      if (mine !== attempt.current) return;
-      setConnected({ account: f.account.trim(), wallet: f.wallet });
-      setState({ step: "done", ward: res.ward ?? "0", tx: res.tx ?? "" });
-      onJoined();
-    } catch (e) {
-      if (mine !== attempt.current) return;
-      setError(e);
-      setState({ step: "form" });
-    }
+    // Straight to the wallet: on testnet every check already ran in planDeposit.
+    const sent = onChain && plan ? sendDeposit(plan) : signMutual(wallet, { account, action: "deposit", amount: atomic });
+    sent.then(
+      (res) => {
+        if (mine !== attempt.current) return;
+        setConnected({ account, wallet });
+        setState({ step: "done", ward: res.ward ?? "0", tx: res.tx ?? "" });
+        onJoined();
+      },
+      (e: unknown) => {
+        if (mine !== attempt.current) return;
+        setError(e);
+        setState({ step: "form" });
+      },
+    );
   };
 
+  const ready = !!atomic && !belowMin && !!account && !!f.wallet && (!onChain || (!!plan && !plan.problem && !planning));
   return (
     <Dialog title={JOIN.title} onClose={onClose} testId="join-dialog">
       {state.step === "form" && (
@@ -193,21 +285,37 @@ export function JoinDialog({ pool, onClose, onJoined, minDeposit = "1000000" }: 
             </div>
           </dl>
           <p className="hint">{JOIN.stakeNote}</p>
-          {showFields || !connected ? (
-            <WalletFields f={f} label={JOIN.account} />
+          {showFields || !account ? (
+            <>
+              <WalletPick value={f.wallet} onChange={f.setWallet} />
+              {viaWallet && !account && <NearConnectButton className="btn ghost wide" onConnected={() => setChanging(false)} />}
+              <TypedAccount f={f} label={JOIN.account} />
+            </>
           ) : (
             <div className="dlg-from" data-testid="join-from">
               <span>
-                {JOIN.from} <b className="acct">{connected.account}</b>
+                {JOIN.from} <b className="acct">{account}</b>
               </span>
               <button type="button" className="link" onClick={() => setChanging(true)}>
                 {JOIN.change}
               </button>
             </div>
           )}
+          {onChain && account && planning && (
+            <p className="hint" role="status">
+              {JOIN.checking}
+            </p>
+          )}
+          {onChain && plan && (
+            <p className="hint num" data-testid="join-balances">
+              {JOIN.balances(formatUsdc(plan.usdc.toString()), nearText(plan.near))}
+              {!plan.registered && <> {JOIN.register}</>}
+            </p>
+          )}
           {belowMin && <Problem error={{ code: "BELOW_MINIMUM" }} compact />}
+          {!belowMin && plan?.problem && <Problem error={{ code: plan.problem.code }} compact />}
           {error !== null && !belowMin && <Problem error={error} compact />}
-          <button type="button" className="btn wide" disabled={!atomic || belowMin || !f.account.trim() || !f.wallet} onClick={() => void deposit()}>
+          <button type="button" className="btn wide" disabled={!ready} onClick={deposit}>
             {JOIN.deposit(usdcText)}
           </button>
         </>
@@ -264,6 +372,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [doneTx, setDoneTx] = useState<string | null>(null);
 
   useEffect(() => {
     if (!connected) return setPosition(null);
@@ -285,6 +394,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
     try {
       const res = await signMutual(connected.wallet, { account: connected.account, ...body });
       if (res.position) setPosition(res.position);
+      setDoneTx(res.tx ?? null);
       setDone(body.action === "withdraw" ? MEMBER.locked7(res.available_at?.slice(0, 10) ?? "") : MEMBER.redeemed(formatUsdc(res.usdc ?? "0")));
       setAmount("");
       onChanged();
@@ -379,7 +489,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
       {error !== null && <Problem error={error} compact />}
       {done && (
         <p className="ok-line" role="status" data-testid="pool-done">
-          {done}
+          {done} {doneTx && <TxLink hash={doneTx} />}
         </p>
       )}
     </div>

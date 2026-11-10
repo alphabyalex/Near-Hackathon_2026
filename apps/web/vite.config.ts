@@ -23,19 +23,24 @@ function carryLegacyEnv(mode: string): void {
 
 /**
  * The site's security headers. Only what the site uses: its own scripts and fonts, inline style
- * attributes (React sets widths and delays), the API, and the NEAR RPCs and wallets the wallet
- * selector talks to. Served by vite preview and written to dist/_headers for static hosts.
+ * attributes (React sets widths and delays), the API, and NEAR Connect.
+ *
+ * NEAR Connect runs each wallet's code in a sandboxed srcdoc iframe, which inherits this policy. The
+ * wallet code is fetched from the wallet's manifest entry and inlined, so script-src needs
+ * 'unsafe-inline' (a static host can't send a nonce), and connect-src needs https: and wss: for the
+ * manifest, the wallets' own APIs and NEAR RPCs. The iframe itself is sandboxed by NEAR Connect.
+ * Served by vite preview and written to dist/_headers for static hosts.
  */
 export function siteHeaders(apiUrl: string | undefined): Record<string, string> {
   const api = apiUrl ? new URL(apiUrl).origin : "";
   const csp = [
     "default-src 'self'",
-    "script-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    "img-src 'self' data: https:",
     "font-src 'self'",
-    `connect-src 'self' ${api} https://*.near.org https://*.fastnear.com https://*.mynearwallet.com https://*.meteorwallet.app`.replace(/ +/g, " "),
-    "frame-src https://*.meteorwallet.app",
+    `connect-src 'self' ${api} https: wss:`.replace(/ +/g, " "),
+    "frame-src 'self' https:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

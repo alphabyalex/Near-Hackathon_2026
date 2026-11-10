@@ -47,6 +47,9 @@ const CODE_KIND: Record<string, ProblemKind> = {
   NOT_ENOUGH_WARD: "notEnoughWard",
   ALREADY_EXECUTED: "alreadyExecuted",
   NOT_WIRED_YET: "notWired",
+  INSUFFICIENT_USDC: "notEnoughUsdc",
+  INSUFFICIENT_NEAR: "notEnoughNear",
+  WALLET_TRANSACTION: "walletTransaction",
 };
 
 export function explain(error: unknown): Explained {

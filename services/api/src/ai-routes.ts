@@ -132,7 +132,8 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   // Which TEE signer is attested for which model. In near mode this mirrors the model registry contract.
   app.get("/v1/ai-registry", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.registry, models: await deps.ai.chain.registry.listModels() }));
 
-  app.get("/v1/pool", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, pool: await pool.getPool(), claims: await pool.listClaims() }));
+  // token: the USDC contract a wallet sends ft_transfer_call to, with the pool as receiver.
+  app.get("/v1/pool", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, token: deps.ai.contracts.token, pool: await pool.getPool(), claims: await pool.listClaims() }));
 
   app.get("/v1/pool/positions/:account", async (c) => {
     const account = Account.safeParse(c.req.param("account"));
