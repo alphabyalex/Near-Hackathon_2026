@@ -23,5 +23,10 @@ export const API_BASE = API_URL ?? "/api";
 /** Owner routes. Serve them on the same site as this app, so the session cookie is sent. */
 export const OWNER_BASE = clean(env.VITE_WARDLINE_OWNER_URL) ?? `${API_BASE}/owner`;
 export const NEAR_NETWORK = env.VITE_NEAR_NETWORK?.trim() || "testnet";
+/**
+ * The local test signer (dev server only, 127.0.0.1, testnet, VITE_WARDLINE_LOCAL_SIGNER=1; see
+ * vite/local-signer.ts). import.meta.env.DEV is false in every production build, so it is never there.
+ */
+export const LOCAL_SIGNER = import.meta.env.DEV && env.VITE_WARDLINE_LOCAL_SIGNER === "1" && NEAR_NETWORK === "testnet";
 /** End-to-end tests only: a scripted NEAR wallet. Never set in a real build. */
 export const TEST_WALLET = env.VITE_WARDLINE_TEST_WALLET === "1";

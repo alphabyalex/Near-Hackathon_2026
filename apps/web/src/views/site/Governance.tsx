@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { MutualAction, MutualProposalView, Tier } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
-import { executeProposal, getVoteWeight } from "../../data/mutual";
+import { executeAs, getVoteWeight } from "../../data/mutual";
 import { GOV, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
@@ -99,7 +99,7 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
     setError(null);
     setBusy(true);
     try {
-      await executeProposal(p.id);
+      await executeAs(voter.wallet ? { account: voter.account.trim(), wallet: voter.wallet } : null, p.id);
       setDone(GOV.executed);
       onChange();
     } catch (e) {

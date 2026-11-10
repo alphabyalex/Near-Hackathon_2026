@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toAtomic, type PoolPosition, type PoolView } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
-import { getPosition } from "../../data/mutual";
+import { getPosition, localSignerAccounts } from "../../data/mutual";
 import { navigate } from "../../router";
 import { HOME, JOIN, MEMBER, WALLET } from "../../brand";
 import { Dialog } from "../../components/Dialog";
@@ -38,13 +38,31 @@ type WalletFieldsState = ReturnType<typeof useWalletFields>;
 
 /** The one connect form: a NEAR account and the wallet that signs for it. Used by Connect wallet and by Join. */
 function WalletFields({ f, label }: { f: WalletFieldsState; label: string }) {
+  const local = f.wallet === "local-signer";
+  const [accounts, setAccounts] = useState<string[]>([]);
+  useEffect(() => {
+    if (!local) return;
+    let live = true;
+    localSignerAccounts().then((a) => live && setAccounts(a), () => live && setAccounts([]));
+    return () => {
+      live = false;
+    };
+  }, [local]);
   return (
     <>
       <label className="field">
         <span>{label}</span>
-        <input value={f.account} onChange={(e) => f.setAccount(e.target.value)} placeholder={`you.${NEAR_NETWORK}`} spellCheck={false} autoComplete="username" />
+        <input value={f.account} onChange={(e) => f.setAccount(e.target.value)} placeholder={`you.${NEAR_NETWORK}`} spellCheck={false} autoComplete="username" list={local ? "local-signer-accounts" : undefined} />
+        {local && (
+          <datalist id="local-signer-accounts">
+            {accounts.map((a) => (
+              <option key={a} value={a} />
+            ))}
+          </datalist>
+        )}
       </label>
       <WalletPick value={f.wallet} onChange={f.setWallet} />
+      {local && <p className="local-signer-note" role="note">{WALLET.localSigner}</p>}
     </>
   );
 }
@@ -96,6 +114,7 @@ export function ConnectWallet() {
   if (connected) {
     return (
       <a className="btn ghost sm acct-btn" href="#/me" data-testid="connect-wallet" aria-label={WALLET.yourShare(connected.account)}>
+        {connected.wallet === "local-signer" && <span className="local-badge">{WALLET.localBadge}</span>}
         <span className="acct">{connected.account}</span>
       </a>
     );

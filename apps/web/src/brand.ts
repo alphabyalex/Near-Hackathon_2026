@@ -153,6 +153,8 @@ export const WALLET = {
   disconnect: "Disconnect",
   connectedAs: (account: string) => `Connected as ${account}`,
   yourShare: (account: string) => `Your share, connected as ${account}`,
+  localSigner: "Local test signer: this machine's API signs real NEAR testnet transactions with the cast account's key. It exists only in the local dev server.",
+  localBadge: "Local test signer",
 } as const;
 
 /** The owner app's My share tab. */
