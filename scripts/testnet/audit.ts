@@ -29,7 +29,7 @@ function decode(b64: string): unknown {
 }
 
 /** The contract method each kind of row must be, and what its result must say. */
-const EXPECT: Record<string, { method: string; check?: (value: unknown, row: ActivityRow) => string | null }> = {
+const EXPECT: Record<string, { method: string | string[]; check?: (value: unknown, row: ActivityRow) => string | null }> = {
   "call:paid": { method: "settle" },
   "call:refused": { method: "release" },
   "call:capped": {
@@ -40,8 +40,9 @@ const EXPECT: Record<string, { method: string; check?: (value: unknown, row: Act
     },
   },
   "deposit:paid": { method: "ft_transfer_call", check: (v, row) => (String(v) === row.amount ? null : `the pool kept ${String(v)}, the row says ${row.amount}`) },
-  "vote:voted": { method: "vote" },
-  "proposal:opened": { method: "propose" },
+  // WARD votes and proposals on the pool, or a community DAO's (Sputnik) proposals and votes.
+  "vote:voted": { method: ["vote", "act_proposal"] },
+  "proposal:opened": { method: ["propose", "add_proposal"] },
 };
 const short = (a: string) => a.replace(/\.wardline-labs\.testnet$/, "");
 const usdc = (a: bigint | string) => (Number(a) / 1e6).toFixed(6);
@@ -106,7 +107,8 @@ export async function runAudit(): Promise<boolean> {
       const value = decode(tx.status.SuccessValue as string);
       const want = EXPECT[`${row.kind}:${row.outcome}`];
       if (!want) throw new Error(`no rule for ${row.kind}:${row.outcome}`);
-      if (method !== want.method) throw new Error(`calls ${method ?? "no method"}, a ${row.kind}:${row.outcome} row needs ${want.method}`);
+      const methods = Array.isArray(want.method) ? want.method : [want.method];
+      if (!method || !methods.includes(method)) throw new Error(`calls ${method ?? "no method"}, a ${row.kind}:${row.outcome} row needs ${methods.join(" or ")}`);
       const bad = want.check?.(value, row);
       if (bad) throw new Error(bad);
       const block = await rpc("block", { block_id: tx.receipts_outcome[0].block_hash });
@@ -157,8 +159,8 @@ export async function runAudit(): Promise<boolean> {
     if (logged.capped > rep.capped_calls) miss(`${id}: ${logged.capped} capped calls logged, ${rep.capped_calls} on chain`);
     if (logged.spent > BigInt(budget.spent)) miss(`${id}: ${usdc(logged.spent)} USDC spent logged, ${usdc(budget.spent)} on chain`);
   }
-  const deposited = rows.filter((r) => r.kind === "deposit").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n);
-  console.log(`  deposits logged ${usdc(deposited)} USDC, pool tvl ${usdc(pool.tvl)} USDC`);
+  const deposited = rows.filter((r) => r.kind === "deposit" && r.community === "mutual").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n);
+  console.log(`  Mutual deposits logged ${usdc(deposited)} USDC, pool tvl ${usdc(pool.tvl)} USDC`);
   if (deposited > BigInt(pool.tvl)) miss(`deposits logged ${usdc(deposited)} exceed pool tvl ${usdc(pool.tvl)}`);
 
   const passed = misses.length === 0;
