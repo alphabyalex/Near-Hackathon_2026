@@ -23,7 +23,9 @@ test.describe("brand assets", () => {
     expect(html).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png"');
     expect(html).toContain('<link rel="manifest" href="/site.webmanifest"');
     expect(html).toContain('<meta name="theme-color" content="#0E0912"');
-    expect(html).toMatch(/<meta property="og:image" content="https:\/\/[^"]+\/og-image\.png"/);
+    // Social cards need an absolute URL, which exists only once the site is hosted (repo.config.json).
+    if (repo.hosted.web) expect(html).toMatch(/<meta property="og:image" content="https:\/\/[^"]+\/og-image\.png"/);
+    else expect(html).toContain('<meta property="og:image" content="/og-image.png"');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image"');
     const manifest = (await (await request.get("/site.webmanifest")).json()) as { name: string; theme_color: string; background_color: string; icons: { src: string }[] };
     expect(manifest).toMatchObject({ name: "Wardline", theme_color: "#0E0912", background_color: "#0E0912" });
