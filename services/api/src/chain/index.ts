@@ -216,8 +216,25 @@ class NearReputation implements ReputationClient {
     const capped = auditedCapped();
     return onlyCast(await this.meter.listReputations(), this.cast).map((v) => withUncounted(v, capped));
   }
-  tierRules(): Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }> {
-    return this.rules();
+  async tierRules(): Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }> {
+    try {
+      const [bronzeFee, silverFee, goldFee, multiplier] = await Promise.all([
+        this.meter.getFeeBps("bronze"),
+        this.meter.getFeeBps("silver"),
+        this.meter.getFeeBps("gold"),
+        this.meter.getCoverageMultiplierBps(),
+      ]);
+      const base = await this.rules();
+      return {
+        rules: base.rules.map((r) => {
+          const fee = r.tier === "gold" ? goldFee : r.tier === "silver" ? silverFee : bronzeFee;
+          return { ...r, fee_bps: fee };
+        }),
+        coverage_multiplier_bps: multiplier,
+      };
+    } catch {
+      return this.rules();
+    }
   }
 }
 
@@ -287,7 +304,7 @@ export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = de
     contractId: meterContract,
     provider,
     signer,
-  }), ["listBudgets", "getBudget", "getReputation", "listReputations"]);
+  }), ["listBudgets", "getBudget", "getReputation", "listReputations", "getFeeBps", "getCoverageMultiplierBps"]);
   const registry = new NearModelRegistryClient({
     contractId: registryContract,
     provider,

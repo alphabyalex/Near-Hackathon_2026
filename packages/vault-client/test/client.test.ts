@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   NearEvidenceClient,
+  NearMeterClient,
+  NearCoverPoolClient,
   VaultExecutionError,
   assertAllowedNetwork,
   configFromEnv,
@@ -117,5 +119,31 @@ describe("NearEvidenceClient", () => {
     await expect(
       client.commitSuite("sha256:1111", { name: "test", version: "1", case_count: 5 }),
     ).rejects.toThrow("no issuer signer configured");
+  });
+});
+
+describe("NearMeterClient", () => {
+  it("initializes with contractId and rpc", () => {
+    const client = new NearMeterClient({
+      contractId: "meter.wardline-labs.testnet",
+      rpcUrl: "https://test.rpc.fastnear.com",
+    });
+    expect(client.contractId).toBe("meter.wardline-labs.testnet");
+    expect(client.mode).toBe("near");
+  });
+
+  it("getFeeBps and getCoverageMultiplierBps return defaults on unreachable view calls", async () => {
+    const client = new NearMeterClient({
+      contractId: "meter.wardline-labs.testnet",
+      rpcUrl: "http://127.0.0.1:9999",
+    });
+    const feeGold = await client.getFeeBps("gold");
+    expect(feeGold).toBe(100);
+    const feeSilver = await client.getFeeBps("silver");
+    expect(feeSilver).toBe(150);
+    const feeBronze = await client.getFeeBps("bronze");
+    expect(feeBronze).toBe(200);
+    const mult = await client.getCoverageMultiplierBps();
+    expect(mult).toBe(10000);
   });
 });

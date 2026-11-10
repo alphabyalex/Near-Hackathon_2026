@@ -385,4 +385,39 @@ export class NearMeterClient {
     );
     return { tx: outcome.tx_hash };
   }
+
+  async getFeeBps(tier?: "bronze" | "silver" | "gold"): Promise<number> {
+    try {
+      return await viewCall<number>(this.provider, this.contractId, "get_fee_bps", { tier: tier ?? null });
+    } catch {
+      return tier === "gold" ? 100 : tier === "silver" ? 150 : 200;
+    }
+  }
+
+  async getCoverageMultiplierBps(): Promise<number> {
+    try {
+      return await viewCall<number>(this.provider, this.contractId, "get_coverage_multiplier_bps", {});
+    } catch {
+      return 10_000;
+    }
+  }
+
+  async setParam(
+    name: string,
+    value: string,
+    signer: SignerHandle | undefined = this.signer,
+  ): Promise<{ tx: string }> {
+    if (!signer) throw new Error("Signer required for setParam");
+    const outcome = await callFinal(
+      signer,
+      {
+        contract_id: this.contractId,
+        method: "set_param",
+        args: { name, value },
+        gas: GAS_ADMIN,
+      },
+      this.options,
+    );
+    return { tx: outcome.tx_hash };
+  }
 }
