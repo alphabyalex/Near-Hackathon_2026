@@ -45,7 +45,8 @@ export interface SettlementProof {
 
 export type ReserveRefusal = "UNKNOWN_BUDGET" | "UNKNOWN_MEMBER" | "ALLOWANCE_EXHAUSTED" | "BUDGET_EXHAUSTED" | "DUPLICATE_CALL";
 
-export type ReserveResult = { ok: true; reserved: string } | { ok: false; reason: ReserveRefusal; detail: string };
+/** tx: on chain, the reserve transaction (it exists whether the meter held the amount or refused). */
+export type ReserveResult = { ok: true; reserved: string; tx?: string } | { ok: false; reason: ReserveRefusal; detail: string; tx?: string };
 
 export type SettleResult = { ok: true; tx: string; amount: string; refund: string } | { ok: false; reason: "NO_RESERVATION" | "PROOF_REJECTED" | "REPLAYED" | "OVER_RESERVATION" | "TRANSFER_FAILED"; detail: string };
 

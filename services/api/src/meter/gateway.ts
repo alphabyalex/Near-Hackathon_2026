@@ -197,8 +197,11 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
 
     const reservation = await deps.chain.meter.reserve({ budget_id: key.budgetId, member: key.member, call_id: callId, model_id: model, max_amount: maxAmount.toString() });
     if (!reservation.ok) {
-      finish({ status: "refused", reason: reservation.reason, detail: reservation.detail });
+      // On chain the refusal is itself a transaction: the reserve the meter declined. It is the call's
+      // closing transaction, kept where a release would be.
+      finish({ status: "refused", reason: reservation.reason, detail: reservation.detail, releaseTx: reservation.tx ?? null });
       c.header("X-Wardline-Call", callId);
+      if (reservation.tx) c.header("X-Wardline-Settlement", reservation.tx);
       const limit = reservation.reason === "ALLOWANCE_EXHAUSTED" || reservation.reason === "BUDGET_EXHAUSTED";
       return openAiError(c, limit ? 402 : 403, limit ? "spend_limit_reached" : "budget_error", limit ? `Spend limit reached. ${reservation.detail} Nothing was sent to the model.` : reservation.detail, { code: reservation.reason, call_id: callId });
     }

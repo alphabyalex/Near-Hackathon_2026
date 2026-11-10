@@ -61,9 +61,10 @@ export type ReserveRefusal =
   | "BUDGET_EXHAUSTED"
   | "DUPLICATE_CALL";
 
+/** tx: the reserve transaction, whether it held the amount or the meter refused it. */
 export type ReserveResult =
-  | { ok: true; reserved: string }
-  | { ok: false; reason: ReserveRefusal; detail: string };
+  | { ok: true; reserved: string; tx?: string }
+  | { ok: false; reason: ReserveRefusal; detail: string; tx?: string };
 
 export type SettleResult =
   | { ok: true; tx: string; amount: string; refund: string }
@@ -180,12 +181,13 @@ export class NearMeterClient {
     );
     const val = outcome.value as { ok: boolean; reserved?: string; reason?: ReserveRefusal; detail?: string };
     if (val.ok && val.reserved !== undefined) {
-      return { ok: true, reserved: val.reserved };
+      return { ok: true, reserved: val.reserved, tx: outcome.tx_hash };
     }
     return {
       ok: false,
       reason: val.reason ?? "BUDGET_EXHAUSTED",
       detail: val.detail ?? "Reservation failed",
+      tx: outcome.tx_hash,
     };
   }
 
