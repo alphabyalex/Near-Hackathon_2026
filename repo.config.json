@@ -10,7 +10,8 @@
   "local": {
     "web": "http://127.0.0.1:5173",
     "api": "http://127.0.0.1:8787",
-    "mcp": "http://127.0.0.1:8790/mcp"
+    "mcp": "http://127.0.0.1:8790/mcp",
+    "hosts": ["127.0.0.1", "localhost", "[::1]"]
   },
   "near": {
     "network": "testnet",

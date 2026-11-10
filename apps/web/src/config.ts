@@ -22,8 +22,8 @@ export const LOCAL_MCP_URL = repo.local.mcp;
 export const PLACEHOLDER_API_URL = "https://your-wardline-api.example";
 export const PLACEHOLDER_MCP_URL = "https://your-wardline-api.example/mcp";
 
-/** Whether this page is served from this machine (the dev server, or a preview of a local build). */
-export const servedLocally = (hostname: string): boolean => /^(127\.0\.0\.1|localhost|\[::1\])$/.test(hostname);
+/** Whether this page is served from this machine (the dev server, or a preview of a local build): repo.config.json's local hosts. */
+export const servedLocally = (hostname: string): boolean => repo.local.hosts.includes(hostname);
 
 /**
  * The URL a code snippet shows: the configured one, else the hosted one from repo.config.json, else the
