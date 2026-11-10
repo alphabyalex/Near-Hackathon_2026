@@ -1,5 +1,6 @@
 import { chainOf, createMemoryRegistry, createStubEngine, createStubSignals, ALL_SEED_VENDORS, STUB_VENDORS, type EngineContext, type PayeeEngine, type PayeeHistoryStore, type PayeeRegistry, type SignalsProvider } from "@wardline/sdk";
 import type { Store } from "../store.js";
+import { repoNear } from "../chain/index.js";
 import type { Clock } from "../time.js";
 import { NS_PER_MS } from "../time.js";
 import { createAttestor, generateAttestorSeed, type Attestor } from "./attestor.js";
@@ -89,7 +90,7 @@ const importOptional = async (specifier: string): Promise<Record<string, unknown
  * Picks backends from WARDLINE_PAYEE_ENGINE and WARDLINE_REGISTRY_MODE. A mode that cannot be met
  * stops the API. It never falls back to the stub, because stub verdicts are not real verdicts.
  */
-export async function loadPayeeBackends(env: NodeJS.ProcessEnv = process.env): Promise<PayeeBackends> {
+export async function loadPayeeBackends(env: NodeJS.ProcessEnv = process.env, signer?: unknown): Promise<PayeeBackends> {
   const backends: PayeeBackends = {};
   const engineMode = env.WARDLINE_PAYEE_ENGINE ?? "stub";
   const registryMode = env.WARDLINE_REGISTRY_MODE ?? "memory";
@@ -104,10 +105,14 @@ export async function loadPayeeBackends(env: NodeJS.ProcessEnv = process.env): P
   }
 
   if (registryMode === "near") {
+    // The payee registry contract on NEAR testnet. Read-only here: vendors are attested by the attestor
+    // account (pnpm payee:seed with WARDLINE_REGISTRY_MODE=near signs with its key).
     const vaultClient = await importOptional("@wardline/vault-client");
-    if (!vaultClient?.PayeeRegistryClient) throw new Error("WARDLINE_REGISTRY_MODE=near needs PayeeRegistryClient from @wardline/vault-client, which has not landed.");
-    // TODO(tharun): wrap PayeeRegistryClient as a PayeeRegistry and set backends.registry here.
-    throw new Error("WARDLINE_REGISTRY_MODE=near: PayeeRegistryClient is exported but not wired to PayeeRegistry yet.");
+    if (!vaultClient?.PayeeRegistryClient) throw new Error("WARDLINE_REGISTRY_MODE=near needs PayeeRegistryClient from @wardline/vault-client.");
+    const rpcUrl = env.WARDLINE_NEAR_RPC_URL ?? env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
+    const contractId = env.WARDLINE_PAYEE_REGISTRY_CONTRACT ?? repoNear().contracts.payeeRegistry;
+    const vc = vaultClient as unknown as { PayeeRegistryClient: new (options: object) => PayeeRegistry; makeProvider: (url: string) => unknown };
+    backends.registry = new vc.PayeeRegistryClient({ contractId, provider: vc.makeProvider(rpcUrl), ...(signer ? { signer } : {}) });
   } else if (registryMode !== "memory") {
     throw new Error(`Unknown WARDLINE_REGISTRY_MODE: ${registryMode}`);
   }
