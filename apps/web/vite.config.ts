@@ -22,25 +22,49 @@ function carryLegacyEnv(mode: string): void {
 }
 
 /**
- * The site's security headers. Only what the site uses: its own scripts and fonts, inline style
- * attributes (React sets widths and delays), the API, and NEAR Connect.
+ * Hosts NEAR Connect and the listed testnet wallets reach (found by connecting each one and watching
+ * CSP violations, A14): the NEAR Connect manifest (GitHub, jsDelivr fallback), each wallet's code
+ * (GitHub raw for Meteor, Nightly and Ledger; Intear's own host), the services that code talks to, and
+ * the NEAR testnet RPCs the wallets and this site read.
+ */
+export const WALLET_CONNECT_HOSTS = [
+  "https://raw.githubusercontent.com",
+  "https://cdn.jsdelivr.net",
+  "https://wallet.meteorwallet.app",
+  "https://mc.meteorwallet.app",
+  "wss://mc.meteorwallet.app",
+  "https://wallet.intear.tech",
+  "wss://logout-bridge-service.intear.tech",
+  "https://test.rpc.fastnear.com",
+  "https://rpc.testnet.near.org",
+  "https://api.testnet.fastnear.com",
+  "https://helper.testnet.near.org",
+];
+
+/**
+ * The site's security headers. Only what the site uses: its own scripts, fonts and wallet logos, inline
+ * style attributes (React sets widths and delays), the API, the RPC hosts, and NEAR Connect.
  *
- * NEAR Connect runs each wallet's code in a sandboxed srcdoc iframe, which inherits this policy. The
- * wallet code is fetched from the wallet's manifest entry and inlined, so script-src needs
- * 'unsafe-inline' (a static host can't send a nonce), and connect-src needs https: and wss: for the
- * manifest, the wallets' own APIs and NEAR RPCs. The iframe itself is sandboxed by NEAR Connect.
+ * script-src keeps 'unsafe-inline' for one reason: NEAR Connect runs each wallet's code as an inline
+ * <script> in a sandboxed srcdoc iframe (sandbox="allow-scripts", no same origin), and a srcdoc iframe
+ * inherits this policy. The wallet code is fetched at run time, so no hash can name it, and a static
+ * host can't send a fresh nonce. Without it no wallet loads (checked: every tile fails). Everything
+ * else is an exact host list.
  * Served by vite preview and written to dist/_headers for static hosts.
  */
-export function siteHeaders(apiUrl: string | undefined): Record<string, string> {
+export function siteHeaders(apiUrl: string | undefined, rpcUrls: string | undefined = undefined): Record<string, string> {
   const api = apiUrl ? new URL(apiUrl).origin : "";
+  const rpc = (rpcUrls ?? "").split(",").map((u) => u.trim()).filter(Boolean).map((u) => new URL(u).origin);
+  const connect = [...new Set(["'self'", api, ...rpc, ...WALLET_CONNECT_HOSTS].filter(Boolean))].join(" ");
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "font-src 'self'",
-    `connect-src 'self' ${api} https: wss:`.replace(/ +/g, " "),
-    "frame-src 'self' https:",
+    // Meteor's own panel loads its fonts; Meteor and Nightly show their own images; Intear frames its wallet.
+    "style-src 'self' 'unsafe-inline' https://rsms.me https://fonts.cdnfonts.com",
+    "img-src 'self' data: https://meteorwallet.app https://storage.herewallet.app",
+    "font-src 'self' data: https://rsms.me https://fonts.cdnfonts.com",
+    `connect-src ${connect}`,
+    "frame-src 'self' https://wallet.intear.tech",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -62,7 +86,7 @@ export default defineConfig(({ mode, command }) => {
   const network = process.env.VITE_NEAR_NETWORK ?? viteEnv.VITE_NEAR_NETWORK;
   // Refuses a build with the local test signer, and a dev server that is not on 127.0.0.1 or testnet.
   checkLocalSigner({ flag: localSignerFlag, command, host: "127.0.0.1", network });
-  const headers = siteHeaders(loadEnv(mode, ENV_DIR, "VITE_").VITE_WARDLINE_API_URL ?? process.env.VITE_WARDLINE_API_URL);
+  const headers = siteHeaders(viteEnv.VITE_WARDLINE_API_URL ?? process.env.VITE_WARDLINE_API_URL, viteEnv.VITE_NEAR_RPC_URL ?? process.env.VITE_NEAR_RPC_URL);
   return {
     // Read VITE_ variables from the repo root .env. Only VITE_-prefixed names ever reach the browser.
     envDir: ENV_DIR,

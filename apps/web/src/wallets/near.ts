@@ -8,6 +8,9 @@
 import type { NearWalletBase } from "@hot-labs/near-connect";
 import { LOCAL_SIGNER, NEAR_NETWORK, TEST_WALLET } from "../config";
 import { WalletError, walletError } from "../data/errors";
+import { NEAR_WALLET_IDS, setConnected, type NearWalletId } from "./connected";
+
+export { NEAR_WALLET_IDS, type NearWalletId };
 
 /** What a NEP-413 signMessage returns. publicKey is ed25519:<base58>, signature is base64. */
 export interface NearSignature {
@@ -23,8 +26,6 @@ export interface NearSignRequest {
   nonce: Uint8Array;
 }
 
-export type NearWalletId = "near-connect" | "test-wallet" | "local-signer";
-export const NEAR_WALLET_IDS: readonly NearWalletId[] = ["near-connect", "test-wallet", "local-signer"];
 
 /** The local API signs real testnet transactions for cast accounts on this machine (services/api/src/local-signer.ts). */
 export const LOCAL_SIGNER_NAME = "Local test signer (testnet, this machine only)";
@@ -56,6 +57,26 @@ export interface ConnectorLike {
   connect(options?: { walletId?: string }): Promise<NearWalletBase>;
   wallet(id?: string | null): Promise<NearWalletBase>;
   disconnect(wallet?: NearWalletBase): Promise<void>;
+  on?(event: "wallet:signIn" | "wallet:signOut", callback: (payload: { wallet?: NearWalletBase; accounts?: Array<{ accountId: string }> }) => void): void;
+}
+
+/** Waiters for the next sign-in, from connectNear. */
+const signInWaiters = new Set<(account: string, walletId: string | undefined) => void>();
+
+/**
+ * NEAR Connect announces every sign-in. Recording it here, not only where connectNear awaits, makes
+ * the first connect stick: if the wallet window took long, the page lost focus, the panel closed, or
+ * the connect promise never settled, the account is still saved and the header shows it.
+ */
+function listen(c: ConnectorLike): ConnectorLike {
+  c.on?.("wallet:signIn", (payload) => {
+    const accountId = payload.accounts?.[0]?.accountId;
+    if (!accountId || !onNetwork(accountId)) return;
+    const via = payload.wallet?.manifest?.id;
+    setConnected({ account: accountId, wallet: "near-connect", ...(via ? { via } : {}) });
+    for (const done of signInWaiters) done(accountId, via);
+  });
+  return c;
 }
 
 let connector: Promise<ConnectorLike> | null = null;
@@ -75,13 +96,16 @@ const network = (): "testnet" | "mainnet" => (NEAR_NETWORK === "mainnet" ? "main
  */
 export function loadConnector(): Promise<ConnectorLike> {
   connector ??= (async () => {
-    if (makeConnector) return makeConnector();
+    if (makeConnector) return listen(await makeConnector());
     const { NearConnector } = await import("@hot-labs/near-connect");
-    return new NearConnector({
-      network: network(),
-      features: { signAndSendTransaction: true, signAndSendTransactions: true, [network()]: true },
-      excludedWallets: EXCLUDED_WALLETS,
-    }) as unknown as ConnectorLike;
+    return listen(
+      new NearConnector({
+        network: network(),
+        features: { signAndSendTransaction: true, signAndSendTransactions: true, [network()]: true },
+        excludedWallets: EXCLUDED_WALLETS,
+        footerBranding: null,
+      }) as unknown as ConnectorLike,
+    );
   })();
   connector.catch(() => {
     connector = null;
@@ -103,13 +127,45 @@ async function accountOf(wallet: NearWalletBase): Promise<string> {
   return accountId;
 }
 
-/** Opens NEAR Connect's wallet list and returns the account the chosen wallet signed in with. */
-export async function connectNear(): Promise<string> {
+/** getAccounts right after a sign-in can come back empty while the wallet saves it: ask again briefly. */
+async function accountAfterSignIn(wallet: NearWalletBase): Promise<string> {
+  let last: unknown = null;
+  for (let i = 0; i < 4; i++) {
+    try {
+      return await accountOf(wallet);
+    } catch (error) {
+      if (error instanceof WalletError && error.kind === "walletMismatch") throw error;
+      last = error;
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
+/**
+ * Connects one wallet, by its NEAR Connect id, with no selection modal: the wallet itself opens. With
+ * no id, NEAR Connect's own list opens (the owner app and Verify fall back to it). Resolves with the
+ * account from whichever comes first, the sign-in event or the wallet's answer; never times out, so a
+ * slow wallet window still lands.
+ */
+export async function connectNear(walletId?: string): Promise<string> {
   const c = await loadConnector();
+  let waiter: ((account: string) => void) | null = null;
+  const fromEvent = new Promise<string>((resolve) => {
+    waiter = (account) => resolve(account);
+    signInWaiters.add(waiter);
+  });
   try {
-    return await accountOf(await c.connect());
+    const fromWallet = c.connect(walletId ? { walletId } : undefined).then(async (wallet) => {
+      const account = await accountAfterSignIn(wallet);
+      setConnected({ account, wallet: "near-connect", ...(wallet.manifest?.id ? { via: wallet.manifest.id } : {}) });
+      return account;
+    });
+    return await Promise.race([fromEvent, fromWallet]);
   } catch (error) {
     throw error instanceof WalletError ? error : walletError(error);
+  } finally {
+    if (waiter) signInWaiters.delete(waiter);
   }
 }
 

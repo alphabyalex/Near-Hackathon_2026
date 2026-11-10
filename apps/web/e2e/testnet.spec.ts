@@ -48,6 +48,9 @@ async function connectAs(page: Page, account: string): Promise<void> {
   await page.reload();
   await page.getByTestId("connect-wallet").click();
   const dialog = page.getByTestId("connect-dialog");
+  // The local test signer lives in the panel's Developer disclosure, never in the wallet grid.
+  const dev = dialog.locator("details.wp-dev");
+  if (!(await dev.evaluate((d) => (d as HTMLDetailsElement).open))) await dev.locator("summary").click();
   await dialog.locator('button[data-wallet="local-signer"]').click();
   await expect(dialog.locator('button[data-wallet="local-signer"]')).toHaveAttribute("aria-pressed", "true");
   await dialog.getByRole("combobox").or(dialog.getByRole("textbox")).first().fill(account);

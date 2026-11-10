@@ -18,7 +18,7 @@ export interface Explained {
 /** Raised by a wallet, sorted into the cases a person can act on. */
 export class WalletError extends Error {
   constructor(
-    readonly kind: "walletRejected" | "walletMissing" | "walletMismatch" | "walletPopup",
+    readonly kind: "walletRejected" | "walletMissing" | "walletMismatch" | "walletPopup" | "walletUnreachable",
     message: string,
   ) {
     super(message);
@@ -31,6 +31,8 @@ export function walletError(error: unknown): WalletError {
   const text = error instanceof Error ? error.message : String(error);
   // "Couldn't open popup window to complete wallet action": the browser blocked the wallet window.
   if (POPUP.test(text)) return new WalletError("walletPopup", text);
+  // The wallet's code or service didn't answer: a network problem, not the person saying no.
+  if (/failed to fetch|networkerror|load failed|err_|timed? ?out|failed to load manifest|iframe not loaded/i.test(text)) return new WalletError("walletUnreachable", text);
   if (/reject|denied|declin|cancel|closed|user (did not|didn't)|aborted/i.test(text)) return new WalletError("walletRejected", text);
   if (/not installed|no test wallet|not found|unavailable|no wallet|extension|failed to load|is not defined/i.test(text)) return new WalletError("walletMissing", text);
   if (/signed as/i.test(text)) return new WalletError("walletMismatch", text);

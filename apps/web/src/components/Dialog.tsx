@@ -53,9 +53,10 @@ function useAnchor(anchor: HTMLElement | null | undefined): CSSProperties | unde
 /**
  * A modal dialog: focus moves in and is trapped, Escape and the backdrop close it, and focus returns to the opener.
  * It renders on <body>: inside the sticky header (backdrop-filter) a fixed backdrop would be sized to the header.
- * With an anchor it is a panel under that button on wide screens and a bottom sheet on phones.
+ * With an anchor it is a panel under that button on wide screens and a bottom sheet on phones (with a
+ * grab handle).
  */
-export function Dialog({ title, onClose, children, testId, anchor }: { title: string; onClose: () => void; children: ReactNode; testId?: string; anchor?: HTMLElement | null | undefined }) {
+export function Dialog({ title, onClose, children, testId, anchor, mark, className }: { title: string; onClose: () => void; children: ReactNode; testId?: string; anchor?: HTMLElement | null | undefined; mark?: ReactNode; className?: string }) {
   const pop = useAnchor(anchor);
   const box = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLDivElement>(null);
@@ -104,9 +105,13 @@ export function Dialog({ title, onClose, children, testId, anchor }: { title: st
 
   return createPortal(
     <div className={anchor ? "dlg-back pop" : "dlg-back"} ref={back} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={anchor ? "dlg pop" : "dlg"} style={pop} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={box} tabIndex={-1} data-testid={testId}>
+      <div className={`${anchor ? "dlg pop" : "dlg"}${className ? ` ${className}` : ""}`} style={pop} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={box} tabIndex={-1} data-testid={testId}>
+        {(anchor || className) && <div className="dlg-handle" aria-hidden="true" />}
         <div className="dlg-head">
-          <h2 id={titleId}>{title}</h2>
+          <h2 id={titleId}>
+            {mark}
+            {title}
+          </h2>
           <button type="button" className="dlg-x" onClick={onClose} aria-label={JOIN.close}>
             <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
               <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

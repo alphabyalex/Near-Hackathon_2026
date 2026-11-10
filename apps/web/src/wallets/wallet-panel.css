@@ -1,0 +1,147 @@
+/* The connect panel (WalletPanel.tsx). Horizon tokens only; no pills, no red, nothing loops but the
+   spinner while a wallet opens. Under 600px the Dialog makes it a bottom sheet. */
+
+.dlg.wp-panel {
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-card-lg);
+  padding: 24px 24px 22px;
+  gap: 18px;
+  animation: wp-rise 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.dlg.pop.wp-panel { max-width: 440px; padding: 24px 24px 22px; }
+.dlg.wp-panel .dlg-head h2 { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+.wp-mark { flex: none; }
+.wp-lede { margin-top: -10px; font-size: 15px; color: var(--text-2); }
+@keyframes wp-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes wp-tile-in { from { opacity: 0; transform: translateY(4px); } }
+
+/* While a wallet's own window (NEAR Connect's iframe popup) is up, ours steps aside: never two panels. */
+.dlg-back:has(.wp[data-covered]) { visibility: hidden; }
+
+.wp { display: flex; flex-direction: column; gap: 16px; }
+
+/* The grid: 3 columns, 2 under 340px. */
+.wp-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.wp-cell { animation: wp-tile-in 0.22s ease-out both; animation-delay: calc(60ms + var(--i, 0) * 30ms); }
+
+.wp-tile {
+  position: relative;
+  width: 100%;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 8px 14px;
+  font: inherit;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule-2);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+.wp-logo {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(245, 243, 247, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(245, 243, 247, 0.06);
+  transition: transform 0.15s ease;
+}
+.wp-logo img { display: block; width: 32px; height: 32px; object-fit: contain; border-radius: 6px; }
+.wp-name { font-size: 13px; font-weight: 500; line-height: 1.2; color: var(--text-2); text-align: center; }
+
+.wp-tile:hover:not(:disabled) { border-color: rgba(123, 108, 255, 0.55); }
+.wp-tile:hover:not(:disabled) .wp-logo { transform: translateY(-2px); }
+.wp-tile:active:not(:disabled) { transform: translateY(1px); }
+.wp-tile:active:not(:disabled) .wp-logo { transform: none; }
+.wp-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wp-tile:disabled { cursor: default; opacity: 0.38; }
+.wp-tile[data-opening] { opacity: 1; border-color: var(--violet); }
+
+.wp-opening { display: inline-flex; align-items: center; gap: 6px; color: var(--violet-text); font-size: 12px; white-space: nowrap; }
+.wp-spin { flex: none; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(165, 155, 255, 0.3); border-top-color: var(--violet-text); animation: spin 0.8s linear infinite; }
+
+.wp-installed { display: inline-flex; align-items: center; gap: 5px; margin-top: -6px; font-size: 12px; color: var(--violet-text); }
+.wp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); }
+
+/* More wallets and Developer: quiet disclosures. */
+.wp-more > summary,
+.wp-dev > summary { cursor: pointer; width: fit-content; font-size: 14px; font-weight: 500; color: var(--text-2); list-style: none; display: inline-flex; align-items: center; gap: 8px; border-radius: 6px; }
+.wp-more > summary::-webkit-details-marker,
+.wp-dev > summary::-webkit-details-marker { display: none; }
+.wp-more > summary::before,
+.wp-dev > summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s ease; }
+.wp-more[open] > summary::before,
+.wp-dev[open] > summary::before { transform: rotate(45deg); }
+.wp-more > summary:hover,
+.wp-dev > summary:hover { color: var(--text); }
+.wp-more > summary:focus-visible,
+.wp-dev > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wp-more[open] > .wp-grid { margin-top: 12px; }
+
+/* Errors: Horizon voice, never red (a failed connect is not below the line). */
+.wp-error { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--rule-strong); border-left: 2px solid var(--violet-text); border-radius: 12px; background: var(--bg); }
+.wp-error b { grid-column: 1; font-size: 14px; font-weight: 600; color: var(--text); }
+.wp-error span { grid-column: 1; font-size: 13px; color: var(--text-2); }
+.wp-error .btn { grid-column: 2; grid-row: 1 / span 2; }
+
+.wp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--rule-2); }
+.wp-new { margin: 0; font-size: 13px; color: var(--muted); }
+.wp-new a { color: var(--violet-text); text-decoration: none; }
+.wp-new a:hover { text-decoration: underline; }
+
+/* Connected */
+.wp-who { display: flex; align-items: center; gap: 14px; }
+.wp-sphere { flex: none; }
+.wp-who > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.wp-account { font-size: 18px; font-weight: 650; letter-spacing: -0.02em; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.wp-via { font-size: 13px; color: var(--muted); }
+.wp-balances { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.wp-balances > div { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--rule-2); border-radius: 12px; }
+.wp-balances dt { font-size: 13px; color: var(--muted); }
+.wp-balances dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); font-variant-numeric: tabular-nums; }
+.wp-low { margin: 0; font-size: 14px; color: var(--text-2); }
+.wp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wp-actions .btn { width: 100%; }
+.wp-quiet { align-self: center; padding: 6px 8px; font: 500 14px/1 var(--font); color: var(--muted); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.wp-quiet:hover { color: var(--text); text-decoration: underline; }
+.wp-quiet:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Developer */
+.wp-dev { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px dashed var(--rule-strong); }
+.wp-dev[open] { gap: 12px; }
+.wp-dev[open] > summary { margin-bottom: 4px; }
+.wp-dev-note { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.wp-dev .field { margin: 8px 0; }
+
+/* The grab handle shows only on the bottom sheet. */
+.dlg-handle { display: none; }
+
+@media (max-width: 600px) {
+  /* Always a bottom sheet on phones, whichever button opened it. */
+  .dlg-back:has(> .wp-panel) { align-items: flex-end; justify-content: stretch; padding: 0; }
+  .dlg.wp-panel, .dlg.pop.wp-panel { position: relative; top: auto; right: auto; width: 100%; max-width: none; max-height: 88vh; padding: 10px 20px calc(22px + env(safe-area-inset-bottom)); border: 1px solid var(--rule-2); border-bottom: 0; border-radius: 20px 20px 0 0; }
+  .dlg.wp-panel .dlg-handle { display: block; align-self: center; width: 40px; height: 4px; margin: 0 auto 4px; border-radius: 2px; background: var(--rule-strong); }
+  .wp-tile { min-height: 104px; }
+  .wp-foot { flex-direction: column; align-items: stretch; }
+  .wp-foot .btn { width: 100%; }
+}
+@media (max-width: 420px) {
+  .wp-actions { grid-template-columns: 1fr; }
+}
+@media (max-width: 340px) {
+  .wp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dlg.wp-panel, .wp-cell { animation: none; }
+  .wp-tile, .wp-logo, .wp-more > summary::before, .wp-dev > summary::before { transition: none; }
+  .wp-tile:hover:not(:disabled) .wp-logo { transform: none; }
+  .wp-spin { animation-duration: 2.4s; }
+}

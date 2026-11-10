@@ -4,11 +4,15 @@
  * every money action is still signed by the wallet itself.
  */
 import { useSyncExternalStore } from "react";
-import { NEAR_WALLET_IDS, type NearWalletId } from "./near";
+/** How a visitor signs: NEAR Connect, the e2e test wallet, or the local test signer. Defined here so near.ts can import it. */
+export type NearWalletId = "near-connect" | "test-wallet" | "local-signer";
+export const NEAR_WALLET_IDS: readonly NearWalletId[] = ["near-connect", "test-wallet", "local-signer"];
 
 export interface Connected {
   account: string;
   wallet: NearWalletId;
+  /** NEAR Connect's wallet id, such as meteor-wallet. */
+  via?: string;
 }
 
 const KEY = "wardline.connected";

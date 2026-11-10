@@ -13,7 +13,8 @@ import { HorizonMark } from "../../components/HorizonMark";
 import { NEAR_NETWORK } from "../../config";
 import { formatUsdc } from "../../format";
 import { setConnected, useConnected, type Connected } from "../../wallets/connected";
-import { connectNear, disconnectNear, loadConnector, nearWallets, typesAccount, type NearWalletId } from "../../wallets/near";
+import { nearWallets, typesAccount, type NearWalletId } from "../../wallets/near";
+import { WalletPanel } from "../../wallets/WalletPanel";
 import { countdown, price, signMutual, useNow } from "./Mutual";
 
 /** Wallets that sign as a typed account: the e2e test wallet and the local test signer. NEAR Connect never does. */
@@ -71,89 +72,22 @@ function TypedAccount({ f, label }: { f: WalletFieldsState; label: string }) {
   );
 }
 
-/**
- * The NEAR Connect button. NEAR Connect is loaded when this mounts, so the click opens its wallet list
- * at once and the wallet's own window opens from a click. The account comes from the wallet.
- */
-function NearConnectButton({ onConnected, className = "btn wide" }: { onConnected: (account: string) => void; className?: string }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  useEffect(() => {
-    void loadConnector().catch(() => undefined);
-  }, []);
+/** Join's connect step: opens the same wallet panel as the header. The account comes from the wallet. */
+function NearConnectButton({ className = "btn wide" }: { onConnected?: (account: string) => void; className?: string }) {
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        className={className}
-        disabled={busy}
-        data-testid="near-connect"
-        onClick={() => {
-          setBusy(true);
-          setError(null);
-          connectNear()
-            .then(
-              (account) => {
-                setConnected({ account, wallet: "near-connect" });
-                onConnected(account);
-              },
-              (e: unknown) => setError(e),
-            )
-            .finally(() => setBusy(false));
-        }}
-      >
-        {busy ? WALLET.connecting : WALLET.nearConnect}
+      <button type="button" className={className} data-testid="near-connect" onClick={() => setOpen(true)}>
+        {WALLET.connect}
       </button>
-      <p className="hint">{WALLET.nearConnectNote}</p>
-      {error !== null && <Problem error={error} compact />}
+      {open && <WalletPanel onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-/** Connect wallet: NEAR Connect first; the typed field only for the test wallet and the local test signer. */
+/** Connect wallet: one Horizon panel where a click on a wallet's logo connects it (wallets/WalletPanel.tsx). */
 export function ConnectDialog({ onClose, anchor }: { onClose: () => void; anchor?: HTMLElement | null }) {
-  const connected = useConnected();
-  const f = useWalletFields(connected);
-  const typed = typesAccount(f.wallet);
-  return (
-    <Dialog title={WALLET.title} onClose={onClose} testId="connect-dialog" anchor={anchor}>
-      <p className="dlg-lede">{WALLET.lede}</p>
-      <WalletPick value={f.wallet} onChange={f.setWallet} />
-      {f.wallet === "near-connect" && <NearConnectButton onConnected={() => onClose()} />}
-      <TypedAccount f={f} label={WALLET.account} />
-      <div className="dlg-actions">
-        {typed && (
-          <button
-            type="button"
-            className="btn"
-            disabled={!f.account.trim()}
-            onClick={() => {
-              setConnected({ account: f.account.trim(), wallet: f.wallet! });
-              onClose();
-            }}
-          >
-            {WALLET.save}
-          </button>
-        )}
-        <button type="button" className="btn ghost" onClick={onClose}>
-          {WALLET.cancel}
-        </button>
-        {connected && (
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => {
-              if (connected.wallet === "near-connect") void disconnectNear();
-              setConnected(null);
-              onClose();
-            }}
-          >
-            {WALLET.disconnect}
-          </button>
-        )}
-      </div>
-    </Dialog>
-  );
+  return <WalletPanel onClose={onClose} {...(anchor !== undefined ? { anchor } : {})} />;
 }
 
 /** The header: "Connect wallet", or the connected account, which opens #/me. */

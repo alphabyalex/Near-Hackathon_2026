@@ -36,6 +36,7 @@
     "@vitejs/plugin-react": "^6.2.1",
     "@wardline/demo-provider": "workspace:*",
     "@wardline/schemas": "workspace:*",
+    "axe-core": "4.14.0",
     "jsdom": "^26.1.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
