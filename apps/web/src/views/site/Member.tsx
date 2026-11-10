@@ -4,6 +4,7 @@ import { toAtomic, type PoolPosition, type PoolView } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
 import { getPosition, localSignerAccounts } from "../../data/mutual";
+import { addPending } from "../../data/transactions";
 import { DATA_SOURCE } from "../../data/source";
 import { planDeposit, sendDeposit, type DepositPlan } from "../../data/wallet-pool";
 import { navigate } from "../../router";
@@ -181,6 +182,8 @@ export function JoinDialog({ pool, onClose, onJoined, minDeposit = "1000000" }: 
         if (mine !== attempt.current) return;
         setConnected({ account, wallet });
         setState({ step: "done", ward: res.ward ?? "0", tx: res.tx ?? "" });
+        // Your transactions shows it at once, as Pending, until the chain returns it.
+        if (res.tx) addPending(account, { hash: res.tx, type: "buy", usdc: atomic, ward: res.ward ?? null });
         onJoined();
       },
       (e: unknown) => {
@@ -329,6 +332,7 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
       const res = await signMutual(connected.wallet, { account: connected.account, ...body });
       if (res.position) setPosition(res.position);
       setDoneTx(res.tx ?? null);
+      if (res.tx) addPending(connected.account, body.action === "withdraw" ? { hash: res.tx, type: "sell_request", ward: body.amount, unlock_at: res.available_at ?? null } : { hash: res.tx, type: "sell", usdc: res.usdc ?? null });
       setDone(body.action === "withdraw" ? MEMBER.locked7(res.available_at?.slice(0, 10) ?? "") : MEMBER.redeemed(formatUsdc(res.usdc ?? "0")));
       setAmount("");
       onChanged();

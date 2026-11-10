@@ -98,7 +98,8 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
     if (!parsed.success) return c.json({ error: "Invalid NEAR account id", detail: parsed.error.issues[0]?.message }, 400);
     if (deps.ai.chain.mode !== "near") return c.json({ account: parsed.data, transactions: [], complete: true, explorer_account_url: null, totals: { deposited: "0", redeemed: "0" } });
     try {
-      const view = await accountTxs.get(parsed.data);
+      const pending = (c.req.query("pending") ?? "").split(",").filter((h) => /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(h)).slice(0, 10);
+      const view = await accountTxs.get(parsed.data, pending);
       return c.json({ ...view, totals: totals(view.transactions) });
     } catch (err) {
       return failed(c, "list transactions", err);

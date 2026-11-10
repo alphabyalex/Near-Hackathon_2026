@@ -283,10 +283,18 @@ export class AccountTransactions {
     private readonly o: { indexer: Indexer; rpc: Rpc; contracts: { pool: string; usdc: string }; log: (account: string) => ActivityItem[]; ttlMs?: number; now?: () => number },
   ) {}
 
-  get(account: string): Promise<TransactionsView> {
+  /**
+   * pending: hashes a page just sent. If the cached answer lacks one, it is read again, at most every
+   * 4 seconds, so a new row turns confirmed without waiting out the 30-second cache.
+   */
+  async get(account: string, pending: string[] = []): Promise<TransactionsView> {
     const now = this.o.now?.() ?? Date.now();
     const hit = this.cache.get(account);
-    if (hit && now - hit.at < (this.o.ttlMs ?? 30_000)) return hit.value;
+    if (hit && now - hit.at < (this.o.ttlMs ?? 30_000)) {
+      if (pending.length === 0 || now - hit.at < 4_000) return hit.value;
+      const known = new Set((await hit.value).transactions.map((r) => r.hash));
+      if (pending.every((h) => known.has(h))) return hit.value;
+    }
     const value = this.load(account);
     this.cache.set(account, { at: now, value });
     value.catch(() => this.cache.delete(account));
