@@ -1,5 +1,21 @@
 # Status: alexander
 
+## A15: tharun and alexander merged into main (2026-11-10)
+
+**main:** `723cec6`, the merged code (alexander on top of tharun), then the scheduled task's 21:00 UTC data as `2f2a72d`. This report fast-forwards main once more. `alexander` is fast-forwarded to main.
+
+- **origin/tharun first:** already in main (`13afeea`, his page transitions, the meter fee and coverage views, the price history filter). Nothing to merge.
+- **alexander second:** a fast-forward, since alexander already held main from the A14 merge (`4a902e6`, no conflicts). No code conflicts.
+- **One data conflict, resolved for the scheduled task.**
+  - **Cause:** Tharun's `13afeea` also changed `data/testnet/audit.json` (an audit stamp from his machine). So the scheduled run at 21:00 UTC passed its audit (202 of 202 rows) but its `git pull --rebase` conflicted. As designed, it skipped the push and kept the commit in its clone.
+  - **Fix:** following the rule that data/testnet/ belongs to the scheduled task on main, I moved the task's clone to the new main and took that run's `data/testnet/` (14 new rows), with the original commit kept as branch `backup-scheduled-2100` in the clone. I rebuilt the clone, re-ran the audit there (PASS 202 of 202, 0 misses) and pushed `2f2a72d`. The clone is clean and in sync for its next run (03:00 UTC).
+  - **To avoid a repeat:** commit `data/testnet/` only from the scheduled task. An audit run on any other machine rewrites `audit.json`'s stamp; restore it (`git checkout -- data/testnet`) instead of committing it.
+- **Price history on Your share:** checked for `hyperios.testnet`, which has joined (9.996 WARD, 10.00 USDC).
+  - The chart still draws a line: "WARD price since launch: 1.0000 to 1.0004 USDC over 156 changes".
+  - Tharun's `<=` join filter only trims the "Where your share came from" list. The chart uses the history since launch.
+  - No fallback was needed, so none was added.
+- **Checks on `723cec6`:** `pnpm test` passes (API 241, web 113, brand 7, every other package). The Chromium e2e passes 53 of 53 and iPhone WebKit 12 of 12. `pnpm testnet:audit` passes 188 of 188, and 202 of 202 after the 21:00 data on main.
+
 ## A14: one Horizon wallet panel (2026-11-10)
 
 `alexander` couldn't be fast-forwarded: it had the A13 commits and main had new ones. I merged main into it instead (`4a902e6`, no conflicts). Main is untouched, and no transactions were sent.
