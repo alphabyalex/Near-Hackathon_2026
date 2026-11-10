@@ -1,7 +1,7 @@
 {
   "passed": true,
-  "at": "2026-11-10T10:26:06.330Z",
-  "rows": 16,
-  "sha256": "98be7ea0f37a5e0ccf5ad6003c7eff27c4737f51701d8eee96d64ff19eb9857d",
+  "at": "2026-11-10T10:39:00.613Z",
+  "rows": 63,
+  "sha256": "7d6c568d0a4ff9d63d5af83a32dc4a169b625271a8984868be6ec55cf7872109",
   "rpc": "https://test.rpc.fastnear.com"
 }

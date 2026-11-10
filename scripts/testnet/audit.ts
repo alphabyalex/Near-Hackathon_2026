@@ -6,7 +6,7 @@
  *   2. Every account: each cast account setup created (data/testnet/setup.json, else cast.json) and
  *      each row's actor and signer exists (view_account).
  *   3. Totals: per budget, the log never claims more than get_reputation and get_budget record
- *      (proven, refused and capped calls, USDC spent), and logged deposits never exceed the pool.
+ *      (proven and refused calls, USDC spent; each capped row is checked by its reserve result), and logged deposits never exceed the pool.
  *
  * On a full pass it writes data/testnet/audit.json, pinning the rows it checked by their sha256. The API
  * serves only those rows, and in near mode refuses /v1/activity until a stamp exists.
@@ -147,17 +147,16 @@ export async function runAudit(): Promise<boolean> {
       capped: mine.filter((r) => r.outcome === "capped").length,
       spent: mine.filter((r) => r.outcome === "paid").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n),
     };
-    const rep = await view<{ proven_calls: number; refused_calls: number; capped_calls: number } | null>(meter, "get_reputation", { budget_id: id });
+    const rep = await view<{ proven_calls: number; refused_calls: number } | null>(meter, "get_reputation", { budget_id: id });
     const budget = await view<{ spent: string } | null>(meter, "get_budget", { budget_id: id });
     if (!rep || !budget) {
       miss(`${id}: no reputation or budget on the meter`);
       continue;
     }
-    const line = `  ${id.padEnd(18)} proven ${logged.proven}/${rep.proven_calls}  refused ${logged.refused}/${rep.refused_calls}  capped ${logged.capped}/${rep.capped_calls}  spent ${usdc(logged.spent)}/${usdc(budget.spent)} (log/chain)`;
+    const line = `  ${id.padEnd(18)} proven ${logged.proven}/${rep.proven_calls}  refused ${logged.refused}/${rep.refused_calls}  capped ${logged.capped} (reserve results checked; the meter keeps no counter)  spent ${usdc(logged.spent)}/${usdc(budget.spent)} (log/chain)`;
     console.log(line);
     if (logged.proven > rep.proven_calls) miss(`${id}: ${logged.proven} paid calls logged, ${rep.proven_calls} on chain`);
     if (logged.refused > rep.refused_calls) miss(`${id}: ${logged.refused} refusals logged, ${rep.refused_calls} on chain`);
-    if (logged.capped > rep.capped_calls) miss(`${id}: ${logged.capped} capped calls logged, ${rep.capped_calls} on chain`);
     if (logged.spent > BigInt(budget.spent)) miss(`${id}: ${usdc(logged.spent)} USDC spent logged, ${usdc(budget.spent)} on chain`);
   }
   const deposited = rows.filter((r) => r.kind === "deposit" && r.community === "mutual").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n);
