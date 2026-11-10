@@ -17,8 +17,11 @@ export const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC
 export const RPC_URLS = [...RPC_URL.split(",").map((u) => u.trim()).filter(Boolean), "https://rpc.testnet.near.org"];
 export const DRY_RUN = process.argv.includes("--dry-run");
 
-/** Reads the repo's .env into process.env without overriding what is already set. Never prints values. */
-export function loadDotEnv(path = join(REPO_ROOT, ".env")): void {
+/**
+ * Reads the repo's .env into process.env without overriding what is already set. Never prints values.
+ * WARDLINE_DOTENV points at another file: the scheduled clone reads the main checkout's .env, so no key is copied.
+ */
+export function loadDotEnv(path = process.env.WARDLINE_DOTENV ?? join(REPO_ROOT, ".env")): void {
   if (!existsSync(path)) return;
   for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
     const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);

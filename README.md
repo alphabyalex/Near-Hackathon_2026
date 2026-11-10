@@ -291,7 +291,7 @@ Numbers at the last audit (Nov 10, 15:30 UTC; `pnpm testnet:audit` re-derives th
 | Tiers | Mission Street Gold; Nightshade and Hayes Valley Silver; Aurora Lab Bronze after a claim; Kelp Bronze |
 | Claims | One, 0.02 USDC for Aurora Lab, paid from Wardline's first-loss stake (WARD unchanged) |
 
-A scheduled task adds a small batch every 6 hours until Nov 13, 20:00 UTC, each followed by the audit, so these numbers grow.
+A scheduled task (`scripts/testnet/scheduled-run.ps1`) adds a small batch every 6 hours until Nov 13, 20:00 UTC. When the audit after it passes, it commits only `data/testnet/` to main as `chore(testnet): scheduled batch <UTC time>`, so these numbers grow in git.
 
 ## How it works
 
