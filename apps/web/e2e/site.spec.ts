@@ -504,23 +504,30 @@ test.describe("owner app", () => {
     await expectAccessible(page);
   });
 
-  test("sign-in with MyNearWallet loads the real wallet selector and opens a NEP-413 sign request", async ({ page, context }) => {
-    // Nothing leaves the machine: the wallet site is blocked, only the request URL is checked.
-    let signRequest: URL | null = null;
-    await context.route(/mynearwallet|rpc|fastnear|near\.org|meteorwallet/, (route) => {
-      const requested = new URL(route.request().url());
-      if (requested.pathname === "/sign-message") signRequest = requested;
-      return route.abort();
-    });
+  test("sign-in with a NEAR wallet opens NEAR Connect, listing only wallets that sign transactions on testnet", async ({ page, context }) => {
+    // Nothing leaves the machine: NEAR Connect gets this manifest, and every other outside request is blocked.
+    const wallet = (id: string, name: string, features: Record<string, boolean>) => ({ id, name, icon: "", description: "", website: "https://example.invalid", version: "1.0.0", executor: "https://example.invalid/x.js", type: "sandbox", permissions: {}, platform: {}, features });
+    const manifest = {
+      version: "1.0.0",
+      wallets: [
+        wallet("meteor-wallet", "Meteor Wallet", { signMessage: true, signAndSendTransaction: true, signAndSendTransactions: true, testnet: true }),
+        wallet("hot-wallet", "HOT Wallet", { signMessage: true, signAndSendTransaction: true, signAndSendTransactions: true }),
+        wallet("near-mobile", "NEAR Mobile", { signAndSendTransaction: true, signAndSendTransactions: true, testnet: false }),
+        wallet("ethereum-wallets", "Ethereum Wallets", { signAndSendTransaction: true, signAndSendTransactions: true, testnet: true }),
+      ],
+    };
+    await context.route(/manifest\.json/, (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(manifest) }));
+    await context.route(/example\.invalid|rpc|fastnear|near\.org|meteorwallet/, (route) => route.abort());
     await page.goto("/#/app/overview");
-    await page.getByLabel("NEAR account").fill(APPROVER_ACCOUNT);
-    await page.getByRole("button", { name: /MyNearWallet/ }).click();
-    await expect.poll(() => signRequest?.href ?? "", { timeout: 30_000 }).toContain("/sign-message");
-    const url = signRequest as unknown as URL;
-    expect(url.pathname).toBe("/sign-message");
-    expect(url.searchParams.get("recipient")).toBe("wardline-owner-login");
-    expect(url.searchParams.get("message")).toContain(`wardline-owner-login:v1:${APPROVER_ACCOUNT}:`);
-    expect(Buffer.from(url.searchParams.get("nonce") ?? "", "base64")).toHaveLength(32);
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    // No typed account without the scripted test wallet: the account comes from the wallet.
+    await expect(page.getByLabel("NEAR account")).toHaveCount(0);
+    await page.getByRole("button", { name: /NEAR wallet/ }).click();
+    const list = page.locator(".hot-connector-popup");
+    await expect(list).toContainText("Meteor Wallet", { timeout: 30_000 });
+    await expect(list).not.toContainText("HOT Wallet");
+    await expect(list).not.toContainText("NEAR Mobile");
+    await expect(list).not.toContainText("Ethereum Wallets");
   });
 
   test("sign-in refuses an account that is not an owner or approver", async ({ page, wallets }) => {

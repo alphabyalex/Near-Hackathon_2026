@@ -42,7 +42,8 @@ declare global {
 
 export function nearWallets(): { id: NearWalletId; name: string }[] {
   const wallets: { id: NearWalletId; name: string }[] = [{ id: "near-connect", name: NEAR_CONNECT_NAME }];
-  if (TEST_WALLET && typeof window !== "undefined" && window.__wardlineTestWallet) wallets.push({ id: "test-wallet", name: window.__wardlineTestWallet.name });
+  // e2e builds only: the scripted wallet comes first, so it is the default there.
+  if (TEST_WALLET && typeof window !== "undefined" && window.__wardlineTestWallet) wallets.unshift({ id: "test-wallet", name: window.__wardlineTestWallet.name });
   if (LOCAL_SIGNER) wallets.push({ id: "local-signer", name: LOCAL_SIGNER_NAME });
   return wallets;
 }

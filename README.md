@@ -261,6 +261,11 @@ pnpm --filter @wardline/web dev
 
 Open http://127.0.0.1:5173. To act as a cast account, choose Connect wallet, then **Local test signer (testnet, this machine only)**, and pick an account such as `dana.wardline-labs.testnet`. Every action it takes is a real testnet transaction, signed with that account's key from your credential store; the header marks it as the local test signer.
 
+With your own wallet, choose Connect wallet, then **Connect a NEAR wallet**. That opens NEAR Connect (`@hot-labs/near-connect`), which lists only wallets that work on NEAR testnet and can sign and send transactions (Meteor, Intear, Nightly and others); the account comes from the wallet. On testnet every Mutual action is a real transaction from that wallet:
+- **Join:** the dialog first checks your USDC and NEAR (about 0.05 NEAR for fees) and whether you are registered on the pool for WARD. Then your wallet signs `storage_deposit` on the pool (first time only, 0.00125 NEAR) and `ft_transfer_call` on USDC to the pool, and the dialog shows the WARD you received, read from the chain, with a link to the transaction.
+- **Vote, redeem and execute:** `vote`, `request_redeem`, `redeem` and `execute` on the pool contract, signed by your wallet.
+- In near mode the API's signed-message routes (`/v1/pool/challenge` and `/v1/pool/submit`) refuse, so a signed message never stands in for a transaction. Sim mode keeps them for the offline steps above.
+
 The activity behind the pages:
 
 ```powershell
@@ -369,7 +374,7 @@ Docs: [docs/DAO.md](docs/DAO.md) (governance), [docs/PAYEE_SHIELD.md](docs/PAYEE
 
 - No pre-hackathon code: the first commit is 2026-11-03.
 - Most code was written with Claude Code, directed and reviewed by the team.
-- Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@near-wallet-selector/*`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`; for brand assets `@resvg/resvg-js` (MPL-2.0, dev only) and `png-to-ico`. Font: Geist (SIL OFL 1.1), self-hosted.
+- Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@hot-labs/near-connect`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`; for brand assets `@resvg/resvg-js` (MPL-2.0, dev only) and `png-to-ico`. Font: Geist (SIL OFL 1.1), self-hosted.
 - External services: NEAR AI Cloud, Circle USDC on NEAR, NEAR RPC (FastNear, QuickNode optional), Sputnik DAO.
 - The full list with licenses: [docs/DISCLOSURES.md](docs/DISCLOSURES.md). To report a vulnerability: [SECURITY.md](SECURITY.md).
 
