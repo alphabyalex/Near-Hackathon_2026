@@ -1,5 +1,42 @@
 # Status: alexander
 
+## A13: real wallets on testnet with NEAR Connect (2026-11-10)
+
+On `alexander`, fast-forwarded from main (`c11959d`). Not merged to main.
+
+- **Sign-in:** `@hot-labs/near-connect` 0.12.0 replaces `@near-wallet-selector`.
+  - The Horizon connect panel (bottom sheet on phones) has one button, Connect a NEAR wallet, which opens NEAR Connect's wallet list.
+  - Only wallets that support testnet and `signAndSendTransaction(s)` are listed: against today's live manifest, Meteor, Intear, Ledger, Nightly and NEAR CLI. `ethereum-wallets` is excluded.
+  - The account comes from the wallet. A typed account remains only for the local test signer and the e2e test wallet.
+  - NEAR Connect loads when the panel opens, so the click opens the wallet list at once. A blocked wallet window shows the existing pop-up message.
+- **Verify and the owner sign-in:** both use NEAR Connect for NEP-413 message signing and take the account from the wallet.
+- **Join on testnet:** real transactions from the wallet.
+  - **Before the click,** the dialog reads USDC, spendable NEAR, WARD and `storage_balance_of` on the pool.
+  - **On the click,** the wallet goes straight to `signAndSendTransactions`:
+    - `storage_deposit` on the pool (0.00125 NEAR), only if not yet registered;
+    - then `ft_transfer_call` on USDC to the pool, with 1 yocto and `msg: ""` (the same msg as the local signer).
+  - **Afterwards,** it reads WARD again and shows the difference with a View transaction link.
+- **Vote, redeem and execute:** `vote`, `request_redeem`, `redeem` and `execute` on the pool, signed by the wallet, each with a transaction link.
+- **No fake path:**
+  - In near mode, `/v1/pool/challenge` and `/v1/pool/submit` answer 409 `WALLET_TRANSACTION` before touching any pool. Sim mode keeps them for the offline README steps.
+  - This also closes a worse hole: near mode would have called the pool's unauthenticated `deposit(account, amount)`, which mints WARD without USDC.
+- **Errors before signing:**
+  - "Not enough USDC in this wallet for that deposit." Next step: lower the amount, or use Circle's faucet.
+  - "You need about 0.05 NEAR for network fees." Next step: send testnet NEAR to the account.
+  - The dialog also shows the wallet's USDC and NEAR balances, and says when the first deposit registers storage.
+- **CSP (production headers):** NEAR Connect runs wallet code in sandboxed `srcdoc` iframes that inherit the page's policy. So `script-src` adds `'unsafe-inline'`, and `connect-src`, `frame-src` and `img-src` allow `https:` (plus `wss:` for connect-src). Without this, no wallet works on a static host. This is looser than before; decide whether to keep it.
+- **Phantom and MetaMask: not shipped, never in the UI.**
+  - The `ethereum-wallets` entry (evm-on-near.dev) claims testnet support, but connect, deposit and vote could not be verified here: this machine's browsers have no MetaMask or Phantom extension, and the test browser can't sign as one.
+  - Per the rule (no half-working option), it is excluded in `EXCLUDED_WALLETS`, and an e2e test checks it doesn't appear. Phantom stays on the Verify page (Solana message signing), as before.
+- **Tests:**
+  - **Mocked connector** (`apps/web/test/wallet.test.ts`, 7 tests): connect, refusing a mainnet account, deposit with and without storage registration, short USDC, short NEAR, vote, redeem request and redeem, and refusing to sign as another account. Every test also asserts that no call reaches `/v1/pool/challenge` or `/submit`.
+  - **API test:** near mode refuses all five actions and never calls the pool or governance.
+  - **E2e test:** NEAR Connect lists only testnet transaction wallets.
+  - **Results:** `pnpm test` passes (API 241, web 100, brand 7, every other package). The Chromium e2e passes 53 of 53, iPhone WebKit 12 of 12, and `pnpm testnet:audit` 188 of 188.
+- **Manual test:** sent 0.5 NEAR from `wardline-labs.testnet` to `hyperios.testnet` ([Ar7iVi3t…](https://testnet.nearblocks.io/txns/Ar7iVi3tvkQmodLyEu18madda1QdA2jG7L4scpeuXcmw)). hyperios.testnet now has 0.5 NEAR and 20 USDC, and is not yet registered on the pool, so its first Join is two transactions.
+- **Local stack for the Meteor test:** the near-mode API on 127.0.0.1:8787 was rebuilt and restarted with this code. The testnet web dev server on 127.0.0.1:5173 already serves it.
+- **Not done:** wallet transactions are not written to `data/testnet/activity.jsonl`. They're on chain and in the pool's numbers, but the activity feed lists only batch and local-signer rows. Recording them would need an API route that builds the row from RPC.
+
 ## A12: small fixes, scheduled data commits, merge to main (2026-11-10)
 
 **main:** merge commit `76bf6b5` (alexander into main). Since then the scheduled task has pushed `d9ad255` and `613c285` to main (data only), and this report goes to main as a fast-forward on top of them.
