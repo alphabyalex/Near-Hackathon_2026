@@ -45,6 +45,7 @@ const EXPECT: Record<string, { method: string | string[]; check?: (value: unknow
   "proposal:opened": { method: ["propose", "add_proposal"] },
   "proposal:executed": { method: "execute" },
   "redeem:opened": { method: "request_redeem" },
+  "payout:paid": { method: "file_claim", check: (v) => ((v as { status?: string } | null)?.status === "paid" ? null : `the claim is ${JSON.stringify(v).slice(0, 80)}, not paid`) },
   "redeem:paid": { method: "redeem" },
 };
 const short = (a: string) => a.replace(/\.wardline-labs\.testnet$/, "");
