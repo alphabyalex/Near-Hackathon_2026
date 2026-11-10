@@ -21,7 +21,7 @@ import { randomBytes } from "node:crypto";
 import { makeProvider, makeSigner, NearModelRegistryClient, viewCall, type SignerHandle } from "@wardline/vault-client";
 import { verifyProviderProof, type ProviderSignature } from "@wardline/sdk";
 import { CredentialStore, defaultSecretsDir } from "../contracts/src/lib.js";
-import { ActivityWriter, addSpend, sendCall as callFinal, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, saveSpend, type SpendLedger } from "./chain-log.js";
+import { ActivityWriter, addSpend, sendCall as callFinal, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, RPC_URLS, saveSpend, type SpendLedger } from "./chain-log.js";
 import type { RowFields } from "../../services/api/src/activity/log.js";
 
 const MODEL = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
@@ -90,13 +90,22 @@ function argValue(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
-async function accountExists(provider: ReturnType<typeof makeProvider>, account: string): Promise<boolean> {
-  try {
-    await provider.query({ request_type: "view_account", account_id: account, finality: "final" } as never);
-    return true;
-  } catch {
-    return false;
+/**
+ * Whether an account exists, by a plain view_account call. Not through the failover provider, which
+ * logs a stack trace per endpoint for every account that is missing (the cast members setup cut).
+ */
+async function accountExists(account: string): Promise<boolean> {
+  for (const url of RPC_URLS) {
+    try {
+      const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "query", params: { request_type: "view_account", account_id: account, finality: "final" } }) });
+      const body = (await res.json()) as { result?: unknown; error?: unknown };
+      if (body.result) return true;
+      if (/UNKNOWN_ACCOUNT|does not exist/.test(JSON.stringify(body.error ?? ""))) return false;
+    } catch {
+      // try the next endpoint
+    }
   }
+  throw new Error(`No RPC endpoint answered view_account for ${account}.`);
 }
 
 export async function runBatch(opts: { dryRun?: boolean; calls?: number } = {}): Promise<void> {
@@ -116,9 +125,9 @@ export async function runBatch(opts: { dryRun?: boolean; calls?: number } = {}):
   for (const c of cast.communities) for (const m of c.members) callers.push({ account: m.account, name: m.name, budget: c.id, group: c.name, leaked: Boolean(m.leaked_key) });
   for (const i of cast.individuals) callers.push({ account: i.account, name: i.name, budget: i.budget, group: `${i.name} (solo)`, leaked: false });
   const live: Caller[] = [];
-  for (const c of callers) if (await accountExists(provider, c.account)) live.push(c);
+  for (const c of callers) if (await accountExists(c.account)) live.push(c);
   const lps: Cast["liquidity_providers"] = [];
-  for (const lp of cast.liquidity_providers) if (await accountExists(provider, lp.account)) lps.push(lp);
+  for (const lp of cast.liquidity_providers) if (await accountExists(lp.account)) lps.push(lp);
   const honest = live.filter((c) => !c.leaked);
   const leaked = live.filter((c) => c.leaked);
   console.log(`Cast on chain: ${live.length} of ${callers.length} members and individuals, ${lps.length} of ${cast.liquidity_providers.length} LPs.`);
