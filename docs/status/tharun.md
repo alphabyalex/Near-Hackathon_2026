@@ -2,6 +2,30 @@
 
 Maintained by Tharun. All deliverables merged and reconciled into main.
 
+## Milestones & Checklist
+
+- [x] **T4.7b Make the testnet communities real**:
+  - Found why: dry-run and simulate scripts previously wrote estimated numbers with `tx_` hex hashes (`tx_` plus 40 hex characters) when dry-run was active.
+  - Purged fake rows and enforced that `data/testnet/activity.jsonl` only accepts rows verified from RPC via `ActivityWriter.record` and `rowFromChain`.
+  - Created 24 live cast accounts on NEAR testnet (`scripts/testnet/setup.ts`), funded with gas and Circle USDC via Ref pool 1845.
+  - Executed real testnet batches with live NEAR AI DeepSeek V4.1 Flash calls, real TEE verifications, genuine GLM-5.3 Flash swapped-model refusals, and LP deposits.
+  - `pnpm testnet:audit`: enforced strict base58 transaction hash format, checking 202 of 202 rows on testnet RPC with 0 misses (188 before the 21:00 UTC scheduled run).
+  - Upgraded live contracts in place on testnet (`meter.wardline-labs.testnet` and `pool.wardline-labs.testnet`) with 0 state loss, locking snapshot voting weights and setting `withdraw_delay_days = 7`.
+- [x] **T4.6 Put the social layer on-chain, fix one auth bug, move hosting off temporary tunnels**:
+  - Fixed meter auth hole: exact caller match on DAO governance account ID (`meter::set_param`, `meter::set_cover_fee_bps`).
+  - WARD-holder governance: snapshot balance checkpointing on `cover-pool::propose`, 20% quorum, single execution with parameter updates.
+  - Reputation tiers in meter: `get_reputation`, `list_reputations`, `record_claim`, Bronze/Silver/Gold progression.
+  - Fees raise WARD on chain: `ft_transfer_call` with `{"fee":true}` sends fees to the pool, raising WARD price.
+  - Swapped model refusal: verified with recorded GLM-5.3 Flash response and ECDSA signature against the model registry.
+  - Token cleanup: removed mock token `token.wardline-labs.testnet`, all money is Circle USDC.
+- [x] **T4.7 Testnet communities: real wallets, real transactions, real data for the app**:
+  - Phase 1: Cast defined in `scripts/testnet/cast.json` (5 communities, 10 individuals, 6 LPs, bad actors, verified vendor).
+  - Phase 2: Wallets and funds deployed idempotently via `scripts/testnet/setup.ts`.
+  - Phase 3: Activity engine in `scripts/testnet/simulate.ts` (`pnpm testnet:batch`) running real NEAR AI calls and on-chain settlements under the 450-call cap.
+  - Phase 4: Automated batch runs recorded and audited across days.
+  - Phase 5: Activity API endpoints (`/v1/activity`, `/v1/activity/stats`, `/v1/communities`, `/v1/people/:account`) serving live testnet data with explorer links.
+  - Phase 6: Full cryptographic audit (`pnpm testnet:audit`) passing with 202 of 202 chain rows (0 misses).
+
 ## Overnight Contract Hole Fixes and In-Place Testnet Upgrade (Nov 10, 2026)
 
 All four contract vulnerabilities discovered in the overnight testnet run were remediated, verified with dedicated unit tests, compiled to production WASM, and upgraded in place on NEAR testnet without losing any state.
@@ -124,6 +148,7 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | T4.5 USDC Movement & Deployment | Nov 11 | **Met** |
 | T4.6 Reputation Tiers & WARD Governance | Nov 12 | **Met.** Deployed to testnet and verified |
 | T4.7 / A8 Data Layer & Testnet Endpoints | Nov 13 | **Met.** Wired and tested in apps/web/src/data |
+| T4.7b Make the Testnet Communities Real | Nov 14 | **Met.** All fake hex hashes purged, 24 cast accounts live on testnet, 202/202 real chain rows audited, contracts upgraded in place with 7-day delay |
 
 ### Test results, last full run on the deployed wasm
 
@@ -439,24 +464,24 @@ Query parameters: `limit` (default 50, max 200), `offset` (default 0), `communit
 
 ```json
 {
-  "total": 24,
+  "total": 188,
   "limit": 50,
   "offset": 0,
   "items": [
     {
-      "at": "2026-11-10T04:04:50.059Z",
-      "actor": "priya.wardline-labs.testnet",
-      "community": "bgt_nightshade",
-      "kind": "call",
-      "amount": "15000",
-      "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
-      "outcome": "paid",
+      "at": "2026-11-10T10:21:04.285Z",
+      "actor": "dana.wardline-labs.testnet",
+      "community": "bgt_mission",
+      "kind": "proposal",
+      "amount": "250000",
+      "model": null,
+      "outcome": "opened",
       "side": "above",
       "reason": null,
-      "tx": "tx_fc5fe69527fef6340356bfde3a07727e466385cf5804",
-      "explorer_url": "https://testnet.nearblocks.io/txns/tx_fc5fe69527fef6340356bfde3a07727e466385cf5804",
-      "block_height": 277000000,
-      "text": "Nightshade DAO: proven and paid (Draft release notes for Wardline v1.2.0 ...)"
+      "tx": "7RaNHM8AMjKsNavvcoRxYwpxUUTVMJjz7ViX81wWGMZu",
+      "explorer_url": "https://testnet.nearblocks.io/txns/7RaNHM8AMjKsNavvcoRxYwpxUUTVMJjz7ViX81wWGMZu",
+      "block_height": 277054427,
+      "text": "Mission Street hacker house: Dana proposed moving 0.25 USDC into the AI budget"
     }
   ]
 }
@@ -466,21 +491,21 @@ Query parameters: `limit` (default 50, max 200), `offset` (default 0), `communit
 
 ```json
 {
-  "total_items": 24,
-  "pooled_usdc": "350000",
-  "ward_price": "1000000",
-  "fees_earned_usdc": "4800",
-  "claims_paid_usdc": "50000",
-  "paid_above_line": 18,
-  "kept_below_line": 6,
+  "total_items": 188,
+  "pooled_usdc": "2110289",
+  "ward_price": "1000388",
+  "fees_earned_usdc": "289",
+  "claims_paid_usdc": "20000",
+  "paid_above_line": 154,
+  "kept_below_line": 34,
   "kept_below_line_by_reason": {
-    "MODEL_MISMATCH": 2,
-    "BUDGET_CAP_EXCEEDED": 2,
-    "UNVERIFIED_PAYEE_LOOKALIKE": 2
+    "MODEL_MISMATCH": 5,
+    "BUDGET_CAP_EXCEEDED": 29
   },
   "price_series": [
-    { "at": "2026-11-10T03:58:09.930Z", "price": "1.000000", "event": "genesis" },
-    { "at": "2026-11-10T04:04:50.063Z", "price": "1.000300", "event": "fee" }
+    { "at": "2026-11-10T10:21:00.000Z", "price": "1.000000", "event": "launch" },
+    { "at": "2026-11-10T11:36:00.000Z", "price": "1.000368", "event": "fees" },
+    { "at": "2026-11-10T19:15:00.000Z", "price": "1.000388", "event": "fees" }
   ]
 }
 ```
@@ -521,26 +546,42 @@ Returns a community object matching the shape above, plus `tier_history` and `re
 
 ```json
 {
-  "account": "alice.wardline-labs.testnet",
+  "account": "dana.wardline-labs.testnet",
   "position": {
-    "account": "alice.wardline-labs.testnet",
-    "ward": "50000000",
+    "account": "dana.wardline-labs.testnet",
+    "ward": "1049614",
     "ward_locked": "0",
-    "usdc_value": "50000000"
+    "usdc_value": "1050021"
   },
   "mutual": {
     "pool": {
-      "tvl": "350000",
-      "junior": "250000",
-      "senior": "100000",
-      "ward_supply": "100000",
-      "ward_price": "1000000",
-      "fees_earned": "0",
-      "claims_paid": "50000"
+      "tvl": "2110289",
+      "junior": "430000",
+      "senior": "1680289",
+      "ward_supply": "1679637",
+      "ward_price": "1000388",
+      "fees_earned": "289",
+      "claims_paid": "20000"
     },
-    "claims": [],
+    "claims": [
+      {
+        "id": "claim_0",
+        "budget_id": "bgt_aurora",
+        "claimant": "aurora-dao.wardline-labs.testnet",
+        "amount": "20000",
+        "status": "paid",
+        "tx": "FpEkFzuvpjfCto76xAcirYjNieNhYqdxbNRRoeEdF9e6"
+      }
+    ],
     "governance": {
-      "proposals": [],
+      "proposals": [
+        {
+          "id": 0,
+          "proposer": "lp-north.wardline-labs.testnet",
+          "description": "Set the Gold fee to 1.00%",
+          "status": "executed"
+        }
+      ],
       "voting_period_days": 3,
       "vote_threshold_bps": 2000,
       "quorum_bps": 2000,
@@ -548,9 +589,7 @@ Returns a community object matching the shape above, plus `tier_history` and `re
     }
   },
   "votes": [],
-  "weights": {
-    "0": "50000000"
-  },
+  "weights": {},
   "open": [],
   "history": []
 }
