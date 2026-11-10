@@ -398,6 +398,7 @@ export const CONNECT = {
   label: "Connect",
   title: `Put ${BRAND.name} in front of every payment.`,
   lede: "One base URL for AI calls. MCP for agents, HTTP for anything, the SDK for TypeScript.",
+  placeholder: "Nothing is hosted yet, so these snippets show a placeholder address. Run Wardline locally (see the README) and they show your local API, or replace the placeholder with your own API's address.",
   openai: "OpenAI client, one line",
   openaiLine: "Use any OpenAI-compatible client with a meter key. Each call is paid only on a verified model signature, and every response carries X-Wardline-Proof.",
   openaiJs: "JavaScript",

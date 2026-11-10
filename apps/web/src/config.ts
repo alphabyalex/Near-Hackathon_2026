@@ -15,9 +15,30 @@ export const MCP_URL = clean(env.VITE_WARDLINE_MCP_URL);
 /** Where a local run serves the API and the MCP endpoint (repo.config.json's local block). */
 export const LOCAL_API_URL = repo.local.api;
 export const LOCAL_MCP_URL = repo.local.mcp;
-/** What code snippets show: the configured URLs, else the hosted ones from repo.config.json, else the local ones while nothing is hosted. Never a variable. */
-export const SNIPPET_API_URL = API_URL ?? clean(repo.hosted.api) ?? LOCAL_API_URL;
-export const SNIPPET_MCP_URL = MCP_URL ?? clean(repo.hosted.mcp) ?? LOCAL_MCP_URL;
+/**
+ * What a snippet shows while nothing is hosted and the page is not served from this machine. Not a
+ * working address, and named so nobody mistakes it for one: replace it with your API's address.
+ */
+export const PLACEHOLDER_API_URL = "https://your-wardline-api.example";
+export const PLACEHOLDER_MCP_URL = "https://your-wardline-api.example/mcp";
+
+/** Whether this page is served from this machine (the dev server, or a preview of a local build). */
+export const servedLocally = (hostname: string): boolean => /^(127\.0\.0\.1|localhost|\[::1\])$/.test(hostname);
+
+/**
+ * The URL a code snippet shows: the configured one, else the hosted one from repo.config.json, else the
+ * local one when the page is served locally, else the placeholder. Never a variable, never a dead tunnel.
+ */
+export function snippetUrl(configured: string | null, hosted: string, local: string, placeholder: string, isLocal: boolean): string {
+  return configured ?? clean(hosted) ?? (isLocal ? local : placeholder);
+}
+const IS_LOCAL = typeof window !== "undefined" && servedLocally(window.location.hostname);
+export const SNIPPET_API_URL = snippetUrl(API_URL, repo.hosted.api, LOCAL_API_URL, PLACEHOLDER_API_URL, IS_LOCAL);
+export const SNIPPET_MCP_URL = snippetUrl(MCP_URL, repo.hosted.mcp, LOCAL_MCP_URL, PLACEHOLDER_MCP_URL, IS_LOCAL);
+/** True when snippets show the placeholder, so the page can say to replace it. */
+export const SNIPPET_IS_PLACEHOLDER = SNIPPET_API_URL === PLACEHOLDER_API_URL;
+/** The payee registry contract the direct SDK snippet reads. */
+export const PAYEE_REGISTRY = repo.near.contracts.payeeRegistry;
 /** What the browser calls. Without a URL, the same origin's /api, which the dev server proxies. */
 export const API_BASE = API_URL ?? "/api";
 /** Owner routes. Serve them on the same site as this app, so the session cookie is sent. */
