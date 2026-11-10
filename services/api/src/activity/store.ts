@@ -35,11 +35,26 @@ function toItem(r: ActivityRow): ActivityItem {
  * (see log.ts). Every number comes from chain views (pool, claims, reputations, budgets); the log is
  * never used to raise or fill in a number.
  */
+/** Chain views change at most once a block; a short cache keeps a page of cards from flooding RPC. */
+const CACHE_MS = 10_000;
+
 export class ActivityStore {
+  private readonly cache = new Map<string, { at: number; value: Promise<unknown> }>();
+
   constructor(
     private readonly deps: Deps,
     private readonly env: Record<string, string | undefined> = process.env,
   ) {}
+
+  private cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+    if (this.deps.ai.chain.mode !== "near") return load();
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_MS) return hit.value as Promise<T>;
+    const value = load();
+    this.cache.set(key, { at: Date.now(), value });
+    value.catch(() => this.cache.delete(key));
+    return value;
+  }
 
   /** Audited rows, newest first. In near mode an unaudited log throws ActivityNotAudited. */
   readLog(): ActivityItem[] {
@@ -50,6 +65,10 @@ export class ActivityStore {
   }
 
   async getStats(): Promise<ActivityStats> {
+    return this.cached("stats", () => this.loadStats());
+  }
+
+  private async loadStats(): Promise<ActivityStats> {
     const chain = this.deps.ai.chain;
     const [pool, claims, groups] = await Promise.all([chain.pool.getPool(), chain.pool.listClaims(), chain.reputation.listReputations()]);
 
@@ -81,13 +100,20 @@ export class ActivityStore {
   }
 
   async getCommunities(): Promise<CommunitySummary[]> {
-    const chain = this.deps.ai.chain;
-    const reputations = await chain.reputation.listReputations();
-    const summaries: CommunitySummary[] = [];
-    for (const r of reputations) {
-      const budget = await chain.meter.getBudget(r.budget_id);
+    return this.cached("communities", async () => {
+      const reputations = await this.deps.ai.chain.reputation.listReputations();
+      const summaries: CommunitySummary[] = [];
+      for (const r of reputations) summaries.push(await this.summary(r));
+      return summaries;
+    });
+  }
+
+  /** One community from its own reputation and budget views. */
+  private async summary(r: Awaited<ReturnType<Deps["ai"]["chain"]["reputation"]["listReputations"]>>[number]): Promise<CommunitySummary> {
+    {
+      const budget = await this.deps.ai.chain.meter.getBudget(r.budget_id);
       const members = budget?.members.map((m) => m.member) ?? [];
-      summaries.push({
+      return {
         id: r.budget_id,
         budget_id: r.budget_id,
         name: r.name || r.budget_id,
@@ -110,14 +136,13 @@ export class ActivityStore {
         capped_calls: r.capped_calls,
         blocked_payees: r.blocked_payees,
         fees_paid: r.fees_paid,
-      });
+      };
     }
-    return summaries;
   }
 
   async getCommunity(id: string): Promise<{ community: CommunitySummary | null; recent_activity: ActivityItem[] }> {
-    const communities = await this.getCommunities();
-    const found = communities.find((c) => c.id === id) ?? null;
+    const reputation = await this.cached(`rep:${id}`, () => this.deps.ai.chain.reputation.getReputation(id));
+    const found = reputation ? await this.cached(`community:${id}`, () => this.summary(reputation)) : null;
     const recentActivity = found ? this.readLog().filter((i) => i.community === id).slice(0, 20) : [];
     return { community: found, recent_activity: recentActivity };
   }

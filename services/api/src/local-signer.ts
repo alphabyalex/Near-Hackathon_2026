@@ -72,7 +72,7 @@ export function registerLocalSigner(app: Hono, deps: Deps, env: Record<string, s
   const contracts = deps.ai.contracts;
   const rpcUrl = env.WARDLINE_NEAR_RPC_URL ?? env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
   const provider = makeProvider(rpcUrl);
-  const rpc = makeRpc([rpcUrl, "https://rpc.testnet.near.org"]);
+  const rpc = makeRpc([...rpcUrl.split(",").map((u) => u.trim()).filter(Boolean), "https://rpc.testnet.near.org"]);
 
   // Only this machine's pages: a custom header (so a cross-site request needs a preflight it never gets)
   // and, when a browser sends one, a loopback Origin.

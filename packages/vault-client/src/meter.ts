@@ -358,30 +358,14 @@ export class NearMeterClient {
     return { tx: outcome.tx_hash };
   }
 
+  /** null when the meter has no such budget. An RPC failure throws: it is not an empty answer. */
   async getReputation(budgetId: string): Promise<ReputationView | null> {
-    try {
-      return await viewCall<ReputationView>(
-        this.provider,
-        this.contractId,
-        "get_reputation",
-        { budget_id: budgetId },
-      );
-    } catch {
-      return null;
-    }
+    return viewCall<ReputationView | null>(this.provider, this.contractId, "get_reputation", { budget_id: budgetId });
   }
 
+  /** An RPC failure throws rather than reading as "no groups". */
   async listReputations(): Promise<ReputationView[]> {
-    try {
-      return await viewCall<ReputationView[]>(
-        this.provider,
-        this.contractId,
-        "list_reputations",
-        {},
-      );
-    } catch {
-      return [];
-    }
+    return viewCall<ReputationView[]>(this.provider, this.contractId, "list_reputations", {});
   }
 
   async recordClaim(

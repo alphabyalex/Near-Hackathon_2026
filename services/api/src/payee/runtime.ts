@@ -86,6 +86,25 @@ const importOptional = async (specifier: string): Promise<Record<string, unknown
   }
 };
 
+/** The contract stores evidence tiers as short codes ("T2"); the SDK names them in full. */
+const TIER_NAMES: Record<string, string> = { T0: "T0_NONE", T1: "T1_WALLET_CONTROL", T2: "T2_DOMAIN_LINKED", T3: "T3_RELATIONSHIP", T4: "T4_EXTERNAL_KYB" };
+
+function withTierNames<T>(vendor: T): T {
+  if (!vendor || typeof vendor !== "object") return vendor;
+  const v = vendor as unknown as { accounts?: Array<{ evidenceTier?: string }> };
+  return { ...vendor, accounts: (v.accounts ?? []).map((a) => ({ ...a, evidenceTier: a.evidenceTier ? (TIER_NAMES[a.evidenceTier] ?? a.evidenceTier) : a.evidenceTier })) } as T;
+}
+
+/** The payee registry contract as a PayeeRegistry, with the SDK's tier names. */
+export function nearRegistry(client: PayeeRegistry): PayeeRegistry {
+  return {
+    getVendor: async (domain) => withTierNames(await client.getVendor(domain)),
+    listVendors: async () => (await client.listVendors()).map(withTierNames),
+    findByAccount: async (caip10) => withTierNames(await client.findByAccount(caip10)),
+    attestVendor: async (input) => withTierNames(await client.attestVendor(input)),
+  };
+}
+
 /**
  * Picks backends from WARDLINE_PAYEE_ENGINE and WARDLINE_REGISTRY_MODE. A mode that cannot be met
  * stops the API. It never falls back to the stub, because stub verdicts are not real verdicts.
@@ -112,7 +131,7 @@ export async function loadPayeeBackends(env: NodeJS.ProcessEnv = process.env, si
     const rpcUrl = env.WARDLINE_NEAR_RPC_URL ?? env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
     const contractId = env.WARDLINE_PAYEE_REGISTRY_CONTRACT ?? repoNear().contracts.payeeRegistry;
     const vc = vaultClient as unknown as { PayeeRegistryClient: new (options: object) => PayeeRegistry; makeProvider: (url: string) => unknown };
-    backends.registry = new vc.PayeeRegistryClient({ contractId, provider: vc.makeProvider(rpcUrl), ...(signer ? { signer } : {}) });
+    backends.registry = nearRegistry(new vc.PayeeRegistryClient({ contractId, provider: vc.makeProvider(rpcUrl), ...(signer ? { signer } : {}) }));
   } else if (registryMode !== "memory") {
     throw new Error(`Unknown WARDLINE_REGISTRY_MODE: ${registryMode}`);
   }

@@ -44,6 +44,8 @@ const EXPECT: Record<string, { method: string | string[]; check?: (value: unknow
   "vote:voted": { method: ["vote", "act_proposal"] },
   "proposal:opened": { method: ["propose", "add_proposal"] },
   "proposal:executed": { method: "execute" },
+  "redeem:opened": { method: "request_redeem" },
+  "redeem:paid": { method: "redeem" },
 };
 const short = (a: string) => a.replace(/\.wardline-labs\.testnet$/, "");
 const usdc = (a: bigint | string) => (Number(a) / 1e6).toFixed(6);

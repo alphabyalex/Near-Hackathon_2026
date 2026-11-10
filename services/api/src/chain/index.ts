@@ -158,6 +158,30 @@ function withUncounted(view: Omit<ReputationView, "capped_calls" | "blocked_paye
   return { ...view, tier: view.tier as ReputationView["tier"], capped_calls: capped.get(view.budget_id) ?? 0, blocked_payees: 0 };
 }
 
+/**
+ * Near-mode views, cached for a few seconds: one page load asks for the same pool, budgets and
+ * reputations many times, and public testnet RPC rate-limits. Writes are never cached.
+ */
+const VIEW_CACHE_MS = 3_000;
+function cachedViews<T extends object>(client: T, views: readonly string[]): T {
+  const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      const original = Reflect.get(target, prop, receiver) as unknown;
+      if (typeof prop !== "string" || !views.includes(prop) || typeof original !== "function") return typeof original === "function" ? original.bind(target) : original;
+      return (...args: unknown[]) => {
+        const key = `${prop}:${JSON.stringify(args)}`;
+        const hit = cache.get(key);
+        if (hit && Date.now() - hit.at < VIEW_CACHE_MS) return hit.value;
+        const value = (original as (...a: unknown[]) => Promise<unknown>).apply(target, args);
+        cache.set(key, { at: Date.now(), value });
+        value.catch(() => cache.delete(key));
+        return value;
+      };
+    },
+  });
+}
+
 /** Reputation in near mode: the meter contract's own get_reputation and list_reputations (T4.6). */
 class NearReputation implements ReputationClient {
   readonly mode = "near" as const;
@@ -237,21 +261,21 @@ export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = de
       ? makeSigner(provider, signerAccount, signerKey)
       : undefined;
 
-  const meter = new NearMeterClient({
+  const meter = cachedViews(new NearMeterClient({
     contractId: meterContract,
     provider,
     signer,
-  });
+  }), ["listBudgets", "getBudget", "getReputation", "listReputations"]);
   const registry = new NearModelRegistryClient({
     contractId: registryContract,
     provider,
     signer,
   });
-  const nearPool = new NearCoverPoolClient({
+  const nearPool = cachedViews(new NearCoverPoolClient({
     contractId: poolContract,
     provider,
     signer,
-  });
+  }), ["getPool", "getPosition", "listClaims", "listProposals", "getProposal", "weightOf", "governanceParams", "ftBalanceOf"]);
 
   // Tiers and WARD voting are on chain since T4.6. Only the tier table, which the meter fixes in code
   // and exposes no view for, comes from the API's copy.

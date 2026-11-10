@@ -75,7 +75,8 @@ interface Caller {
 }
 
 const short = (account: string) => account.replace(/\.wardline-labs\.testnet$/, "");
-const usdc = (atomic: string | bigint) => (Number(atomic) / 1e6).toFixed(2);
+/** Two decimals, or six for amounts under a cent (a call costs about 0.0002 USDC). */
+const usdc = (atomic: string | bigint) => { const n = Number(atomic) / 1e6; return n !== 0 && n < 0.01 ? n.toFixed(6) : n.toFixed(2); };
 
 /** Paid calls per batch by UTC hour: busier in the US daytime, quiet overnight. */
 export function sizeForHour(hourUtc: number, rand = Math.random): number {
