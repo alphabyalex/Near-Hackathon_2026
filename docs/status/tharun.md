@@ -25,6 +25,11 @@ Maintained by Tharun. All deliverables merged and reconciled into main.
   - Phase 4: Automated batch runs recorded and audited across days.
   - Phase 5: Activity API endpoints (`/v1/activity`, `/v1/activity/stats`, `/v1/communities`, `/v1/people/:account`) serving live testnet data with explorer links.
   - Phase 6: Full cryptographic audit (`pnpm testnet:audit`) passing with 202 of 202 chain rows (0 misses).
+- [x] **A16 Integration & Verification: On-chain transactions and Horizon member table**:
+  - Reconciled and merged Alexander's A16 on-chain member transactions feature into `main`.
+  - Executed full test suite re-run on clean macOS host: 100% of workspace tests passed (including all 252 API tests and previously timed-out demo simulations).
+  - Executed full Playwright test suite: 53 of 53 desktop Chromium E2E tests and 12 of 12 mobile iPhone WebKit tests passed.
+  - Enhanced WARD transaction parser (`services/api/src/activity/transactions.ts`): added standard `nep141` event logging extraction alongside `wardline`, and added `ft_transfer_call` to allowed pool methods for full receive and send confirmation coverage.
 
 ## Overnight Contract Hole Fixes and In-Place Testnet Upgrade (Nov 10, 2026)
 

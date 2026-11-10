@@ -65,7 +65,7 @@ export interface Indexer {
 
 const EXPLORER = "https://testnet.nearblocks.io";
 const HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
-const POOL_METHODS = new Set(["request_redeem", "request_withdraw", "redeem", "vote", "propose", "execute", "ft_transfer"]);
+const POOL_METHODS = new Set(["request_redeem", "request_withdraw", "redeem", "vote", "propose", "execute", "ft_transfer", "ft_transfer_call"]);
 
 /** Step 2: only transactions that touch our contracts, by receiver and method. Arguments are checked in step 3. */
 export function touchesWardline(t: IndexedTx, contracts: { pool: string; usdc: string }): boolean {
@@ -92,7 +92,7 @@ function wardlineEvents(result: { receipts_outcome?: Array<{ outcome: { logs: st
       if (!log.startsWith("EVENT_JSON:")) continue;
       try {
         const e = JSON.parse(log.slice("EVENT_JSON:".length)) as { standard?: string; event: string; data?: Array<Record<string, unknown>> };
-        if (e.standard === "wardline") out.push({ event: e.event, data: e.data ?? [] });
+        if (e.standard === "wardline" || e.standard === "nep141") out.push({ event: e.event, data: e.data ?? [] });
       } catch {
         // not an event
       }
@@ -179,7 +179,7 @@ export async function confirmTx(rpc: Rpc, t: IndexedTx, account: string, contrac
     if (t.signer !== account) return null;
     return row("execute", { proposal: Number(args.id) });
   }
-  if (method === "ft_transfer") {
+  if (method === "ft_transfer" || method === "ft_transfer_call") {
     if (t.signer === account) return row("send", { ward: String(args.amount ?? "") || null });
     if (args.receiver_id === account) return row("receive", { ward: String(args.amount ?? "") || null });
     return null;

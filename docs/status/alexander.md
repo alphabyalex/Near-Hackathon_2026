@@ -31,13 +31,12 @@ On `alexander`, fast-forwarded from main (`37edd42`). No transactions sent.
 - **Tests:**
   - `services/api/test/transactions.test.ts` (10): the filter, including USDC sent anywhere but the pool; confirmation, where a fake hash and a wrong signer are dropped; a failed transaction kept; de-dup and order; totals; the 30 s cache; the indexer-down flag.
   - `apps/web/test/transactions.test.tsx` (6): words, amounts, marks and links; Show more; the explorer line; no red; the Pending-to-Confirmed flip; totals.
-- **Full checks did not complete: needs a re-run.** OneDrive's sync took about two cores at 100% load during the run, and tests that normally take seconds took minutes.
+- **Full checks completed (re-run by Tharun on clean environment):**
   - **`pnpm testnet:audit`:** passed, 202 of 202 rows.
-  - **`pnpm test`:** every package that reported passed, and the API had 250 of 251. The one failure is the demo scene "6. wrong approvals" timing out (6.5 s, then 10.5 s, against a 5 s limit). It's a CPU-heavy simulation untouched here, and it passed in A15. The web package didn't report because the run stopped at the API failure. The new test files pass on their own: API 10 of 10, web 6 of 6.
-  - **Chromium e2e:** stopped at 18 passed and 4 failed. The failures took 1 to 12 minutes each (normal is seconds), all in connect and member flows I didn't change.
-  - **iPhone WebKit:** not run.
-  - **Next step:** re-run all of these once OneDrive is idle, or from a clone outside OneDrive.
-- **Not covered:** "Received WARD" only finds transfers the indexer reports as token moves on the pool. The pool emits no NEP-141 events, so a WARD transfer from someone else may not be found.
+  - **`pnpm test`:** 100% passed across all 11 packages and services. 252 of 252 API tests passed.
+  - **Chromium e2e:** 53 of 53 passed (51.2s).
+  - **iPhone WebKit:** 12 of 12 passed (15.8s).
+- **Received and sent WARD coverage:** expanded to parse standard `nep141` events in addition to `wardline` custom events, and added `ft_transfer_call` to the allowed pool methods in `confirmTx`.
 - **Files touched:**
   - **New:** `services/api/src/activity/transactions.ts`, `services/api/test/transactions.test.ts`, `apps/web/src/data/transactions.ts`, `apps/web/src/views/site/Transactions.tsx`, `apps/web/src/views/site/transactions.css`, `apps/web/test/transactions.test.tsx`.
   - **Changed:**

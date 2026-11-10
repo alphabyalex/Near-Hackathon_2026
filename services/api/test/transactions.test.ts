@@ -16,8 +16,10 @@ const OTHER: IndexedTx = { hash: H("D"), signer: ME, receiver: "someone-else.tes
 const STORAGE: IndexedTx = { hash: H("E"), signer: ME, receiver: C.pool, methods: ["storage_deposit"], timestampNs: NS };
 const FAKE: IndexedTx = { hash: H("F"), signer: ME, receiver: C.pool, methods: ["vote"], timestampNs: NS };
 const USDC_ELSEWHERE: IndexedTx = { hash: H("G"), signer: ME, receiver: C.usdc, methods: ["ft_transfer_call"], timestampNs: NS };
+const RECEIVE_WARD: IndexedTx = { hash: H("R"), signer: "sender.testnet", receiver: C.pool, methods: ["ft_transfer"], timestampNs: NS };
+const SEND_WARD_CALL: IndexedTx = { hash: H("S"), signer: ME, receiver: C.pool, methods: ["ft_transfer_call"], timestampNs: NS };
 
-/** The RPC knows A, B, C and G; F is a hash nobody ever sent. */
+/** The RPC knows A, B, C, G, R, and S; F is a hash nobody ever sent. */
 const rpc: Rpc = async (_method, params) => {
   const { tx_hash } = params as { tx_hash: string };
   const fc = (method_name: string, args: unknown) => [{ FunctionCall: { method_name, args: b64(args), deposit: "1", gas: 1 } }];
@@ -30,6 +32,18 @@ const rpc: Rpc = async (_method, params) => {
   if (tx_hash === VOTE.hash) return { transaction: { hash: tx_hash, signer_id: ME, receiver_id: C.pool, actions: fc("vote", { id: 3, support: "for" }) }, status: { SuccessValue: "" }, receipts_outcome: [] };
   if (tx_hash === FAILED_VOTE.hash) return { transaction: { hash: tx_hash, signer_id: ME, receiver_id: C.pool, actions: fc("vote", { id: 3, support: "against" }) }, status: { Failure: { ActionError: { kind: { FunctionCallError: { ExecutionError: "already voted" } } } } }, receipts_outcome: [] };
   if (tx_hash === USDC_ELSEWHERE.hash) return { transaction: { hash: tx_hash, signer_id: ME, receiver_id: C.usdc, actions: fc("ft_transfer_call", { receiver_id: "dex.testnet", amount: "5", msg: "" }) }, status: { SuccessValue: b64("5") }, receipts_outcome: [] };
+  if (tx_hash === RECEIVE_WARD.hash)
+    return {
+      transaction: { hash: tx_hash, signer_id: "sender.testnet", receiver_id: C.pool, actions: fc("ft_transfer", { receiver_id: ME, amount: "5000000" }) },
+      status: { SuccessValue: "" },
+      receipts_outcome: [{ outcome: { logs: [`EVENT_JSON:${JSON.stringify({ standard: "nep141", version: "1.0.0", event: "ft_transfer", data: [{ old_owner_id: "sender.testnet", new_owner_id: ME, amount: "5000000" }] })}`] } }],
+    };
+  if (tx_hash === SEND_WARD_CALL.hash)
+    return {
+      transaction: { hash: tx_hash, signer_id: ME, receiver_id: C.pool, actions: fc("ft_transfer_call", { receiver_id: "vault.testnet", amount: "2000000", msg: "" }) },
+      status: { SuccessValue: b64("2000000") },
+      receipts_outcome: [],
+    };
   throw new Error("UNKNOWN_TRANSACTION");
 };
 
@@ -37,7 +51,7 @@ describe("the filter: only our contracts", () => {
   it("keeps USDC ft_transfer_call and the pool's own methods; drops other receivers, other methods and non-hashes", () => {
     expect(touchesWardline(DEPOSIT, C)).toBe(true);
     expect(touchesWardline(VOTE, C)).toBe(true);
-    for (const m of ["request_redeem", "request_withdraw", "redeem", "propose", "execute", "ft_transfer"]) expect(touchesWardline({ ...VOTE, methods: [m] }, C), m).toBe(true);
+    for (const m of ["request_redeem", "request_withdraw", "redeem", "propose", "execute", "ft_transfer", "ft_transfer_call"]) expect(touchesWardline({ ...VOTE, methods: [m] }, C), m).toBe(true);
     expect(touchesWardline(OTHER, C)).toBe(false);
     expect(touchesWardline(STORAGE, C)).toBe(false);
     expect(touchesWardline({ ...VOTE, hash: "pool:proposal:2" }, C)).toBe(false);
@@ -62,6 +76,13 @@ describe("confirmation with the RPC", () => {
 
   it("keeps a failed transaction, as failed", async () => {
     expect(await confirmTx(rpc, FAILED_VOTE, ME, C)).toMatchObject({ type: "vote", status: "failed", proposal: 3, support: "against" });
+  });
+
+  it("confirms received WARD via ft_transfer and sent WARD via ft_transfer_call", async () => {
+    const rx = await confirmTx(rpc, RECEIVE_WARD, ME, C);
+    expect(rx).toMatchObject({ type: "receive", status: "confirmed", ward: "5000000" });
+    const sx = await confirmTx(rpc, SEND_WARD_CALL, ME, C);
+    expect(sx).toMatchObject({ type: "send", status: "confirmed", ward: "2000000" });
   });
 });
 
