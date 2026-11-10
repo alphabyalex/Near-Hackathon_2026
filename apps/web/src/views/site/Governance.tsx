@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { MutualAction, MutualProposalView, Tier } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
+import { addPending } from "../../data/transactions";
 import { executeAs, getVoteWeight } from "../../data/mutual";
 import { GOV, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
@@ -92,6 +93,7 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
     try {
       const res = await signMutual(voter.wallet, { account, action: "vote", id: p.id, support });
       setDoneTx(res.tx ?? null);
+      if (res.tx) addPending(account, { hash: res.tx, type: "vote", proposal: p.id, support });
       setDone(GOV.voted(support === "for" ? GOV.votesFor.toLowerCase() : GOV.votesAgainst.toLowerCase()));
       onChange();
     } catch (e) {

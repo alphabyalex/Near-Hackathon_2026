@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import { ME, SHARE } from "../../brand";
 import { HorizonMark } from "../../components/HorizonMark";
 import { PriceChart } from "../../components/PriceChart";
+import { DATA_SOURCE } from "../../data/source";
+import { confirmedTotals, useTransactions } from "../../data/transactions";
+import { Transactions } from "./Transactions";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
 import { getPerson, type Person } from "../../data/people";
@@ -134,24 +137,6 @@ function Sources({ person }: { person: Person }) {
   );
 }
 
-/** testnet: every audited transaction from this account, each linked to the explorer. */
-function History({ person }: { person: Person }) {
-  if (!person.history) return null;
-  return (
-    <section className="panel pb" aria-labelledby="me-history-title">
-      <h2 id="me-history-title">{ME.historyTitle}</h2>
-      <ul className="me-history">
-        {person.history.map((h) => (
-          <li key={h.tx ?? h.at} className={h.side === "above" ? "side-above" : "side-below"}>
-            <span className="muted num">{new Date(h.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span> {h.text} <TxLink hash={h.tx} plain={false} />
-          </li>
-        ))}
-        {person.history.length === 0 && <li className="muted">{ME.historyNone}</li>}
-      </ul>
-    </section>
-  );
-}
-
 function Votes({ person, onChanged }: { person: Person; onChanged: () => void }) {
   const connected = useConnected();
   const now = useNow();
@@ -225,7 +210,12 @@ export function Me() {
     };
   }, [connected?.account, tick]);
 
-  const person = load.state === "ready" && load.person.account === connected?.account ? load.person : null;
+  const loaded = load.state === "ready" && load.person.account === connected?.account ? load.person : null;
+  // testnet: Your transactions from the chain. The totals (deposited, redeemed, so earned) come from its
+  // confirmed rows plus the pool's position, so they match the table.
+  const txs = useTransactions(DATA_SOURCE === "testnet" ? (connected?.account ?? null) : null, tick);
+  const sums = confirmedTotals(txs.rows);
+  const person = loaded && DATA_SOURCE === "testnet" && txs.view ? { ...loaded, position: { ...loaded.position, deposited: sums.deposited, redeemed: sums.redeemed } } : loaded;
   const held = person ? BigInt(person.position.ward) + BigInt(person.position.ward_locked) : 0n;
   const gain = person ? earned(person.position) : null;
 
@@ -300,7 +290,7 @@ export function Me() {
               <Redemptions person={person} onChanged={refresh} />
               <Votes person={person} onChanged={refresh} />
               <Sources person={person} />
-              <History person={person} />
+              {DATA_SOURCE === "testnet" && <Transactions view={txs.view} rows={txs.rows} loading={!txs.view && !txs.error} />}
             </div>
           )}
         </div>

@@ -1,0 +1,60 @@
+/* Your transactions (Transactions.tsx). Hairline rows, tabular numbers, no red. */
+.tx-wrap { margin-top: 14px; }
+.tx-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tx-table th { padding: 0 12px 10px 0; font-size: 13px; font-weight: 500; color: var(--muted); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--rule-2); }
+.tx-table td { padding: 13px 12px 13px 0; border-bottom: 1px solid var(--rule-2); vertical-align: middle; }
+.tx-table tbody tr:last-child td { border-bottom: 0; }
+.tx-table .tx-num { text-align: right; }
+.tx-table th:nth-child(6), .tx-table td.tx-status { padding-left: 28px; }
+.tx-date { color: var(--text-2); white-space: nowrap; }
+.tx-date time { cursor: help; }
+.tx-type { color: var(--text); font-weight: 600; }
+.tx-type > span:last-child { display: inline-flex; flex-direction: column; gap: 2px; }
+.tx-sub { font-size: 12px; font-weight: 400; color: var(--muted); }
+.tx-num { color: var(--text); white-space: nowrap; }
+.tx-price { color: var(--text-2); }
+.tx-none { display: inline-block; width: 10px; height: 1px; vertical-align: middle; background: var(--rule-strong); }
+
+/* The mark: in (buy, receive) solid violet; out (sell, send) an open violet ring; governance a small square. */
+.tx-mark { display: inline-block; width: 9px; height: 9px; margin-right: 10px; vertical-align: 1px; border-radius: 50%; background: var(--violet); }
+.f-out .tx-mark { background: transparent; box-shadow: inset 0 0 0 1.5px var(--violet-text); }
+.f-gov .tx-mark { border-radius: 2px; background: var(--rule-strong); }
+.tx-type { white-space: nowrap; }
+
+.tx-st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+.st-confirmed { color: var(--text-2); }
+.st-pending { color: var(--violet-text); }
+.st-failed { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--rule-strong); }
+.tx-row[data-status="failed"] .tx-type,
+.tx-row[data-status="failed"] .tx-num { color: var(--muted); }
+.tx-spin { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(165, 155, 255, 0.3); border-top-color: var(--violet-text); animation: spin 0.8s linear infinite; }
+.tx-hash .tx-link { font-size: 13px; color: var(--violet-text); text-decoration: none; white-space: nowrap; }
+.tx-hash .tx-link:hover { text-decoration: underline; }
+.tx-hash .tx-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+.tx-more { margin-top: 14px; }
+.tx-missing { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+.tx-missing a { color: var(--violet-text); }
+
+/* Phones: each row is a two-line card. Line 1: mark, type, WARD. Line 2: date, USDC at price, status, hash. */
+@media (max-width: 720px) {
+  .tx-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tx-table, .tx-table tbody { display: block; }
+  .tx-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "type ward" "date hash" "usdc status"; gap: 4px 12px; padding: 14px 0; border-bottom: 1px solid var(--rule-2); }
+  .tx-table tbody .tx-row:last-child { border-bottom: 0; }
+  .tx-table td { display: block; padding: 0; border: 0; text-align: left; }
+  .tx-type { grid-area: type; white-space: normal; }
+  .tx-table td.tx-num:nth-child(4) { grid-area: ward; text-align: right; font-weight: 600; }
+  .tx-table td.tx-num:nth-child(4):not(:has(.tx-none))::after { content: " WARD"; font-weight: 500; color: var(--text-2); }
+  .tx-date { grid-area: date; font-size: 13px; }
+  .tx-hash { grid-area: hash; text-align: right; }
+  .tx-table td.tx-num:nth-child(3) { grid-area: usdc; font-size: 13px; color: var(--text-2); text-align: left; }
+  .tx-table td.tx-status { padding-left: 0; }
+  .tx-table td.tx-num:nth-child(3)::after { content: " USDC"; }
+  .tx-table td.tx-num:nth-child(3):has(.tx-none) { visibility: hidden; }
+  .tx-price { display: none !important; }
+  .tx-status { grid-area: status; text-align: right; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tx-spin { animation-duration: 2.4s; }
+}

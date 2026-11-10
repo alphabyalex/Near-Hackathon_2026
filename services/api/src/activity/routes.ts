@@ -1,7 +1,9 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { Deps } from "../service.js";
+import { makeRpc } from "./log.js";
 import { ActivityNotAudited, ActivityStore } from "./store.js";
+import { AccountTransactions, nearblocksIndexer, totals, type Indexer } from "./transactions.js";
 
 const AccountSchema = z.string().min(2).max(64).regex(/^[a-z0-9._-]+$/, "Not a valid NEAR account id.");
 
@@ -13,8 +15,21 @@ function failed(c: Context, what: string, err: unknown): Response {
   return c.json({ error: `Failed to ${what}`, detail: err instanceof Error ? err.message : String(err) }, 500);
 }
 
-export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string, string | undefined> = process.env): void {
+export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string, string | undefined> = process.env, indexer?: Indexer): void {
   const store = new ActivityStore(deps, env);
+  const rpcUrls = [...(env.WARDLINE_NEAR_RPC_URL ?? env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com").split(",").map((u) => u.trim()).filter(Boolean), "https://rpc.testnet.near.org"];
+  const accountTxs = new AccountTransactions({
+    indexer: indexer ?? nearblocksIndexer({ pool: deps.ai.contracts.pool }),
+    rpc: makeRpc(rpcUrls),
+    contracts: { pool: deps.ai.contracts.pool, usdc: deps.ai.contracts.token },
+    log: (account) => {
+      try {
+        return store.readLog().filter((i) => i.actor === account);
+      } catch {
+        return [];
+      }
+    },
+  });
 
   /**
    * GET /v1/activity
@@ -70,6 +85,24 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
       return c.json(res);
     } catch (err) {
       return failed(c, "get community", err);
+    }
+  });
+
+  /**
+   * GET /v1/people/:account/transactions: the account's Wardline transactions from the chain (an
+   * indexer lists them, the RPC confirms each one), merged with its audited log rows, newest first,
+   * with the totals they add up to. complete: false when the indexer couldn't be read.
+   */
+  app.get("/v1/people/:account/transactions", async (c) => {
+    const parsed = AccountSchema.safeParse(c.req.param("account"));
+    if (!parsed.success) return c.json({ error: "Invalid NEAR account id", detail: parsed.error.issues[0]?.message }, 400);
+    if (deps.ai.chain.mode !== "near") return c.json({ account: parsed.data, transactions: [], complete: true, explorer_account_url: null, totals: { deposited: "0", redeemed: "0" } });
+    try {
+      const pending = (c.req.query("pending") ?? "").split(",").filter((h) => /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(h)).slice(0, 10);
+      const view = await accountTxs.get(parsed.data, pending);
+      return c.json({ ...view, totals: totals(view.transactions) });
+    } catch (err) {
+      return failed(c, "list transactions", err);
     }
   });
 
