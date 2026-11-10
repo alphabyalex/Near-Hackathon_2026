@@ -1,5 +1,35 @@
 # Status: alexander
 
+## A12: small fixes, scheduled data commits, merge to main (2026-11-10)
+
+**main:** merge commit `76bf6b5` (alexander into main). Since then the scheduled task has pushed `d9ad255` and `613c285` to main (data only), and this report goes to main as a fast-forward on top of them.
+
+1. **Data committed:** `data/testnet/` as of the passing audit (161 of 161 rows), `452237b`. No batch had run since, so only `audit.json`'s stamp changed.
+2. **Small fixes:**
+   - **Old test budgets:** Groups and Safest groups no longer show `bgt_engineering` and `bgt_leaked_*`. In near mode the reputation lists keep only the budgets listed in `scripts/testnet/cast.json` (communities and individuals), not a name pattern. Stats count the same set. Tests: `services/api/test/cast-filter.test.ts`.
+   - **Snippet URLs:**
+     - Configured, else hosted; else the local API when the page is served from a host in `repo.config.json`'s `local.hosts`; else the placeholder `https://your-wardline-api.example` (`PLACEHOLDER_API_URL`), with a line saying to replace it. Never a tunnel link.
+     - The direct SDK snippet now names the deployed registry, `payee-registry.wardline-labs.testnet`, not the old `payees.redline-labs.testnet`.
+   - **Sim names:** they match cast.json: Nightshade DAO, Kelp Collective, plus Hayes Valley house and Aurora Lab, which were also off. A test checks every sim budget against cast.json.
+   - **Dialogs:** an open dialog marks every other child of `<body>` with `inert` and `aria-hidden`, and restores only what it changed on close. A dialog opened from a dialog works the same way. Two tests in `apps/web/test/ui.test.tsx`.
+3. **The scheduled task commits its own data:**
+   - **Where it runs:** `scripts/testnet/scheduled-run.ps1`, in its own clone on main at `%USERPROFILE%\.wardline\testnet\wardline-main`. The OneDrive checkout on `alexander` is never touched, so a commit can only carry `data/testnet/`.
+   - **Keys:** it reads the OneDrive checkout's `.env` in place (`WARDLINE_DOTENV`); no key is copied.
+   - **Each run:**
+     - Rebuilds when the clone's code changed.
+     - Runs the batch and the audit.
+     - Only on a pass, commits `data/testnet/` as `chore(testnet): scheduled batch <UTC time>`, runs `git pull --rebase origin main`, and pushes main.
+     - It commits before the pull, so a conflicting rebase can be aborted cleanly. Then the push is skipped, the commit stays in the clone, and the log says why.
+   - **Tested:**
+     - The first trigger by hand was cut off seconds in (exit 0xC000013A, a closed console); nothing was written.
+     - The wrapper run directly pushed `d9ad255` (8 calls, audit 174 of 174).
+     - A second trigger through Task Scheduler finished with result 0 and pushed `613c285` (audit 188 of 188).
+   - **Task settings:** it now runs on battery and is no longer stopped by a switch to battery, with a 2-hour limit. NEAR AI calls: 125 of 450.
+4. **Checks before the merge:** `pnpm test` passes (API 240, web 93, every other package). The Chromium e2e passes 53 of 53, and `pnpm testnet:audit` passes 161 of 161.
+
+- **From now on, `data/testnet/` belongs to main:** the scheduled clone writes it. Don't commit it on `alexander`; fast-forward `alexander` from main to get fresh data.
+- **Log:** `%USERPROFILE%\.wardline\testnet\scheduled.log`. The previous wrapper is kept as `scheduled-run.cmd.bak`.
+
 ## A11 overnight: every function on real NEAR testnet (2026-11-10)
 
 Started 10:04 UTC, finished 15:36 UTC. Work is on `alexander` (pushed in small commits); main is untouched.
