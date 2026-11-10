@@ -7,12 +7,13 @@ export const isTxHash = (hash: string | null | undefined): hash is string => typ
 export const explorerUrl = (hash: string): string => `https://${NEAR_NETWORK === "mainnet" ? "" : "testnet."}nearblocks.io/txns/${hash}`;
 
 /**
- * A quiet link to the transaction on NearBlocks when the row came from one. A simulated id is shown
- * as plain text, so it is never mistaken for a chain transaction.
+ * A quiet "View transaction" link to NearBlocks when the row came from a chain transaction. A simulated
+ * id has nowhere to link to, so it is a short label (full id on hover), never mistaken for a chain hash.
  */
 export function TxLink({ hash, plain = true }: { hash: string | null | undefined; plain?: boolean }) {
   if (!hash) return null;
-  if (!isTxHash(hash)) return plain ? <span className="tx-id">{hash}</span> : null;
+  const id: string = hash;
+  if (!isTxHash(hash)) return plain ? <span className="tx-id" title={id}>{TX.simulated(id.slice(-8))}</span> : null;
   return (
     <a className="tx-link" href={explorerUrl(hash)} target="_blank" rel="noreferrer" title={hash} aria-label={TX.label(hash)}>
       {TX.view}

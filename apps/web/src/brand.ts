@@ -31,7 +31,7 @@ export const NAV = [
   { page: "groups", href: "#/groups", label: "Groups" },
   { page: "proof", href: "#/proof", label: "Proof engine" },
   { page: "demo", href: "#/demo", label: "Demo" },
-  { page: "connect", href: "#/connect", label: "Connect" },
+  { page: "developers", href: "#/developers", label: "Developers" },
   { page: "about", href: "#/about", label: "About" },
 ] as const;
 
@@ -41,6 +41,12 @@ export const FOOTER = {
   llms: "llms.txt",
   try: "Check a payee",
   verify: "Verify your business",
+  /** Footer columns: [title, [label, href][]]. */
+  columns: [
+    ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["Demo", "#/demo"]]],
+    ["Build", [["Developers", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"], ["llms.txt", "/llms.txt"]]],
+    ["Wardline", [["About", "#/about"], ["The vault", "#/vault"], ["Owner sign-in", "#/app/overview"]]],
+  ],
 } as const;
 
 /** The Mutual, which is the home page. */
@@ -51,8 +57,8 @@ export const HOME = {
   primary: "Become a member",
   secondary: "Watch the demo",
   stats: {
-    pooled: "Pooled by members",
-    pooledNote: "USDC behind WARD",
+    pooled: "Total pooled",
+    pooledNote: "Members' USDC plus our stake",
     price: "WARD price",
     sinceLaunch: (change: string) => `${change} since launch at 1.0000`,
     above: "Paid above the line",
@@ -81,20 +87,22 @@ export const HOME = {
     "If Wardline approves something it shouldn't have, our own stake pays first. WARD holders cover only what is left after it, and WARD dips. That makes WARD yield-bearing and loss-sharing.",
     "WARD holders vote on fees, coverage, which models are covered and large payouts.",
   ],
-  shareCta: "Become a member",
   boardTitle: "Safest groups",
   boardLede: "A clean record moves a group up a tier: a lower fee and more coverage.",
   boardAll: "Every group and how tiers work",
   ctaTitle: "Back the AI economy and earn from it.",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
-  modeSim: "Simulated Mutual. Deposits and votes are signed by your wallet and applied to the simulation.",
   modeMixed: "Pool, budgets and model registry on NEAR testnet. Reputation tiers and WARD voting are simulated until their contracts are deployed.",
 } as const;
 
 export const MEMBER = {
   title: "Your share",
   notMember: "Not a member yet",
-  notMemberBody: "Connect a wallet to see your share, or become a member.",
+  quoteDeposit: "You deposit",
+  quoteReceive: "You receive",
+  quotePrice: "Today's price",
+  quoteStake: "Our stake in front",
+  quoteAmount: 25,
   balance: "Balance",
   held: "WARD held",
   account: "Account",
@@ -127,6 +135,9 @@ export const JOIN = {
   received: (ward: string) => `You received ${ward} WARD`,
   receivedNote: "It's in your share now, earning from every payment above the line.",
   goToShare: "Go to my share",
+  from: "From",
+  change: "Change",
+  stopWaiting: "Stop waiting",
   close: "Close",
   badAmount: "Enter an amount in USDC, up to six decimal places.",
 } as const;
@@ -138,6 +149,7 @@ export const WALLET = {
   account: "NEAR account",
   wallet: "Wallet",
   save: "Use this wallet",
+  cancel: "Cancel",
   disconnect: "Disconnect",
   connectedAs: (account: string) => `Connected as ${account}`,
   yourShare: (account: string) => `Your share, connected as ${account}`,
@@ -257,7 +269,7 @@ export const DEMO = {
     swap: "Below the line: refused and refunded",
     leak: (cap: string) => `Below the line: capped at ${cap} USDC`,
     invoice: "Below the line: blocked before the vote",
-    payout: "Below the line: our stake paid first, then fees refilled WARD",
+    payout: "Protection working: our stake paid first, then fees refilled WARD",
     tier: (tier: string, fee: string) => `${tier}: the fee drops to ${fee}`,
   },
   scenes: {
@@ -379,9 +391,6 @@ export const CONNECT = {
   label: "Connect",
   title: `Put ${BRAND.name} in front of every payment.`,
   lede: "One base URL for AI calls. MCP for agents, HTTP for anything, the SDK for TypeScript.",
-  unsetTitle: "Set your API URL",
-  unsetBody: "These snippets use $WARDLINE_API_URL until the site is built with VITE_WARDLINE_API_URL.",
-  unsetMcp: "Set VITE_WARDLINE_MCP_URL to show your MCP endpoint here.",
   openai: "OpenAI client, one line",
   openaiLine: "Use any OpenAI-compatible client with a meter key. Each call is paid only on a verified model signature, and every response carries X-Wardline-Proof.",
   openaiJs: "JavaScript",
@@ -427,23 +436,25 @@ export const VERIFY = {
 } as const;
 
 export const ABOUT = {
-  label: "About",
-  title: `Agents can pay bills. ${BRAND.name} decides where the money may go.`,
+  title: `${BRAND.name} is a credit union for the AI economy.`,
+  lede: "Members pool USDC on NEAR and get WARD, their share. The pool backs AI agents' payments, earns a fee on every payment that proves itself, and members vote on the risks it takes.",
+  flowTitle: "How the money moves",
   flow: [
-    ["Invoice", "Arrives as untrusted text."],
-    ["Agent", "PAY, REVIEW or FLAG."],
-    ["Payee check", "Account against the domain."],
-    ["Vault", "Checks every limit."],
-    ["Settled", "Or queued for you."],
+    ["Members", "Deposit USDC and get WARD at today's price."],
+    ["Groups", "Fund a shared AI budget from their DAO and give members allowances."],
+    ["Agents", "Change one line: the OpenAI client's base URL."],
+    ["Proof engine", "Pays only the right party, for the model proven, up to a hard cap."],
+    ["WARD holders", "Earn the fee, vote on payouts and fees, and share losses after our stake."],
   ],
-  exampleLabel: "A real decision",
-  trustLabel: "Trust levels",
-  trustTitle: "What each level verifies, and what it does not.",
+  exampleTitle: "A payout the proof engine stopped",
+  exampleLede: "An invoice arrives with a note telling the agent to pay a different account. The payee check compares that account with the one the vendor's domain links to.",
+  trustTitle: "What each trust level verifies, and what it does not.",
   trustNote: "PAY needs at least domain linked. An email from the same domain is never extra evidence.",
+  piecesTitle: "Three layers",
   pieces: [
-    ["Payee Proof", "Accounts that signed for themselves, listed by their domain."],
-    ["Vault", "One NEAR contract per business. One-method agent key."],
-    ["Evidence", "Who tested which agent version, on which suite, with what result."],
+    ["The Mutual", "Pooled USDC behind WARD. Our own stake pays a wrong approval first, then WARD holders."],
+    ["Groups", "Shared AI budgets with allowances. A clean record moves a group up a tier and lowers its fee."],
+    ["Proof engine", "NEAR AI TEE signatures, payee checks and hard caps on every call. Why the yield is safe."],
   ],
 } as const;
 
@@ -617,6 +628,7 @@ export const GOV = {
   snapshot: "Snapshot",
   voteAs: "Voting as",
   connectToVote: "Connect a wallet that holds WARD to vote.",
+  checkingWeight: "Checking your vote weight.",
   connect: "Connect wallet",
   changeWallet: "Change wallet",
   voterNote: "Your wallet signs each vote. Only WARD you held when a proposal opened counts.",
@@ -688,6 +700,7 @@ export const ERRORS = {
   chainDown: { title: "The NEAR network isn't answering.", next: "Nothing was sent or changed. Try again in a minute." },
   walletRejected: { title: "Your wallet didn't sign.", next: "Nothing was sent. Sign again when you're ready." },
   walletMissing: { title: "That wallet isn't available in this browser.", next: "Install it, or choose another wallet." },
+  walletPopup: { title: "Your browser blocked the wallet window.", next: "Allow pop-ups for this site, then try again." },
   walletMismatch: { title: "Your wallet signed as a different account.", next: "Switch to the account you entered, or enter the one your wallet uses." },
   belowMinimum: { title: "The smallest deposit is 1.00 USDC.", next: "Raise the amount and deposit again." },
   votingClosed: { title: "Voting on this proposal has closed.", next: "Its result is in the decided list." },
@@ -701,7 +714,8 @@ export const ERRORS = {
 } as const;
 
 export const TX = {
-  view: "View on NearBlocks",
+  view: "View transaction",
+  simulated: (tail: string) => `Simulated transaction ${tail}`,
   label: (hash: string) => `View transaction ${hash.slice(0, 8)} on NearBlocks`,
 } as const;
 
@@ -734,4 +748,5 @@ export const ME = {
   sources: "Where your share came from",
   sourcesLede: "Your deposits, and every change in WARD's price since you joined.",
   youDeposited: (usdc: string) => `You deposited ${usdc} USDC`,
+  noPriceChange: "WARD's price hasn't changed since you joined.",
 } as const;

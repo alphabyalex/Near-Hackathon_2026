@@ -6,6 +6,7 @@ import { createMeterGateway } from "./meter/gateway.js";
 import { toDateClock } from "./time.js";
 import { createOwnerApp } from "./owner-app.js";
 import { registerPayeeRoutes, type PublicVariables } from "./payee/routes.js";
+import { bodyLimits, rateLimits, securityHeaders } from "./security.js";
 import type { Deps } from "./service.js";
 import { evaluationList, overviewView } from "./views.js";
 
@@ -21,6 +22,10 @@ export const OWNER_PREFIX = "/owner";
 export function createApp(deps: Deps, options: { mountOwner?: boolean } = {}): Hono<{ Variables: PublicVariables }> {
   const app = new Hono<{ Variables: PublicVariables }>();
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
+
+  app.use("*", securityHeaders(deps.ai.env));
+  app.use("*", bodyLimits());
+  app.use("*", rateLimits(deps.ai.env, () => Number(deps.now() / 1_000_000n)));
 
   // A chain RPC outage answers 503 with a stable code. Anything else unexpected is a plain 500 that reveals nothing.
   app.onError((error, c) => {

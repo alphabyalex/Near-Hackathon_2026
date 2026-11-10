@@ -1,15 +1,15 @@
 /* The Mutual home, member card and dialogs, governance, Groups, Proof engine, Demo and the owner's group, spend and share. */
 
 /* Hero: the one animated moment on the site */
-.hero{position:relative;overflow:hidden;min-height:min(820px,calc(100vh - 72px));display:flex;align-items:center;border-bottom:1px solid var(--rule)}
+.hero{position:relative;overflow:hidden;overflow:clip;min-height:min(680px,calc(100vh - 72px));display:flex;align-items:center;border-bottom:1px solid var(--rule)}
 .hero-art{position:absolute;top:50%;right:max(-60px,calc((100vw - 1280px) / 2 - 40px));width:min(640px,50vw);aspect-ratio:1;transform:translateY(-50%);pointer-events:none}
 .hero-horizon{display:block;width:100%;height:100%;overflow:visible}
 .hero-cut{fill:none;stroke:var(--rule-strong);stroke-width:1.2;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1;animation:cut 1.2s cubic-bezier(.7,0,.2,1) forwards}
-.hero-horizon .rise,.hero-horizon .drop{transform-box:fill-box;transform-origin:center;animation:1.1s cubic-bezier(.2,.8,.2,1) both}
-.hero-horizon .rise{animation-name:rise}
-.hero-horizon .drop{animation-name:drop}
-.hero-horizon.still .hero-cut{stroke-dashoffset:0;animation:none}
-.hero-copy{position:relative;z-index:2;width:100%;padding-top:96px;padding-bottom:96px}
+.hero-horizon.live{position:relative}
+.hero-line,.hero-dots{position:absolute;inset:0;width:100%;height:100%}
+.hero-line{overflow:visible}
+.hero-cut.drawn{stroke-dashoffset:0;animation:none}
+.hero-copy{position:relative;z-index:2;width:100%;padding-top:72px;padding-bottom:56px}
 .hero-h1{margin:0;max-width:9.6ch;font-weight:700;font-size:clamp(52px,6.2vw,96px);line-height:.95;letter-spacing:-0.055em}
 .hero-sub{margin:28px 0 0;max-width:40ch;font-size:19px;line-height:1.55;color:var(--text-2)}
 .fade-1,.fade-2,.fade-3{animation:fadeup .7s cubic-bezier(.2,.8,.2,1) both}
@@ -17,8 +17,6 @@
 .fade-2{animation-delay:.5s}
 .fade-3{animation-delay:.7s}
 @keyframes cut{to{stroke-dashoffset:0}}
-@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.3)}to{opacity:1;transform:none}}
-@keyframes drop{from{opacity:0;transform:translateY(-14px) scale(.3)}to{opacity:1;transform:none}}
 @keyframes fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.hero-cut{stroke-dashoffset:0}}
 
@@ -29,7 +27,7 @@
 .stat-row>div+div{padding-left:24px;border-left:1px solid var(--rule)}
 .stat-row dt{font-size:14px;color:var(--muted)}
 .stat-row dd:not(.stat-note){margin:8px 0 4px;font-size:clamp(30px,3vw,40px);font-weight:700;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums}
-.stat-row .stat-note{margin:0;font-size:13px;color:var(--muted)}
+.stat-row .stat-note{margin:0;font-size:15px;color:var(--muted)}
 .below-text{color:var(--red-text)}
 .stat-row.results{border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
 
@@ -59,7 +57,7 @@
 .share-grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:64px;align-items:center}
 .share-copy p{margin:0 0 16px;font-size:17px;max-width:54ch}
 .share-copy .btn{margin-top:12px}
-.light .mode-note{margin-top:24px;font-size:14px}
+.light .mode-note{margin-top:24px;font-size:15px}
 
 /* The member card: dark, with a faint horizon in its corner */
 .member-card{position:relative;overflow:hidden;background:var(--bg);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 28px 60px -30px rgba(26,15,33,.55)}
@@ -69,6 +67,10 @@
 .mc-label{font-size:14px;color:var(--muted)}
 .mc-value{font-size:40px;font-weight:700;letter-spacing:-0.045em;line-height:1.05}
 .mc-note{margin:4px 0 16px;font-size:15px;max-width:34ch}
+.mc-quote{display:grid;gap:10px;width:100%;margin:14px 0 18px;padding:16px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.mc-quote>div{display:flex;justify-content:space-between;gap:16px;font-size:15px}
+.mc-quote dt{color:var(--muted)}
+.mc-quote dd{margin:0;font-weight:600}
 .member-card .btn{background:var(--violet-btn);color:#fff}
 .member-card .btn.ghost{background:transparent;border-color:var(--rule-strong);color:var(--text)}
 .member-card [data-testid="pool-position"]{width:100%}
@@ -86,6 +88,13 @@
 .dlg-back{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(8,5,11,.72);animation:dim .18s ease-out both}
 .dlg{width:100%;max-width:460px;max-height:calc(100vh - 40px);overflow:auto;background:var(--surface);border:1px solid var(--rule-strong);border-radius:var(--r-card-lg);padding:26px 28px 28px;display:flex;flex-direction:column;gap:16px;animation:lift .22s cubic-bezier(.2,.8,.2,1) both}
 .dlg:focus{outline:none}
+/* Connect wallet: a panel under its header button on wide screens, a bottom sheet on phones. */
+.dlg-back.pop{align-items:flex-start;justify-content:flex-end;padding:0;background:rgba(8,5,11,.45)}
+.dlg.pop{position:fixed;top:var(--pop-top,80px);right:var(--pop-right,20px);max-width:400px;max-height:calc(100vh - var(--pop-top,80px) - 16px);padding:22px 24px 24px}
+.dlg.pop .dlg-head h2{font-size:22px}
+.dlg-from{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--rule-strong);border-radius:12px;font-size:15px}
+.dlg-from .acct{font-weight:600;color:var(--text)}
+.dlg-from span{color:var(--muted)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .dlg-head h2{margin:0;font-size:26px;font-weight:700;letter-spacing:-0.035em}
 .dlg-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;color:var(--text-2);background:transparent;border:1px solid var(--rule-strong);border-radius:var(--r-btn);cursor:pointer}
@@ -100,7 +109,7 @@
 .join-facts dt{font-weight:600;font-size:16px}
 .join-facts dd{margin:0;color:var(--muted);font-size:14px;text-align:right}
 .dlg-wait{display:flex;align-items:flex-start;gap:14px;padding:12px 0}
-.dlg-wait p{margin:4px 0 0;font-size:14px}
+.dlg-wait p{margin:4px 0 0;font-size:15px}
 .dlg-done{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .dlg-done b{font-size:28px;font-weight:700;letter-spacing:-0.035em}
 .dlg-done p{margin:0}
@@ -119,7 +128,7 @@
 .voter small{flex-basis:100%;font-size:13px}
 .gov-h{margin:40px 0 4px;font-size:22px;font-weight:700;letter-spacing:-0.025em}
 .props{display:flex;flex-direction:column}
-.prop{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,5fr) minmax(190px,auto);grid-template-areas:"top bar act" "what facts act" "msg msg msg";column-gap:32px;row-gap:8px;padding:22px 0;border-bottom:1px solid var(--rule-2)}
+.prop{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,5fr) 230px;grid-template-areas:"top bar act" "what facts act" "msg msg msg";column-gap:32px;row-gap:8px;padding:22px 0;border-bottom:1px solid var(--rule-2)}
 .prop-top{grid-area:top;display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0}
 .prop-top h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
 .prop-n{color:var(--muted);margin-right:6px;font-weight:500}
@@ -128,7 +137,7 @@
 .pstat.s-passed{color:var(--text)}
 .pstat.s-executed{color:var(--text-2)}
 .pstat.s-rejected{color:var(--muted)}
-.prop-what{grid-area:what;margin:0;font-size:14px;color:var(--muted)}
+.prop-what{grid-area:what;margin:0;font-size:15px;color:var(--muted)}
 .votebar{grid-area:bar;align-self:center;position:relative;display:flex;gap:2px;height:4px;background:var(--rule-2);border-radius:2px}
 .votebar>div{height:100%}
 .vb-for{background:var(--violet);border-radius:2px 0 0 2px}
@@ -139,7 +148,7 @@
 .prop-facts dt{font-size:13px;color:var(--muted)}
 .prop-facts dd{margin:2px 0 0;font-size:14px;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .prop-act{grid-area:act;align-self:center;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px}
-.prop-act small{flex-basis:100%;text-align:right;font-size:13px}
+.prop-act small{flex-basis:100%;text-align:right;font-size:15px}
 .prop-tx{grid-area:act;align-self:center;margin:0;font-size:13px;color:var(--muted);text-align:right;overflow-wrap:anywhere}
 .prop .notice,.prop .ok-line{grid-area:msg;margin:0}
 .propose{margin-top:24px;padding:16px 0;border-bottom:1px solid var(--rule-2)}
@@ -167,14 +176,14 @@
 .tc-cover dd{margin:0;font-weight:600}
 .gcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .gcard{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card);padding:24px;display:flex;flex-direction:column;gap:18px;min-width:0}
-.gcard-head{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:center}
+.gcard-head{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center}
 .group-horizon{display:block}
 .gcard h3{margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-0.025em}
 .gcard-head .acct{font-size:13px}
 .gfacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px;margin:0;padding-top:16px;border-top:1px solid var(--rule-2)}
 .gfacts dt{font-size:13px;color:var(--muted)}
 .gfacts dd{margin:4px 0 0;font-size:16px;font-weight:600}
-.gcard-foot{margin:0;font-size:13px}
+.gcard-foot{margin:0;font-size:15px}
 .next-tier{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:14px;color:var(--text-2)}
 .nt-bar{display:block;width:120px;height:4px;background:var(--rule-2);border-radius:2px;overflow:hidden}
 .nt-bar i{display:block;height:100%;background:var(--violet)}
@@ -204,9 +213,11 @@
 .scene-n{font-size:15px;font-weight:600;color:var(--muted);padding-top:1px}
 .scene.on .scene-n{color:var(--violet-text)}
 .scene-t b{display:block;font-size:17px;font-weight:600;letter-spacing:-0.015em}
-.scene-t span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+.scene-t span{display:block;font-size:15px;color:var(--muted);margin-top:2px}
 .stage{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card-lg);padding:32px;display:flex;flex-direction:column;align-items:flex-start;gap:20px;min-width:0}
 .stage>div{width:100%}
+/* Wide screens: the stage stays put while the scene list scrolls, at one height for every scene. */
+@media (min-width:981px){.stage{position:sticky;top:96px;height:min(780px,calc(100vh - 120px));overflow:auto;overscroll-behavior:contain}}
 .stage-n{font-size:14px;color:var(--muted)}
 .stage-head h2{margin:6px 0 6px;font-size:32px;font-weight:700;letter-spacing:-0.04em;line-height:1.05}
 .stage-head p{margin:0;color:var(--text-2)}
@@ -290,7 +301,7 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .vc-facts dt{font-size:13px;color:var(--muted)}
 .vc-facts dd{margin:3px 0 0;font-size:16px;font-weight:600}
 .vc-facts small{color:var(--muted);font-weight:400;margin-left:6px}
-.vc-note{margin:12px 0 0;color:var(--muted);font-size:14px}
+.vc-note{margin:12px 0 0;color:var(--muted);font-size:15px}
 .price-chart{position:relative;margin:0;padding-right:56px}
 .price-chart svg{display:block;width:100%;height:auto;overflow:visible}
 .pc-launch{stroke:var(--rule-strong);stroke-width:1.5;stroke-dasharray:5 5}
@@ -303,7 +314,7 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .sources{margin:0;padding:8px 22px 16px;list-style:none}
 .sources li{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule-2);font-size:14px;color:var(--text-2)}
 .sources li:last-child{border-bottom:none}
-.sources li small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.sources li small{display:block;color:var(--muted);font-size:15px;margin-top:2px}
 .sources li.below .num{color:var(--red-text)}
 .vote-panel .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "bar" "facts" "act" "msg"}
 .vote-panel .prop-act,.vote-panel .prop-tx{justify-content:flex-start;text-align:left}
@@ -335,8 +346,8 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .prop-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
   .steps-row{grid-template-columns:minmax(0,1fr)}
   .gfacts{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .gcard-head{grid-template-columns:48px minmax(0,1fr);grid-template-areas:"mark name" "tier tier"}
-  .gcard-head .group-horizon{width:48px;height:48px}
+  .gcard-head{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"mark name" "tier tier"}
+  .gcard-head .group-horizon{width:56px;height:56px}
   .gcard-head .tier-name{grid-column:2}
   .stage{padding:22px 18px}
   .board{min-width:0}
@@ -353,6 +364,8 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .member-card{padding:24px 20px}
   .mc-facts{grid-template-columns:minmax(0,1fr)}
   .dlg{padding:22px 20px}
+  .dlg-back.pop{align-items:flex-end;justify-content:stretch}
+  .dlg.pop{position:relative;top:auto;right:auto;max-width:none;max-height:85vh;border-radius:20px 20px 0 0;border-bottom:0;padding:20px 20px calc(24px + env(safe-area-inset-bottom))}
   .proposals li{grid-template-columns:auto minmax(0,1fr);gap:4px 12px}
   .proposals li .prop-status,.proposals li .muted{grid-column:2}
   .group .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -405,3 +418,4 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .vote-against{color:var(--text-2)}
 @media (max-width:980px){.me-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.me-empty{padding:24px 20px}}
+.dlg-stop{margin-top:12px}

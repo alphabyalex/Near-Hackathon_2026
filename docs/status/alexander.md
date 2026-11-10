@@ -1,5 +1,319 @@
 # Status: alexander
 
+## A9: phones, the wallet panel and leftover content (2026-11-09)
+
+Took about one hour, 23:00 to 23:55 UTC. That's under the two-to-three-hour budget, so P3 is done too. I didn't run Lighthouse, a fresh clone, or the Firefox and desktop WebKit suites, as asked.
+
+### Read first: OneDrive was hiding files from Playwright and tsc
+
+OneDrive had turned 916 source files into cloud placeholders (reparse points), including `a11y.spec.ts`, `member.spec.ts` and `packages/dao-adapter/src`.
+- Imports still read them, but Playwright's directory scan skips them. So the accessibility and #/me specs (16 tests) silently stopped running in every browser, with no error.
+- Later, `tsc` found no input files in `packages/dao-adapter`, so `pnpm test` failed in its build step.
+- I re-created all 916 files outside node_modules, .git and dist with identical bytes (each one hash-checked). Git shows no change, and everything is found again.
+- OneDrive can turn them back into placeholders.
+- **Fix it for good:** right-click the repo folder in Explorer and choose "Always keep on this device", or move the repo out of OneDrive.
+
+### Done
+
+**P1**
+1. **No sideways sliding on iPhone.**
+   - The cause was the header, not the hero. On a 320px iPhone SE, the logo, Connect wallet and Menu added up to 345px, so the whole page could be dragged sideways. Below 375px the header now shows the mark alone; the link keeps its accessible name.
+   - Safety net:
+     - `html, body { overflow-x: clip; overscroll-behavior-x: none }` (clip, not hidden, so the sticky header still works);
+     - the hero clips its line explicitly;
+     - long ids and `code` wrap; tables and code blocks scroll in their own box;
+     - every field is at least 16px.
+   - Viewport: `width=device-width, initial-scale=1, viewport-fit=cover`, with pinch zoom left on.
+   - Test: a new `iphone` project runs WebKit with Playwright's iPhone SE preset (320 x 568, touch). It covers every route and both dialogs: `scrollWidth` equals `innerWidth`, and pushing the page sideways leaves `scrollX` at 0.
+   - Playwright can't synthesize a native touch swipe or a wheel in mobile WebKit, so the test pushes the page's scroller with `scrollBy`, `scrollTo` and `scrollLeft`. A swipe moves that same scroller.
+2. **Connect wallet.**
+   - Root cause: the dialog rendered inside the sticky header, and the header's `backdrop-filter` makes it the containing block for `position: fixed` children. The backdrop was sized to the 72px header, so the panel opened with its top and close button cut off. Every dialog now renders on `<body>`.
+   - Wide screens: a panel anchored under the header button, fully on screen. Phones: a bottom sheet. Both have a title, a close button and Cancel, and close on Escape and on an outside click.
+   - Join uses the same account-and-wallet fields. Once connected, it shows "From <account>" with Change instead of asking again.
+   - "Couldn't open popup window to complete wallet action" now reads: "Your browser blocked the wallet window. Allow pop-ups for this site, then try again."
+   - Never frozen: while a wallet signs, Stop waiting brings the form back, and a late wallet answer is ignored. Escape still closes the dialog.
+3. **Wrong or leftover content.**
+   - The executed seed proposal is now "Set the Gold fee to 1.00%" (see the judgement calls below).
+   - Removed: the "Simulated Mutual" note, the stub-engine note on the Proof page, and the `VITE_WARDLINE_API_URL` and `VITE_WARDLINE_MCP_URL` notes on Developers.
+   - Snippets show a real URL: the configured one, or the hosted one from `repo.config.json`. Never `process.env.WARDLINE_API_URL`.
+   - **One source for the headline numbers:**
+     - Home's pooled figure is now `total_pooled` (members' USDC plus our stake), the same number the demo shows: 141.24.
+     - Our stake reads 20.00 in Join, the demo and the README.
+4. **max_tokens.** A non-integer, infinite, out-of-range or non-number `max_tokens` now gets 400 `invalid_request_error`, code `INVALID_MAX_TOKENS`: "max_tokens must be a whole number from 1 to 131072." This happens before anything is reserved, and `null` still means not set. The skipped test is now a real one (1.5, 1e999, 0, -5, 131073, a string, a boolean, plus 256 and null passing).
+
+**P2**
+
+5. **About** opens with the credit union:
+   - members pool USDC and get WARD;
+   - the pool backs agents' payments and earns a fee on every payment that proves itself;
+   - members vote on the risks.
+
+   Then "How the money moves", the payee example and the trust-levels table (both kept), and the three layers.
+6. **Developers** replaces Connect in the nav, at `#/developers`. `#/connect` still lands there and rewrites the address bar.
+7. **Home:**
+   - The hero is shorter, so the stats sit closer to the buttons.
+   - The cut line starts just left of the sphere, clear of the text.
+   - The Not a member yet card quotes 25.00 USDC, the WARD it buys at today's price, the price and our stake.
+   - One Become a member button in that section.
+8. **Governance:**
+   - A fixed action column, so the bars line up.
+   - No numbering, and a subtitle only when it adds something.
+   - "View transaction" links for real hashes.
+   - The reason the vote buttons are off sits beside them.
+9. **Demo:**
+   - On wide screens the stage is sticky at one height for every scene, so nothing jumps.
+   - Run scene brings the result into view: inside the stage on desktop, in the page on phones.
+   - `sim-...` ids are a short label; "WARD holders" is capitalized; model names read "DeepSeek V4.1 Flash" and "GLM-5.3 Flash" everywhere.
+   - Scene 6 has no red.
+10. **Proof page:** in sim mode, latest proofs follow any real calls with recent calls from the live seed's groups. They have the same public fields and no members or keys, so the feed is never empty. **Safest groups** leaves out groups with fewer than 10 proven calls.
+
+**P3**
+
+11. Group spheres are 64px (56px on phones). Start a group leads with the one-line plug-in, with the owner app as the secondary button.
+12. The footer has three columns (The Mutual, Build, Wardline) and no active underline.
+13. The small labels above headings are gone (Developers, Check a payee, Verify, the vault, scoring, About). Small descriptions are 15px, up from 13 and 14.
+
+### Judgement calls
+
+- **Seed proposal.** There is no "raise the leaked-key cap" governance action. Adding one means changing the action types the contracts mirror, and contracts were off limits.
+  - A "cover" proposal for any recorded model would claim a change that never happened, since every recorded model is covered at launch.
+  - So the executed proposal is "Set the Gold fee to 1.00%", which is true and already the state.
+- **Stake and pooled.** The live pool's stake really was 18.50, because it paid Kelp's 1.50 claim, while the demo and README start fresh at 20.00.
+  - Moving the demo onto 18.50 would have rewritten the payout scene, the README's step 7 and API tests.
+  - Instead the live seed's stake starts at 21.50, so it stands at 20.00 after the claim. Pooled is 141.24 in both places; the README and one API test are updated.
+- **Simulated transaction ids** have no explorer, so they're a short "Simulated transaction" label plus the last 8 characters, with the full id on hover, not a link. Real NEAR hashes get "View transaction".
+- **The Connect wallet dialog** opened from page buttons (Governance, #/me) stays centered. Only the header button anchors it.
+
+### Tests
+
+- `pnpm test`: passes (brand guard 7 of 7, API 217 with none skipped, web 77, every package).
+- One Chromium e2e run plus the iPhone WebKit project: 65 of 65 (53 Chromium, including the 4 new Connect wallet tests, and 12 iPhone).
+- Not run, as asked: Firefox, desktop WebKit, Lighthouse, a fresh clone.
+
+### Screenshots
+
+In `apps/web/screenshots/` (gitignored), at 1440 and iPhone SE (375 x 667, the current model), named `a9-<page>-<size>.png`:
+- home, about, developers, groups, proof;
+- demo-payout;
+- connect-wallet (the panel and the sheet);
+- join-connected.
+
+Looking at them caught two things, each fixed once:
+- a red row left in the payout scene;
+- the screenshot script shooting before lazy pages had loaded.
+
+### Run it (PowerShell)
+
+```powershell
+cd "C:\Users\alexs\OneDrive\Desktop\Homework USC\Personal Coding\Near_Hackathon2026"
+git checkout alexander; git pull
+pnpm install
+pnpm test
+pnpm --filter @wardline/web test:e2e:chromium
+pnpm --filter @wardline/web test:e2e:iphone
+pnpm --filter @wardline/web exec playwright test --project=screenshots -g "a9 "
+```
+
+## Morning report: overnight polish and hardening (2026-11-09)
+
+### Read first: one bug found in metering, left for you
+
+A `max_tokens` that is not a positive integer (`1.5`, `1e999`) reaches `BigInt()` in `reservationFor` (`services/api/src/meter/models.ts`) and throws, so `/v1/ai/chat/completions` answers 500 instead of 400. Nothing is reserved or paid, because it fails before `reserve()`, so no money is at risk. The fix is one check in the gateway: refuse `max_tokens` unless it is a positive safe integer, with 400 `invalid_request_error`, before computing the reservation. I left it alone because metering was out of scope. A failing test is written and skipped in `services/api/test/security.test.ts` ("known bug, left for Alexander"); unskip it with the fix.
+
+### What's done, part by part
+
+1. **#/me, a real member view.**
+   - For any connected wallet:
+     - value, WARD held and earned since joining, with rounding under one cent shown as 0.00;
+     - the WARD chart against the 1.0000 line;
+     - open votes with the member's snapshot weight, and past votes;
+     - any redemption in progress with its unlock countdown;
+     - where the share came from: their deposit, then every price change since they joined.
+   - Empty states: no wallet ("Connect a wallet to see your share."), and a wallet with no WARD ("This wallet holds no WARD yet." with Join the Mutual).
+   - The header account button and Join's "Go to my share" open #/me.
+   - API additions:
+     - positions report `deposited`, `redeemed` and `joined_at`;
+     - `GET /v1/mutual/votes/:account` lists how an account voted (votes are public on chain).
+2. **The A8 seam.**
+   - `apps/web/src/data/` has one module per area: mutual, groups, proofs, activity, people. Every page reads through it.
+   - `WARDLINE_DATA=sim|testnet` picks the source (sim by default). Mutual, groups and proofs read the API's routes in both modes, since the API's chain mode decides where those numbers come from.
+   - T4.7 is not documented in `docs/status/tharun.md` on origin/tharun (43ed86d), and `services/api/src/activity/` does not exist yet. So `getActivityStats`, `getCommunities` and testnet-mode `getActivity` and `getPerson` throw a typed `NotWiredYet` naming the route, and the page says so. No shapes were invented.
+   - Explorer links: `TxLink` links real NEAR hashes (base58, 43 or 44 characters) to `testnet.nearblocks.io/txns/<hash>` as a small underlined link; simulated `sim-...` ids stay plain text. Used in the Join confirmation, demo results, executed proposals and payouts in #/me.
+3. **The undesigned states**, each with a test.
+   - Each says what happened and what to do next, in Horizon's voice, with Try again where it may help:
+     - API unreachable;
+     - chain RPC failing (the API now answers 503 `CHAIN_UNAVAILABLE`);
+     - wallet signature rejected;
+     - wallet not installed;
+     - a deposit below the 1 USDC minimum (stopped before signing; the API also refuses it with `BELOW_MINIMUM`);
+     - a vote after the window closed (`VOTING_CLOSED`);
+     - redeem before the cooldown ends (`COOLDOWN`).
+   - Failures are never red: red stays below the line only.
+   - Loading skeletons are built from the real markup, and a test checks the stats strip doesn't move when the numbers arrive.
+4. **Accessibility and browsers.**
+   - Firefox and WebKit are Playwright projects; `pnpm test:e2e` runs all three.
+   - **The e2e stub now rebuilds its world before every test**, in every browser (`POST /__e2e/reset`, an automatic fixture). Before this, tests leaked votes and deposits into each other.
+   - **Fixes for other browsers:**
+     - WebKit doesn't focus a clicked button, so the dialog now remembers the last pressed control to return focus to;
+     - clipboard reads are checked in Chromium only;
+     - WebKit on Windows could reuse a keep-alive connection just as Node closed it after 5 idle seconds, then fail the deposit POST. The site correctly reported "can't reach its API", but it was a flake. The dev and preview servers now hold idle connections for 65 seconds.
+     - Firefox on Windows crashes its own content process inside the axe scan ("Page crashed"). Axe is skipped in Firefox on Windows only; the same pages are scanned in Chromium and WebKit. Every other Firefox test runs.
+   - **Accessibility checks:**
+     - axe on every public page, #/me and both dialogs at desktop and 390px;
+     - a keyboard-only test walks Join the Mutual, a vote on #/me and a demo scene with no mouse;
+     - tests check the focus trap and focus return, visible focus on every control type, and text alternatives for the hero, the fingerprints ("Call 1a2b3c4d, below the line") and the price chart.
+5. **Performance.** Scores and details below.
+   - Routes are lazy-loaded, so the main bundle dropped from 521 KB to about 250 KB. It's mostly react-dom now.
+   - Added robots.txt and source maps.
+   - **I changed how the hero is drawn.** With motion on, the dots are drawn on a canvas from the same generator, with the same timings, easing and drift formula, and the cut line stays an SVG hairline. Updating 915 SVG `r` attributes per frame made the browser re-lay out the whole sphere every frame: about 5 seconds of blocking time in Lighthouse mobile. With batched fills, a 20fps assembly and a drift that slows itself on a struggling device, the animated hero now costs about what the static one does. Under reduced motion it's the static SVG. docs/BRAND.md says this.
+   - A test checks the drift stops off screen and resumes on return.
+   - Layout shift is 0 on every measured page. The footer used to jump when a lazy page or its data arrived, so the content area is now at least one screen tall.
+   - The receipt-verification code in the demo (ed25519, about 30 KB gzipped) loads only when the look-alike invoice scene shows its result.
+   - The site's CSP blocks eval, and zod 4 probes `new Function` on first parse, so the browser logged a CSP issue on every page. The web app now sets zod's `jitless` option; the API keeps its fast parsers.
+6. **Security pass.** Findings below. All public routes are reviewed, inputs are validated with zod, lists are capped, routes are rate-limited per IP, and security headers are set on the API and the site. `pnpm audit` is fixed, and the gateway parsing is fuzz-tested.
+7. **Fresh clone.**
+   - I cloned alexander into a temp folder outside OneDrive with no `.env`, then followed every Try-it step in Git Bash, as the README says to on Windows.
+   - Steps 1 to 10 printed what the README shows:
+     - install and build;
+     - the providers and the API;
+     - the plug-in call;
+     - the swapped model;
+     - the leaked keys;
+     - the look-alike block;
+     - the Mutual and the payouts;
+     - the vote;
+     - the tier move;
+     - the scam-test numbers.
+   - Step 11: `pnpm test` passed (brand guard 7 of 7), and `pnpm test:e2e` passed 147 of 147 (49 in each browser) in 9.4 minutes.
+   - Fixed where the README and the code disagreed:
+     - The second plug-in run threw a 26-line stack trace. It now prints one line: `Refused: HTTP 502, REPLAYED. ... You were not charged.`
+     - The README now quotes the API's real first-start line about the attestor key.
+     - The README says to open the URL Vite prints, since Vite moves off 5173 when that port is taken.
+     - The README gives the e2e count: 49 per browser.
+   - The README's web-app paragraph already describes the Horizon design and #/me.
+
+### Lighthouse
+
+The production build was served with `vite preview` against a local API. Throttling is Lighthouse's default (simulated 4x CPU, slow 4G on mobile).
+
+Scores are performance / accessibility / best practices / SEO. Targets: 90+ / 100 / 95+ / 95+.
+
+| Page | Before | After |
+| --- | --- | --- |
+| Home, mobile | 55 / 100 / 96 / 91 | **95 / 100 / 100 / 100** |
+| Home, desktop | 69 / 100 / 96 / 91 | **100 / 100 / 100 / 100** |
+| Demo, mobile | 87 / 100 / 96 / 91 | **94 / 100 / 100 / 100** |
+| Demo, desktop | 98 / 100 / 96 / 91 | **100 / 100 / 100 / 100** |
+| #/me, mobile | not captured cleanly | **94 / 100 / 100 / 100** |
+| #/me, desktop | not captured cleanly | **100 / 100 / 100 / 100** |
+
+- "After" is the median of three runs; home on mobile is the median of five (94 to 96).
+- After the fixes, layout shift is 0 everywhere and total blocking time is about 100 ms on mobile. LCP is 2.6 to 2.7 s on mobile and 0.6 s on desktop.
+- #/me didn't exist before tonight, and I rebuilt the site partway through its first measurement, so it has no clean "before".
+- Home's mobile blocking time was 10 seconds before, almost all of it the SVG hero.
+- SEO went from 91 to 100 with robots.txt.
+- Best practices went to 100 once the zod CSP issue was gone.
+
+**Measurement noise.** OneDrive syncs this repository folder and uses up to four CPU cores while builds and tests write into it. Single Lighthouse runs swing by 20 or more points while it syncs: home on mobile scored 70 to 96 within one pass right after a restart. The numbers above were taken with sync quiet. Moving the repo out of OneDrive, or pausing sync while measuring, gives steadier numbers. The e2e suite also runs twice as fast outside OneDrive: 9.4 minutes against about 20.
+
+### Security findings
+
+- **Fixed:**
+  - No body size limits; the gateway would read and forward any size. Now 1 MB for `/v1/ai/*` and 64 KB elsewhere, counted while streaming, answering 413.
+  - No rate limits on public routes outside the payee check's daily free tier. Now per IP per minute:
+    - 12 for `/v1/demo/*`, which is CPU-heavy;
+    - 30 for signed Mutual writes and proposal execution;
+    - 240 for reads;
+    - each answers 429 with Retry-After.
+  - Path and query parameters were unvalidated: accounts, budget ids, proposal ids and `/v1/proofs?limit`. Now zod-validated with 400s. `/v1/vendors` is capped at 500.
+  - The payee routes' own error handler replaced the app's. There is now one handler: `CHAIN_UNAVAILABLE` 503, payee input 400, and anything else a 500 that reveals nothing.
+  - The owner session cookie was `Secure` only on a public bind. A hosted API behind a tunnel binds 127.0.0.1 over HTTPS, so its cookie wasn't Secure. It now is when `WARDLINE_HSTS=true` or `WARDLINE_SECURE_COOKIE=true`.
+  - API security headers: nosniff, `X-Frame-Options: DENY`, `default-src 'none'; frame-ancestors 'none'`, a referrer policy, COOP, a permissions policy, and HSTS when `WARDLINE_HSTS=true`.
+  - The site has a CSP allowing only what it uses: self, inline style attributes, the API, the NEAR RPCs and the two wallets. `vite preview` serves it, and the build writes it to `dist/_headers` for static hosts.
+  - `pnpm audit` found 6 high and 1 critical issue, all transitive: `tar` via near-sandbox (tests only), and `nanoid` and `decode-uri-component` via the Meteor wallet SDK. Scoped overrides in `pnpm-workspace.yaml` bring it down to 1 low.
+- **Checked, no change needed:**
+  - `/v1/proofs` returns exactly these fields: call id, budget id, group, side, status, reason, models claimed and proven, amount, refund, time. No member, key id, request hash, signature or content. A test pins the field list and greps for leaks.
+  - `/v1/mutual` and `/v1/groups` name DAOs and counts, never members (tested).
+  - CORS is `*` on public routes, which use no cookies. Owner routes have no CORS and a SameSite=Strict httpOnly cookie.
+  - Fuzz tests on the gateway's request parsing:
+    - malformed JSON, arrays, null and strings get 400;
+    - `stream: true` gets 400 `STREAMING_NOT_SUPPORTED`;
+    - unknown and object-typed models get 404;
+    - a bad key gets 401;
+    - 120 random bodies never return 500.
+- **Left for you:** the `max_tokens` 500 at the top.
+
+### Blocked, and why
+
+- **T4.7 shapes are not documented yet**, so testnet data is a seam, not wired (see Part 2).
+- **Lighthouse noise from OneDrive sync** (see above). Not blocking, but measure with sync paused.
+- **The machine slept once during an e2e run**, which made four tests time out with `ERR_NETWORK_IO_SUSPENDED`. The rerun passed 147 of 147.
+
+### What I need from Tharun for A8
+
+Response shapes for these four routes, with the types and the meaning of each field:
+- `/v1/activity`: one row per event, newest first, with:
+  - `kind`;
+  - `at`;
+  - `side` ("above" or "below");
+  - `amount` in atomic USDC;
+  - `group` or `budget_id`;
+  - `tx_hash` when a transaction exists;
+  - pagination (`limit`, `cursor`).
+- `/v1/activity/stats`: totals for proven, swapped, look-alike and capped, pooled, yield and payouts. Then `/v1/mutual`'s stats can come from chain data.
+- `/v1/communities`: a group's DAO, treasury balance and budget ids, so `GroupSummary` can map onto it.
+- `/v1/people/:account`: WARD held and locked, deposited, redeemed, joined_at, votes as `{proposal_id, support, weight}`, and pending redemptions. That's everything #/me reads today; see `apps/web/src/data/people.ts`.
+
+Also helpful:
+- whether T4.6's on-chain `get_reputation` and governance views are final, so `/v1/groups` and the vote panel can read them in near mode;
+- that every row coming from a transaction carries the real NEAR tx hash, so the explorer links light up.
+
+### Run it locally (Windows PowerShell)
+
+```powershell
+cd "C:\Users\alexs\OneDrive\Desktop\Homework USC\Personal Coding\Near_Hackathon2026"
+git checkout alexander; git pull
+pnpm install
+pnpm build
+
+# Terminal 1: offline stand-ins for NEAR AI
+pnpm demo:providers
+
+# Terminal 2: the API (any free port; 8787 is often taken on this machine)
+$env:WARDLINE_API_PORT = "8787"
+$env:WARDLINE_AI_PROVIDER_URL = "http://127.0.0.1:8791/replay/v1"
+$env:WARDLINE_DEMO_METER_KEY = "wk_demo_alice_key"
+pnpm --filter @wardline/api start
+
+# Terminal 3: the site, pointed at that API
+$env:WARDLINE_DEV_API = "http://127.0.0.1:8787"
+pnpm --filter @wardline/web dev
+# open the Local URL Vite prints, usually http://127.0.0.1:5173
+
+# Tests
+pnpm test
+pnpm --filter @wardline/web exec playwright install chromium firefox webkit
+pnpm test:e2e
+
+# The production build with its security headers
+pnpm --filter @wardline/web build
+$env:WARDLINE_DEV_API = "http://127.0.0.1:8787"
+pnpm --filter @wardline/web exec vite preview --port 4180
+```
+
+### Screenshots
+
+Looking at them led to three fixes:
+- "Where your share came from" repeated "Deposit, price unchanged". It now lists only real price changes, or says WARD's price hasn't changed since you joined.
+- At 390px, a wallet error in the Join dialog landed below the fold. Errors inside a dialog now scroll into view.
+- On a phone, the page intro sat about 140px above its first section. It's now about 80px.
+
+In `apps/web/screenshots/` (gitignored), desktop and 390px:
+- `me-member-desktop.png`, `me-member-390.png`
+- `me-empty-desktop.png`, `me-empty-390.png`
+- `state-api-down-desktop.png`, `state-api-down-390.png`
+- `state-wallet-rejected-desktop.png`, `state-wallet-rejected-390.png`
+
 ## Horizon: the web app redesign (2026-11-09)
 
 Before starting, main had Tharun's T4.6 (43ed86d), and alexander was fast-forwarded to it. The redesign changes the look, not the behavior: every route, API call, wallet flow and test stays. contracts/, services/attestor and the API's verification and settlement logic are untouched.

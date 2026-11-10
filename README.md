@@ -49,7 +49,7 @@ export WARDLINE_API_PORT=8787
 WARDLINE_AI_PROVIDER_URL=http://127.0.0.1:8791/replay/v1 WARDLINE_DEMO_METER_KEY=wk_demo_alice_key pnpm --filter @wardline/api start
 ```
 
-See: `Demo meter key for alice.testnet (bgt_aurora, sim) is set from WARDLINE_DEMO_METER_KEY`, `Wardline API on http://127.0.0.1:8787 (payee engine stub, registry memory, chain sim)` and `AI gateway at /v1/ai`. The first start writes a development receipt-signing key into a new, gitignored `.env`.
+See: `Demo meter key for alice.testnet (bgt_aurora, sim) is set from WARDLINE_DEMO_METER_KEY`, `Wardline API on http://127.0.0.1:8787 (payee engine stub, registry memory, chain sim)` and `AI gateway at /v1/ai`. The first start also prints `Generated a development attestor key in .env.`: the key that signs payee receipts, written into a new, gitignored `.env`.
 
 ### 3. Pay for one AI call through the one-line plug-in
 
@@ -73,7 +73,7 @@ Settlement:     sim-settle-...
 Local re-check: valid, signed by 0xfe0071895500a9755c18044948ab4f4e1a7f337e
 ```
 
-Wardline reserved the most the call could cost, sent the request bytes unchanged, fetched NEAR AI's `provider_tee` signature over `<model>:<sha256 request>:<sha256 response>`, checked the signer is attested for that model, then paid and refunded the rest. Run it again and it fails with `REPLAYED`: the same signed response is never paid twice. Restart the API to run it once more.
+Wardline reserved the most the call could cost, sent the request bytes unchanged, fetched NEAR AI's `provider_tee` signature over `<model>:<sha256 request>:<sha256 response>`, checked the signer is attested for that model, then paid and refunded the rest. Run it again and it prints `Refused:        HTTP 502, REPLAYED. Response chatcmpl-... was already paid for. You were not charged.`: the same signed response is never paid twice. Restart the API to run it once more.
 
 ### 4. Watch a swapped model get refused
 
@@ -136,7 +136,7 @@ pnpm demo:mutual
 See:
 
 ```
-Mutual: 139.74 USDC pooled, 4 groups covered, 655 proven AI payments, 1.24 USDC earned by WARD holders
+Mutual: 141.24 USDC pooled, 4 groups covered, 655 proven AI payments, 1.24 USDC earned by WARD holders
 Deposit: maya.testnet puts in 25.00 USDC and receives 24.74 WARD at 1.0103
 Pool: Wardline's first-loss stake 20.00 USDC, behind WARD 120.00 USDC, WARD price 1.0000
 Payout 1: 8.00 USDC paid. From Wardline's stake 8.00, from WARD holders 0.00. Stake left 12.00. WARD 1.0000 to 1.0000
@@ -214,11 +214,11 @@ Do:
 
 ```sh
 pnpm test
-pnpm --filter @wardline/web exec playwright install chromium
+pnpm --filter @wardline/web exec playwright install chromium firefox webkit
 pnpm test:e2e
 ```
 
-See: the brand guard (6 checks) and every package's tests pass, then 29 Playwright tests pass against the web app, including the Mutual home, WARD voting, Groups and all seven demo scenes. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
+See: the brand guard (7 checks) and every package's tests pass, then the Playwright suite passes in Chromium, Firefox and WebKit (49 tests in each): the Mutual home, #/me, Join the Mutual, WARD voting, Groups, all seven demo scenes, the error states, a keyboard-only walk, and axe accessibility checks at desktop and 390px. `pnpm --filter @wardline/web test:e2e:chromium` runs Chromium only. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
 
 ### The web app
 
@@ -228,7 +228,7 @@ Do, with the API from step 2 still running:
 WARDLINE_DEV_API=http://127.0.0.1:$WARDLINE_API_PORT pnpm --filter @wardline/web dev
 ```
 
-See: http://127.0.0.1:5173 opens on the Mutual: live stats, the safest groups, Join the Mutual, WARD-holder governance and payouts. Groups, Proof engine and the seven-scene Demo are in the nav.
+See: open the Local URL Vite prints (http://127.0.0.1:5173 unless that port is taken). The site opens on the Mutual, in the Horizon design (a dark page, a halftone sphere cut by one line): the hero, pooled USDC and WARD's price, the two sides of the line (paid above it; refused, blocked or capped below it), Hold a share, WARD-holder votes and the safest groups. Connect wallet sits in the header, and once connected your account opens #/me with your share, your votes and your redemptions. Groups, Proof engine and the seven-scene Demo are in the nav.
 
 ## Live variants
 

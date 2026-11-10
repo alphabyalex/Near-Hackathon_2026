@@ -11,9 +11,9 @@
 /* Text fields match :focus-visible on a mouse click too, so the ring shows only while the keyboard is in use (src/modality.ts). */
 .field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:none;border-color:var(--violet)}
 [data-kbd] .field input:focus-visible,[data-kbd] .field select:focus-visible,[data-kbd] .field textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.field.compact input,.field.compact select{min-height:44px;padding:9px 12px;font-size:15px}
+.field.compact input,.field.compact select{min-height:44px;padding:9px 12px;font-size:16px}
 .form-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
-.hint{margin:0;font-size:14px;color:var(--muted)}
+.hint{margin:0;font-size:15px;color:var(--muted)}
 .tablist{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin-bottom:26px;overflow-x:auto}
 .tablist button{font:600 15px/1 var(--font);color:var(--muted);background:transparent;border:0;border-bottom:2px solid transparent;padding:14px 0;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
 .tablist button:hover{color:var(--text)}
@@ -73,9 +73,6 @@
 .rc-note{margin:16px 0 0;font-size:14px;color:var(--muted)}
 
 /* Connect */
-.unset{display:flex;flex-direction:column;gap:4px;margin-bottom:32px;padding:14px 16px;border:1px solid var(--rule-strong);border-radius:var(--r-card);background:var(--surface);color:var(--text-2);font-size:14px}
-.unset b{font-weight:700;color:var(--text)}
-.unset-line{margin:0;padding:14px 0;color:var(--muted);font-size:14px}
 .conns{border-top:1px solid var(--rule-2)}
 .conn{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:16px 48px;padding:28px 0;border-bottom:1px solid var(--rule-2)}
 .conn-head h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-0.03em}
@@ -136,7 +133,8 @@
 .spec b{font-weight:700;font-size:clamp(22px,2.2vw,28px);letter-spacing:-0.03em;line-height:1.1}
 .spec span{color:var(--text-2);font-size:17px}
 .flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;counter-reset:flow}
-.flow>div{position:relative;padding-top:20px;border-top:1px solid var(--rule-strong)}
+.flow{margin:0;padding:0;list-style:none}
+.flow>li{position:relative;padding-top:20px;border-top:1px solid var(--rule-strong)}
 .flow .node{display:none}
 .flow b{display:block;font-weight:700;font-size:18px;letter-spacing:-0.02em;margin:0 0 4px}
 .flow span:not(.node){color:var(--muted);font-size:15px}

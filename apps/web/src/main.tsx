@@ -1,3 +1,5 @@
+// First: settings that must be in place before any module parses data.
+import "./zod-config";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";

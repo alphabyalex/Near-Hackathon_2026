@@ -22,5 +22,16 @@ export const CALL_WORDS: Record<string, string> = {
 
 export const callWords = (code: string | null): string => (code ? (CALL_WORDS[code] ?? code) : "");
 
-/** Readable model name from an id like deepseek-ai/DeepSeek-V4.1-Flash-1017. */
-export const modelName = (id: string | null): string => (id ? (id.split("/").pop() ?? id) : "none");
+/** The names people see, one way everywhere. */
+const MODEL_NAMES: Record<string, string> = {
+  "deepseek-ai/DeepSeek-V4.1-Flash-1017": "DeepSeek V4.1 Flash",
+  "z-ai/glm-5.3-flash": "GLM-5.3 Flash",
+};
+
+/** Readable model name from an id like deepseek-ai/DeepSeek-V4.1-Flash-1017: "DeepSeek V4.1 Flash". */
+export const modelName = (id: string | null): string => {
+  if (!id) return "none";
+  if (MODEL_NAMES[id]) return MODEL_NAMES[id];
+  // Unknown ids: drop the vendor and a trailing date stamp, keep the model's own spelling.
+  return (id.split("/").pop() ?? id).replace(/-\d{4}$/, "");
+};

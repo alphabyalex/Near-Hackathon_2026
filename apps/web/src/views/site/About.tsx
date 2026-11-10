@@ -7,30 +7,31 @@ const TIER_ORDER: EvidenceTier[] = ["T0_NONE", "T1_WALLET_CONTROL", "T2_DOMAIN_L
 export function About() {
   return (
     <main>
-      <section className="sec abouthead">
+      <section className="sec pagetop page-intro">
         <div className="wrap">
-          <span className="label">{ABOUT.label}</span>
           <h1 className="h1">{ABOUT.title}</h1>
+          <p className="lede">{ABOUT.lede}</p>
         </div>
       </section>
 
       <section className="sec tight">
         <div className="wrap">
-          <div className="flow" aria-label="How a payment moves">
+          <h2 className="h3">{ABOUT.flowTitle}</h2>
+          <ol className="flow">
             {ABOUT.flow.map(([name, line]) => (
-              <div key={name}>
-                <span className={name === "Payee check" ? "node red" : "node"} />
+              <li key={name}>
                 <b>{name}</b>
                 <span>{line}</span>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
       <section className="sec">
         <div className="wrap">
-          <h2 className="label label-h">{ABOUT.exampleLabel}</h2>
+          <h2 className="h3">{ABOUT.exampleTitle}</h2>
+          <p className="lede">{ABOUT.exampleLede}</p>
           <div className="example">
             <div className="doc" aria-label="Example invoice">
               <div className="meta">
@@ -91,7 +92,6 @@ export function About() {
 
       <section className="sec">
         <div className="wrap">
-          <span className="label">{ABOUT.trustLabel}</span>
           <h2 className="h2 trust-title">{ABOUT.trustTitle}</h2>
           <div className="scrollx">
             <table className="tbl trust">
@@ -120,13 +120,16 @@ export function About() {
       </section>
 
       <section className="sec night">
-        <div className="wrap pieces">
-          {ABOUT.pieces.map(([name, line]) => (
-            <div key={name}>
-              <b>{name}</b>
-              <span>{line}</span>
-            </div>
-          ))}
+        <div className="wrap">
+          <h2 className="h3">{ABOUT.piecesTitle}</h2>
+          <div className="pieces">
+            {ABOUT.pieces.map(([name, line]) => (
+              <div key={name}>
+                <b>{name}</b>
+                <span>{line}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </main>

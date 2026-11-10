@@ -28,7 +28,7 @@ function GroupCard({ g }: { g: GroupSummary }) {
   return (
     <article className="gcard" data-budget={g.budget_id} data-tier={g.tier}>
       <div className="gcard-head">
-        <GroupHorizon id={g.budget_id} size={56} />
+        <GroupHorizon id={g.budget_id} size={64} />
         <div>
           <h3>{g.name}</h3>
           <span className="acct muted">
@@ -162,11 +162,11 @@ export function Groups() {
             ))}
           </ol>
           <div className="actions">
-            <a className="btn" href="#/app/group">
-              {GROUPS.startCta}
-            </a>
-            <a className="btn ghost" href="#/connect">
+            <a className="btn" href="#/developers">
               {GROUPS.connectCta}
+            </a>
+            <a className="btn ghost" href="#/app/group">
+              {GROUPS.startCta}
             </a>
           </div>
         </div>

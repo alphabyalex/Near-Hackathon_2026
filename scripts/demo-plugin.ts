@@ -15,9 +15,16 @@ const meterKey = readEnv("WARDLINE_METER_KEY") ?? readEnv("WARDLINE_DEMO_METER_K
 const client = new OpenAI({ baseURL: `${baseUrl}/v1/ai`, apiKey: meterKey });
 
 // The exact request recorded from NEAR AI Cloud in fixtures/nearai/deepseek-plugin.json.
-const { data, response } = await client.chat.completions
+const sent = await client.chat.completions
   .create({ model: "deepseek-ai/DeepSeek-V4.1-Flash-1017", messages: [{ role: "user", content: "In one sentence, why should an AI agent verify who it is paying?" }], max_tokens: 600, temperature: 0 })
-  .withResponse();
+  .withResponse()
+  .catch((err: unknown) => {
+    // A refusal is an answer, not a crash: print its code and Wardline's message, then exit 1.
+    if (!(err instanceof OpenAI.APIError)) throw err;
+    console.log(`Refused:        HTTP ${err.status}, ${err.code ?? "no code"}. ${err.message.replace(/^\d+\s+/, "")}`);
+    process.exit(1);
+  });
+const { data, response } = sent;
 
 const usdc = (a: string | null) => (Number(BigInt(a ?? "0")) / 1e6).toFixed(6);
 console.log(`Reply:          ${data.choices[0]?.message.content?.slice(0, 120)}`);

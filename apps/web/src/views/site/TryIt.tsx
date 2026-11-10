@@ -84,7 +84,6 @@ export function TryIt() {
     <main>
       <section className="sec pagetop page-intro">
         <div className="wrap">
-          <span className="label">{TRY.label}</span>
           <h1 className="h2">{TRY.title}</h1>
           <p className="lede">{TRY.lede}</p>
         </div>

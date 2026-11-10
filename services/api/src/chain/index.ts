@@ -98,11 +98,26 @@ export const SIM_GROUPS = [
 ] as const;
 
 /**
+ * Recent calls from the live sim's groups, so the latest-proofs feed is never empty in sim mode.
+ * Shaped like the public /v1/proofs rows (no member, key or request content); minutes_ago sets the time.
+ */
+export const SIM_SEED_PROOFS = [
+  { call_id: "call_sim_seed_01", budget_id: "bgt_mission", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "98", refund: "641", minutes_ago: 3 },
+  { call_id: "call_sim_seed_02", budget_id: "bgt_nightshade", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "142", refund: "597", minutes_ago: 9 },
+  { call_id: "call_sim_seed_03", budget_id: "bgt_kelp", status: "refused", reason: "MODEL_MISMATCH", model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "z-ai/glm-5.3-flash", amount: "0", refund: "739", minutes_ago: 14 },
+  { call_id: "call_sim_seed_04", budget_id: "bgt_mission", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "117", refund: "622", minutes_ago: 22 },
+  { call_id: "call_sim_seed_05", budget_id: "bgt_kelp", status: "refused", reason: "ALLOWANCE_EXHAUSTED", model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: null, amount: "0", refund: "0", minutes_ago: 31 },
+  { call_id: "call_sim_seed_06", budget_id: "bgt_nightshade", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "105", refund: "634", minutes_ago: 47 },
+] as const;
+
+/**
  * The live sim: the launch seed plus three groups with a history (proven calls, the fees they paid,
  * one claim), and past and open WARD-holder proposals. Demo scenes and unit tests use defaultSimSeed.
  */
 export function liveSimSeed(): SimChainSeed {
   const seed = defaultSimSeed();
+  // The stake starts at 21.50 and paid Kelp's 1.50 claim, so it stands at 20.00 like every other screen says.
+  seed.pool.junior = W(21.5);
   for (const g of SIM_GROUPS) {
     seed.budgets.push({ budget_id: g.budget_id, name: g.name, owner: g.owner, deposit: W(40), period: "week", members: g.members.map((m) => ({ member: m, allowance: W(10) })) });
   }
@@ -114,9 +129,10 @@ export function liveSimSeed(): SimChainSeed {
   seed.claims = [
     { subject: "rcpt_kelp_parts_0331", claimant: "kelp-robotics.sputnikv2.testnet", amount: W(1.5), reason: "Wardline answered PAY for a parts vendor whose website had been taken over a day earlier.", budget_id: "bgt_kelp" },
   ];
-  const glm = recordedModels().find((m) => m.model_id === "z-ai/glm-5.3-flash");
   seed.proposals = [
-    ...(glm ? [{ proposer: "lp-north.testnet", description: "Cover GLM-5.3 Flash calls, signed by its NEAR AI TEE key", action: { type: "cover_model" as const, model_id: glm.model_id, signing_address: glm.signing_address }, opened_days_ago: 12, votes: [["lp-north.testnet", "for"], ["lp-harbor.testnet", "for"]] as [string, "for" | "against"][], execute: true }] : []),
+    // Executed at launch: it set the fee the Gold tier still charges. (GLM-5.3 Flash is the swapped-model
+    // villain in the demo, so no seed proposal covers it.)
+    { proposer: "lp-north.testnet", description: "Set the Gold fee to 1.00%", action: { type: "set_fee_bps", tier: "gold", fee_bps: 100 }, opened_days_ago: 12, votes: [["lp-north.testnet", "for"], ["lp-harbor.testnet", "for"]], execute: true },
     { proposer: "lp-harbor.testnet", description: "Raise the Bronze fee to 2.50%", action: { type: "set_fee_bps", tier: "bronze", fee_bps: 250 }, opened_days_ago: 9, votes: [["lp-harbor.testnet", "for"], ["lp-north.testnet", "against"]] },
     { proposer: "lp-north.testnet", description: "Raise coverage to 1.25x for every tier", action: { type: "set_coverage_multiplier", multiplier_bps: 12_500 }, opened_days_ago: 1, votes: [["lp-north.testnet", "for"]] },
     { proposer: "lp-harbor.testnet", description: "Lower the Silver fee to 1.25%", action: { type: "set_fee_bps", tier: "silver", fee_bps: 125 }, opened_days_ago: 0.5, votes: [["lp-harbor.testnet", "for"]] },

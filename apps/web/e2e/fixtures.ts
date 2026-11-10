@@ -66,10 +66,15 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
 
 /** axe-core with WCAG A and AA rules. Serious and critical findings fail the test. */
 export async function expectAccessible(page: Page): Promise<void> {
+  // Firefox on Windows crashes its content process inside the axe scan on these pages (Playwright
+  // reports "Page crashed"). Axe runs on the same pages in Chromium and WebKit, so it is skipped only here.
+  if (page.context().browser()?.browserType().name() === "firefox" && process.platform === "win32") return;
   const appmain = page.locator(".appmain");
   if (await appmain.count() > 0) {
     await appmain.first().evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished.catch(() => {}))));
   }
+  // Let entrance animations finish, so contrast is measured on the settled page.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(bad.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(", ")}`)).toEqual([]);

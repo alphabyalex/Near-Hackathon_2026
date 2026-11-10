@@ -49,12 +49,10 @@ describe("connect snippets", () => {
     expect(s.mcp).toContain("https://mcp.example.com/mcp");
   });
 
-  it("fall back to a variable, never a local address, when no URL is set", () => {
-    const s = snippets(null, null);
-    expect(s.resolve).toContain("$WARDLINE_API_URL/v1/resolve");
-    expect(s.hosted).toContain("process.env.WARDLINE_API_URL!");
-    expect(s.mcp).toBeNull();
-    expect(JSON.stringify(s)).not.toMatch(/127\.0\.0\.1|localhost/);
+  it("never show a variable or a local address", () => {
+    const s = snippets("https://api.example.com", "https://mcp.example.com/mcp");
+    // Keys come from the reader's environment; the URL never does.
+    expect(JSON.stringify(s)).not.toMatch(/WARDLINE_API_URL|WARDLINE_MCP_URL|127\.0\.0\.1|localhost/);
   });
 });
 

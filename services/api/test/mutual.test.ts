@@ -243,8 +243,14 @@ describe("below the line counts and the proofs feed", () => {
     const m = (await (await app.request("/v1/mutual")).json()) as { stats: { below: { swapped: number; lookalike: number; capped: number; total: number } } };
     // Seeded history (15 refused, 3 blocked, 83 capped) plus the look-alike payout awaiting a vote in the group's DAO.
     expect(m.stats.below).toEqual({ swapped: 15, lookalike: 4, capped: 83, total: 102 });
-    const empty = (await (await app.request("/v1/proofs")).json()) as { proofs: unknown[] };
-    expect(empty.proofs).toEqual([]);
+    // With no real calls yet, sim mode shows the live seed's groups' recent calls, so the feed is never empty.
+    const seeded = (await (await app.request("/v1/proofs")).json()) as { proofs: { call_id: string; group: string; side: string; created_at: string }[] };
+    expect(seeded.proofs.length).toBeGreaterThan(0);
+    expect(seeded.proofs.every((p) => p.call_id.startsWith("call_sim_seed_"))).toBe(true);
+    expect(new Set(seeded.proofs.map((p) => p.side))).toEqual(new Set(["above", "below"]));
+    expect(seeded.proofs[0]!.group).toBe("Mission Street hacker house");
+    expect(Date.parse(seeded.proofs[0]!.created_at)).toBeLessThan(START);
+    expect((await (await app.request("/v1/proofs?limit=2")).json()).proofs).toHaveLength(2);
   });
 });
 

@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
-export type SitePage = "home" | "me" | "groups" | "proof" | "try" | "demo" | "connect" | "verify" | "about" | "vault" | "scoring";
+export type SitePage = "home" | "me" | "groups" | "proof" | "try" | "demo" | "developers" | "verify" | "about" | "vault" | "scoring";
 export type DashboardTab = "overview" | "share" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
 export type Route = { kind: "site"; page: SitePage } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
-const SITE_PAGES: readonly string[] = ["me", "groups", "proof", "try", "demo", "connect", "verify", "about", "vault", "scoring"];
+const SITE_PAGES: readonly string[] = ["me", "groups", "proof", "try", "demo", "developers", "verify", "about", "vault", "scoring"];
+/** Old routes that moved. Links to them land on the new page, and the address bar shows the new route. */
+const MOVED: Record<string, string> = { connect: "developers" };
+
+/** "#/connect" becomes "#/developers"; anything else is unchanged. */
+export function redirected(hash: string): string {
+  const [first, ...rest] = hash.replace(/^#\/?/, "").split("/");
+  const to = first ? MOVED[first] : undefined;
+  return to ? `#/${[to, ...rest].join("/")}` : hash;
+}
 const TABS: readonly string[] = ["overview", "share", "group", "invoices", "review", "keys", "evaluation", "controls"];
 
 function decode(part: string | undefined): string | null {
@@ -26,12 +35,26 @@ export function parseRoute(hash: string): Route {
   return { kind: "site", page: first && SITE_PAGES.includes(first) ? (first as SitePage) : "home" };
 }
 
-let current = typeof window === "undefined" ? "" : window.location.hash;
+/** Swaps a moved route for its new one in the address bar, without adding a history entry. */
+function redirect(hash: string): string {
+  const to = redirected(hash);
+  if (to !== hash) {
+    try {
+      window.history.replaceState(null, "", to);
+    } catch {
+      // A sandboxed frame can refuse history writes; the page still renders the new route.
+    }
+  }
+  return to;
+}
+
+let current = typeof window === "undefined" ? "" : redirect(window.location.hash);
 const subscribers = new Set<() => void>();
 
 const toTop = (): void => window.scrollTo({ top: 0, behavior: "instant" });
 
-function publish(hash: string): void {
+function publish(raw: string): void {
+  const hash = redirect(raw);
   if (hash === current) return;
   current = hash;
   subscribers.forEach((notify) => notify());

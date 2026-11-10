@@ -35,18 +35,24 @@ export function SiteHeader({ page }: { page: SitePage }) {
   );
 }
 
-export function SiteFooter({ page }: { page: SitePage }) {
+export function SiteFooter(_props: { page: SitePage }) {
   return (
     <footer className="foot">
       <div className="wrap">
         <Logo textSize={18} />
-        <nav className="nav" aria-label="Footer">
-          <PageLinks page={page} />
-          <a href="#/try">{FOOTER.try}</a>
-          <a href="#/verify">{FOOTER.verify}</a>
-          <a href="#/vault">{FOOTER.vault}</a>
-          <a href="/llms.txt">{FOOTER.llms}</a>
-          <a href="#/app/overview">{FOOTER.owner}</a>
+        <nav className="foot-cols" aria-label="Footer">
+          {FOOTER.columns.map(([title, links]) => (
+            <div key={title}>
+              <h2>{title}</h2>
+              <ul>
+                {links.map(([label, href]) => (
+                  <li key={href}>
+                    <a href={href}>{label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
       </div>
     </footer>

@@ -84,7 +84,8 @@ function Redemptions({ person, onChanged }: { person: Person; onChanged: () => v
 
 function Sources({ person }: { person: Person }) {
   const joined = person.position.joined_at ? Date.parse(person.position.joined_at) : 0;
-  const history = person.mutual.pool.price_history.filter((h) => Date.parse(h.at) >= joined);
+  // Deposits and redemptions never move the price, so only real changes are listed.
+  const history = person.mutual.pool.price_history.filter((h) => Date.parse(h.at) >= joined && h.event !== "deposit" && h.event !== "redeem");
   const claims = [...person.mutual.claims].reverse().filter((c) => c.status === "paid" && Date.parse(c.filed_at) >= joined);
   let ci = 0;
   return (
@@ -120,6 +121,7 @@ function Sources({ person }: { person: Person }) {
             </li>
           );
         })}
+        {history.length === 0 && <li data-event="none" className="muted">{ME.noPriceChange}</li>}
       </ol>
     </section>
   );

@@ -205,7 +205,8 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
     return c.json({ ok: true, ...payment }, 201);
   });
 
-  app.get("/v1/vendors", async (c) => c.json({ vendors: (await context.registry.listVendors()).map(vendorView) }));
+  // Capped, so a large registry cannot turn one request into an unbounded response.
+  app.get("/v1/vendors", async (c) => c.json({ vendors: (await context.registry.listVendors()).slice(0, 500).map(vendorView) }));
 
   app.post("/v1/vendors/verify", async (c) => {
     const raw = await c.req.json().catch(() => null);

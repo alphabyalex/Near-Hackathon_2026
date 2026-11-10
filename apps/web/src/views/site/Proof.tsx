@@ -6,15 +6,15 @@ import { callWords, modelName } from "../../ai/words";
 import { PROOF } from "../../brand";
 import { CodeBlock } from "../../components/CodeBlock";
 import { Fingerprint } from "../../components/HorizonMark";
-import { API_URL } from "../../config";
-import { engineLabel, percent, REDTEAM } from "../../redteam";
+import { SNIPPET_API_URL } from "../../config";
+import { percent, REDTEAM } from "../../redteam";
 
 const usd = (atomic: string) => (Number(BigInt(atomic)) / 1e6).toFixed(6);
 
-const SNIPPET = (apiUrl: string | null) => `import OpenAI from "openai";
+const SNIPPET = (apiUrl: string) => `import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: ${apiUrl ? JSON.stringify(`${apiUrl}/v1/ai`) : "`${process.env.WARDLINE_API_URL}/v1/ai`"}, // the one line
+  baseURL: ${JSON.stringify(`${apiUrl}/v1/ai`)}, // the one line
   apiKey: process.env.WARDLINE_METER_KEY,
 });`;
 
@@ -30,7 +30,7 @@ function whatHappened(p: ProofRow): string {
 }
 
 export function ResultsStrip() {
-  const { headline, cases, engine } = REDTEAM;
+  const { headline, cases } = REDTEAM;
   const cells = [
     ["Attacks stopped", percent(headline.attackCatchRate), `${cases.attacks} written, ${cases.adversarial} model-invented`],
     ["Unsafe payments", String(headline.unsafePays), "PAY on a scam payee"],
@@ -52,9 +52,6 @@ export function ResultsStrip() {
             </div>
           ))}
         </dl>
-        <p className="fine engine-note" data-engine={engine.name}>
-          Verdicts from the {engineLabel(engine.name)}. Source: evidence/redteam/report.json.
-        </p>
       </div>
     </section>
   );
@@ -132,7 +129,7 @@ export function Proof() {
           </div>
           <div className="snippet">
             <p className="snippet-label">{PROOF.snippetLabel}</p>
-            <CodeBlock code={SNIPPET(API_URL)} label="OpenAI client" language="js" />
+            <CodeBlock code={SNIPPET(SNIPPET_API_URL)} label="OpenAI client" language="js" />
             <p className="fine">{PROOF.snippetNote}</p>
           </div>
         </div>

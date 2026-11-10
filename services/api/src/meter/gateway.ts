@@ -45,6 +45,9 @@ export interface GatewayDeps {
 
 export type RefusalReason = ProofProblem | "REPLAYED" | "PROOF_REJECTED" | "UPSTREAM_TIMEOUT" | "UPSTREAM_ERROR" | "BAD_UPSTREAM_RESPONSE" | "ALLOWANCE_EXHAUSTED" | "BUDGET_EXHAUSTED" | "UNKNOWN_BUDGET" | "UNKNOWN_MEMBER" | "DUPLICATE_CALL" | "NO_RESERVATION" | "OVER_RESERVATION" | "TRANSFER_FAILED";
 
+/** The largest max_tokens the gateway prices a reservation for. Above any routed model's output limit. */
+export const MAX_TOKENS_LIMIT = 131_072;
+
 export const PROOF_HEADERS = ["X-Wardline-Proof", "X-Wardline-Call", "X-Wardline-Settlement", "X-Wardline-Model-Proven", "X-Wardline-Amount", "X-Wardline-Refund"];
 
 const openAiError = (c: Context, status: number, type: string, message: string, extra: Record<string, unknown> = {}) =>
@@ -151,6 +154,14 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
       return openAiError(c, 400, "invalid_request_error", "The body must be a JSON object.");
     }
     if (body.stream === true) return openAiError(c, 400, "invalid_request_error", "Streaming is not metered yet. Send stream: false.", { code: "STREAMING_NOT_SUPPORTED" });
+    // The reservation is priced from max_tokens, so it must be a whole number of tokens: 1.5 or 1e999
+    // (Infinity) would otherwise reach BigInt() and fail as a 500. null means "not set", as in OpenAI's API.
+    if (body.max_tokens !== undefined && body.max_tokens !== null) {
+      const mt = body.max_tokens;
+      if (typeof mt !== "number" || !Number.isInteger(mt) || mt < 1 || mt > MAX_TOKENS_LIMIT) {
+        return openAiError(c, 400, "invalid_request_error", `max_tokens must be a whole number from 1 to ${MAX_TOKENS_LIMIT}.`, { code: "INVALID_MAX_TOKENS" });
+      }
+    }
     const model = typeof body.model === "string" ? body.model : "";
     const route = deps.routes.models.find((m) => m.id === model);
     if (!route) return openAiError(c, 404, "model_not_found", `Model ${model || "(none)"} is not routed. GET /v1/ai/models lists the ones you can use.`);

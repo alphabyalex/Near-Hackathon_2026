@@ -72,7 +72,9 @@ One animated moment, the hero, specified exactly:
 
 1. The line draws first: a 1.2px `--rule-strong` hairline at -10 degrees through the sphere's center, extended far past the sphere so it crosses the whole hero behind the headline (the SVG overflows, the section clips it). `stroke-dashoffset` 1 to 0 over 1.2s, `cubic-bezier(.7,0,.2,1)`.
 2. The sphere assembles outward from the line: dots above rise into place from `translateY(14px) scale(.3)`, dots below drop from `translateY(-14px) scale(.3)`. 1.1s, `cubic-bezier(.2,.8,.2,1)`, each delayed `0.9s + |offset| * 0.0045s`.
-3. The light drifts forever: every 50ms `t += 0.025`, light `[cos(t) * 0.8, -0.3 + sin(t) * 0.45]`, radii recomputed. The circles render once; a requestAnimationFrame loop throttled to about 20fps updates their `r` through refs, with no React render per frame. It pauses while the tab is hidden or the hero is off screen.
+3. The light drifts forever: every 50ms `t += 0.025`, light `[cos(t) * 0.8, -0.3 + sin(t) * 0.45]`, radii recomputed, with no React render per frame. It slows down (to as little as 4 frames a second, the light moving at the same speed) when frames arrive late, and pauses while the tab is hidden or the hero is off screen.
+
+With motion on, the dots are drawn on a `<canvas>` from the same generator and the cut line is an SVG hairline. The first build updated 915 SVG `r` attributes per frame, which made the browser lay out the whole sphere every frame: about 5 seconds of main-thread blocking on a mid-range phone in Lighthouse. The canvas draws the dots in about 20 batched fills per frame (one per colour and opacity step) and at about 20 frames a second during the assembly, which removes that cost. Under reduced motion the sphere is the static SVG.
 4. Under `prefers-reduced-motion`: no cut, no assembly, no drift; a static sphere with light `[-0.55, -0.6]`.
 
 The headline, sub and buttons fade up once (0.7s) at 0.3s, 0.5s and 0.7s. Nothing else enters with an animation. Motion that answers a person's action is allowed: a dialog opening, a spinner while a wallet signs, demo results appearing row by row after "Run scene". Nothing follows the mouse.

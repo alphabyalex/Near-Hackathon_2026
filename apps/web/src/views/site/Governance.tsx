@@ -15,6 +15,12 @@ import { countdown, signMutual, useNow } from "./Mutual";
 const ward = (atomic: string): string => formatUsdc(atomic);
 const pctOf = (part: string, whole: string): number => (BigInt(whole) === 0n ? 0 : Number((BigInt(part) * 10_000n) / BigInt(whole)) / 100);
 
+/** True when the action line only restates the title: every number in it is already in the title. */
+function repeats(title: string, action: string): boolean {
+  const numbers = action.match(/\d+(\.\d+)?/g) ?? [];
+  return numbers.length > 0 && numbers.every((n) => title.includes(n));
+}
+
 export function describeAction(a: MutualAction): string {
   switch (a.type) {
     case "set_fee_bps":
@@ -108,12 +114,10 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
   return (
     <article className="prop" data-status={p.status} data-proposal={p.id}>
       <div className="prop-top">
-        <h3>
-          <span className="prop-n num">{p.id}</span> {p.description}
-        </h3>
+        <h3>{p.description}</h3>
         <span className={`pstat s-${p.status}`}>{GOV.status[p.status]}</span>
       </div>
-      <p className="prop-what">{describeAction(p.action)}</p>
+      {!repeats(p.description, describeAction(p.action)) && <p className="prop-what">{describeAction(p.action)}</p>}
       <VoteBar p={p} />
       <dl className="prop-facts">
         <div>
@@ -143,7 +147,10 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
           <button type="button" className="sbtn" disabled={!canVote || busy} onClick={() => void vote("against")}>
             {GOV.voteAgainst}
           </button>
-          {account && weight !== null && <small className="muted num">{weight === "0" ? GOV.noWeight : GOV.weight(ward(weight))}</small>}
+          {/* Why the buttons are off, right beside them. */}
+          <small className="muted num" data-testid="vote-why">
+            {!account || !voter.wallet ? GOV.connectToVote : weight === null ? GOV.checkingWeight : weight === "0" ? GOV.noWeight : GOV.weight(ward(weight))}
+          </small>
         </div>
       )}
       {p.status === "passed" && (

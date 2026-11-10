@@ -43,7 +43,9 @@ export function ownerAuthFromEnv(env: NodeJS.ProcessEnv = process.env): OwnerAut
     owners: accountList(env.WARDLINE_OWNER_ACCOUNTS, network),
     approvers: accountList(env.WARDLINE_APPROVER_ACCOUNTS, network),
     sessionTtlMs: (Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_SESSION_MINUTES) * 60_000,
-    secureCookie: env.WARDLINE_OWNER_BIND_PUBLIC === "true" || env.WARDLINE_BIND_PUBLIC === "true",
+    // Secure whenever the API is reachable over HTTPS: a public bind, or a tunnel that serves HTTPS
+    // in front of a 127.0.0.1 bind (WARDLINE_HSTS=true or WARDLINE_SECURE_COOKIE=true).
+    secureCookie: env.WARDLINE_OWNER_BIND_PUBLIC === "true" || env.WARDLINE_BIND_PUBLIC === "true" || env.WARDLINE_HSTS === "true" || env.WARDLINE_SECURE_COOKIE === "true",
     network,
     keyCallsPerDay: Number.isSafeInteger(keyCalls) && keyCalls > 0 ? keyCalls : DEFAULT_KEY_CALLS_PER_DAY,
   };

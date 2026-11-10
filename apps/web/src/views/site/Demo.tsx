@@ -1,5 +1,5 @@
 /** Seven scenes, each calling the real /v1/demo endpoint and showing its real numbers. */
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
 import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
 import { Problem } from "../../components/Problem";
@@ -8,8 +8,10 @@ import { callWords, modelName } from "../../ai/words";
 import { DEMO, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
-import { ResultCard } from "../../payee/ResultCard";
 import { firstContact, onFile } from "../../redteam";
+
+// The payee result card carries receipt verification (ed25519); only the invoice scene needs it.
+const ResultCard = lazy(() => import("../../payee/ResultCard").then((m) => ({ default: m.ResultCard })));
 
 const SCENES = Object.keys(DEMO.scenes) as SceneName[];
 const L = DEMO.labels;
@@ -152,12 +154,14 @@ function outcome(id: SceneName, raw: SceneResult): Outcome {
     case "payout": {
       const r = raw as PayoutResult;
       return {
-        tone: "below",
+        // Our stake paying a wrong approval is the protection working, so this is not a below-the-line red.
+        tone: "tier",
         verdict: DEMO.verdicts.payout,
         rows: [
           ...r.payouts.flatMap(({ claim, pool }, i) => [
-            { k: `${L.payout(i + 1)}: ${formatUsdc(claim.amount)} USDC`, v: `${L.junior} ${formatUsdc(claim.paid_from_junior)}, ${L.senior.toLowerCase()} ${formatUsdc(claim.paid_from_senior)}` },
-            { k: L.wardPrice, v: `${p4(claim.ward_price_before)} to ${p4(claim.ward_price_after)}`, tone: claim.ward_price_after !== claim.ward_price_before ? ("below" as const) : undefined },
+            { k: `${L.payout(i + 1)}: ${formatUsdc(claim.amount)} USDC`, v: `${L.junior} ${formatUsdc(claim.paid_from_junior)}, ${L.senior.charAt(0).toLowerCase() + L.senior.slice(1)} ${formatUsdc(claim.paid_from_senior)}` },
+            // The dip is shown plainly: shared losses after our stake are how WARD works, not a refusal.
+            { k: L.wardPrice, v: `${p4(claim.ward_price_before)} to ${p4(claim.ward_price_after)}` },
             ...(i === 1 ? [{ k: L.stakeLeft, v: `${formatUsdc(pool.junior)} USDC` }] : []),
           ]),
           { k: L.refill, v: L.refillCalls(r.refill.calls, formatUsdc(r.refill.spent)) },
@@ -187,6 +191,15 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
   const scene = DEMO.scenes[id];
   const n = SCENES.indexOf(id) + 1;
   const out = run?.state === "done" ? outcome(id, run.result) : null;
+  // After Run scene, bring the result into view: inside the sticky stage on wide screens, in the page on phones.
+  const result = useRef<HTMLDivElement>(null);
+  const shown = useRef<Run>(undefined);
+  useEffect(() => {
+    if (run?.state !== "done" || shown.current === run) return;
+    shown.current = run;
+    const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    result.current?.scrollIntoView?.({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+  }, [run]);
   return (
     <div className="stage" data-testid="stage">
       <div className="stage-head">
@@ -213,7 +226,7 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
         )}
         {run?.state === "error" && <Problem error={run.error} onRetry={onRun} />}
         {out && (
-          <div className="stage-result" data-outcome={out.tone} data-scene-result={id}>
+          <div ref={result} className="stage-result" data-outcome={out.tone} data-scene-result={id}>
             <p className={`verdict v-${out.tone}`}>{out.verdict}</p>
             <dl className="result-rows">
               {out.rows.map((r, i) => (
@@ -224,10 +237,12 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
               ))}
             </dl>
             {id === "invoice" && run?.state === "done" && (
-              <ResultCard
-                result={{ ...(run.result as InvoiceResult).result, receipt: null }}
-                request={{ payee: (run.result as InvoiceResult).payee, vendor: { domain: (run.result as InvoiceResult).vendor } } as PayeeCheckRequest}
-              />
+              <Suspense fallback={null}>
+                <ResultCard
+                  result={{ ...(run.result as InvoiceResult).result, receipt: null }}
+                  request={{ payee: (run.result as InvoiceResult).payee, vendor: { domain: (run.result as InvoiceResult).vendor } } as PayeeCheckRequest}
+                />
+              </Suspense>
             )}
             {hasNext && (
               <button type="button" className="btn ghost" onClick={onNext}>
