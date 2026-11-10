@@ -1,20 +1,32 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Deps } from "../service.js";
 import type { PoolPosition } from "../chain/types.js";
 import type { ActivityItem, ActivityStats, CommunitySummary, MemberVote, PersonView } from "./types.js";
 
-const ACTIVITY_LOG_PATH = join(process.cwd(), "data/testnet/activity.jsonl");
+function getActivityLogPath(): string {
+  const candidates = [
+    fileURLToPath(new URL("../../../../data/testnet/activity.jsonl", import.meta.url)),
+    join(process.cwd(), "data/testnet/activity.jsonl"),
+    join(process.cwd(), "../../data/testnet/activity.jsonl"),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0]!;
+}
 
 export class ActivityStore {
   constructor(private readonly deps: Deps) {}
 
   readLog(): ActivityItem[] {
-    if (!existsSync(ACTIVITY_LOG_PATH)) {
+    const logPath = getActivityLogPath();
+    if (!existsSync(logPath)) {
       return [];
     }
 
-    const lines = readFileSync(ACTIVITY_LOG_PATH, "utf8").trim().split("\n");
+    const lines = readFileSync(logPath, "utf8").trim().split("\n");
     const items: ActivityItem[] = [];
 
     for (const line of lines) {
