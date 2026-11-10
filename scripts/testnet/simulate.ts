@@ -76,9 +76,9 @@ export interface ActivityEntry {
 export interface SpendLedger {
   total_calls: number;
   hard_cap: number;
-  current_key: "key_1" | "key_2";
+  current_key: "key_1";
   key_1_spend: { calls: number; estimated_tokens: number; estimated_cost_usd: number };
-  key_2_spend: { calls: number; estimated_tokens: number; estimated_cost_usd: number };
+  key_2_spend?: { calls: number; estimated_tokens: number; estimated_cost_usd: number };
   last_call_at: string | null;
 }
 
@@ -109,7 +109,6 @@ function appendActivity(path: string, entry: ActivityEntry): void {
 export async function runBatch(opts: {
   dryRun?: boolean;
   callsCount?: number;
-  forceKey2?: boolean;
 } = {}): Promise<ActivityEntry[]> {
   const isDryRun = opts.dryRun ?? process.argv.includes("--dry-run");
   const callsCount = opts.callsCount ?? 8;
@@ -130,14 +129,13 @@ export async function runBatch(opts: {
 
   const entries: ActivityEntry[] = [];
 
-  // Determine which NEAR AI API key to use
-  let activeKey = process.env.NEAR_AI_API_KEY;
-  if (ledger.current_key === "key_2" || opts.forceKey2) {
-    activeKey = process.env.NEAR_AI_API_KEY_2 || process.env.NEAR_AI_API_KEY;
-    ledger.current_key = "key_2";
+  // Strictly use the official NEAR AI key provided by Alexander
+  const activeKey = process.env.NEAR_AI_API_KEY;
+  if (!activeKey && !isDryRun) {
+    throw new Error("NEAR_AI_API_KEY is not set in .env. Only the key provided by Alexander is allowed.");
   }
 
-  console.log(`Current key in use: ${ledger.current_key} (calls logged so far: ${ledger.total_calls}/${ledger.hard_cap})`);
+  console.log(`Current key in use: official key from Alexander (calls logged so far: ${ledger.total_calls}/${ledger.hard_cap})`);
 
   // 1. Legitimate Proven AI Calls
   console.log(`\nExecuting ${callsCount} legitimate AI calls...`);
@@ -273,17 +271,11 @@ export async function runBatch(opts: {
       }
     }
 
-    // Ledger accounting
+    // Ledger accounting on the official key provided by Alexander
     ledger.total_calls++;
-    if (ledger.current_key === "key_1") {
-      ledger.key_1_spend.calls++;
-      ledger.key_1_spend.estimated_tokens += 180;
-      ledger.key_1_spend.estimated_cost_usd += 0.00015;
-    } else {
-      ledger.key_2_spend.calls++;
-      ledger.key_2_spend.estimated_tokens += 180;
-      ledger.key_2_spend.estimated_cost_usd += 0.00015;
-    }
+    ledger.key_1_spend.calls++;
+    ledger.key_1_spend.estimated_tokens += 180;
+    ledger.key_1_spend.estimated_cost_usd += 0.00015;
     ledger.last_call_at = new Date().toISOString();
 
     const entry: ActivityEntry = {
