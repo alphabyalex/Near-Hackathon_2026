@@ -56,7 +56,8 @@ export interface MeterClient {
   /** Holds up to maxAmount of the member's allowance and the budget's deposit for one call. */
   reserve(args: { budget_id: string; member: string; call_id: string; model_id: string; max_amount: string }): Promise<ReserveResult>;
   /** Pays `amount` (at most the reservation) against a proof the meter re-verifies. Refunds the rest. */
-  settle(args: { call_id: string; amount: string; proof: SettlementProof }): Promise<SettleResult>;
+  /** pay_to: on chain, the account paid the provider's share; the fee then goes to the pool. */
+  settle(args: { call_id: string; amount: string; proof: SettlementProof; pay_to?: string }): Promise<SettleResult>;
   /** Refunds the whole reservation. */
   release(args: { call_id: string; reason: string }): Promise<{ tx: string; refund: string }>;
   /** Owner or DAO actions. On chain these arrive through DAO proposals. */

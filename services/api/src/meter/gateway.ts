@@ -249,10 +249,14 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
 
     const amount = costFor(route, row.promptTokens ?? 0, row.completionTokens ?? 0);
     const capped = amount > BigInt(row.reserved) ? BigInt(row.reserved) : amount;
+    // On testnet the provider's share and the Mutual's fee move as USDC: the meter pays pay_to and sends
+    // the fee to the pool. Without pay_to the meter only updates its books. Sim mode keeps its own ledger.
+    const payTo = deps.chain.mode === "near" ? (env.WARDLINE_PROVIDER_PAY_TO ?? provider.payTo) : undefined;
     const settled = await deps.chain.meter.settle({
       call_id: callId,
       amount: capped.toString(),
       proof: { model_id: model, request_hash: requestHash, response_hash: row.responseHash, text: signature!.text, signature: signature!.signature, signing_address: check.signer, chat_id: row.chatId! },
+      ...(payTo ? { pay_to: payTo } : {}),
     });
     if (!settled.ok) return refuse(settled.reason, settled.detail, 502, "proof_refused", responseBytes);
     finish({ status: "verified", signer: check.signer, amount: settled.amount, refund: settled.refund, settlementTx: settled.tx });

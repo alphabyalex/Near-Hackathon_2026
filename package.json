@@ -29,6 +29,7 @@
     "redteam:numbers": "tsx scripts/redteam-numbers.ts",
     "testnet:mint": "pnpm --filter @wardline/contract-scripts run mint-tokens",
     "testnet:check": "pnpm --filter @wardline/api exec tsx scripts/check-testnet.ts",
+    "testnet:preflight": "tsx scripts/testnet/preflight.ts",
     "testnet:setup": "tsx scripts/testnet/setup.ts",
     "testnet:batch": "tsx scripts/testnet/simulate.ts",
     "testnet:audit": "tsx scripts/testnet/audit.ts",
