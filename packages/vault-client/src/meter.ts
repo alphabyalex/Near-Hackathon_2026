@@ -227,7 +227,7 @@ export class NearMeterClient {
     if (val.ok && val.amount !== undefined && val.refund !== undefined) {
       return {
         ok: true,
-        tx: val.tx ?? outcome.tx_hash,
+        tx: outcome.tx_hash,
         amount: val.amount,
         refund: val.refund,
       };
@@ -259,7 +259,7 @@ export class NearMeterClient {
     );
     const val = outcome.value as { tx: string; refund: string };
     return {
-      tx: val.tx ?? outcome.tx_hash,
+      tx: outcome.tx_hash,
       refund: val.refund?.toString() ?? "0",
     };
   }

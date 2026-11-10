@@ -20,22 +20,13 @@ export interface Person {
 
 export async function getPerson(account: string): Promise<Person> {
   if (DATA_SOURCE === "testnet") {
-    const res = await apiGet<{
-      account: string;
-      position: PoolPosition;
-      mutual: MutualSummary;
-      votes: MemberVote[];
-      weights: Record<number, string>;
-      open: MutualProposalView[];
-    }>(`/v1/people/${encodeURIComponent(account)}`);
-    return {
-      account: res.account,
-      position: res.position,
-      mutual: res.mutual,
-      votes: res.votes,
-      weights: res.weights,
-      open: res.open,
-    };
+    // /v1/mutual is the whole Mutual summary (pool, stats, groups, tiers, proposals), read from the
+    // contracts in near mode. /v1/people adds the pool's record of this account and its WARD weights.
+    const [mutual, res] = await Promise.all([
+      getMutual(),
+      apiGet<{ account: string; position: PoolPosition; votes: MemberVote[]; weights: Record<number, string>; open: MutualProposalView[] }>(`/v1/people/${encodeURIComponent(account)}`),
+    ]);
+    return { account: res.account, position: res.position, mutual, votes: res.votes, weights: res.weights, open: res.open };
   }
   const [mutual, position, { votes }] = await Promise.all([getMutual(), getPosition(account), getVotes(account)]);
   const open = mutual.governance.proposals.filter((p) => p.status === "open");

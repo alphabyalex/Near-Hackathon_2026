@@ -228,7 +228,7 @@ export class NearCoverPoolClient {
     const val = outcome.value as { tx: string; ward?: string; shares?: string };
     const ward = val.ward ?? val.shares?.toString() ?? "0";
     return {
-      tx: val.tx ?? outcome.tx_hash,
+      tx: outcome.tx_hash,
       ward,
       shares: val.shares?.toString() ?? ward,
     };
@@ -256,7 +256,7 @@ export class NearCoverPoolClient {
     );
     const val = outcome.value as { tx: string; id: string; available_at: string };
     return {
-      tx: val.tx ?? outcome.tx_hash,
+      tx: outcome.tx_hash,
       id: val.id,
       available_at: toIso(val.available_at),
     };
@@ -283,7 +283,7 @@ export class NearCoverPoolClient {
     );
     const val = outcome.value as { tx: string; usdc: string };
     return {
-      tx: val.tx ?? outcome.tx_hash,
+      tx: outcome.tx_hash,
       usdc: val.usdc?.toString() ?? "0",
     };
   }
@@ -348,7 +348,7 @@ export class NearCoverPoolClient {
       ward_price_before: val.ward_price_before ?? "",
       ward_price_after: val.ward_price_after ?? "",
       filed_at: toIso(val.filed_at),
-      tx: val.tx ?? null,
+      tx: outcome.tx_hash,
     };
   }
 

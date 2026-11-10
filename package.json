@@ -32,6 +32,7 @@
     "testnet:setup": "tsx scripts/testnet/setup.ts",
     "testnet:batch": "tsx scripts/testnet/simulate.ts",
     "testnet:audit": "tsx scripts/testnet/audit.ts",
+    "testnet:scheduled": "tsx scripts/testnet/schedule.ts",
     "demo:vote": "tsx scripts/demo-vote.ts",
     "demo:tier": "tsx scripts/demo-tier.ts",
     "brand:assets": "tsx scripts/brand/generate-assets.ts"

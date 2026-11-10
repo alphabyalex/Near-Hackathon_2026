@@ -217,14 +217,16 @@ describe("Mutual routes", () => {
 });
 
 describe("near mode wiring", () => {
-  it("reads contract ids from repo.config.json, and keeps tiers and voting simulated until T4.6", () => {
+  it("reads contract ids from repo.config.json, and tiers and voting from the contracts (T4.6)", async () => {
     const c = createChain("near", now);
     expect(c.mode).toBe("near");
     expect((c.meter as unknown as { contractId: string }).contractId).toBe("meter.wardline-labs.testnet");
     expect((c.pool as unknown as { contractId: string }).contractId).toBe("pool.wardline-labs.testnet");
     expect((c.registry as unknown as { contractId: string }).contractId).toBe("model-registry.wardline-labs.testnet");
-    expect(c.reputation.mode).toBe("sim");
-    expect(c.governance.mode).toBe("sim");
+    expect(c.reputation.mode).toBe("near");
+    expect(c.governance.mode).toBe("near");
+    // The API never casts a vote for a holder on testnet; their wallet signs it against the pool.
+    await expect(c.governance.vote({ id: 0, voter: "lp-north.testnet", support: "for" })).rejects.toThrow(/own wallet/);
   });
 });
 

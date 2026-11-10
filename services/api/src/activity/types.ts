@@ -23,7 +23,7 @@ export interface ActivityItem {
   text: string;
   amount: string | null;
   model: string | null;
-  outcome: "paid" | "refused" | "blocked" | "capped" | "voted" | "executed";
+  outcome: "paid" | "refused" | "blocked" | "capped" | "voted" | "opened" | "executed";
   reason: string | null;
   tx: string | null;
   tx_hash?: string | null;
@@ -82,7 +82,6 @@ export interface CommunitySummary {
     period: string;
   };
   tier: string;
-  tier_history: Array<{ at: string; tier: string }>;
   proven_calls: number;
   clean_calls: number;
   refused_calls: number;

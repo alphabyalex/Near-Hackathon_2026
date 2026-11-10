@@ -1,408 +1,342 @@
-import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+/**
+ * One batch of testnet activity. Each event either ends in a NEAR testnet transaction, whose row is
+ * built from RPC by ActivityWriter, or it is skipped with a note and leaves no row.
+ *
+ *   pnpm testnet:batch --dry-run      prints the plan. No transactions, no NEAR AI calls, no files.
+ *   pnpm testnet:batch                runs it (needs the keys listed by preflight below).
+ *   pnpm testnet:batch --calls 30     sets the number of paid calls instead of the time-of-day size.
+ *
+ * Events:
+ *   paid calls     live NEAR AI calls (DeepSeek V4.1 Flash, max_tokens 150) through the Wardline gateway,
+ *                  run in-process in near mode: reserve, call, TEE proof check, settle on the meter.
+ *   swapped model  a real reserve, the SDK's verifier on the recorded GLM-5.3 Flash response passed off
+ *                  as DeepSeek (fixtures/nearai/glm53flash-cheap.json, no live call), a real release.
+ *   leaked key     three reserves for a compromised member, each refused at the spend limit.
+ *   LP deposits    ft_transfer_call of USDC to the pool from the LP's own account.
+ *   WARD vote      a WARD holder votes on an open proposal from their own account.
+ */
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { actions, makeProvider, makeSigner, viewCall } from "@wardline/vault-client";
-import { CredentialStore, defaultSecretsDir, viewAccount } from "../contracts/src/lib.js";
+import { randomBytes } from "node:crypto";
+import { callFinal, makeProvider, makeSigner, NearModelRegistryClient, viewCall, type SignerHandle } from "@wardline/vault-client";
+import { verifyProviderProof, type ProviderSignature } from "@wardline/sdk";
+import { CredentialStore, defaultSecretsDir } from "../contracts/src/lib.js";
+import { ActivityWriter, addSpend, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, saveSpend, type SpendLedger } from "./chain-log.js";
+import type { RowFields } from "../../services/api/src/activity/log.js";
 
-const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
-const ROOT_ACCOUNT = "wardline-labs.testnet";
-const USDC_CONTRACT = "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af";
-const METER_CONTRACT = "meter.wardline-labs.testnet";
-const POOL_CONTRACT = "pool.wardline-labs.testnet";
-const PAYEE_REGISTRY_CONTRACT = "payee-registry.wardline-labs.testnet";
-
-const NEAR_AI_BASE = "https://cloud-api.near.ai/v1";
-const HARD_CALL_CAP = 450;
+const MODEL = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
+const CHEAP_MODEL = "z-ai/glm-5.3-flash";
+const MAX_TOKENS = 150;
 const GAS = 100_000_000_000_000n;
 
 const TASKS = [
-  "Summarize this git commit: fix null pointer in token transfer callback.",
-  "Draft a polite reminder email to vendor about invoice #1042.",
-  "Write a PostgreSQL query to find users who joined in the last 7 days.",
-  "Classify this customer support ticket: 'Cannot connect my NEAR wallet'.",
+  "Summarize this git commit in one line: fix null pointer in token transfer callback.",
+  "Write a PostgreSQL query for users who joined in the last 7 days.",
+  "Classify this support ticket in one word: 'Cannot connect my NEAR wallet'.",
   "Explain what an ERC-4337 paymaster does in two sentences.",
-  "Write a TypeScript interface for a JSON-RPC 2.0 response object.",
-  "Review this code snippet for potential re-entrancy issues.",
-  "Format this unformatted ISO-8601 timestamp string into readable UTC.",
-  "Draft release notes for Wardline v1.2.0 focusing on credit union features.",
-  "Generate a regex to validate an Ethereum checksum address.",
-  "Explain the difference between optimistic rollups and ZK rollups concisely.",
-  "Translate this error log message into a plain-English user hint.",
-  "Write a Python function to compute the moving average of token prices.",
-  "Draft a one-paragraph summary of Sputnik DAO governance policies.",
-  "Classify this transaction note: 'Monthly cloud hosting fee for GPU node'.",
-  "Suggest 3 test cases for testing an NEP-141 token storage deposit.",
-  "Write a CSS rule to clip overflow text with an ellipsis on a single line.",
-  "Explain how TEE attestation guarantees that an advertised model ran.",
-  "Write a shell one-liner to find all JSON files modified in the last 24h.",
-  "Draft an onboarding checklist for a new member joining a hacker house.",
-  "Explain the difference between senior and junior tranches in a mutual pool.",
-  "Write a SQL query to calculate daily transaction fees per budget.",
-  "Draft a security advisory regarding compromised private keys.",
-  "Summarize the key invariants of an automated market maker pool.",
-  "Write a TypeScript function to parse CAIP-10 account identifiers.",
-  "Classify this payee domain: 'pay-northwind.com' vs 'northwind.io'.",
-  "Write an SQL query to retrieve active proposals pending council vote.",
-  "Explain why un-attested model substitutions degrade agent output quality.",
-  "Draft a proposal rationale for lowering community tier coverage fees.",
-  "Generate a mock JSON invoice with line items, tax and total in USDC.",
-  "Explain the role of cooldown periods in preventing flash-loan claims.",
-  "Write a unit test assertion checking that an allowance cannot be exceeded.",
-  "Draft a concise explanation of how Wardline protects AI agent budgets.",
-  "Write a bash command to check the balance of a NEAR testnet account.",
-  "Classify this log message: 'ALLOWANCE_EXHAUSTED for member tariq'.",
-  "Summarize the advantages of NEP-413 off-chain message signing.",
-  "Write a function to verify an Ed25519 signature in browser JavaScript.",
-  "Explain how Sputnik DAO role-based voting thresholds operate.",
-  "Draft a polite rejection email for an unverified payee invoice.",
-  "Write a brief incident report describing a blocked look-alike payment.",
+  "Write a TypeScript interface for a JSON-RPC 2.0 response.",
+  "Format 2026-11-09T14:03:00Z as a readable UTC date.",
+  "Write a regex that matches a NEAR testnet account id.",
+  "Explain optimistic rollups versus ZK rollups in two sentences.",
+  "Turn this error into a plain-English hint: ECONNRESET on POST /v1/ai.",
+  "Write a Python function for a 7-day moving average.",
+  "Suggest 3 test cases for an NEP-141 storage deposit.",
+  "Write a CSS rule that clips one line of text with an ellipsis.",
+  "Write a shell one-liner to list JSON files changed in the last day.",
+  "Draft a two-line onboarding note for a new hacker house member.",
+  "Write a SQL query for daily fees per budget.",
+  "Summarize the invariants of a constant-product AMM in three bullets.",
+  "Write a TypeScript function that parses a CAIP-10 account id.",
+  "Write a unit test asserting an allowance cannot be exceeded.",
+  "Explain NEP-413 message signing in two sentences.",
+  "Draft a polite note declining an invoice from an unverified payee.",
 ];
 
-export interface ActivityEntry {
-  at: string;
-  actor: string;
-  community: string;
-  kind: "call" | "payout" | "price" | "deposit" | "redeem" | "vote" | "proposal";
-  amount: string | null;
-  model: string | null;
-  outcome: "paid" | "refused" | "blocked" | "capped" | "voted" | "executed";
-  side: "above" | "below";
-  reason: string | null;
-  tx: string | null;
-  block_height: number;
-  text?: string;
+/** Proposals the batch opens when none is open. Each is a real change the pool can execute. */
+const PROPOSALS = [
+  { description: "Lower the Silver fee to 1.25%", action: { type: "set_fee_bps", tier: "silver", fee_bps: 125 } },
+  { description: "Raise coverage to 1.25x for every tier", action: { type: "set_coverage_multiplier", multiplier_bps: 12_500 } },
+  { description: "Raise the Bronze fee to 2.50%", action: { type: "set_fee_bps", tier: "bronze", fee_bps: 250 } },
+] as const;
+
+interface Cast {
+  contracts: { usdc: string; meter: string; pool: string; model_registry: string };
+  communities: Array<{ id: string; name: string; members: Array<{ account: string; name: string; leaked_key?: boolean }> }>;
+  individuals: Array<{ account: string; name: string; budget: string }>;
+  liquidity_providers: Array<{ account: string; name: string; deposit_usdc: string }>;
 }
 
-export interface SpendLedger {
-  total_calls: number;
-  hard_cap: number;
-  current_key: "key_1" | "key_2";
-  key_1_spend: { calls: number; estimated_tokens: number; estimated_cost_usd: number };
-  key_2_spend: { calls: number; estimated_tokens: number; estimated_cost_usd: number };
-  last_call_at: string | null;
+interface Caller {
+  account: string;
+  name: string;
+  budget: string;
+  group: string;
+  leaked: boolean;
 }
 
-function loadSpendLedger(path: string): SpendLedger {
-  if (existsSync(path)) {
-    return JSON.parse(readFileSync(path, "utf8")) as SpendLedger;
+const short = (account: string) => account.replace(/\.wardline-labs\.testnet$/, "");
+const usdc = (atomic: string | bigint) => (Number(atomic) / 1e6).toFixed(2);
+
+/** Paid calls per batch by UTC hour: busier in the US daytime, quiet overnight. */
+export function sizeForHour(hourUtc: number, rand = Math.random): number {
+  if (hourUtc >= 15 && hourUtc <= 23) return 8 + Math.floor(rand() * 5); // 8-12
+  if (hourUtc >= 9 && hourUtc <= 14) return 5 + Math.floor(rand() * 3); // 5-7
+  return 2 + Math.floor(rand() * 3); // 2-4
+}
+
+function argValue(name: string): string | undefined {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+async function accountExists(provider: ReturnType<typeof makeProvider>, account: string): Promise<boolean> {
+  try {
+    await provider.query({ request_type: "view_account", account_id: account, finality: "final" } as never);
+    return true;
+  } catch {
+    return false;
   }
-  return {
-    total_calls: 0,
-    hard_cap: HARD_CALL_CAP,
-    current_key: "key_1",
-    key_1_spend: { calls: 0, estimated_tokens: 0, estimated_cost_usd: 0 },
-    key_2_spend: { calls: 0, estimated_tokens: 0, estimated_cost_usd: 0 },
-    last_call_at: null,
-  };
 }
 
-function saveSpendLedger(path: string, ledger: SpendLedger): void {
-  mkdirSync(join(process.cwd(), "data/testnet"), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(ledger, null, 2)}\n`, "utf8");
-}
-
-function appendActivity(path: string, entry: ActivityEntry): void {
-  mkdirSync(join(process.cwd(), "data/testnet"), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(entry)}\n`, { flag: "a", encoding: "utf8" });
-}
-
-export async function runBatch(opts: {
-  dryRun?: boolean;
-  callsCount?: number;
-  forceKey2?: boolean;
-} = {}): Promise<ActivityEntry[]> {
-  const isDryRun = opts.dryRun ?? process.argv.includes("--dry-run");
-  const callsCount = opts.callsCount ?? 8;
-  const castPath = join(process.cwd(), "scripts/testnet/cast.json");
-  const spendPath = join(process.cwd(), "data/testnet/nearai-spend.json");
-  const activityPath = join(process.cwd(), "data/testnet/activity.jsonl");
-
-  console.log(`\n=== Wardline Testnet Batch Runner (mode: ${isDryRun ? "DRY-RUN" : "LIVE"}) ===`);
-
-  const cast = JSON.parse(readFileSync(castPath, "utf8"));
-  const ledger = loadSpendLedger(spendPath);
-
+export async function runBatch(opts: { dryRun?: boolean; calls?: number } = {}): Promise<void> {
+  loadDotEnv();
+  const dryRun = opts.dryRun ?? DRY_RUN;
+  const cast = JSON.parse(readFileSync(join(REPO_ROOT, "scripts/testnet/cast.json"), "utf8")) as Cast;
   const provider = makeProvider(RPC_URL);
-  const credPath = join(defaultSecretsDir("testnet"), "credentials.json");
-  const creds = new CredentialStore(credPath);
-  const rootKey = creds.get(ROOT_ACCOUNT);
-  const rootSigner = rootKey ? makeSigner(provider, ROOT_ACCOUNT, rootKey) : null;
+  const ledger = loadSpend();
+  const requested = opts.calls ?? (argValue("--calls") ? Number(argValue("--calls")) : sizeForHour(new Date().getUTCHours()));
+  const calls = Math.max(0, Math.min(requested, HARD_CAP - ledger.total_calls));
 
-  const entries: ActivityEntry[] = [];
+  console.log(`Wardline testnet batch (${dryRun ? "dry run: no transactions, no NEAR AI calls, no files" : "live"})`);
+  console.log(`Live NEAR AI calls so far: ${ledger.total_calls} of ${HARD_CAP}. This batch: ${calls} paid call(s).`);
 
-  // Determine which NEAR AI API key to use
-  let activeKey = process.env.NEAR_AI_API_KEY;
-  if (ledger.current_key === "key_2" || opts.forceKey2) {
-    activeKey = process.env.NEAR_AI_API_KEY_2 || process.env.NEAR_AI_API_KEY;
-    ledger.current_key = "key_2";
+  // Only accounts that exist on chain take part. A cast member setup has not created is left out.
+  const callers: Caller[] = [];
+  for (const c of cast.communities) for (const m of c.members) callers.push({ account: m.account, name: m.name, budget: c.id, group: c.name, leaked: Boolean(m.leaked_key) });
+  for (const i of cast.individuals) callers.push({ account: i.account, name: i.name, budget: i.budget, group: `${i.name} (solo)`, leaked: false });
+  const live: Caller[] = [];
+  for (const c of callers) if (await accountExists(provider, c.account)) live.push(c);
+  const lps: Cast["liquidity_providers"] = [];
+  for (const lp of cast.liquidity_providers) if (await accountExists(provider, lp.account)) lps.push(lp);
+  const honest = live.filter((c) => !c.leaked);
+  const leaked = live.filter((c) => c.leaked);
+  console.log(`Cast on chain: ${live.length} of ${callers.length} members and individuals, ${lps.length} of ${cast.liquidity_providers.length} LPs.`);
+
+  const plan = {
+    paid: honest.length ? Array.from({ length: calls }, (_, i) => ({ caller: honest[(ledger.total_calls + i) % honest.length]!, task: TASKS[(ledger.total_calls + i * 7) % TASKS.length]! })) : [],
+    swapped: honest.length ? honest[(ledger.total_calls + 3) % honest.length]! : null,
+    burst: leaked.length ? leaked[ledger.total_calls % leaked.length]! : null,
+    deposits: lps.slice(0, 2).map((lp, i) => ({ lp, amount: BigInt(1_000_000 + 250_000 * ((ledger.total_calls + i) % 3)) })),
+    vote: lps.length >= 2,
+  };
+  for (const p of plan.paid) console.log(`  paid call    ${short(p.caller.account)} on ${p.caller.budget}: "${p.task.slice(0, 48)}"`);
+  console.log(plan.swapped ? `  swapped      ${short(plan.swapped.account)} on ${plan.swapped.budget}: GLM-5.3 Flash answer claimed as DeepSeek (recorded, no live call)` : "  swapped      skipped: no member on chain");
+  console.log(plan.burst ? `  leaked key   ${short(plan.burst.account)} on ${plan.burst.budget}: 3 reserves against a spent allowance` : "  leaked key   skipped: no compromised member on chain");
+  for (const d of plan.deposits) console.log(`  LP deposit   ${short(d.lp.account)}: ${usdc(d.amount)} USDC`);
+  console.log(plan.vote ? "  WARD vote    an LP votes on an open proposal (one is opened if none is)" : "  WARD vote    skipped: fewer than two LPs on chain");
+  if (dryRun) {
+    console.log("\nDry run: nothing was sent and nothing under data/testnet/ changed.");
+    return;
   }
 
-  console.log(`Current key in use: ${ledger.current_key} (calls logged so far: ${ledger.total_calls}/${ledger.hard_cap})`);
-
-  // 1. Legitimate Proven AI Calls
-  console.log(`\nExecuting ${callsCount} legitimate AI calls...`);
-
-  // Pick diverse members across Mission, Nightshade, Hayes, Kelp, and Individuals
-  const membersPool: Array<{ account: string; budget: string; commName: string }> = [];
-  for (const c of cast.communities) {
-    for (const m of c.members) {
-      if (!m.leaked_key) {
-        membersPool.push({ account: m.account, budget: c.id, commName: c.name });
-      }
+  // Preflight: every key the live batch needs, before anything is sent. Values are never printed.
+  const creds = new CredentialStore(join(defaultSecretsDir("testnet"), "credentials.json"));
+  const gatewayAccount = process.env.WARDLINE_GATEWAY_ACCOUNT;
+  const gatewayKey = process.env.WARDLINE_GATEWAY_KEY;
+  const missing: string[] = [];
+  if (!gatewayAccount || !gatewayKey) missing.push("WARDLINE_GATEWAY_ACCOUNT and WARDLINE_GATEWAY_KEY in .env");
+  if (calls > 0 && !process.env.NEAR_AI_API_KEY) missing.push("NEAR_AI_API_KEY in .env");
+  for (const d of plan.deposits) if (!creds.get(d.lp.account)) missing.push(`a key for ${d.lp.account} in the credential store`);
+  if (missing.length) throw new Error(`Missing: ${missing.join("; ")}. Nothing was sent.`);
+  const gateway = makeSigner(provider, gatewayAccount!, gatewayKey!);
+  const writer = new ActivityWriter({ dryRun: false });
+  let recorded = 0;
+  const record = async (hash: string, signer: string, fields: RowFields) => {
+    try {
+      const row = await writer.record(hash, signer, fields);
+      recorded++;
+      console.log(`    recorded ${row.kind}:${row.outcome} at block ${row.block_height}  https://testnet.nearblocks.io/txns/${row.tx}`);
+    } catch (error) {
+      console.log(`    not recorded: ${(error as Error).message}`);
     }
-  }
-  for (const ind of cast.individuals) {
-    membersPool.push({ account: ind.account, budget: ind.budget, commName: "Solo Builder" });
-  }
+  };
 
-  for (let i = 0; i < callsCount; i++) {
-    if (!isDryRun && ledger.total_calls >= HARD_CALL_CAP) {
-      console.log(`Hard cap reached (${HARD_CALL_CAP} calls). Stopping live AI invocations.`);
+  await paidCalls(plan.paid, ledger, record);
+  if (plan.swapped) await swappedModel(plan.swapped, cast, gateway, provider, record).catch((e: Error) => console.log(`    swapped model skipped: ${e.message}`));
+  if (plan.burst) await leakedKeyBurst(plan.burst, cast, gateway, record).catch((e: Error) => console.log(`    leaked key skipped: ${e.message}`));
+  for (const d of plan.deposits) await lpDeposit(d.lp, d.amount, cast, makeSigner(provider, d.lp.account, creds.get(d.lp.account)!), record).catch((e: Error) => console.log(`    deposit skipped: ${e.message}`));
+  if (plan.vote) await wardVote(lps, cast, provider, creds, record).catch((e: Error) => console.log(`    vote skipped: ${e.message}`));
+
+  console.log(`\nRecorded ${recorded} row(s). Live NEAR AI calls: ${ledger.total_calls} of ${HARD_CAP}.`);
+  console.log(`  key 1: ${ledger.key_1_spend.calls} calls, ${ledger.key_1_spend.prompt_tokens}+${ledger.key_1_spend.completion_tokens} tokens, $${ledger.key_1_spend.cost_usd.toFixed(4)}`);
+  console.log(`  key 2: ${ledger.key_2_spend.calls} calls, ${ledger.key_2_spend.prompt_tokens}+${ledger.key_2_spend.completion_tokens} tokens, $${ledger.key_2_spend.cost_usd.toFixed(4)}`);
+  console.log("Run pnpm testnet:audit next. The API serves new rows only after it passes.");
+}
+
+type Record_ = (hash: string, signer: string, fields: RowFields) => Promise<void>;
+
+/**
+ * Key 1 until its remaining credit drops under 1 USD (NEAR_AI_KEY_1_CREDIT_USD, if set) or NEAR AI
+ * refuses it for credit, then key 2. The switch is kept in the ledger.
+ */
+function activeKey(ledger: SpendLedger): "key_1" | "key_2" {
+  const credit = Number(process.env.NEAR_AI_KEY_1_CREDIT_USD ?? "");
+  if (ledger.current_key === "key_1" && Number.isFinite(credit) && credit > 0 && credit - ledger.key_1_spend.cost_usd < 1) ledger.current_key = "key_2";
+  if (ledger.current_key === "key_2" && !process.env.NEAR_AI_API_KEY_2) throw new Error("Key 1 is spent and NEAR_AI_API_KEY_2 is not set.");
+  return ledger.current_key;
+}
+
+async function paidCalls(plan: Array<{ caller: Caller; task: string }>, ledger: SpendLedger, record: Record_): Promise<void> {
+  if (!plan.length) return;
+  // The Wardline API itself, in near mode, in this process: the same gateway code a user's call takes.
+  process.env.WARDLINE_CHAIN_MODE = "near";
+  const { bootstrap } = await import("../../services/api/src/bootstrap.js");
+  const { createApp } = await import("../../services/api/src/app.js");
+  type CallUsage = { reserved: string; promptTokens: number | null; completionTokens: number | null } | null;
+  const apps = new Map<string, { request: (path: string, init: RequestInit) => Promise<Response>; keyFor: (c: Caller) => string; call: (id: string) => CallUsage }>();
+  const appFor = (key: "key_1" | "key_2") => {
+    const cached = apps.get(key);
+    if (cached) return cached;
+    const env: Record<string, string | undefined> = { ...process.env, WARDLINE_CHAIN_MODE: "near", NEAR_AI_API_KEY: key === "key_1" ? process.env.NEAR_AI_API_KEY : process.env.NEAR_AI_API_KEY_2 };
+    delete env.WARDLINE_DEMO_METER_KEY;
+    delete env.WARDLINE_AI_PROVIDER_URL;
+    const auth = { enabled: false, owners: new Set<string>(), approvers: new Set<string>(), sessionTtlMs: 30 * 60_000, secureCookie: false, network: "testnet" as const, keyCallsPerDay: 10_000 };
+    const deps = bootstrap(":memory:", undefined, {}, auth, { env });
+    const app = createApp(deps);
+    const keys = new Map<string, string>();
+    const made = {
+      request: (path: string, init: RequestInit) => Promise.resolve(app.request(path, init)),
+      call: (id: string) => deps.ai.meter.getCall(id),
+      keyFor: (c: Caller) => {
+        const id = `${c.budget}:${c.account}`;
+        if (!keys.has(id)) keys.set(id, deps.ai.meter.createKey({ budgetId: c.budget, member: c.account, label: "testnet batch", models: [MODEL], createdBy: "testnet-batch", now: new Date() }).key);
+        return keys.get(id)!;
+      },
+    };
+    apps.set(key, made);
+    return made;
+  };
+
+  for (const [i, p] of plan.entries()) {
+    if (ledger.total_calls >= HARD_CAP) {
+      console.log(`  hard cap of ${HARD_CAP} live calls reached; stopping.`);
       break;
     }
-
-    const memberInfo = membersPool[(i + ledger.total_calls) % membersPool.length]!;
-    const promptText = TASKS[(i * 7 + ledger.total_calls) % TASKS.length]!;
-    const callId = `call_${Date.now()}_${i}`;
-    const modelId = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
-    const maxAmountAtomic = "50000"; // 0.05 USDC
-
-    console.log(`  Call ${i + 1}/${callsCount}: ${memberInfo.account} on ${memberInfo.budget} - "${promptText.slice(0, 40)}..."`);
-
-    let txHash: string | null = null;
-    let blockHeight = 277000000 + i;
-
-    if (isDryRun || !activeKey || !rootSigner) {
-      txHash = `tx_${createHash("sha256").update(`${callId}:${memberInfo.account}`).digest("hex").slice(0, 44)}`;
-    } else {
-      try {
-        // Step A: Reserve
-        const resReserve: any = await rootSigner.account.signAndSendTransaction({
-          receiverId: METER_CONTRACT,
-          actions: [
-            actions.functionCall(
-              "reserve",
-              {
-                budget_id: memberInfo.budget,
-                member: memberInfo.account,
-                call_id: callId,
-                model_id: modelId,
-                max_amount: maxAmountAtomic,
-              },
-              GAS,
-              0n,
-            ),
-          ],
-          waitUntil: "FINAL",
-        });
-
-        // Step B: Live NEAR AI Call
-        const reqBody = JSON.stringify({
-          model: modelId,
-          messages: [{ role: "user", content: promptText }],
-          max_tokens: 150,
-          temperature: 0,
-        });
-
-        const compRes = await fetch(`${NEAR_AI_BASE}/chat/completions`, {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${activeKey}`,
-            "content-type": "application/json",
-            "x-no-aliasing": "true",
-          },
-          body: reqBody,
-          signal: AbortSignal.timeout(30_000),
-        });
-
-        if (compRes.ok) {
-          const compData: any = await compRes.json();
-          const chatId = compData.id;
-
-          // Fetch TEE signature
-          let signatureData: any = null;
-          if (chatId) {
-            await new Promise((r) => setTimeout(r, 2000));
-            const sigRes = await fetch(`${NEAR_AI_BASE}/signature/${encodeURIComponent(chatId)}?signing_algo=ecdsa`, {
-              headers: { authorization: `Bearer ${activeKey}` },
-              signal: AbortSignal.timeout(15_000),
-            });
-            if (sigRes.ok) {
-              signatureData = await sigRes.json();
-            }
-          }
-
-          if (signatureData) {
-            // Settle on chain
-            const reqHash = createHash("sha256").update(reqBody).digest("hex");
-            const respHash = createHash("sha256").update(JSON.stringify(compData)).digest("hex");
-
-            const proof = {
-              model_id: modelId,
-              request_hash: reqHash,
-              response_hash: respHash,
-              text: signatureData.text,
-              signature: signatureData.signature,
-              signing_address: signatureData.signing_address,
-              chat_id: chatId,
-            };
-
-            const settleRes: any = await rootSigner.account.signAndSendTransaction({
-              receiverId: METER_CONTRACT,
-              actions: [
-                actions.functionCall(
-                  "settle",
-                  {
-                    call_id: callId,
-                    amount: "15000", // ~0.015 USDC
-                    proof,
-                    pay_to: null, // in-state settlement
-                  },
-                  200_000_000_000_000n,
-                  0n,
-                ),
-              ],
-              waitUntil: "FINAL",
-            });
-            txHash = settleRes.transaction.hash;
-          }
-        }
-      } catch (err: any) {
-        console.log(`    Live call note: ${err.message}. Using recorded near settlement.`);
-        txHash = `tx_${createHash("sha256").update(callId).digest("hex").slice(0, 44)}`;
-      }
+    const key = activeKey(ledger);
+    const app = appFor(key);
+    console.log(`  paid call ${i + 1}/${plan.length}: ${short(p.caller.account)} on ${p.caller.budget} (NEAR AI ${key.replace("_", " ")})`);
+    const res = await app.request("/v1/ai/chat/completions", {
+      method: "POST",
+      headers: { authorization: `Bearer ${app.keyFor(p.caller)}`, "content-type": "application/json" },
+      body: JSON.stringify({ model: MODEL, messages: [{ role: "user", content: p.task }], max_tokens: MAX_TOKENS, temperature: 0 }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+    // A reserved call went to NEAR AI. Its cost is priced from the tokens NEAR AI reported, which the
+    // gateway keeps on its call row even when the proof is refused.
+    const row = app.call(res.headers.get("x-wardline-call") ?? "");
+    if (row && row.reserved !== "0") {
+      addSpend(ledger, key, { prompt_tokens: row.promptTokens ?? 0, completion_tokens: row.completionTokens ?? 0 }, new Date().toISOString());
+      saveSpend(ledger, false);
     }
-
-    // Ledger accounting
-    ledger.total_calls++;
-    if (ledger.current_key === "key_1") {
-      ledger.key_1_spend.calls++;
-      ledger.key_1_spend.estimated_tokens += 180;
-      ledger.key_1_spend.estimated_cost_usd += 0.00015;
-    } else {
-      ledger.key_2_spend.calls++;
-      ledger.key_2_spend.estimated_tokens += 180;
-      ledger.key_2_spend.estimated_cost_usd += 0.00015;
+    if (/HTTP 40[12]/.test(body.error?.message ?? "") && key === "key_1") {
+      console.log("    NEAR AI refused key 1; later calls use key 2.");
+      ledger.current_key = "key_2";
+      saveSpend(ledger, false);
     }
-    ledger.last_call_at = new Date().toISOString();
-
-    const entry: ActivityEntry = {
-      at: new Date().toISOString(),
-      actor: memberInfo.account,
-      community: memberInfo.budget,
-      kind: "call",
-      amount: "15000",
-      model: modelId,
-      outcome: "paid",
-      side: "above",
-      reason: null,
-      tx: txHash,
-      block_height: blockHeight,
-      text: `${memberInfo.commName}: proven and paid (${promptText.slice(0, 28)}...)`,
-    };
-    entries.push(entry);
-    appendActivity(activityPath, entry);
+    const tx = res.headers.get("x-wardline-settlement");
+    const proof = res.headers.get("x-wardline-proof");
+    if (!tx) {
+      console.log(`    HTTP ${res.status} ${body.error?.code ?? ""}: no transaction, no row. ${body.error?.message ?? ""}`.trimEnd());
+      continue;
+    }
+    const amount = res.headers.get("x-wardline-amount") ?? "0";
+    await record(tx, process.env.WARDLINE_GATEWAY_ACCOUNT!, proof === "verified"
+      ? { actor: p.caller.account, community: p.caller.budget, kind: "call", amount, model: MODEL, outcome: "paid", side: "above", reason: null, text: `${p.caller.group}: proven and paid ${usdc(amount)} USDC` }
+      : { actor: p.caller.account, community: p.caller.budget, kind: "call", amount: "0", model: MODEL, outcome: "refused", side: "below", reason: body.error?.code ?? null, text: `${p.caller.group}: refused (${body.error?.code ?? "no proof"}), hold released` });
   }
-
-  // 2. Bad Event A: Swapped Model Call (cheapai)
-  console.log(`\nExecuting Bad Event A: cheapai swapped model refusal...`);
-  const cheapCallId = `call_swapped_${Date.now()}`;
-  const cheapTx = `tx_${createHash("sha256").update(cheapCallId).digest("hex").slice(0, 44)}`;
-  const cheapEntry: ActivityEntry = {
-    at: new Date().toISOString(),
-    actor: "cheapai.wardline-labs.testnet",
-    community: "bgt_kelp",
-    kind: "call",
-    amount: "0",
-    model: "z-ai/glm-5.3-flash",
-    outcome: "refused",
-    side: "below",
-    reason: "MODEL_NOT_ATTESTED",
-    tx: cheapTx,
-    block_height: 277000100,
-    text: "cheapai: refused (claimed DeepSeek, served GLM-5.3 Flash; hold refunded)",
-  };
-  entries.push(cheapEntry);
-  appendActivity(activityPath, cheapEntry);
-
-  // 3. Bad Event B: Leaked Key Cap Burst
-  console.log(`Executing Bad Event B: Leaked key budget cap burst...`);
-  const leakCallId = `call_leaked_${Date.now()}`;
-  const leakTx = `tx_${createHash("sha256").update(leakCallId).digest("hex").slice(0, 44)}`;
-  const leakEntry: ActivityEntry = {
-    at: new Date().toISOString(),
-    actor: "tariq.wardline-labs.testnet",
-    community: "bgt_mission",
-    kind: "call",
-    amount: "0",
-    model: "deepseek-ai/DeepSeek-V4.1-Flash-1017",
-    outcome: "capped",
-    side: "below",
-    reason: "ALLOWANCE_EXHAUSTED",
-    tx: leakTx,
-    block_height: 277000105,
-    text: "tariq: capped below the line (leaked key burst blocked by allowance cap)",
-  };
-  entries.push(leakEntry);
-  appendActivity(activityPath, leakEntry);
-
-  // 4. Bad Event C: Look-alike Invoice Blocked
-  console.log(`Executing Bad Event C: Look-alike payee invoice blocked...`);
-  const invoiceTx = `tx_${createHash("sha256").update(`invoice_lookalike_${Date.now()}`).digest("hex").slice(0, 44)}`;
-  const invoiceEntry: ActivityEntry = {
-    at: new Date().toISOString(),
-    actor: "northw1nd.testnet",
-    community: "bgt_hayes",
-    kind: "payout",
-    amount: "45000000",
-    model: null,
-    outcome: "blocked",
-    side: "below",
-    reason: "UNVERIFIED_PAYEE_LOOKALIKE",
-    tx: invoiceTx,
-    block_height: 277000110,
-    text: "northw1nd.testnet: blocked before DAO vote (look-alike of verified northwind.io)",
-  };
-  entries.push(invoiceEntry);
-  appendActivity(activityPath, invoiceEntry);
-
-  // 5. Mutual Life: LP Deposit & Price Tick
-  console.log(`Executing Mutual Life: LP deposit and price tick...`);
-  const lpTx = `tx_${createHash("sha256").update(`lp_deposit_${Date.now()}`).digest("hex").slice(0, 44)}`;
-  const lpEntry: ActivityEntry = {
-    at: new Date().toISOString(),
-    actor: "lp-north.wardline-labs.testnet",
-    community: "mutual",
-    kind: "deposit",
-    amount: "25000000",
-    model: null,
-    outcome: "paid",
-    side: "above",
-    reason: null,
-    tx: lpTx,
-    block_height: 277000120,
-    text: "lp-north: deposited 25.00 USDC, received 24.81 WARD at 1.0076 USDC/WARD",
-  };
-  entries.push(lpEntry);
-  appendActivity(activityPath, lpEntry);
-
-  saveSpendLedger(spendPath, ledger);
-
-  console.log(`\nBatch completed. Summary of events:`);
-  console.log(`  Legitimate calls: ${callsCount}`);
-  console.log(`  Refused swapped: 1`);
-  console.log(`  Capped leaked key: 1`);
-  console.log(`  Blocked look-alike: 1`);
-  console.log(`  LP deposit: 1`);
-  console.log(`\nSpend Ledger:`);
-  console.log(JSON.stringify(ledger, null, 2));
-
-  return entries;
 }
 
-if (process.argv[1]?.endsWith("simulate.ts")) {
-  runBatch().catch((err) => {
-    console.error("Batch run failed:", err);
+async function swappedModel(caller: Caller, cast: Cast, gateway: SignerHandle, provider: ReturnType<typeof makeProvider>, record: Record_): Promise<void> {
+  console.log(`  swapped model: ${short(caller.account)} on ${caller.budget}`);
+  const raw = JSON.parse(readFileSync(join(REPO_ROOT, "fixtures/nearai/glm53flash-cheap.json"), "utf8")) as { request: { sha256: string }; response: { sha256: string }; signature: { status: number; body_b64: string } | null };
+  if (!raw.signature || raw.signature.status !== 200) throw new Error("the GLM-5.3 Flash recording has no signature");
+  const signature = JSON.parse(Buffer.from(raw.signature.body_b64, "base64").toString("utf8")) as ProviderSignature;
+  const callId = `call_swap_${randomBytes(6).toString("hex")}`;
+  const reserved = await callFinal(gateway, { contract_id: cast.contracts.meter, method: "reserve", args: { budget_id: caller.budget, member: caller.account, call_id: callId, model_id: MODEL, max_amount: "20000" }, gas: GAS });
+  const r = reserved.value as { ok?: boolean; reason?: string };
+  if (!r?.ok) throw new Error(`reserve refused (${r?.reason ?? "unknown"})`);
+  const registry = new NearModelRegistryClient({ contractId: cast.contracts.model_registry, provider });
+  const check = await verifyProviderProof({ model: MODEL, requestHash: raw.request.sha256, responseHash: raw.response.sha256, signature, isAttested: (m, s) => registry.isAttested(m, s) });
+  if (check.ok) throw new Error("the verifier accepted the GLM answer as DeepSeek; refusing to log a refusal that did not happen");
+  const released = await callFinal(gateway, { contract_id: cast.contracts.meter, method: "release", args: { call_id: callId, reason: check.problem }, gas: GAS });
+  await record(released.tx_hash, gateway.account_id, { actor: caller.account, community: caller.budget, kind: "call", amount: "0", model: CHEAP_MODEL, outcome: "refused", side: "below", reason: check.problem, text: `${caller.group}: refused, claimed DeepSeek V4.1 Flash but signed by GLM-5.3 Flash's key; hold released` });
+}
+
+/**
+ * A burst of reserves from a compromised member whose allowance setup left spent. Each refused reserve
+ * is a real transaction returning ALLOWANCE_EXHAUSTED. A reserve the meter accepts is released at once
+ * (the meter counts every release as a refusal, so the burst stops there).
+ */
+async function leakedKeyBurst(caller: Caller, cast: Cast, gateway: SignerHandle, record: Record_): Promise<void> {
+  console.log(`  leaked key: ${short(caller.account)} on ${caller.budget}`);
+  for (let i = 0; i < 3; i++) {
+    const callId = `call_burst_${randomBytes(6).toString("hex")}`;
+    const out = await callFinal(gateway, { contract_id: cast.contracts.meter, method: "reserve", args: { budget_id: caller.budget, member: caller.account, call_id: callId, model_id: MODEL, max_amount: "20000" }, gas: GAS });
+    const v = out.value as { ok?: boolean; reason?: string };
+    if (v?.ok) {
+      await callFinal(gateway, { contract_id: cast.contracts.meter, method: "release", args: { call_id: callId, reason: "LEAKED_KEY_BURST" }, gas: GAS });
+      console.log("    the allowance still had room, so the reserve was released. Spend it down with set_allowance; no row.");
+      return;
+    }
+    if (v?.reason !== "ALLOWANCE_EXHAUSTED" && v?.reason !== "BUDGET_EXHAUSTED") throw new Error(`reserve refused for another reason (${v?.reason ?? "unknown"})`);
+    await record(out.tx_hash, gateway.account_id, { actor: caller.account, community: caller.budget, kind: "call", amount: "0", model: MODEL, outcome: "capped", side: "below", reason: v.reason, text: `${caller.group}: leaked-key call ${i + 1} of 3 stopped at the spend limit; nothing reached a model` });
+  }
+}
+
+async function lpDeposit(lp: Cast["liquidity_providers"][number], amount: bigint, cast: Cast, signer: SignerHandle, record: Record_): Promise<void> {
+  console.log(`  LP deposit: ${short(lp.account)} ${usdc(amount)} USDC`);
+  const out = await callFinal(signer, { contract_id: cast.contracts.usdc, method: "ft_transfer_call", args: { receiver_id: cast.contracts.pool, amount: amount.toString(), msg: "" }, gas: GAS, deposit: 1n });
+  // ft_transfer_call returns the amount the pool kept. Anything less is a refund, not a deposit.
+  if (String(out.value) !== amount.toString()) throw new Error(`the pool kept ${String(out.value)} of ${amount}`);
+  await record(out.tx_hash, lp.account, { actor: lp.account, community: "mutual", kind: "deposit", amount: amount.toString(), model: null, outcome: "paid", side: "above", reason: null, text: `${lp.name} deposited ${usdc(amount)} USDC and received WARD` });
+}
+
+async function wardVote(lps: Cast["liquidity_providers"], cast: Cast, provider: ReturnType<typeof makeProvider>, creds: CredentialStore, record: Record_): Promise<void> {
+  type P = { id: number; description: string; status: string; executed_at?: string | null };
+  const proposals = await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {});
+  let open = proposals.filter((p) => p.status === "open");
+  if (!open.length) {
+    const proposer = lps.find((l) => creds.get(l.account));
+    if (!proposer) throw new Error("no LP key to open a proposal");
+    const next = PROPOSALS.find((p) => !proposals.some((q) => q.description === p.description)) ?? PROPOSALS[proposals.length % PROPOSALS.length]!;
+    console.log(`  WARD proposal: ${short(proposer.account)} opens "${next.description}"`);
+    const out = await callFinal(makeSigner(provider, proposer.account, creds.get(proposer.account)!), { contract_id: cast.contracts.pool, method: "propose", args: { description: next.description, action: next.action }, gas: GAS });
+    await record(out.tx_hash, proposer.account, { actor: proposer.account, community: "mutual", kind: "proposal", amount: null, model: null, outcome: "opened", side: "above", reason: null, text: `${proposer.name} opened a WARD vote: ${next.description}` });
+    open = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).filter((p) => p.status === "open");
+  }
+  const target = open[open.length - 1];
+  if (!target) throw new Error("no open proposal");
+  for (const lp of lps) {
+    const key = creds.get(lp.account);
+    if (!key) continue;
+    const weight = await viewCall<string>(provider, cast.contracts.pool, "weight_of", { id: target.id, voter: lp.account });
+    if (BigInt(weight || "0") === 0n) continue;
+    const support = target.id % 3 === 2 ? "against" : "for";
+    console.log(`  WARD vote: ${short(lp.account)} votes ${support} on #${target.id}`);
+    try {
+      const out = await callFinal(makeSigner(provider, lp.account, key), { contract_id: cast.contracts.pool, method: "vote", args: { id: target.id, support }, gas: GAS });
+      await record(out.tx_hash, lp.account, { actor: lp.account, community: "mutual", kind: "vote", amount: weight, model: null, outcome: "voted", side: "above", reason: null, text: `${lp.name} voted ${support}: ${target.description}` });
+      return;
+    } catch (error) {
+      if (!/Already voted/.test((error as Error).message)) throw error;
+    }
+  }
+  console.log("    every LP with WARD has voted on the open proposal; no vote this batch.");
+}
+
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/testnet/simulate.ts")) {
+  runBatch().catch((err: Error) => {
+    console.error(`Batch failed: ${err.message}`);
     process.exit(1);
   });
 }

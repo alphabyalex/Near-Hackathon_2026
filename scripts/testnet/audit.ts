@@ -1,281 +1,181 @@
-import { existsSync, readFileSync } from "node:fs";
+/**
+ * pnpm testnet:audit: checks data/testnet/activity.jsonl against NEAR testnet and exits non-zero on any miss.
+ *
+ *   1. Every row: the RPC tx method knows its hash, signed by its signer, and it succeeded; the block
+ *      of its first receipt has the row's height.
+ *   2. Every account: each cast account setup created (data/testnet/setup.json, else cast.json) and
+ *      each row's actor and signer exists (view_account).
+ *   3. Totals: per budget, the log never claims more than get_reputation and get_budget record
+ *      (proven, refused and capped calls, USDC spent), and logged deposits never exceed the pool.
+ *
+ * On a full pass it writes data/testnet/audit.json, pinning the rows it checked by their sha256. The API
+ * serves only those rows, and in near mode refuses /v1/activity until a stamp exists.
+ */
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import repo from "../../repo.config.json" with { type: "json" };
-import { NearCoverPoolClient, NearMeterClient, makeProvider } from "@wardline/vault-client";
+import { activityPaths, isChainRow, logLines, makeRpc, prefixHash, type ActivityRow, type AuditStamp } from "../../services/api/src/activity/log.js";
+import { DATA_DIR, REPO_ROOT, RPC_URL, RPC_URLS } from "./chain-log.js";
 
-const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
-const FALLBACK_RPC_URL = "https://rpc.testnet.near.org";
-const contracts = repo.near.contracts;
+const rpc = makeRpc(RPC_URLS);
 
-export interface ActivityEntry {
-  at: string;
-  actor: string;
-  community: string;
-  kind: "call" | "deposit" | "claim" | "vote" | "invoice";
-  amount: string;
-  model: string | null;
-  outcome: "paid" | "refused" | "capped" | "blocked" | "executed" | "open";
-  side: "above" | "below";
-  reason: string | null;
-  tx: string | null;
-  block_height?: number;
-  text: string;
-}
-
-export function usdc(atomic: string | bigint | number): string {
-  const n = typeof atomic === "bigint" ? Number(atomic) : Number(atomic);
-  return (n / 1e6).toFixed(6);
-}
-
-export async function fetchTxStatus(txHash: string, accountId: string, retries = 3): Promise<any> {
-  const endpoints = [RPC_URL, FALLBACK_RPC_URL];
-
-  for (let attempt = 0; attempt < retries; attempt++) {
-    for (const ep of endpoints) {
-      try {
-        const res = await fetch(ep, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: `audit-${Date.now()}`,
-            method: "tx",
-            params: [txHash, accountId],
-          }),
-          signal: AbortSignal.timeout(8000),
-        });
-
-        if (res.status === 429) {
-          // Rate limited, wait and retry
-          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
-          continue;
-        }
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.result) {
-            return { ok: true, result: data.result };
-          }
-          if (data.error) {
-            return { ok: false, error: data.error };
-          }
-        }
-      } catch {
-        // Try fallback endpoint or retry
-      }
-    }
-    await new Promise((r) => setTimeout(r, 800));
+function decode(b64: string): unknown {
+  if (!b64) return null;
+  const text = Buffer.from(b64, "base64").toString("utf8");
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
   }
+}
 
-  return { ok: false, error: { message: "RPC timeout or unreachable" } };
+/** The contract method each kind of row must be, and what its result must say. */
+const EXPECT: Record<string, { method: string; check?: (value: unknown, row: ActivityRow) => string | null }> = {
+  "call:paid": { method: "settle" },
+  "call:refused": { method: "release" },
+  "call:capped": {
+    method: "reserve",
+    check: (v, row) => {
+      const r = v as { ok?: boolean; reason?: string } | null;
+      return r?.ok === false && r.reason === row.reason ? null : `reserve returned ${JSON.stringify(v)}, not a refusal for ${row.reason}`;
+    },
+  },
+  "deposit:paid": { method: "ft_transfer_call", check: (v, row) => (String(v) === row.amount ? null : `the pool kept ${String(v)}, the row says ${row.amount}`) },
+  "vote:voted": { method: "vote" },
+  "proposal:opened": { method: "propose" },
+};
+const short = (a: string) => a.replace(/\.wardline-labs\.testnet$/, "");
+const usdc = (a: bigint | string) => (Number(a) / 1e6).toFixed(6);
+
+async function view<T>(contract: string, method: string, args: object): Promise<T> {
+  const r = await rpc("query", { request_type: "call_function", finality: "final", account_id: contract, method_name: method, args_base64: Buffer.from(JSON.stringify(args)).toString("base64") });
+  return JSON.parse(Buffer.from(r.result as number[]).toString("utf8")) as T;
+}
+
+function castAccounts(): string[] {
+  const setupPath = join(DATA_DIR, "setup.json");
+  if (existsSync(setupPath)) {
+    const setup = JSON.parse(readFileSync(setupPath, "utf8")) as { accounts?: string[] };
+    if (Array.isArray(setup.accounts)) return setup.accounts;
+  }
+  const cast = JSON.parse(readFileSync(join(REPO_ROOT, "scripts/testnet/cast.json"), "utf8")) as {
+    communities: Array<{ dao_account: string; members: Array<{ account: string }> }>;
+    individuals: Array<{ account: string }>;
+    liquidity_providers: Array<{ account: string }>;
+  };
+  return [...cast.communities.flatMap((c) => [c.dao_account, ...c.members.map((m) => m.account)]), ...cast.individuals.map((i) => i.account), ...cast.liquidity_providers.map((l) => l.account)];
 }
 
 export async function runAudit(): Promise<boolean> {
-  console.log("=== Wardline Testnet Activity & Contract Audit ===\n");
-  console.log(`Connecting to NEAR testnet via ${RPC_URL}...`);
+  const repo = JSON.parse(readFileSync(join(REPO_ROOT, "repo.config.json"), "utf8")) as { near: { contracts: { meter: string; coverPool: string } } };
+  const { meter, coverPool } = repo.near.contracts;
+  const paths = activityPaths();
+  const lines = existsSync(paths.log) ? logLines(readFileSync(paths.log, "utf8")) : [];
+  const misses: string[] = [];
+  const miss = (m: string) => {
+    misses.push(m);
+    console.log(`  MISS ${m}`);
+  };
 
-  const activityPath = join(process.cwd(), "data/testnet/activity.jsonl");
-  const castPath = join(process.cwd(), "scripts/testnet/cast.json");
+  console.log(`Wardline testnet audit against ${RPC_URL}`);
+  console.log(`Log: ${lines.length} row(s) in data/testnet/activity.jsonl\n`);
 
-  if (!existsSync(activityPath)) {
-    console.error(`Audit failed: activity file not found at ${activityPath}`);
-    return false;
-  }
-
-  const cast = existsSync(castPath) ? JSON.parse(readFileSync(castPath, "utf8")) : null;
-
-  // Read all activity lines
-  const lines = readFileSync(activityPath, "utf8")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  const entries: ActivityEntry[] = lines.map((l) => JSON.parse(l));
-  console.log(`Found ${entries.length} logged activities in data/testnet/activity.jsonl`);
-
-  // Aggregate activity statistics
-  let paidCalls = 0;
-  let refusedCalls = 0;
-  let cappedCalls = 0;
-  let blockedPayees = 0;
-  let deposits = 0;
-  let claims = 0;
-  let votes = 0;
-  let totalPaidVolume = 0n;
-  let totalFeesCalculated = 0n;
-
-  const budgetSpentLogged: Record<string, bigint> = {};
-
-  for (const e of entries) {
-    const amt = BigInt(e.amount || "0");
-    if (e.community) {
-      if (!budgetSpentLogged[e.community]) {
-        budgetSpentLogged[e.community] = 0n;
-      }
+  // 1. Every row is a transaction RPC knows.
+  console.log("Transactions");
+  const rows: ActivityRow[] = [];
+  for (const [i, line] of lines.entries()) {
+    let row: unknown;
+    try {
+      row = JSON.parse(line);
+    } catch {
+      miss(`row ${i + 1}: not JSON`);
+      continue;
     }
-
-    if (e.kind === "call") {
-      if (e.outcome === "paid") {
-        paidCalls++;
-        totalPaidVolume += amt;
-        const fee = (amt * 200n) / 10000n; // 2% fee
-        totalFeesCalculated += fee;
-        if (e.community) {
-          budgetSpentLogged[e.community] += amt;
-        }
-      } else if (e.outcome === "refused") {
-        refusedCalls++;
-      } else if (e.outcome === "capped") {
-        cappedCalls++;
-      }
-    } else if ((e.kind === "invoice" || e.kind === "payout") && e.outcome === "blocked") {
-      blockedPayees++;
-    } else if (e.kind === "deposit") {
-      deposits++;
-    } else if (e.kind === "claim") {
-      claims++;
-    } else if (e.kind === "vote") {
-      votes++;
+    if (!isChainRow(row)) {
+      miss(`row ${i + 1}: not a chain row (tx ${JSON.stringify((row as { tx?: unknown }).tx)}, block ${JSON.stringify((row as { block_height?: unknown }).block_height)})`);
+      continue;
+    }
+    rows.push(row);
+    try {
+      const tx = await rpc("tx", { tx_hash: row.tx, sender_account_id: row.signer, wait_until: "FINAL" });
+      if (tx.transaction?.hash !== row.tx) throw new Error("hash mismatch");
+      if (tx.transaction.signer_id !== row.signer) throw new Error(`signed by ${tx.transaction.signer_id}`);
+      if (tx.transaction.receiver_id !== row.receiver) throw new Error(`sent to ${tx.transaction.receiver_id}`);
+      if (!tx.status || !("SuccessValue" in tx.status)) throw new Error(`status ${JSON.stringify(tx.status).slice(0, 120)}`);
+      // What the transaction did must match what the row says it did.
+      const method = tx.transaction.actions?.[0]?.FunctionCall?.method_name as string | undefined;
+      const value = decode(tx.status.SuccessValue as string);
+      const want = EXPECT[`${row.kind}:${row.outcome}`];
+      if (!want) throw new Error(`no rule for ${row.kind}:${row.outcome}`);
+      if (method !== want.method) throw new Error(`calls ${method ?? "no method"}, a ${row.kind}:${row.outcome} row needs ${want.method}`);
+      const bad = want.check?.(value, row);
+      if (bad) throw new Error(bad);
+      const block = await rpc("block", { block_id: tx.receipts_outcome[0].block_hash });
+      if (block.header.height !== row.block_height) throw new Error(`receipt block ${block.header.height}, row says ${row.block_height}`);
+      console.log(`  ok   ${String(i + 1).padStart(3)} ${row.kind}:${row.outcome}`.padEnd(32) + ` ${short(row.actor).padEnd(16)} block ${row.block_height}  ${row.tx}`);
+    } catch (error) {
+      miss(`row ${i + 1} ${row.tx}: ${(error as Error).message}`);
     }
   }
 
-  console.log("\nActivity Breakdown:");
-  console.log(`  Proven & Paid calls : ${paidCalls} (Volume: ${usdc(totalPaidVolume)} USDC, Expected Fees: ${usdc(totalFeesCalculated)} USDC)`);
-  console.log(`  Refused calls       : ${refusedCalls} (Model swapped / unverified)`);
-  console.log(`  Capped calls        : ${cappedCalls} (Leaked key / limit reached)`);
-  console.log(`  Blocked payees      : ${blockedPayees} (Look-alike / unverified invoices)`);
-  console.log(`  LP Deposits         : ${deposits}`);
-  console.log(`  Claims processed    : ${claims}`);
-  console.log(`  Governance votes    : ${votes}`);
-
-  // Query on-chain contract state
-  const provider = makeProvider(RPC_URL);
-  const poolClient = new NearCoverPoolClient({ contractId: contracts.coverPool, provider });
-  const meterClient = new NearMeterClient({ contractId: contracts.meter, provider });
-
-  let onChainPool: any = null;
-  let onChainBudgets: any[] = [];
-  try {
-    onChainPool = await poolClient.getPool();
-    onChainBudgets = await meterClient.listBudgets();
-  } catch (err: any) {
-    console.warn(`Warning: Could not fetch all on-chain views (${err.message}). Continuing with recorded verification.`);
-  }
-
-  if (onChainPool) {
-    console.log("\nOn-Chain Cover Pool State:");
-    console.log(`  Contract     : ${contracts.coverPool}`);
-    console.log(`  TVL          : ${usdc(onChainPool.tvl)} USDC`);
-    console.log(`  Junior Stake : ${usdc(onChainPool.junior)} USDC`);
-    console.log(`  Senior Pool  : ${usdc(onChainPool.senior)} USDC`);
-    console.log(`  WARD Supply  : ${usdc(onChainPool.ward_supply)} WARD`);
-    console.log(`  WARD Price   : ${usdc(onChainPool.ward_price)} USDC`);
-    console.log(`  Fees Earned  : ${usdc(onChainPool.fees_earned)} USDC`);
-    console.log(`  Claims Paid  : ${usdc(onChainPool.claims_paid)} USDC`);
-  }
-
-  // Verify budgets
-  if (onChainBudgets.length > 0 && cast) {
-    console.log("\nCommunity Budgets Reconciliation:");
-    for (const comm of cast.communities) {
-      const b = onChainBudgets.find((x) => x.budget_id === comm.id);
-      const logged = budgetSpentLogged[comm.id] ?? 0n;
-      if (b) {
-        console.log(`  ${comm.name.padEnd(30)} [${comm.id}]: on-chain spent = ${usdc(b.spent)} USDC, deposit = ${usdc(b.deposit)} USDC, logged batch spent = ${usdc(logged)} USDC`);
-      } else {
-        console.log(`  ${comm.name.padEnd(30)} [${comm.id}]: logged batch spent = ${usdc(logged)} USDC (awaiting on-chain sync)`);
-      }
+  // 2. Every account exists.
+  console.log("\nAccounts");
+  const accounts = [...new Set([...castAccounts(), ...rows.flatMap((r) => [r.actor, r.signer])])].filter((a) => a.endsWith(".testnet") || a.length === 64);
+  let found = 0;
+  for (const account of accounts) {
+    try {
+      await rpc("query", { request_type: "view_account", finality: "final", account_id: account });
+      found++;
+    } catch (error) {
+      miss(`account ${account}: ${(error as Error).message}`);
     }
   }
+  console.log(`  ${found} of ${accounts.length} accounts exist`);
 
-  // Sample up to 25 transactions for RPC and integrity verification
-  console.log("\nTransaction Sample Verification (up to 25 transactions):");
-  const entriesWithTx = entries.filter((e) => Boolean(e.tx));
-  const sampleSize = Math.min(25, entriesWithTx.length);
-
-  // Shuffle / pick sample deterministically or distributed
-  const step = Math.max(1, Math.floor(entriesWithTx.length / sampleSize));
-  const sampled: ActivityEntry[] = [];
-  for (let i = 0; i < entriesWithTx.length && sampled.length < sampleSize; i += step) {
-    sampled.push(entriesWithTx[i]!);
-  }
-
-  let verifiedCount = 0;
-  let simulatedCount = 0;
-  let formatErrors = 0;
-
-  for (let i = 0; i < sampled.length; i++) {
-    const item = sampled[i]!;
-    const tx = item.tx!;
-    const isSimulated = tx.startsWith("tx_") || tx.startsWith("sim-");
-    const isBase58 = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(tx);
-
-    let statusLabel = "UNKNOWN";
-    let match = true;
-
-    if (isSimulated) {
-      simulatedCount++;
-      // Check simulated hash format (tx_<44 hex>)
-      const validSimFormat = /^tx_[0-9a-f]{40,64}$/.test(tx) || /^sim-[0-9a-f]+$/.test(tx);
-      if (validSimFormat) {
-        statusLabel = "VALID_SIMULATED";
-      } else {
-        statusLabel = "INVALID_SIM_FORMAT";
-        formatErrors++;
-        match = false;
-      }
-    } else if (isBase58) {
-      // Real testnet transaction: query RPC
-      const rpcResult = await fetchTxStatus(tx, item.actor);
-      if (rpcResult.ok) {
-        const txOutcome = rpcResult.result;
-        const executionSuccess = txOutcome.status?.SuccessValue !== undefined;
-        statusLabel = executionSuccess ? "ON_CHAIN_SUCCESS" : "ON_CHAIN_FAILURE";
-        if (item.outcome === "paid" && !executionSuccess) {
-          match = false;
-        }
-      } else {
-        // RPC might have pruned or not indexed if recent, but hash is valid base58
-        statusLabel = `RPC_UNINDEXED (${rpcResult.error?.message?.slice(0, 20) ?? "not found"})`;
-      }
-    } else {
-      statusLabel = "NON_STANDARD_HASH";
-      formatErrors++;
-      match = false;
+  // 3. The log never claims more than the chain records.
+  console.log("\nTotals against chain views");
+  const pool = await view<{ tvl: string; ward_price: string; fees_earned: string; ward_supply: string }>(coverPool, "get_pool", {});
+  console.log(`  get_pool: tvl ${usdc(pool.tvl)} USDC, fees earned ${usdc(pool.fees_earned)}, WARD price ${usdc(pool.ward_price)}`);
+  const budgets = [...new Set(rows.filter((r) => r.kind === "call").map((r) => r.community))].sort();
+  for (const id of budgets) {
+    const mine = rows.filter((r) => r.community === id && r.kind === "call");
+    const logged = {
+      proven: mine.filter((r) => r.outcome === "paid").length,
+      refused: mine.filter((r) => r.outcome === "refused").length,
+      capped: mine.filter((r) => r.outcome === "capped").length,
+      spent: mine.filter((r) => r.outcome === "paid").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n),
+    };
+    const rep = await view<{ proven_calls: number; refused_calls: number; capped_calls: number } | null>(meter, "get_reputation", { budget_id: id });
+    const budget = await view<{ spent: string } | null>(meter, "get_budget", { budget_id: id });
+    if (!rep || !budget) {
+      miss(`${id}: no reputation or budget on the meter`);
+      continue;
     }
-
-    if (match) {
-      verifiedCount++;
-    }
-
-    const shortActor = item.actor.replace(".wardline-labs.testnet", "");
-    const shortTx = tx.length > 20 ? `${tx.slice(0, 10)}...${tx.slice(-8)}` : tx;
-    console.log(`  [${(i + 1).toString().padStart(2)}] ${item.at.slice(11, 19)} | ${shortActor.padEnd(16)} | ${(item.kind + ":" + item.outcome).padEnd(14)} | ${shortTx.padEnd(24)} | ${statusLabel} | ${match ? "PASS" : "FAIL"}`);
+    const line = `  ${id.padEnd(18)} proven ${logged.proven}/${rep.proven_calls}  refused ${logged.refused}/${rep.refused_calls}  capped ${logged.capped}/${rep.capped_calls}  spent ${usdc(logged.spent)}/${usdc(budget.spent)} (log/chain)`;
+    console.log(line);
+    if (logged.proven > rep.proven_calls) miss(`${id}: ${logged.proven} paid calls logged, ${rep.proven_calls} on chain`);
+    if (logged.refused > rep.refused_calls) miss(`${id}: ${logged.refused} refusals logged, ${rep.refused_calls} on chain`);
+    if (logged.capped > rep.capped_calls) miss(`${id}: ${logged.capped} capped calls logged, ${rep.capped_calls} on chain`);
+    if (logged.spent > BigInt(budget.spent)) miss(`${id}: ${usdc(logged.spent)} USDC spent logged, ${usdc(budget.spent)} on chain`);
   }
+  const deposited = rows.filter((r) => r.kind === "deposit").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n);
+  console.log(`  deposits logged ${usdc(deposited)} USDC, pool tvl ${usdc(pool.tvl)} USDC`);
+  if (deposited > BigInt(pool.tvl)) miss(`deposits logged ${usdc(deposited)} exceed pool tvl ${usdc(pool.tvl)}`);
 
-  console.log(`\nVerification Summary:`);
-  console.log(`  Sampled transactions : ${sampled.length}`);
-  console.log(`  Verified integrity   : ${verifiedCount}/${sampled.length}`);
-  console.log(`  Simulated/Dry-run tx : ${simulatedCount}`);
-  console.log(`  Format errors        : ${formatErrors}`);
-
-  const passed = formatErrors === 0 && verifiedCount === sampled.length;
+  const passed = misses.length === 0;
+  console.log(`\n${passed ? "PASS" : "FAIL"}: ${rows.length} of ${lines.length} rows are chain rows, ${misses.length} miss(es).`);
   if (passed) {
-    console.log("\nSUCCESS: All activity logs and transactions verified successfully.");
-  } else {
-    console.error("\nFAILURE: One or more audit checks failed.");
+    const stamp: AuditStamp = { passed: true, at: new Date().toISOString(), rows: lines.length, sha256: prefixHash(lines, lines.length), rpc: RPC_URL };
+    writeFileSync(paths.audit, `${JSON.stringify(stamp, null, 2)}\n`, "utf8");
+    console.log(`Wrote data/testnet/audit.json: the API now serves these ${lines.length} row(s).`);
   }
-
   return passed;
 }
 
-if (process.argv[1]?.endsWith("audit.ts")) {
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/testnet/audit.ts")) {
   runAudit()
-    .then((ok) => {
-      process.exit(ok ? 0 : 1);
-    })
-    .catch((err) => {
-      console.error("Fatal audit error:", err);
+    .then((ok) => process.exit(ok ? 0 : 1))
+    .catch((err: Error) => {
+      console.error(`Audit could not finish: ${err.message}`);
       process.exit(1);
     });
 }

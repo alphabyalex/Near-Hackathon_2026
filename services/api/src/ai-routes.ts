@@ -191,7 +191,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     const [poolView, claims, list, proposals, tiers, params] = await Promise.all([pool.getPool(), pool.listClaims(), groups(), chain.governance.listProposals(), chain.reputation.tierRules(), chain.governance.params()]);
     return c.json({
       mode: chain.mode,
-      // Reputation and voting are simulated until Tharun's T4.6 contracts are deployed.
+      // sim, or near: reputation and voting read from the meter and pool contracts (T4.6).
       mutual_mode: chain.governance.mode,
       contract: deps.ai.contracts.pool,
       min_deposit: MIN_DEPOSIT_ATOMIC.toString(),

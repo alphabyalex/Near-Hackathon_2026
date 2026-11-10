@@ -28,6 +28,8 @@ export interface SetupResult {
   root_account: string;
   accounts_checked: number;
   accounts_created: string[];
+  /** Every cast account that exists on chain after this run. */
+  accounts?: string[];
   budgets_configured: string[];
   vendors_attested: string[];
   transactions: Array<{ action: string; target: string; tx?: string }>;
@@ -104,17 +106,17 @@ export async function runSetup(opts: SetupOptions = {}): Promise<SetupResult> {
       continue; // External or non-subaccount
     }
 
+    if (isDryRun) {
+      // A dry run creates no key, no account and no file; it only says what a live run would do.
+      console.log(`  [dry-run] would ${(await viewAccount(provider, acct)) ? "keep" : "create"} ${acct}`);
+      continue;
+    }
+
     let existingKey = creds.get(acct);
     if (!existingKey) {
       const newKey = KeyPair.fromRandom("ed25519").toString();
       creds.set(acct, newKey);
       existingKey = newKey;
-    }
-
-    if (isDryRun) {
-      console.log(`  [dry-run] account ${acct} ensured in credentials`);
-      result.accounts_created.push(acct);
-      continue;
     }
 
     const onChain = await viewAccount(provider, acct);
@@ -143,7 +145,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<SetupResult> {
 
     // Storage deposit on USDC and WARD pool
     try {
-      const acctSigner = makeSigner(provider, acct, existingKey);
+      const acctSigner = makeSigner(provider, acct, existingKey!);
       for (const tokenContract of [USDC_CONTRACT, POOL_CONTRACT]) {
         try {
           await acctSigner.account.signAndSendTransaction({
@@ -179,8 +181,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<SetupResult> {
     }));
 
     if (isDryRun) {
-      console.log(`  [dry-run] budget ${budgetId} configured with ${membersInput.length} members`);
-      result.budgets_configured.push(budgetId);
+      console.log(`  [dry-run] would configure budget ${budgetId} with ${membersInput.length} members`);
       continue;
     }
 
@@ -231,8 +232,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<SetupResult> {
     const allowanceAtomic = (BigInt(Math.round(parseFloat(ind.allowance_usdc) * 1_000_000))).toString();
 
     if (isDryRun) {
-      console.log(`  [dry-run] individual budget ${budgetId} for ${ind.account}`);
-      result.budgets_configured.push(budgetId);
+      console.log(`  [dry-run] would configure individual budget ${budgetId} for ${ind.account}`);
       continue;
     }
 
@@ -279,8 +279,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<SetupResult> {
 
   for (const vendor of cast.vendors) {
     if (isDryRun) {
-      console.log(`  [dry-run] vendor ${vendor.name} (${vendor.domain}) attested`);
-      result.vendors_attested.push(vendor.domain);
+      console.log(`  [dry-run] would attest vendor ${vendor.name} (${vendor.domain})`);
       continue;
     }
 
@@ -327,9 +326,16 @@ export async function runSetup(opts: SetupOptions = {}): Promise<SetupResult> {
     }
   }
 
+  if (isDryRun) {
+    console.log("\nDry run: nothing was sent and nothing under data/testnet/ changed.");
+    return result;
+  }
+  // The cast as it exists on chain. pnpm testnet:audit checks every one of these with view_account.
+  result.accounts = [];
+  for (const acct of accountsToEnsure) if (await viewAccount(provider, acct)) result.accounts.push(acct);
   mkdirSync(join(process.cwd(), "data/testnet"), { recursive: true });
   writeFileSync(outputPath, JSON.stringify(result, null, 2), "utf8");
-  console.log(`\nSetup completed successfully. Summary saved to ${outputPath}`);
+  console.log(`\nSetup finished: ${result.accounts.length} cast accounts on chain. Summary saved to ${outputPath}`);
 
   return result;
 }

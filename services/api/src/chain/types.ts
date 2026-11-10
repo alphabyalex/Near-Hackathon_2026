@@ -188,9 +188,9 @@ export interface Chain {
   meter: MeterClient;
   registry: ModelRegistryClient;
   pool: CoverPoolClient;
-  /** Reputation tiers. Sim until T4.6 lands on chain, even in near mode. */
+  /** Reputation tiers: the meter contract in near mode (T4.6), simulated in sim mode. */
   reputation: ReputationClient;
-  /** WARD-holder voting. Sim until T4.6 lands on chain, even in near mode. */
+  /** WARD-holder voting: the pool contract in near mode (T4.6), simulated in sim mode. */
   governance: GovernanceClient;
 }
 

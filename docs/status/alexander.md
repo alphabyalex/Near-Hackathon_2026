@@ -1,5 +1,93 @@
 # Status: alexander
 
+## A10: real testnet communities, steps 0 to 2 (2026-11-09)
+
+Stopped before step 3, as asked: the two testnet keys aren't on this machine yet. Nothing has been sent to the chain and no NEAR AI call has been made.
+
+### Merged from Tharun (step 0)
+
+- Merged `origin/tharun` (b91311d) into alexander.
+- **Kept:**
+  - `scripts/testnet/`;
+  - `services/api/src/activity/` and its test;
+  - the `apps/web/src/data/` layer and `apps/web/test/data.test.ts`;
+  - the vault-client re-export his scripts use.
+- **Restored to main:** every other `apps/web` file from his old UI commit 1c7f52e, so A9 stays intact.
+- **Reset:**
+  - `activity.jsonl` emptied;
+  - `nearai-spend.json` zeroed;
+  - `setup.json` deleted. It came from a dry run that listed 46 accounts as created.
+- **Held back:** his README section. It describes activity that never happened ("actively transacting", "1 claim covered"). Step 6 rewrites it from the audit.
+
+### Preflight (step 1)
+
+| Item | Status |
+| --- | --- |
+| Full-access key for `wardline-labs.testnet` (`ed25519:FGUWrt4Y…` on chain) | Missing. Goes in `%USERPROFILE%\.wardline\testnet\credentials.json` |
+| Meter gateway key (FunctionCall `ed25519:8GCuoS7j…` on `meter.wardline-labs.testnet`, for reserve, settle and release) | Missing. Goes in `.env` as `WARDLINE_GATEWAY_ACCOUNT` and `WARDLINE_GATEWAY_KEY` |
+| `NEAR_AI_API_KEY` | Set |
+| `NEAR_AI_API_KEY_2` | Not set |
+| Root balances | 14.058 NEAR, 2.235352 USDC |
+
+### Why fake rows got in, and what stops them now (step 2)
+
+**The causes**
+- The old batch wrote `tx_` plus sha256 hashes, with block heights counting up from 277000000. It did this whenever it was a dry run, had no key, or hit any error.
+- Its refusal, leaked-key, look-alike and LP rows never sent a transaction at all.
+- Setup's dry run wrote `setup.json` anyway.
+
+**Two more sources, found on the way**
+1. **The meter's synthetic tx ids.**
+   - `settle` and `release` return `tx: "meter.wardline-labs.testnet:<call_id>"`, and the vault client reported that instead of the transaction's hash.
+   - So in near mode, the API's `X-Wardline-Settlement` and `settlement_tx` were never real hashes. Every explorer link built from them would 404.
+   - The vault client now returns the real `tx_hash` for settle, release, deposit, withdraw, redeem and filed claims. It still sends the same transactions; only the reported id changed.
+2. **Near mode still simulated tiers and WARD voting** ("until T4.6"), though T4.6 has deployed them.
+   - Near mode now reads `get_reputation`, `list_reputations`, `list_proposals`, `weight_of` and `governance_params` from the contracts.
+   - In near mode the API no longer casts votes or proposals for anyone. The holder's wallet signs them against the pool.
+   - The meter keeps no counter for capped calls. A refused reserve changes no state, so `capped_calls` counts audited capped rows; each is a verified reserve transaction that returned ALLOWANCE_EXHAUSTED.
+
+**What makes a fake row impossible**
+- **One writer** (`scripts/testnet/chain-log.ts`, rules in `services/api/src/activity/log.ts`).
+  - A row's hash, signer, receiver, block height and time are copied from the RPC `tx` result and its receipt's block.
+  - It throws for a non-base58 hash, an unknown hash, a failed transaction or a signer mismatch.
+- **`--dry-run`** prints the plan and stops. It sends nothing, calls nothing, and every write under `data/testnet/` throws. The same holds for setup's dry run.
+- **The batch takes the real paths.**
+
+  | Event | How it runs |
+  | --- | --- |
+  | Paid calls | The Wardline gateway, run in-process in near mode |
+  | Swapped model | A real reserve, then the SDK verifier on the recorded GLM-5.3 Flash answer, then a real release |
+  | Leaked-key burst | Real reserves refused at the allowance |
+  | LP deposits | `ft_transfer_call` from the LP's own key, checked that the pool kept the full amount |
+  | WARD vote | `vote` signed by the holder |
+
+  The look-alike invoice is gone: it has no transaction to point to. NEAR AI spend is priced from the tokens NEAR AI reported, at $0.30 and $1.20 per million.
+- **`pnpm testnet:audit`** exits 1 on any miss. It checks:
+  - every row with the RPC `tx` method: hash, signer, receiver, success, block height;
+  - the contract method behind each row (`settle`, `release`, `reserve` with the refusal reason, `ft_transfer_call` with the amount kept, `vote`, `propose`);
+  - every cast account with `view_account`;
+  - per budget, that the log never claims more than `get_reputation` and `get_budget`, and that deposits never exceed the pool's `tvl`.
+
+  On a pass it writes `data/testnet/audit.json`, pinning the rows it checked by their sha256.
+- **The API serves only the audited prefix.**
+  - In near mode, `/v1/activity`, `/v1/communities/:id` and `/v1/people/:account` answer 503 `ACTIVITY_NOT_AUDITED` until an audit has passed.
+  - Rows appended later wait for the next audit, and an edited log serves nothing.
+  - All counts come from chain views. Removed: the `|| 5` group count, `Math.max(log, chain)`, the made-up tier history, default caps and fees, and logged deposits added onto pool positions.
+- **The web.** The testnet source is still off unless `WARDLINE_DATA=testnet`. In that mode, #/me reads `/v1/mutual` for the Mutual summary and `/v1/people` for the account.
+
+**Checks today**
+- Batch dry run: 0 of 34 members and 0 of 6 LPs exist, so only the paid-call plan prints. `data/testnet/` is byte-identical afterwards.
+- `pnpm testnet:audit` on the empty log: FAIL with 45 misses, one for each cast account that doesn't exist yet. No stamp written.
+
+### Tests
+
+- `pnpm test` passes. API 230 (8 new: rows only from RPC, old hashes refused, the 503 gate, audited prefix), web 81, and every other package.
+- Chromium e2e: 53 of 53 passed.
+
+### Next, once the keys are in
+
+Step 3 (create and fund the cast, scaled to the root's 14 NEAR and 2.2 USDC), then the first batch and audit.
+
 ## A9: phones, the wallet panel and leftover content (2026-11-09)
 
 Took about one hour, 23:00 to 23:55 UTC. That's under the two-to-three-hour budget, so P3 is done too. I didn't run Lighthouse, a fresh clone, or the Firefox and desktop WebKit suites, as asked.
