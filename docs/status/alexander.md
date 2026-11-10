@@ -1,5 +1,71 @@
 # Status: alexander
 
+## A14: one Horizon wallet panel (2026-11-10)
+
+`alexander` couldn't be fast-forwarded: it had the A13 commits and main had new ones. I merged main into it instead (`4a902e6`, no conflicts). Main is untouched, and no transactions were sent.
+
+### The panel
+
+- **Our panel is the picker.** A click on a logo calls NEAR Connect's `connect({ walletId })`, which skips NEAR Connect's selection modal and opens that wallet. When a wallet shows its own window (NEAR Connect's iframe), our panel hides until it closes, so two panels never stack. No typed account, no confirm step.
+- **Grid:** Meteor, Intear, Nightly. **More wallets** (collapsed): Ledger.
+  - Installed extensions move to the front: Meteor via `window.meteorCom`, Nightly via `window.nightly.near`.
+  - On phones, wallets with a phone app move up (Meteor).
+- **Left out, with the reason:**
+  - **HOT:** tried on testnet. The executor answers "HOT Wallet not supported on testnet".
+  - **MyNearWallet:** tried on testnet. NEAR Connect answers "Permission denied": on testnet the executor opens `testnet.mynearwallet.com`, but its manifest only allows `app.mynearwallet.com`.
+  - **Unity and WalletConnect:** NEAR Connect removes every wallet with the `walletConnect` permission unless it's given a WalletConnect client, which needs a Reown project id. None is set. With an id they can be added to `wallets/catalog.ts`.
+  - **Never shown:** NEAR Mobile, NEAR CLI, OKX, Hana, Trezu, Ethereum wallets, Phantom, MetaMask.
+- **Logos:** each wallet's NEAR Connect manifest icon, bundled in `apps/web/public/wallets/`. Nightly's was WebP and was converted to PNG pixel for pixel. Nothing recolored. Alt text is the wallet name.
+- **First connect sticks:** NEAR Connect's `wallet:signIn` event now saves the account wherever it lands. A slow wallet window, a page that lost focus, a closed panel, or a wallet promise that never settles all still connect.
+  - Reading the account right after sign-in retries briefly if the wallet hasn't saved it yet.
+  - Nothing times out: after 90 s the panel says it's still waiting and offers Try again.
+  - This covers the likely causes of the Meteor Web miss, but I couldn't reproduce it here (no Meteor in this browser), so your test is the real check.
+- **Connected, in the same panel:**
+  - The member's own halftone sphere (`horizonDots`, light from `seededLight(account)`), the account, and "Connected with Meteor".
+  - USDC and NEAR side by side in tabular figures, and a line when NEAR is under 0.05.
+  - Go to my share (primary), Switch wallet (secondary), Disconnect as a quiet muted link. No red anywhere in the panel.
+- **Errors under the grid,** each with Try again on the same wallet: blocked window, rejected, not installed, and a new "That wallet didn't answer." for a wallet that can't be reached.
+- **Developer:** the local test signer and the e2e test wallet sit in a Developer disclosure at the bottom. It appears only in local dev and e2e builds, never in the grid.
+- **Shape and motion:**
+  - Kept: anchored under the header on desktop, focus trap, Escape, outside click, Cancel. On phones it's always a bottom sheet with a grab handle and safe-area padding, whichever button opened it.
+  - Motion: the panel rises 8px in 180ms and the tiles fade in with a 30ms stagger. The only loop is the spinner while a wallet opens. Under reduced motion, the entrance and hover lift are off and the spinner slows.
+
+### Security headers
+
+The production CSP is back to exact hosts. I found them by building the site, serving it with its headers, clicking each wallet, and reading every CSP violation until there were none:
+- **connect-src:** `raw.githubusercontent.com`, `cdn.jsdelivr.net` (NEAR Connect's manifest and wallet code), `wallet.meteorwallet.app`, `mc.meteorwallet.app` (https and wss), `wallet.intear.tech`, `wss://logout-bridge-service.intear.tech`, the testnet RPCs (`test.rpc.fastnear.com`, `rpc.testnet.near.org`, `api.testnet.fastnear.com`, `helper.testnet.near.org`), plus the API and any `VITE_NEAR_RPC_URL` hosts.
+- **frame-src:** `wallet.intear.tech`.
+- **img-src:** `meteorwallet.app` and `storage.herewallet.app` (the wallets' own panels).
+- **style-src and font-src:** `rsms.me` and `fonts.cdnfonts.com` (Meteor's panel fonts); font-src also allows `data:`.
+- **`'unsafe-inline'` stays in script-src.** NEAR Connect runs each wallet's code as an inline script in a sandboxed `srcdoc` iframe, which inherits our policy. The code is fetched at run time, so no hash can name it, and a static host can't send a fresh nonce. Checked: with it removed, every wallet stops at "Opening" with "Executing inline script violates ... script-src 'self'".
+
+### Checks
+
+- **Unit tests** (`apps/web/test/wallet-panel.test.tsx`, 13): the list, its order and installed detection; one-click connect; first connect sticking from the event and after the panel closed; refusing another network's account; the connected state (balances, low NEAR, buttons, quiet Disconnect); errors and Try again; no red in the panel CSS; axe on the picker, error and connected states.
+- **Suites:** `pnpm test` passes (API 241, web 113, brand 7, every other package). The Chromium e2e passes 53 of 53, iPhone WebKit 12 of 12.
+- **Screenshots** (`node --import tsx e2e/wallet-shots.ts`, against the local testnet dev site, saved in `apps/web/screenshots/`): `wallet-picker-1440.png`, `wallet-hover-1440.png`, `wallet-opening-1440.png`, `wallet-error-1440.png`, `wallet-connected-1440.png`, `wallet-picker-iphone-se.png`, `wallet-opening-iphone-se.png`, `wallet-error-iphone-se.png`, `wallet-connected-iphone-se.png`.
+  - Phones have no hover, so there's no hover shot at iPhone SE.
+  - The iPhone SE shots use the 375 x 667 SE. Playwright's plain "iPhone SE" preset is 320px wide, where the grid correctly drops to two columns.
+  - After review I fixed: a faint title mark, "Opening Meteor" overflowing narrow tiles, a wrong error message ("didn't sign") for a wallet that can't be reached, a centred dialog instead of a bottom sheet on phones, a stranded Cancel, and wrapping action buttons.
+
+### Files touched
+
+- **New:**
+  - `apps/web/src/wallets/WalletPanel.tsx`, `apps/web/src/wallets/catalog.ts`, `apps/web/src/wallets/wallet-panel.css`
+  - `apps/web/public/wallets/meteor.svg`, `intear.svg`, `nightly.png`, `ledger.svg`
+  - `apps/web/test/wallet-panel.test.tsx`, `apps/web/e2e/wallet-shots.ts`
+- **Changed:**
+  - `apps/web/src/wallets/near.ts`: one-click connect and the sign-in listener.
+  - `apps/web/src/wallets/connected.ts`: the wallet id types moved here, plus `via`.
+  - `apps/web/src/components/Dialog.tsx`: title mark, grab handle and panel class.
+  - `apps/web/src/views/site/Member.tsx`: only `ConnectDialog`, and Join's connect step, which now opens the same panel.
+  - `apps/web/src/brand.ts`: the `WALLET` copy and `ERRORS.walletUnreachable`.
+  - `apps/web/src/data/errors.ts`: the `walletUnreachable` kind.
+  - `apps/web/vite.config.ts`: security headers only.
+  - `apps/web/e2e/testnet.spec.ts`: opens the Developer disclosure.
+  - `apps/web/package.json` and `pnpm-lock.yaml`: `axe-core` as a dev dependency.
+  - `docs/status/alexander.md`.
+
 ## A13: real wallets on testnet with NEAR Connect (2026-11-10)
 
 On `alexander`, fast-forwarded from main (`c11959d`). Not merged to main.
