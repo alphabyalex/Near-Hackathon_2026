@@ -65,8 +65,8 @@
 .wp-tile:disabled { cursor: default; opacity: 0.38; }
 .wp-tile[data-opening] { opacity: 1; border-color: var(--violet); }
 
-.wp-opening { display: inline-flex; align-items: center; gap: 6px; color: var(--violet-text); font-size: 12px; white-space: nowrap; }
-.wp-spin { flex: none; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(165, 155, 255, 0.3); border-top-color: var(--violet-text); animation: spin 0.8s linear infinite; }
+.wp-opening { display: block; max-width: 100%; color: var(--violet-text); font-size: 12px; line-height: 1.35; text-align: center; text-wrap: balance; }
+.wp-spin { display: inline-block; vertical-align: -1px; margin-right: 6px; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(165, 155, 255, 0.3); border-top-color: var(--violet-text); animation: spin 0.8s linear infinite; }
 
 .wp-installed { display: inline-flex; align-items: center; gap: 5px; margin-top: -6px; font-size: 12px; color: var(--violet-text); }
 .wp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); }
