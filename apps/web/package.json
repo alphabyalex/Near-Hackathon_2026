@@ -12,7 +12,8 @@
     "test:e2e": "playwright test --project=e2e --project=firefox --project=webkit --project=iphone",
     "screenshots": "playwright test --project=screenshots",
     "test:e2e:chromium": "playwright test --project=e2e",
-    "test:e2e:iphone": "playwright test --project=iphone"
+    "test:e2e:iphone": "playwright test --project=iphone",
+    "test:e2e:testnet": "playwright test -c playwright.testnet.config.ts"
   },
   "dependencies": {
     "@near-wallet-selector/core": "^10.1.4",

@@ -6,7 +6,7 @@
  *   2. Every account: each cast account setup created (data/testnet/setup.json, else cast.json) and
  *      each row's actor and signer exists (view_account).
  *   3. Totals: per budget, the log never claims more than get_reputation and get_budget record
- *      (proven, refused and capped calls, USDC spent), and logged deposits never exceed the pool.
+ *      (proven and refused calls, USDC spent; each capped row is checked by its reserve result), and logged deposits never exceed the pool.
  *
  * On a full pass it writes data/testnet/audit.json, pinning the rows it checked by their sha256. The API
  * serves only those rows, and in near mode refuses /v1/activity until a stamp exists.
@@ -29,7 +29,7 @@ function decode(b64: string): unknown {
 }
 
 /** The contract method each kind of row must be, and what its result must say. */
-const EXPECT: Record<string, { method: string; check?: (value: unknown, row: ActivityRow) => string | null }> = {
+const EXPECT: Record<string, { method: string | string[]; check?: (value: unknown, row: ActivityRow) => string | null }> = {
   "call:paid": { method: "settle" },
   "call:refused": { method: "release" },
   "call:capped": {
@@ -40,8 +40,13 @@ const EXPECT: Record<string, { method: string; check?: (value: unknown, row: Act
     },
   },
   "deposit:paid": { method: "ft_transfer_call", check: (v, row) => (String(v) === row.amount ? null : `the pool kept ${String(v)}, the row says ${row.amount}`) },
-  "vote:voted": { method: "vote" },
-  "proposal:opened": { method: "propose" },
+  // WARD votes and proposals on the pool, or a community DAO's (Sputnik) proposals and votes.
+  "vote:voted": { method: ["vote", "act_proposal"] },
+  "proposal:opened": { method: ["propose", "add_proposal"] },
+  "proposal:executed": { method: "execute" },
+  "redeem:opened": { method: "request_redeem" },
+  "payout:paid": { method: "file_claim", check: (v) => ((v as { status?: string } | null)?.status === "paid" ? null : `the claim is ${JSON.stringify(v).slice(0, 80)}, not paid`) },
+  "redeem:paid": { method: "redeem" },
 };
 const short = (a: string) => a.replace(/\.wardline-labs\.testnet$/, "");
 const usdc = (a: bigint | string) => (Number(a) / 1e6).toFixed(6);
@@ -106,7 +111,8 @@ export async function runAudit(): Promise<boolean> {
       const value = decode(tx.status.SuccessValue as string);
       const want = EXPECT[`${row.kind}:${row.outcome}`];
       if (!want) throw new Error(`no rule for ${row.kind}:${row.outcome}`);
-      if (method !== want.method) throw new Error(`calls ${method ?? "no method"}, a ${row.kind}:${row.outcome} row needs ${want.method}`);
+      const methods = Array.isArray(want.method) ? want.method : [want.method];
+      if (!method || !methods.includes(method)) throw new Error(`calls ${method ?? "no method"}, a ${row.kind}:${row.outcome} row needs ${methods.join(" or ")}`);
       const bad = want.check?.(value, row);
       if (bad) throw new Error(bad);
       const block = await rpc("block", { block_id: tx.receipts_outcome[0].block_hash });
@@ -144,21 +150,20 @@ export async function runAudit(): Promise<boolean> {
       capped: mine.filter((r) => r.outcome === "capped").length,
       spent: mine.filter((r) => r.outcome === "paid").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n),
     };
-    const rep = await view<{ proven_calls: number; refused_calls: number; capped_calls: number } | null>(meter, "get_reputation", { budget_id: id });
+    const rep = await view<{ proven_calls: number; refused_calls: number } | null>(meter, "get_reputation", { budget_id: id });
     const budget = await view<{ spent: string } | null>(meter, "get_budget", { budget_id: id });
     if (!rep || !budget) {
       miss(`${id}: no reputation or budget on the meter`);
       continue;
     }
-    const line = `  ${id.padEnd(18)} proven ${logged.proven}/${rep.proven_calls}  refused ${logged.refused}/${rep.refused_calls}  capped ${logged.capped}/${rep.capped_calls}  spent ${usdc(logged.spent)}/${usdc(budget.spent)} (log/chain)`;
+    const line = `  ${id.padEnd(18)} proven ${logged.proven}/${rep.proven_calls}  refused ${logged.refused}/${rep.refused_calls}  capped ${logged.capped} (reserve results checked; the meter keeps no counter)  spent ${usdc(logged.spent)}/${usdc(budget.spent)} (log/chain)`;
     console.log(line);
     if (logged.proven > rep.proven_calls) miss(`${id}: ${logged.proven} paid calls logged, ${rep.proven_calls} on chain`);
     if (logged.refused > rep.refused_calls) miss(`${id}: ${logged.refused} refusals logged, ${rep.refused_calls} on chain`);
-    if (logged.capped > rep.capped_calls) miss(`${id}: ${logged.capped} capped calls logged, ${rep.capped_calls} on chain`);
     if (logged.spent > BigInt(budget.spent)) miss(`${id}: ${usdc(logged.spent)} USDC spent logged, ${usdc(budget.spent)} on chain`);
   }
-  const deposited = rows.filter((r) => r.kind === "deposit").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n);
-  console.log(`  deposits logged ${usdc(deposited)} USDC, pool tvl ${usdc(pool.tvl)} USDC`);
+  const deposited = rows.filter((r) => r.kind === "deposit" && r.community === "mutual").reduce((n, r) => n + BigInt(r.amount ?? "0"), 0n);
+  console.log(`  Mutual deposits logged ${usdc(deposited)} USDC, pool tvl ${usdc(pool.tvl)} USDC`);
   if (deposited > BigInt(pool.tvl)) miss(`deposits logged ${usdc(deposited)} exceed pool tvl ${usdc(pool.tvl)}`);
 
   const passed = misses.length === 0;

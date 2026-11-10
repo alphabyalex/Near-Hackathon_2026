@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions, baseEncode, type Action, type KeyPairString, type Provider, type SignedTransaction } from "near-api-js";
+import { Account, FailoverRpcProvider, JsonRpcProvider, KeyPair, KeyPairSigner, actions, baseEncode, type Action, type KeyPairString, type Provider, type SignedTransaction } from "near-api-js";
 import { TransactionRefusedError, VaultExecutionError, VaultOutcomeUnknownError } from "./errors.js";
 
 export { actions, KeyPair, type KeyPairString } from "near-api-js";
@@ -38,8 +38,14 @@ export interface TransportOptions {
   poll_interval_ms?: number | undefined;
 }
 
+/**
+ * One RPC URL, or several separated by commas: then each request fails over to the next on an error or
+ * a rate limit (public testnet RPCs throttle bursts).
+ */
 export function makeProvider(rpcUrl: string): JsonRpcProvider {
-  return new JsonRpcProvider({ url: rpcUrl });
+  const urls = rpcUrl.split(",").map((u) => u.trim()).filter(Boolean);
+  if (urls.length <= 1) return new JsonRpcProvider({ url: urls[0] ?? rpcUrl });
+  return new FailoverRpcProvider(urls.map((url) => new JsonRpcProvider({ url }))) as unknown as JsonRpcProvider;
 }
 
 export function makeSigner(provider: Provider, accountId: string, privateKey: string): SignerHandle {

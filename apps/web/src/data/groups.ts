@@ -64,5 +64,12 @@ export async function getGroups(): Promise<{ mode: "sim" | "near"; groups: Group
     members: c.members_count,
     period: c.period,
   }));
+  // Most proven calls first: the communities with a record lead the page.
+  groups.sort((a, b) => b.proven_calls - a.proven_calls || a.name.localeCompare(b.name));
   return { mode: "near", groups, tiers };
+}
+
+/** One community and its latest audited transactions (the testnet data source). */
+export async function getCommunity(id: string): Promise<{ community: CommunitySummary; recent_activity: Array<{ at: string; text: string; tx: string | null; side: "above" | "below" }> }> {
+  return apiGet(`/v1/communities/${encodeURIComponent(id)}`);
 }

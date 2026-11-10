@@ -36,7 +36,7 @@ const CHEAP = loadRecording(RECORDED.cheap);
 const W = (n: number) => String(Math.round(n * 1_000_000));
 
 /** The hacker house in scene 2: a new group with an empty budget until its DAO votes to fund it. */
-export const HOUSE = { budget_id: "bgt_hayes", name: "Hayes Valley hacker house", owner: "hayes-house.sputnikv2.testnet" } as const;
+export const HOUSE = { budget_id: "bgt_hayes", name: "Hayes Valley house", owner: "hayes-house.sputnikv2.testnet" } as const;
 
 function world(provider: "replay" | "cheapai", now: DateClock, seed: SimChainSeed = defaultSimSeed()) {
   const store = new MeterStore(new Database(":memory:"));
@@ -133,7 +133,7 @@ export async function runScene(name: SceneName, deps: SceneDeps): Promise<Record
     }
     case "leak": {
       const seed = defaultSimSeed();
-      seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab shared AI budget", owner: GROUP_DAO, deposit: W(15), period: "week", members: [{ member: "ci-agent.testnet", allowance: W(10) }, { member: "bob.testnet", allowance: W(10) }] }];
+      seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab", owner: GROUP_DAO, deposit: W(15), period: "week", members: [{ member: "ci-agent.testnet", allowance: W(10) }, { member: "bob.testnet", allowance: W(10) }] }];
       const w = world("replay", deps.now, seed);
       const burst = async (member: string, n: number) => {
         const k = w.key(member);

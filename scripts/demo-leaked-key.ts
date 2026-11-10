@@ -42,7 +42,7 @@ async function remote(apiUrl: string, key: string) {
 
 async function offline() {
   const seed = defaultSimSeed();
-  seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab shared AI budget", owner: GROUP_DAO, deposit: "15000000", period: "week", members: [{ member: "ci-agent.testnet", allowance: "10000000" }, { member: "bob.testnet", allowance: "10000000" }] }];
+  seed.budgets = [{ budget_id: GROUP_BUDGET, name: "Aurora Lab", owner: GROUP_DAO, deposit: "15000000", period: "week", members: [{ member: "ci-agent.testnet", allowance: "10000000" }, { member: "bob.testnet", allowance: "10000000" }] }];
   const deps = bootstrap(":memory:", systemClock, {}, undefined, {
     env: { WARDLINE_CHAIN_MODE: "sim" },
     chain: createChain("sim", toDateClock(systemClock), seed),

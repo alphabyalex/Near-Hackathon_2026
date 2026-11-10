@@ -1,11 +1,17 @@
 {
-  "$comment": "TODO(alexander): the GitHub repo will be renamed to \"wardline\". Change url here; pnpm test then names any other file that must follow. hosted: the public web app, API and MCP endpoint. To move hosting, change these three values; pnpm test then names every file (README, llms.txt, SKILL.md, services/mcp/server.json) that must follow.",
+  "$comment": "TODO(alexander): the GitHub repo will be renamed to \"wardline\". Change url here; pnpm test then names any other file that must follow. hosted: the public web app, API and MCP endpoint, or all three empty while nothing is hosted (README, llms.txt and SKILL.md then show the local addresses). To host, set all three; pnpm test then names every file (README, llms.txt, SKILL.md, services/mcp/server.json) that must follow.",
   "url": "https://github.com/alphabyalex/Near-Hackathon_2026",
   "plannedName": "wardline",
   "hosted": {
-    "web": "https://lean-ballot-ref-script.trycloudflare.com",
-    "api": "https://attempt-caused-antique-four.trycloudflare.com",
-    "mcp": "https://realize-russell-societies-incl.trycloudflare.com/mcp"
+    "web": "",
+    "api": "",
+    "mcp": ""
+  },
+  "local": {
+    "web": "http://127.0.0.1:5173",
+    "api": "http://127.0.0.1:8787",
+    "mcp": "http://127.0.0.1:8790/mcp",
+    "hosts": ["127.0.0.1", "localhost", "[::1]"]
   },
   "near": {
     "network": "testnet",

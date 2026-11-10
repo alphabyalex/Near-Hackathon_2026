@@ -1,5 +1,5 @@
 import type { WalletSelector } from "@near-wallet-selector/core";
-import { NEAR_NETWORK, TEST_WALLET } from "../config";
+import { LOCAL_SIGNER, NEAR_NETWORK, TEST_WALLET } from "../config";
 
 /** What a NEP-413 signMessage returns. publicKey is ed25519:<base58>, signature is base64. */
 export interface NearSignature {
@@ -15,7 +15,10 @@ export interface NearSignRequest {
   nonce: Uint8Array;
 }
 
-export type NearWalletId = "meteor-wallet" | "my-near-wallet" | "test-wallet";
+export type NearWalletId = "meteor-wallet" | "my-near-wallet" | "test-wallet" | "local-signer";
+
+/** The local API signs real testnet transactions for cast accounts on this machine (services/api/src/local-signer.ts). */
+export const LOCAL_SIGNER_NAME = "Local test signer (testnet, this machine only)";
 
 /** End-to-end tests define this. Only read when the build sets VITE_WARDLINE_TEST_WALLET=1. */
 declare global {
@@ -30,6 +33,7 @@ export function nearWallets(): { id: NearWalletId; name: string }[] {
     { id: "my-near-wallet", name: "MyNearWallet" },
   ];
   if (TEST_WALLET && typeof window !== "undefined" && window.__wardlineTestWallet) wallets.push({ id: "test-wallet", name: window.__wardlineTestWallet.name });
+  if (LOCAL_SIGNER) wallets.push({ id: "local-signer", name: LOCAL_SIGNER_NAME });
   return wallets;
 }
 
@@ -72,6 +76,7 @@ export function randomNonce(): Uint8Array {
  */
 export async function signNep413(walletId: NearWalletId, request: NearSignRequest, expectedAccount: string): Promise<NearSignature> {
   let signed: NearSignature | void;
+  if (walletId === "local-signer") throw new Error("The local test signer sends transactions; it does not sign messages.");
   if (walletId === "test-wallet") {
     const test = TEST_WALLET ? window.__wardlineTestWallet : undefined;
     if (!test) throw new Error("No test wallet in this build.");

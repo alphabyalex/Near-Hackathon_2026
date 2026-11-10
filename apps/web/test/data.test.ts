@@ -84,24 +84,28 @@ describe("data layer (sim and testnet parity)", () => {
 
   it("getActivityStats reads from /v1/activity/stats", async () => {
     stubFetch({
+      // The shape services/api/src/activity/store.ts returns: every number from chain views.
       "/v1/activity/stats": {
-        total_items: 24,
-        pooled_usdc: "350000",
-        ward_price: "1000000",
-        fees_earned_usdc: "4800",
-        claims_paid_usdc: "50000",
-        paid_above_line: 18,
-        kept_below_line: 6,
-        below: { swapped: 2, lookalike: 2, capped: 2, total: 6 },
-        price_series: [],
+        total_pooled: "900104",
+        ward_price: "1000262",
+        launch_price: "1000000",
+        yield_earned: "104",
+        groups_covered: 10,
+        proven_payments: 36,
+        payouts: 1,
+        price_history: [],
+        below: { swapped: 1, lookalike: 0, capped: 3, total: 4 },
+        paid_above: 36,
+        fees_earned: "104",
+        claims: { count: 1, total: "50000" },
       },
     });
 
     const stats = await getActivityStats();
-    expect(stats.total_items).toBe(24);
-    expect(stats.ward_price).toBe("1000000");
-    expect(stats.paid_above_line).toBe(18);
-    expect(stats.kept_below_line).toBe(6);
+    expect(stats.total_pooled).toBe("900104");
+    expect(stats.ward_price).toBe("1000262");
+    expect(stats.paid_above).toBe(36);
+    expect(stats.below.total).toBe(4);
   });
 
   it("getCommunities reads list of communities from /v1/communities", async () => {

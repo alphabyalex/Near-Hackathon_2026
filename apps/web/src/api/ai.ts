@@ -187,7 +187,7 @@ export const revokeMeterKey = (id: string) => apiPost<{ revoked: string }>(`/own
 export interface WardPricePoint {
   at: string;
   price: string;
-  event: "launch" | "deposit" | "fees" | "claim" | "redeem";
+  event: "launch" | "deposit" | "fees" | "claim" | "redeem" | "first_loss";
 }
 
 export interface PoolView {

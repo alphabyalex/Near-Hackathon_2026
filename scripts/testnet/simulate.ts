@@ -18,10 +18,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
-import { callFinal, makeProvider, makeSigner, NearModelRegistryClient, viewCall, type SignerHandle } from "@wardline/vault-client";
+import { makeProvider, makeSigner, NearModelRegistryClient, viewCall, type SignerHandle } from "@wardline/vault-client";
 import { verifyProviderProof, type ProviderSignature } from "@wardline/sdk";
 import { CredentialStore, defaultSecretsDir } from "../contracts/src/lib.js";
-import { ActivityWriter, addSpend, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, saveSpend, type SpendLedger } from "./chain-log.js";
+import { ActivityWriter, addSpend, sendCall as callFinal, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, RPC_URLS, saveSpend, type SpendLedger } from "./chain-log.js";
 import type { RowFields } from "../../services/api/src/activity/log.js";
 
 const MODEL = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
@@ -75,7 +75,8 @@ interface Caller {
 }
 
 const short = (account: string) => account.replace(/\.wardline-labs\.testnet$/, "");
-const usdc = (atomic: string | bigint) => (Number(atomic) / 1e6).toFixed(2);
+/** Two decimals, or six for amounts under a cent (a call costs about 0.0002 USDC). */
+const usdc = (atomic: string | bigint) => { const n = Number(atomic) / 1e6; return n !== 0 && n < 0.01 ? n.toFixed(6) : n.toFixed(2); };
 
 /** Paid calls per batch by UTC hour: busier in the US daytime, quiet overnight. */
 export function sizeForHour(hourUtc: number, rand = Math.random): number {
@@ -89,13 +90,22 @@ function argValue(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
-async function accountExists(provider: ReturnType<typeof makeProvider>, account: string): Promise<boolean> {
-  try {
-    await provider.query({ request_type: "view_account", account_id: account, finality: "final" } as never);
-    return true;
-  } catch {
-    return false;
+/**
+ * Whether an account exists, by a plain view_account call. Not through the failover provider, which
+ * logs a stack trace per endpoint for every account that is missing (the cast members setup cut).
+ */
+async function accountExists(account: string): Promise<boolean> {
+  for (const url of RPC_URLS) {
+    try {
+      const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "query", params: { request_type: "view_account", account_id: account, finality: "final" } }) });
+      const body = (await res.json()) as { result?: unknown; error?: unknown };
+      if (body.result) return true;
+      if (/UNKNOWN_ACCOUNT|does not exist/.test(JSON.stringify(body.error ?? ""))) return false;
+    } catch {
+      // try the next endpoint
+    }
   }
+  throw new Error(`No RPC endpoint answered view_account for ${account}.`);
 }
 
 export async function runBatch(opts: { dryRun?: boolean; calls?: number } = {}): Promise<void> {
@@ -115,18 +125,36 @@ export async function runBatch(opts: { dryRun?: boolean; calls?: number } = {}):
   for (const c of cast.communities) for (const m of c.members) callers.push({ account: m.account, name: m.name, budget: c.id, group: c.name, leaked: Boolean(m.leaked_key) });
   for (const i of cast.individuals) callers.push({ account: i.account, name: i.name, budget: i.budget, group: `${i.name} (solo)`, leaked: false });
   const live: Caller[] = [];
-  for (const c of callers) if (await accountExists(provider, c.account)) live.push(c);
+  for (const c of callers) if (await accountExists(c.account)) live.push(c);
   const lps: Cast["liquidity_providers"] = [];
-  for (const lp of cast.liquidity_providers) if (await accountExists(provider, lp.account)) lps.push(lp);
+  for (const lp of cast.liquidity_providers) if (await accountExists(lp.account)) lps.push(lp);
   const honest = live.filter((c) => !c.leaked);
   const leaked = live.filter((c) => c.leaked);
   console.log(`Cast on chain: ${live.length} of ${callers.length} members and individuals, ${lps.length} of ${cast.liquidity_providers.length} LPs.`);
 
+  // Calls lean towards the tier story: Mission Street climbs to Gold (35 clean calls), Nightshade,
+  // Hayes Valley and Aurora Lab to Silver (10). Each budget's members take turns within its share.
+  const WEIGHT: Record<string, number> = { bgt_mission: 5, bgt_nightshade: 2, bgt_hayes: 2, bgt_aurora: 2, bgt_kelp: 1 };
+  const byBudget = new Map<string, Caller[]>();
+  for (const c of honest) byBudget.set(c.budget, [...(byBudget.get(c.budget) ?? []), c]);
+  const rotation: Caller[] = [];
+  const turns = new Map<string, number>();
+  const pick = (budget: string) => {
+    const list = byBudget.get(budget)!;
+    const t = turns.get(budget) ?? 0;
+    turns.set(budget, t + 1);
+    return list[t % list.length]!;
+  };
+  const solos = [...byBudget.keys()].filter((b) => b.startsWith("bgt_ind_"));
+  for (let round = 0; round < 4; round++) {
+    for (const [budget, w] of Object.entries(WEIGHT)) if (byBudget.has(budget)) for (let k = 0; k < w; k++) rotation.push(pick(budget));
+    if (solos.length) rotation.push(pick(solos[round % solos.length]!));
+  }
   const plan = {
-    paid: honest.length ? Array.from({ length: calls }, (_, i) => ({ caller: honest[(ledger.total_calls + i) % honest.length]!, task: TASKS[(ledger.total_calls + i * 7) % TASKS.length]! })) : [],
+    paid: rotation.length ? Array.from({ length: calls }, (_, i) => ({ caller: rotation[(ledger.total_calls + i) % rotation.length]!, task: TASKS[(ledger.total_calls + i * 7) % TASKS.length]! })) : [],
     swapped: honest.length ? honest[(ledger.total_calls + 3) % honest.length]! : null,
     burst: leaked.length ? leaked[ledger.total_calls % leaked.length]! : null,
-    deposits: lps.slice(0, 2).map((lp, i) => ({ lp, amount: BigInt(1_000_000 + 250_000 * ((ledger.total_calls + i) % 3)) })),
+    deposits: lps.slice(0, 2).map((lp, i) => ({ lp, amount: BigInt(20_000 + 10_000 * ((ledger.total_calls + i) % 3)) })),
     vote: lps.length >= 2,
   };
   for (const p of plan.paid) console.log(`  paid call    ${short(p.caller.account)} on ${p.caller.budget}: "${p.task.slice(0, 48)}"`);
@@ -304,7 +332,9 @@ async function lpDeposit(lp: Cast["liquidity_providers"][number], amount: bigint
 async function wardVote(lps: Cast["liquidity_providers"], cast: Cast, provider: ReturnType<typeof makeProvider>, creds: CredentialStore, record: Record_): Promise<void> {
   type P = { id: number; description: string; status: string; executed_at?: string | null };
   const proposals = await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {});
-  let open = proposals.filter((p) => p.status === "open");
+  // Only proposals the batch opens (PROPOSALS); others, like the browser check's, are left to their voters.
+  const ours = (p: P) => PROPOSALS.some((q) => q.description === p.description);
+  let open = proposals.filter((p) => p.status === "open" && ours(p));
   if (!open.length) {
     const proposer = lps.find((l) => creds.get(l.account));
     if (!proposer) throw new Error("no LP key to open a proposal");
@@ -312,26 +342,36 @@ async function wardVote(lps: Cast["liquidity_providers"], cast: Cast, provider: 
     console.log(`  WARD proposal: ${short(proposer.account)} opens "${next.description}"`);
     const out = await callFinal(makeSigner(provider, proposer.account, creds.get(proposer.account)!), { contract_id: cast.contracts.pool, method: "propose", args: { description: next.description, action: next.action }, gas: GAS });
     await record(out.tx_hash, proposer.account, { actor: proposer.account, community: "mutual", kind: "proposal", amount: null, model: null, outcome: "opened", side: "above", reason: null, text: `${proposer.name} opened a WARD vote: ${next.description}` });
-    open = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).filter((p) => p.status === "open");
+    open = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).filter((p) => p.status === "open" && ours(p));
   }
   const target = open[open.length - 1];
   if (!target) throw new Error("no open proposal");
+  // Every LP with WARD that has not voted votes. Once votes for it pass half the snapshot, it executes.
+  let voted = 0;
   for (const lp of lps) {
     const key = creds.get(lp.account);
     if (!key) continue;
     const weight = await viewCall<string>(provider, cast.contracts.pool, "weight_of", { id: target.id, voter: lp.account });
     if (BigInt(weight || "0") === 0n) continue;
-    const support = target.id % 3 === 2 ? "against" : "for";
-    console.log(`  WARD vote: ${short(lp.account)} votes ${support} on #${target.id}`);
+    console.log(`  WARD vote: ${short(lp.account)} votes for #${target.id}`);
     try {
-      const out = await callFinal(makeSigner(provider, lp.account, key), { contract_id: cast.contracts.pool, method: "vote", args: { id: target.id, support }, gas: GAS });
-      await record(out.tx_hash, lp.account, { actor: lp.account, community: "mutual", kind: "vote", amount: weight, model: null, outcome: "voted", side: "above", reason: null, text: `${lp.name} voted ${support}: ${target.description}` });
-      return;
+      const out = await callFinal(makeSigner(provider, lp.account, key), { contract_id: cast.contracts.pool, method: "vote", args: { id: target.id, support: "for" }, gas: GAS });
+      await record(out.tx_hash, lp.account, { actor: lp.account, community: "mutual", kind: "vote", amount: weight, model: null, outcome: "voted", side: "above", reason: null, text: `${lp.name} voted for: ${target.description}` });
+      voted++;
     } catch (error) {
       if (!/Already voted/.test((error as Error).message)) throw error;
     }
   }
-  console.log("    every LP with WARD has voted on the open proposal; no vote this batch.");
+  if (!voted) console.log("    every LP with WARD has voted on the open proposal.");
+  const now = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).find((p) => p.id === target.id);
+  if (now?.status === "passed") {
+    const executor = lps.find((l) => creds.get(l.account))!;
+    console.log(`  WARD proposal #${target.id} passed; ${short(executor.account)} executes it`);
+    const out = await callFinal(makeSigner(provider, executor.account, creds.get(executor.account)!), { contract_id: cast.contracts.pool, method: "execute", args: { id: target.id }, gas: GAS });
+    await record(out.tx_hash, executor.account, { actor: executor.account, community: "mutual", kind: "proposal", amount: null, model: null, outcome: "executed", side: "above", reason: null, text: `Passed and executed: ${target.description}` });
+  } else {
+    console.log(`    proposal #${target.id} is ${now?.status ?? "unknown"}.`);
+  }
 }
 
 if (process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/testnet/simulate.ts")) {

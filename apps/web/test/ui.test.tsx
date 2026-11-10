@@ -1,4 +1,6 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { useState } from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { Dialog } from "../src/components/Dialog";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PaymentStatusSchema, type InvoiceDetail, type TokenInfo } from "@wardline/schemas";
 import { DotBar } from "../src/components/DotBar";
@@ -207,5 +209,54 @@ describe("the blocked wallet window", () => {
     const e = explain(walletError(new Error("Couldn't open popup window to complete wallet action")));
     expect(e).toMatchObject({ kind: "walletPopup", title: "Your browser blocked the wallet window.", next: "Allow pop-ups for this site, then try again." });
     expect(explain(new Error("Couldn't open popup window to complete wallet action")).kind).toBe("walletPopup");
+  });
+});
+
+describe("Dialog makes the page behind it inert", () => {
+  function Page() {
+    const [open, setOpen] = useState(0);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(1)}>Open</button>
+        {open >= 1 && (
+          <Dialog title="First" onClose={() => setOpen(0)} testId="first">
+            <button type="button" onClick={() => setOpen(2)}>Open second</button>
+            {open >= 2 && (
+              <Dialog title="Second" onClose={() => setOpen(1)} testId="second">
+                <p>Inside</p>
+              </Dialog>
+            )}
+          </Dialog>
+        )}
+      </>
+    );
+  }
+  const backOf = (id: string) => screen.getByTestId(id).parentElement!;
+
+  it("marks the page inert and aria-hidden while open, and restores it on close", () => {
+    const { container } = render(<Page />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(container.hasAttribute("inert")).toBe(true);
+    expect(container.getAttribute("aria-hidden")).toBe("true");
+    expect(backOf("first").hasAttribute("inert")).toBe(false);
+    expect(backOf("first").hasAttribute("aria-hidden")).toBe(false);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("first")).toBeNull();
+    expect(container.hasAttribute("inert")).toBe(false);
+    expect(container.hasAttribute("aria-hidden")).toBe(false);
+  });
+
+  it("a dialog opened from a dialog makes the first inert, and closing it restores only the first", () => {
+    const { container } = render(<Page />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open second" }));
+    expect(backOf("first").hasAttribute("inert")).toBe(true);
+    expect(backOf("second").hasAttribute("inert")).toBe(false);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("second")).toBeNull();
+    expect(backOf("first").hasAttribute("inert")).toBe(false);
+    expect(container.hasAttribute("inert")).toBe(true);
   });
 });

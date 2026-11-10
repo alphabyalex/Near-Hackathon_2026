@@ -1,5 +1,291 @@
 # Status: alexander
 
+## A12: small fixes, scheduled data commits, merge to main (2026-11-10)
+
+**main:** merge commit `76bf6b5` (alexander into main). Since then the scheduled task has pushed `d9ad255` and `613c285` to main (data only), and this report goes to main as a fast-forward on top of them.
+
+1. **Data committed:** `data/testnet/` as of the passing audit (161 of 161 rows), `452237b`. No batch had run since, so only `audit.json`'s stamp changed.
+2. **Small fixes:**
+   - **Old test budgets:** Groups and Safest groups no longer show `bgt_engineering` and `bgt_leaked_*`. In near mode the reputation lists keep only the budgets listed in `scripts/testnet/cast.json` (communities and individuals), not a name pattern. Stats count the same set. Tests: `services/api/test/cast-filter.test.ts`.
+   - **Snippet URLs:**
+     - Configured, else hosted; else the local API when the page is served from a host in `repo.config.json`'s `local.hosts`; else the placeholder `https://your-wardline-api.example` (`PLACEHOLDER_API_URL`), with a line saying to replace it. Never a tunnel link.
+     - The direct SDK snippet now names the deployed registry, `payee-registry.wardline-labs.testnet`, not the old `payees.redline-labs.testnet`.
+   - **Sim names:** they match cast.json: Nightshade DAO, Kelp Collective, plus Hayes Valley house and Aurora Lab, which were also off. A test checks every sim budget against cast.json.
+   - **Dialogs:** an open dialog marks every other child of `<body>` with `inert` and `aria-hidden`, and restores only what it changed on close. A dialog opened from a dialog works the same way. Two tests in `apps/web/test/ui.test.tsx`.
+3. **The scheduled task commits its own data:**
+   - **Where it runs:** `scripts/testnet/scheduled-run.ps1`, in its own clone on main at `%USERPROFILE%\.wardline\testnet\wardline-main`. The OneDrive checkout on `alexander` is never touched, so a commit can only carry `data/testnet/`.
+   - **Keys:** it reads the OneDrive checkout's `.env` in place (`WARDLINE_DOTENV`); no key is copied.
+   - **Each run:**
+     - Rebuilds when the clone's code changed.
+     - Runs the batch and the audit.
+     - Only on a pass, commits `data/testnet/` as `chore(testnet): scheduled batch <UTC time>`, runs `git pull --rebase origin main`, and pushes main.
+     - It commits before the pull, so a conflicting rebase can be aborted cleanly. Then the push is skipped, the commit stays in the clone, and the log says why.
+   - **Tested:**
+     - The first trigger by hand was cut off seconds in (exit 0xC000013A, a closed console); nothing was written.
+     - The wrapper run directly pushed `d9ad255` (8 calls, audit 174 of 174).
+     - A second trigger through Task Scheduler finished with result 0 and pushed `613c285` (audit 188 of 188).
+   - **Task settings:** it now runs on battery and is no longer stopped by a switch to battery, with a 2-hour limit. NEAR AI calls: 125 of 450.
+4. **Checks before the merge:** `pnpm test` passes (API 240, web 93, every other package). The Chromium e2e passes 53 of 53, and `pnpm testnet:audit` passes 161 of 161.
+
+- **From now on, `data/testnet/` belongs to main:** the scheduled clone writes it. Don't commit it on `alexander`; fast-forward `alexander` from main to get fresh data.
+- **Log:** `%USERPROFILE%\.wardline\testnet\scheduled.log`. The previous wrapper is kept as `scheduled-run.cmd.bak`.
+
+## A11 overnight: every function on real NEAR testnet (2026-11-10)
+
+Started 10:04 UTC, finished 15:36 UTC. Work is on `alexander` (pushed in small commits); main is untouched.
+
+### Part by part
+
+| Part | Status | Notes |
+| --- | --- | --- |
+| 0. Keep the machine awake | Done | Sleep on AC set to never; hibernate on AC was already never. Restore below |
+| 1. Credentials | Done | The handoff was at `Downloads\wardline-handoff\`. Keys are installed outside the repo; the root key matches `ed25519:FGUWrt4Y` and the gateway key matches |
+| 2. Testnet communities | Done, with cuts | Cast scaled down (only one real DAO fits the NEAR budget). Three batches, all audited, and a scheduled task. Claims and tiers in their own section |
+| 3. UI on testnet data | Done | Behind `WARDLINE_DATA=testnet`; sim stays the default |
+| 4. Every function | 9 done, 1 partial | Function 7: the redemption request is real, but the pool's delay is 0 days on testnet, so there is no countdown to show (needs your OK to change; see below) |
+| 5. Hosting | Done | Hosted values are empty; docs point at a local run. Notes for Tharun below |
+| 6. Docs and checks | Done | README sections written. `pnpm test`, the Chromium e2e, the iPhone WebKit test and the audit all pass |
+
+### Preflight (public keys only)
+
+| Account                                     | Key type                                | Public key          | Status  | NEAR  |
+|---------------------------------------------|-----------------------------------------|---------------------|---------|-------|
+| wardline-labs.testnet                       | FullAccess                              | ed25519:FGUWrt4Y... | MATCHES | 5.536 |
+| payee-registry.wardline-labs.testnet        | FullAccess                              | ed25519:BwwoYr7b... | MATCHES | 2.497 |
+| vault.wardline-labs.testnet                 | FullAccess                              | ed25519:ParX7ZnJ... | MATCHES | 3.497 |
+| model-registry.wardline-labs.testnet        | FullAccess                              | ed25519:CdHybkgp... | MATCHES | 2.498 |
+| pool.wardline-labs.testnet                  | FullAccess                              | ed25519:CUpdj5Ng... | MATCHES | 3.506 |
+| meter.wardline-labs.testnet                 | FullAccess                              | ed25519:CMP1SQDo... | MATCHES | 3.355 |
+| dao.wardline-labs.testnet                   | FullAccess                              | ed25519:F5ACCDbP... | MATCHES | 6.495 |
+| provider.wardline-labs.testnet              | FullAccess                              | ed25519:3ZC5H3kj... | MATCHES | 0.500 |
+| investor1.wardline-labs.testnet             | FullAccess                              | ed25519:32YW8Rf2... | MATCHES | 0.496 |
+| investor2.wardline-labs.testnet             | FullAccess                              | ed25519:FuGaj5V1... | MATCHES | 0.500 |
+| agent.wardline-labs.testnet                 | FullAccess                              | ed25519:DuYkNBJP... | MATCHES | 0.500 |
+| token.wardline-labs.testnet                 | FullAccess                              | ed25519:5qxkQpxz... | MATCHES | 2.502 |
+| dana.wardline-labs.testnet                  | FullAccess                              | ed25519:8s2B6whn... | MATCHES | 0.308 |
+| eli.wardline-labs.testnet                   | FullAccess                              | ed25519:6Xi5qmXP... | MATCHES | 0.298 |
+| tariq.wardline-labs.testnet                 | FullAccess                              | ed25519:AtzZhRCP... | MATCHES | 0.050 |
+| ruth.wardline-labs.testnet                  | FullAccess                              | ed25519:3AdJ1yLK... | MATCHES | 0.100 |
+| priya.wardline-labs.testnet                 | FullAccess                              | ed25519:BkjGwhue... | MATCHES | 0.050 |
+| sam.wardline-labs.testnet                   | FullAccess                              | ed25519:8t8AgEMu... | MATCHES | 0.100 |
+| owen.wardline-labs.testnet                  | FullAccess                              | ed25519:3o1iNDyK... | MATCHES | 0.050 |
+| alice.wardline-labs.testnet                 | FullAccess                              | ed25519:8aWwDNtU... | MATCHES | 0.100 |
+| ci-agent.wardline-labs.testnet              | FullAccess                              | ed25519:4ewwEekD... | MATCHES | 0.050 |
+| ana.wardline-labs.testnet                   | FullAccess                              | ed25519:8kvm8moF... | MATCHES | 0.100 |
+| kelp-agent.wardline-labs.testnet            | FullAccess                              | ed25519:EN2ieRZx... | MATCHES | 0.050 |
+| ivan.wardline-labs.testnet                  | FullAccess                              | ed25519:7FBPqQKd... | MATCHES | 0.099 |
+| yuki.wardline-labs.testnet                  | FullAccess                              | ed25519:uo8mTcLi... | MATCHES | 0.099 |
+| hassan.wardline-labs.testnet                | FullAccess                              | ed25519:9CZAF1Ud... | MATCHES | 0.099 |
+| olivia.wardline-labs.testnet                | FullAccess                              | ed25519:AqdYiwmn... | MATCHES | 0.099 |
+| lucas.wardline-labs.testnet                 | FullAccess                              | ed25519:BtdkWvkU... | MATCHES | 0.099 |
+| lp-north.wardline-labs.testnet              | FullAccess                              | ed25519:B4VnS6av... | MATCHES | 0.146 |
+| lp-harbor.wardline-labs.testnet             | FullAccess                              | ed25519:5mjqrSz9... | MATCHES | 0.146 |
+| lp-solano.wardline-labs.testnet             | FullAccess                              | ed25519:Bm3SBpEN... | MATCHES | 0.148 |
+| mission-dao.wardline-labs.testnet           | FullAccess                              | ed25519:6t7TkDfA... | MATCHES | 5.696 |
+| nightshade-dao.wardline-labs.testnet        | FullAccess                              | ed25519:2wtKMibp... | MATCHES | 0.099 |
+| hayes-dao.wardline-labs.testnet             | FullAccess                              | ed25519:EVDMEYDa... | MATCHES | 0.099 |
+| aurora-dao.wardline-labs.testnet            | FullAccess                              | ed25519:7bVKjWt1... | MATCHES | 0.099 |
+| kelp-dao.wardline-labs.testnet              | FullAccess                              | ed25519:Bb6id6dm... | MATCHES | 0.099 |
+| meter.wardline-labs.testnet (gateway, .env) | FunctionCall [reserve, settle, release] | ed25519:8GCuoS7j... | MATCHES | -     |
+
+63 keys in the store; 27 belong to cast accounts that were cut and never created (hidden).
+
+- The 51 cast keys in the handoff were for accounts that did not exist yet; 24 of them are created now.
+- `NEAR_AI_API_KEY` works: a models-list request returned 64 models, including DeepSeek V4.1 Flash and GLM-5.3 Flash. `NEAR_AI_API_KEY_2` is not set, so everything ran on key 1.
+- From `gateway.env` I merged the gateway account and key and the two RPC URLs into `.env`. I left out `WARDLINE_AI_PROVIDER_URL`: it pointed at the local replay provider, which would have made the near-mode API replay recorded answers instead of calling NEAR AI. I also left out `WARDLINE_DEMO_METER_KEY`, which near mode refuses.
+
+### The cast: accounts, NEAR and USDC
+
+- **Created (24):**
+  - Mission Street hacker house: `mission-dao` (a real Sputnik DAO, same code as `dao.wardline-labs.testnet`, council Dana and Eli), with members dana, eli and tariq (tariq is the leaked key).
+  - Nightshade DAO: `nightshade-dao`, with ruth and priya.
+  - Hayes Valley house: `hayes-dao`, with sam and owen.
+  - Aurora Lab: `aurora-dao`, with alice and ci-agent.
+  - Kelp Collective: `kelp-dao`, with ana and kelp-agent.
+  - Individuals: ivan, yuki, hassan, olivia, lucas. LPs: lp-north, lp-harbor, lp-solano.
+- **Cut, and why:**
+  - A Sputnik DAO stores about 541 KB of code, roughly 5.4 NEAR each. Five would need about 27 NEAR; the root had 14.06 and had to keep 3. So only Mission Street funds its budget by DAO proposal and vote. The other four communities hold their treasury in a plain account that signs `ft_transfer_call` to the meter.
+  - From cast.json I also left out a third or later member in each community, five individuals, three LPs and cheapai. The swapped-model provider is the recorded GLM answer (no account needed); the look-alike vendor is a payee-check scenario with no transaction.
+- **Funding:**
+  - USDC came from Ref pool 1845: 3 wNEAR the root already held, swapped for 0.76 USDC.
+  - Budgets: Mission Street 0.25 USDC by DAO vote; the other communities 0.12 each; individuals 0.04 each.
+  - First-loss stake +0.20. LP deposits 0.10 each, plus small ones later. Dana got 1.05 for the browser Join.
+- **Root:**
+  - NEAR: 14.058 at the start, 5.536 now (8.522 spent; the DAO was about 5.5 of it). At least 3 NEAR stays, as asked.
+  - USDC: 2.235 at the start, 0.070 now.
+- **The pool's USDC is nearly all placed:** the pool held 1.9 USDC after Join. More USDC means swapping more NEAR on a thin Ref pool (0.29 USDC per NEAR).
+
+### Batches, NEAR AI calls and cost
+
+| Batch | When (UTC) | Paid calls proven | Swapped model refused | Leaked-key reserves capped | Other | Audit |
+|---|---|---|---|---|---|---|
+| 1 | 10:21 to 10:57 (with setup) | 36, plus the plug-in check | 2 | 4 | 15 deposits (setup and LPs), proposal 1 opened, voted, executed | PASS, 63 rows |
+| (browser checks) | 11:19 to 11:36 | - | - | - | Join, vote and execute on proposal 2, a redeem request, an LP deposit | PASS, 71 rows |
+| 2 | 13:00 to 13:14 | 36 | 1 | 3 | 2 LP deposits; proposal 3 opened, 3 LP votes for | PASS, 118 rows |
+| 3 | 15:15 to 15:28 | 36 | 1 | 3 | 2 LP deposits | PASS, 160 rows |
+| Claim | 15:30 | - | - | - | Aurora Lab's 0.02 USDC claim, paid and recorded | PASS, 161 rows |
+
+Proposal 3 ("Raise coverage to 1.25x for every tier") is still open: the three LPs voted for it, but their WARD is under half the supply, so it has not passed. That is the real state; nothing was forced.
+
+- **NEAR AI:** 109 (108 batch calls and the plug-in check) live calls in total. Key 1: 109 calls, 4,854 prompt and 15,147 completion tokens, $0.0196. Key 2: not set, 0 calls. The hard cap is 450.
+- **Cost:** priced from the tokens NEAR AI reported, at $0.30 and $1.20 per million. One extra live call, the plug-in check, counts toward the cap but not the token totals.
+- **Fees reach the pool:** in near mode the gateway now passes `pay_to`. Without it the meter only updates its books and no USDC moves. Fees earned on chain: 0.000258 USDC, and WARD is at 1.000368.
+
+### Claims and tiers
+
+Read from the meter's `get_reputation` after the claim:
+
+| Group | Tier | Proven calls | Refused | Claims | Clean calls toward next tier |
+|---|---|---|---|---|---|
+| Mission Street hacker house | Gold | 46 | 1 | 0 | 11 (Gold is the top tier) |
+| Nightshade DAO | Silver | 16 | 2 | 0 | 6 of 25 |
+| Hayes Valley house | Silver | 16 | 0 | 0 | 6 of 25 |
+| Aurora Lab | Bronze (was Silver) | 15 | 0 | 1 | 0 of 10 |
+| Kelp Collective | Bronze | 8 | 0 | 0 | 8 of 10 |
+
+- Mission Street reached Gold (not just on track), Nightshade and Hayes Valley reached Silver.
+- The claim: 0.02 USDC against `bgt_aurora`, paid entirely from Wardline's first-loss stake (0.00 from WARD holders), so WARD's price stayed at 1.000368. The pool's TVL went from 2.050258 to 2.030258 USDC.
+  - `file_claim`: [FpEkFzuv...](https://testnet.nearblocks.io/txns/FpEkFzuvpjfCto76xAcirYjNieNhYqdxbNRRoeEdF9e6)
+  - `record_claim`: [GbPj2DnD...](https://testnet.nearblocks.io/txns/GbPj2DnDnND8x35iH5XwZNFtwJG14rLgWzcPt5eQCZhv). Aurora dropped from Silver to Bronze and its clean streak restarted at 0.
+- Both are owner calls signed by `wardline-labs.testnet`.
+
+### The final audit
+
+```
+Totals against chain views
+  get_pool: tvl 2.030258 USDC, fees earned 0.000258, WARD price 1.000368
+  bgt_aurora         proven 15/15  refused 0/0  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.002653/0.002653 (log/chain)
+  bgt_hayes          proven 16/16  refused 0/0  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.002840/0.002840 (log/chain)
+  bgt_ind_hassan     proven 2/2  refused 0/0  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.000388/0.000388 (log/chain)
+  bgt_ind_ivan       proven 2/2  refused 1/1  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.000387/0.000387 (log/chain)
+  bgt_ind_olivia     proven 2/2  refused 0/0  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.000350/0.000350 (log/chain)
+  bgt_ind_yuki       proven 2/2  refused 0/0  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.000388/0.000388 (log/chain)
+  bgt_kelp           proven 8/8  refused 0/0  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.001495/0.001495 (log/chain)
+  bgt_mission        proven 46/46  refused 1/1  capped 10 (reserve results checked; the meter keeps no counter)  spent 0.008195/0.008195 (log/chain)
+  bgt_nightshade     proven 16/16  refused 2/2  capped 0 (reserve results checked; the meter keeps no counter)  spent 0.003092/0.003092 (log/chain)
+  Mutual deposits logged 1.700000 USDC, pool tvl 2.030258 USDC
+
+PASS: 161 of 161 rows are chain rows, 0 miss(es).
+Wrote data/testnet/audit.json: the API now serves these 161 row(s).
+```
+
+### The 10 functions, with their transactions
+
+| # | Function | Transaction |
+| --- | --- | --- |
+| 1 | One-line plug-in (`pnpm demo:plugin` against the near-mode API): one live DeepSeek call, proven, settled, in Latest proofs | [CVYSkE9b…](https://testnet.nearblocks.io/txns/CVYSkE9bmiRfKYSYaxHEGCJHdGQHNg17S9wDfk4b5EWR) |
+| 2 | Swapped model through a near-mode API routed to the cheapai provider: refused `MODEL_MISMATCH`, hold released, below the line | [HyVfAEd9…](https://testnet.nearblocks.io/txns/HyVfAEd9aHSzx7Jj5v2vRkqNXFkqS18AMDpZPPR1jcZF) |
+| 3 | Leaked key through the near-mode API: refused `ALLOWANCE_EXHAUSTED` before any model call, below the line | [JD92KSsX…](https://testnet.nearblocks.io/txns/JD92KSsXM6ia1PDvi5tzm8YmkzZKzXzp7aDu9kMnuuYb) |
+| 4 | Payee check: `/v1/check` blocks `northw1nd` (`LOOKALIKE_ACCOUNT`) against the payee registry contract. The check is a read; the transaction is Northwind's attestation | [Gqk8hvax…](https://testnet.nearblocks.io/txns/Gqk8hvaxpDvHJpdRHcwmBdJeLWMiaNGDCSw5PPWjApMV) |
+| 5 | Join in the browser with the local test signer: Dana deposits 1.00 USDC, 0.999736 WARD minted | [BVrdD27d…](https://testnet.nearblocks.io/txns/BVrdD27dSKfndvXpXo2rg8zZzEsApfgy1yTWebK2KH2b) |
+| 6 | Vote in the browser on an open proposal, then execute it once it passed | vote [H9dwHXM3…](https://testnet.nearblocks.io/txns/H9dwHXM3FvP33vm2aPy8zGgMZ8Vx7sPN7if176p9ucHM), execute [BZHFyWmG…](https://testnet.nearblocks.io/txns/BZHFyWmGaV3m5u2YGMKY6LELuHTCYBaW89SMuzRe5nEi) |
+| 7 | Redemption request in the browser: a real `request_redeem`. Partial: the delay is 0 days on testnet, so #/me shows "Ready to redeem", not a countdown | [7dupiywm…](https://testnet.nearblocks.io/txns/7dupiywmt1WeU3LyzrMo5BxAAojcvNsS28f2rjFh9CAC) |
+| 8 | Groups: each community's real tier, proven calls and fee, with a link to its latest transaction | [JD92KSsX…](https://testnet.nearblocks.io/txns/JD92KSsXM6ia1PDvi5tzm8YmkzZKzXzp7aDu9kMnuuYb) (Mission Street's latest) |
+| 9 | #/me for a member (Dana) and an LP (lp-north): position, earnings, transactions | lp-north [4QLwikx7…](https://testnet.nearblocks.io/txns/4QLwikx7aYzLzQQ1MSiQ1eYNDhMWAyHdWtzHCKSKBJtf) |
+| 10 | Demo: the seven sim scenes still run, and a line under them links to the live proofs | none (offline by design) |
+
+- **Screenshots:** `apps/web/screenshots/testnet-*.png` (gitignored). Each was looked at, and these were fixed once:
+  - Join said "You received 0.00 WARD", because `ft_transfer_call` returns USDC kept; it now reads WARD before and after.
+  - Rows said "paid 0.00 USDC", because tiny amounts were rounded.
+  - #/me listed 37 fee rows one by one; fee runs are now collapsed.
+  - Unlabelled first-loss events.
+  - A false "You haven't voted yet".
+  - The proposal id `pool…:proposal:2` shown as a simulated transaction.
+  - A stale "tiers and voting are simulated" note.
+  - Quorum figures overflowing their column.
+  - Skeleton screenshots.
+- **Join screenshot:** `testnet-join.png` still shows the old 0.00. Dana has no USDC left for a second 1.00 Join. I verified the fix with a 0.01 USDC deposit through the signer, which reported 0.009997 WARD ([7bptcuCv…](https://testnet.nearblocks.io/txns/7bptcuCvqxiLbWE1Xb74nph4NmKVcGpw1YVVKDPeK11a)).
+
+### What changed in the code tonight (beyond the scripts)
+
+- **Gateway (`pay_to`):** in near mode, settle passes `pay_to` (`WARDLINE_PROVIDER_PAY_TO`), so the provider's share and the pool's fee move as USDC. A call refused at the spend limit now shows its reserve transaction.
+- **Local test signer:** the API side (`services/api/src/local-signer.ts`) and the web side (`apps/web/vite/local-signer.ts`) are guarded three ways, with tests.
+  - It needs 127.0.0.1, `WARDLINE_LOCAL_SIGNER=1` and testnet in near mode; otherwise it refuses to start.
+  - It also requires a custom header and a loopback origin.
+  - A production build refuses the flag and never contains the code.
+- **Payee registry:** `WARDLINE_REGISTRY_MODE=near` is wired to the registry contract, and `pnpm payee:seed` attests as the attestor. The 10 seeded vendors are now on chain.
+- **Reading testnet:**
+  - Comma-separated RPC URLs fail over.
+  - Near-mode views are cached for 3 s.
+  - Reputation RPC errors throw instead of reading as empty lists. That bug made the Groups page show nothing under load.
+  - Community detail reads one community.
+- **Free tier:** the payee free tier (200 calls a day per IP) priced every `/v1` route, so a few page loads of the Mutual locked a visitor out with a 402. It now covers only the payee API.
+- **Hosting:** hosted values are empty, a `local` block was added, and the drift test accepts "not hosted".
+
+### Decisions for you
+
+- **Redemption delay:** the pool's `withdraw_delay_days` is 0 on testnet (the contract default is 7, and the UI promises 7). Setting it is an owner call I didn't make, because the classifier refused it as a shared-config change. To set it: `set_param("withdraw_delay_days", "7")` on `pool.wardline-labs.testnet`, signed by the pool owner.
+- **Contract findings (not changed tonight):**
+  - `file_claim`, `deposit(account, amount)` and `request_withdraw(account, …)` on the pool, and `fund` on the meter, don't check their caller. `deposit` mints WARD without USDC.
+  - `weight_of` uses the voter's current WARD, not a snapshot, though the UI copy promises a snapshot.
+  - `execute` only emits a parameter event; the meter's fees don't change, though the UI copy says "the change is in effect".
+  - The scripts and the site use only the checked paths, and the README's Honest limits now lists these.
+- **Test data on the meter:** `bgt_engineering` and `bgt_leaked_*` are older test budgets and show on Groups (sorted last). `wardline/sim-echo-1` is attested on the testnet model registry.
+
+### The scheduled task
+
+- **Task:** `Wardline testnet batch`. It runs `%USERPROFILE%\.wardline\testnet\scheduled-run.cmd` every 6 hours from 13:00 local (21:00 UTC), ending 11/13. Each run is `pnpm testnet:scheduled`: one batch sized by the time of day (2 to 12 paid calls), then the audit.
+- **After the freeze:** from Nov 13 20:00 UTC it audits only.
+- **Log:** `%USERPROFILE%\.wardline\testnet\scheduled.log`.
+- **Committing:** the task writes `data/testnet/` but doesn't commit. Commit those files when you want the timeline in git.
+- **Sleep:** a sleeping PC skips runs. Keep it awake, or tick "Wake the computer to run this task" in Task Scheduler.
+
+```powershell
+schtasks /Query /TN "Wardline testnet batch" /V /FO LIST
+schtasks /Delete /TN "Wardline testnet batch" /F
+```
+
+### For Tharun: hosting
+
+- **API in near mode:** set `WARDLINE_CHAIN_MODE=near`, `WARDLINE_REGISTRY_MODE=near` and a failover `WARDLINE_NEAR_RPC_URL` list. Set `WARDLINE_PROVIDER_PAY_TO`.
+- **Secrets on the host:** `WARDLINE_GATEWAY_ACCOUNT` and `WARDLINE_GATEWAY_KEY` (the function-call key, never in the repo), `NEAR_AI_API_KEY` and `WARDLINE_ATTESTOR_KEY`.
+- **Must stay off:** `WARDLINE_LOCAL_SIGNER` must be unset (the API refuses it on a public bind anyway), and `WARDLINE_AI_PROVIDER_URL` and `WARDLINE_DEMO_METER_KEY` must be unset. Owner auth stays on (`WARDLINE_OWNER_ACCOUNTS`), not `WARDLINE_OWNER_AUTH=off`.
+- **Data the API serves:** commit `data/testnet/activity.jsonl` and `audit.json` with it; it serves only audited rows.
+- **Web build:** `WARDLINE_DATA=testnet`, `VITE_WARDLINE_API_URL` set to the API, and never `VITE_WARDLINE_LOCAL_SIGNER`. The build refuses it.
+- **Once hosted:** set all three `hosted` values in `repo.config.json`. `pnpm test` then names the files that must follow.
+
+### Restore power settings
+
+```powershell
+powercfg /change standby-timeout-ac 30
+powercfg /change hibernate-timeout-ac 0
+```
+
+(Sleep on AC was 30 minutes; hibernate on AC was already never.)
+
+### Run everything locally on testnet (PowerShell)
+
+```powershell
+cd "C:\Users\alexs\OneDrive\Desktop\Homework USC\Personal Coding\Near_Hackathon2026"
+pnpm install; pnpm --filter "@wardline/api..." build
+pnpm testnet:preflight
+
+# Window 1: the API in near mode with the local test signer
+$env:WARDLINE_CHAIN_MODE="near"; $env:WARDLINE_REGISTRY_MODE="near"; $env:WARDLINE_LOCAL_SIGNER="1"; $env:WARDLINE_OWNER_AUTH="off"
+$env:WARDLINE_NEAR_RPC_URL="https://near-testnet.drpc.org,https://rpc.testnet.fastnear.com,https://test.rpc.fastnear.com"
+pnpm --filter @wardline/api start
+
+# Window 2: the web app on testnet data with the local test signer
+$env:WARDLINE_DATA="testnet"; $env:VITE_WARDLINE_LOCAL_SIGNER="1"; $env:WARDLINE_DEV_API="http://127.0.0.1:8787"
+pnpm --filter @wardline/web dev
+# open http://127.0.0.1:5173, Connect wallet, then "Local test signer", then e.g. dana.wardline-labs.testnet
+
+# Window 3: activity and checks
+pnpm testnet:batch --dry-run; pnpm testnet:audit
+pnpm --filter @wardline/web test:e2e:testnet
+```
+
+### Tests
+
+- `pnpm test` passes: API 236, web 88, brand 7, and every other package.
+- Chromium e2e: 53 of 53. iPhone WebKit: 12 of 12.
+- Testnet e2e (`test:e2e:testnet`, against the running stack): all 10 pass.
+- `pnpm testnet:audit`: passes; output above.
+
+### How long it took
+
+From 10:04 to 15:36 UTC, including the waits between batches.
+
 ## A10, part 2: second merge from Tharun (2026-11-10)
 
 Merged `origin/tharun` up to 4200a1c. These are the commits newer than d1c6b67:

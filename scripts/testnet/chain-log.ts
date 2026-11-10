@@ -10,12 +10,18 @@ import { activityPaths, makeRpc, rowFromChain, type ActivityRow, type Rpc, type 
 
 export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const DATA_DIR = join(REPO_ROOT, "data/testnet");
+// .env first, so the RPC choice below sees it (the scheduled task starts with a bare environment).
+loadDotEnv();
 export const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
-export const RPC_URLS = [RPC_URL, "https://rpc.testnet.near.org"];
+/** RPC_URL may list several endpoints, comma-separated; requests fail over between them. */
+export const RPC_URLS = [...RPC_URL.split(",").map((u) => u.trim()).filter(Boolean), "https://rpc.testnet.near.org"];
 export const DRY_RUN = process.argv.includes("--dry-run");
 
-/** Reads the repo's .env into process.env without overriding what is already set. Never prints values. */
-export function loadDotEnv(path = join(REPO_ROOT, ".env")): void {
+/**
+ * Reads the repo's .env into process.env without overriding what is already set. Never prints values.
+ * WARDLINE_DOTENV points at another file: the scheduled clone reads the main checkout's .env, so no key is copied.
+ */
+export function loadDotEnv(path = process.env.WARDLINE_DOTENV ?? join(REPO_ROOT, ".env")): void {
   if (!existsSync(path)) return;
   for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
     const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
@@ -76,6 +82,8 @@ export function loadSpend(path = SPEND_PATH): SpendLedger {
   if (!existsSync(path)) return { total_calls: 0, hard_cap: HARD_CAP, current_key: "key_1", key_1_spend: zero(), key_2_spend: zero(), last_call_at: null };
   const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<SpendLedger>;
   return {
+    // Keeps notes such as manual_checks (live calls made outside the batch, counted toward the cap).
+    ...raw,
     total_calls: raw.total_calls ?? 0,
     hard_cap: HARD_CAP,
     current_key: raw.current_key === "key_2" ? "key_2" : "key_1",
@@ -100,4 +108,30 @@ export function saveSpend(ledger: SpendLedger, dryRun: boolean, path = SPEND_PAT
   if (dryRun) throw new DryRunWrite("the NEAR AI spend ledger");
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(ledger, null, 2)}\n`, "utf8");
+}
+
+/**
+ * One function call, waited to FINAL, with the same shape as the vault client's callFinal. Throws with
+ * NEAR's own error (callFinal's error path cannot print an action that holds a bigint, which hides it).
+ */
+export async function sendCall(
+  signer: { account: { signAndSendTransaction: (tx: never) => Promise<unknown> } },
+  call: { contract_id: string; method: string; args: Record<string, unknown>; gas?: bigint; deposit?: bigint },
+): Promise<{ tx_hash: string; value: unknown }> {
+  const { actions } = await import("@wardline/vault-client");
+  let out: { transaction: { hash: string }; status: { SuccessValue?: string; Failure?: unknown } };
+  try {
+    out = (await signer.account.signAndSendTransaction({ receiverId: call.contract_id, actions: [actions.functionCall(call.method, call.args, call.gas ?? 100_000_000_000_000n, call.deposit ?? 0n)], waitUntil: "FINAL" } as never)) as typeof out;
+  } catch (error) {
+    throw new Error(`${call.method} on ${call.contract_id}: ${(error as Error).message}`);
+  }
+  if (out.status.Failure !== undefined) throw new Error(`${call.method} on ${call.contract_id} failed: ${JSON.stringify(out.status.Failure).slice(0, 300)}`);
+  const raw = out.status.SuccessValue ? Buffer.from(out.status.SuccessValue, "base64").toString("utf8") : "";
+  let value: unknown = raw;
+  try {
+    value = raw ? JSON.parse(raw) : null;
+  } catch {
+    value = raw;
+  }
+  return { tx_hash: out.transaction.hash, value };
 }

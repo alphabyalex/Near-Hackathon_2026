@@ -14,15 +14,8 @@
       "identifier": "@wardline/mcp",
       "version": "0.1.0",
       "transport": {
-        "type": "http",
-        "url": "https://realize-russell-societies-incl.trycloudflare.com/mcp"
-      }
-    },
-    {
-      "registryType": "npm",
-      "identifier": "@wardline/mcp",
-      "version": "0.1.0",
-      "transport": { "type": "stdio" },
+        "type": "stdio"
+      },
       "environmentVariables": [
         {
           "name": "WARDLINE_API_URL",

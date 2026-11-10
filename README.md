@@ -10,12 +10,11 @@ Back the AI economy and earn from it: Wardline lets communities pool money, cove
 
 ## Hosted
 
-- Web app: https://lean-ballot-ref-script.trycloudflare.com
-- API: `https://attempt-caused-antique-four.trycloudflare.com`
-- MCP (streamable HTTP): `https://realize-russell-societies-incl.trycloudflare.com/mcp`
+Nothing is hosted right now: run Wardline on your own machine (below). The web app serves on `http://127.0.0.1:5173`, the API on `http://127.0.0.1:8787` and MCP (streamable HTTP) on `http://127.0.0.1:8790/mcp`.
+
 - NEAR testnet deployment: `scripts/contracts/deployments/testnet-wardline.json`, contracts under `wardline-labs.testnet`, Circle testnet USDC `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`
 
-These links live in `repo.config.json` (`hosted`); `pnpm test` fails if this file, `llms.txt`, `SKILL.md` or `services/mcp/server.json` disagree with it.
+Hosted links live in `repo.config.json` (`hosted`), empty while nothing is hosted; `pnpm test` fails if this file, `llms.txt`, `SKILL.md` or `services/mcp/server.json` disagree with it.
 
 ## Try it in 5 minutes
 
@@ -180,7 +179,7 @@ pnpm demo:tier
 See:
 
 ```
-Aurora Lab shared AI budget: bronze, 0 proven calls, 0 claims, fee 2.00%, coverage 25.00 USDC
+Aurora Lab: bronze, 0 proven calls, 0 claims, fee 2.00%, coverage 25.00 USDC
 After 11 proven calls: silver, 11 proven calls, 0 claims, fee 1.50%, coverage 50.00 USDC
 Fee on call 1: 0.0100 USDC. Fee on call 11: 0.0075 USDC
 ```
@@ -238,8 +237,61 @@ Everything above runs offline. Each live variant needs its own environment varia
 | --- | --- | --- |
 | Live NEAR AI Cloud | `NEAR_AI_API_KEY`, and leave `WARDLINE_AI_PROVIDER_URL` unset | The gateway calls `cloud-api.near.ai` and verifies live `provider_tee` signatures |
 | Read the testnet deployment | nothing | `pnpm testnet:check` makes view calls only: pool, budgets, attested models, WARD balances |
-| NEAR testnet | `WARDLINE_CHAIN_MODE=near`, `WARDLINE_GATEWAY_ACCOUNT`, `WARDLINE_GATEWAY_KEY` (a function-call key for `reserve`, `settle`, `release` on the meter) | Contract ids come from `repo.config.json`; override with `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`. `WARDLINE_DEMO_METER_KEY` is refused in this mode |
+| NEAR testnet | `WARDLINE_CHAIN_MODE=near`, `WARDLINE_GATEWAY_ACCOUNT`, `WARDLINE_GATEWAY_KEY` (a function-call key for `reserve`, `settle`, `release` on the meter), `WARDLINE_PROVIDER_PAY_TO` | Contract ids come from `repo.config.json`; override with `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`. `WARDLINE_PROVIDER_PAY_TO` receives the provider's share of each settled call, so the fee moves to the pool as USDC. `WARDLINE_DEMO_METER_KEY` is refused in this mode |
+| Payee registry on testnet | `WARDLINE_REGISTRY_MODE=near` | `/v1/check` and `/v1/resolve` read `payee-registry.wardline-labs.testnet`. `WARDLINE_REGISTRY_MODE=near pnpm payee:seed` attests the seeded vendors as the attestor |
+| Testnet data in the web app | `WARDLINE_DATA=testnet` (web), with the API in near mode | Home, Groups, Latest proofs and #/me read `/v1/activity`, `/v1/activity/stats`, `/v1/communities` and `/v1/people`. The footer says NEAR testnet. Off unless set; a failing route shows an error, never sim numbers |
+| Local test signer | `WARDLINE_LOCAL_SIGNER=1` (API) and `VITE_WARDLINE_LOCAL_SIGNER=1` (web dev server) | The browser acts as a testnet cast account from your credential store: Join, vote, execute, redeem. Both refuse to start unless bound to 127.0.0.1 and on testnet, and a production build refuses it |
+| Several RPC endpoints | `WARDLINE_NEAR_RPC_URL=url1,url2,...` | Each request fails over to the next on an error or a rate limit |
 | A DEX for WARD | `WARDLINE_WARD_TRADE_URL` | Shows "Trade WARD" next to the price |
+
+## Run it on testnet
+
+Needs the keys in `%USERPROFILE%.wardline	estnetcredentials.json` (or `~/.wardline/testnet`) and the gateway key and `NEAR_AI_API_KEY` in `.env`. `pnpm testnet:preflight` checks every key against the chain and prints public keys only. In PowerShell:
+
+```powershell
+# 1. The API in near mode, with the local test signer (127.0.0.1 only)
+$env:WARDLINE_CHAIN_MODE="near"; $env:WARDLINE_REGISTRY_MODE="near"; $env:WARDLINE_LOCAL_SIGNER="1"; $env:WARDLINE_OWNER_AUTH="off"
+$env:WARDLINE_NEAR_RPC_URL="https://near-testnet.drpc.org,https://rpc.testnet.fastnear.com,https://test.rpc.fastnear.com"
+pnpm --filter @wardline/api build; pnpm --filter @wardline/api start
+
+# 2. In a second window: the web app on testnet data, with the local test signer
+$env:WARDLINE_DATA="testnet"; $env:VITE_WARDLINE_LOCAL_SIGNER="1"; $env:WARDLINE_DEV_API="http://127.0.0.1:8787"
+pnpm --filter @wardline/web dev
+```
+
+Open http://127.0.0.1:5173. To act as a cast account, choose Connect wallet, then **Local test signer (testnet, this machine only)**, and pick an account such as `dana.wardline-labs.testnet`. Every action it takes is a real testnet transaction, signed with that account's key from your credential store; the header marks it as the local test signer.
+
+The activity behind the pages:
+
+```powershell
+pnpm testnet:setup      # creates and funds the cast (safe to run again; --dry-run sends nothing)
+pnpm testnet:batch      # live NEAR AI calls through the gateway, refusals, deposits, a WARD vote (--dry-run, --calls N)
+pnpm testnet:audit      # checks every row against testnet RPC; the API serves only audited rows
+pnpm --filter @wardline/web test:e2e:testnet   # drives every function in Chromium against the running stack
+```
+
+## Testnet communities
+
+The Mission Street hacker house, Nightshade DAO, Hayes Valley house, Aurora Lab and Kelp Collective are fictional communities run by the Wardline team on NEAR testnet, with five solo builders and three liquidity providers. Their activity is scripted (`scripts/testnet`), but every part of it is real:
+
+- Every AI call is a live NEAR AI call (DeepSeek V4.1 Flash), proven by its TEE signature and settled on the meter, with its fee paid to the pool in Circle testnet USDC.
+- Refusals are real too: a swapped model is reserved, fails the proof against the recorded GLM-5.3 Flash answer and is released; a leaked key is stopped at its allowance.
+- Mission Street funds its budget from its own Sputnik DAO by council proposal and vote. The other four fund theirs from a treasury account.
+- Every number on the site comes from a contract view, and every row links to its transaction on testnet.nearblocks.io. `data/testnet/activity.jsonl` holds the rows; `pnpm testnet:audit` re-checks each one (hash, signer, contract method and result, block) and the API serves only rows that passed.
+
+Numbers at the last audit (Nov 10, 15:30 UTC; `pnpm testnet:audit` re-derives them from the chain):
+
+| | |
+|---|---|
+| Rows in the log, all matched to a transaction | 161 of 161, 0 misses |
+| Live NEAR AI calls (DeepSeek V4.1 Flash, max 150 tokens) | 108 proven and settled, plus one plug-in check; $0.0196 in NEAR AI credit |
+| Swapped-model answers refused (`MODEL_MISMATCH`) | 4 |
+| Leaked-key reserves capped (`ALLOWANCE_EXHAUSTED`) | 10 |
+| Pool | 2.03 USDC; 0.000258 USDC of fees earned; WARD at 1.000368 |
+| Tiers | Mission Street Gold; Nightshade and Hayes Valley Silver; Aurora Lab Bronze after a claim; Kelp Bronze |
+| Claims | One, 0.02 USDC for Aurora Lab, paid from Wardline's first-loss stake (WARD unchanged) |
+
+A scheduled task (`scripts/testnet/scheduled-run.ps1`) adds a small batch every 6 hours until Nov 13, 20:00 UTC. When the audit after it passes, it commits only `data/testnet/` to main as `chore(testnet): scheduled batch <UTC time>`, so these numbers grow in git.
 
 ## How it works
 
@@ -266,8 +318,9 @@ flowchart LR
 | Group budgets, allowances, reserve, settle, release | NEAR contract `contracts/meter` | `meter.wardline-labs.testnet`, moves Circle testnet USDC |
 | Which TEE signer is attested for which model | NEAR contract `contracts/model-registry` | `model-registry.wardline-labs.testnet` |
 | The Mutual: first-loss stake, WARD (NEP-141), claims, 7-day redemption | NEAR contract `contracts/cover-pool` | `pool.wardline-labs.testnet` |
-| Group governance | Sputnik DAO v2 | `packages/dao-adapter` builds and reads the proposals |
-| Reputation tiers and WARD-holder voting | Simulated in `services/api/src/chain/sim-mutual.ts` | Same names as the coming contracts: `get_reputation(budget_id)`, propose, vote, execute |
+| Group governance | Sputnik DAO v2 | `packages/dao-adapter` builds and reads the proposals. On testnet, `mission-dao.wardline-labs.testnet` funds its budget by council vote |
+| Reputation tiers | NEAR contract `contracts/meter` | `get_reputation`, `list_reputations`: proven and refused calls, tier, fee, coverage. Calls capped at an allowance leave no state, so their count comes from the audited activity log, one refused reserve transaction each |
+| WARD-holder voting | NEAR contract `contracts/cover-pool` | `propose`, `vote`, `execute`, signed by each holder's own wallet. Sim mode keeps the simulation in `services/api/src/chain/sim-mutual.ts` |
 | Payee registry and per-business vaults | NEAR contracts `contracts/payee-registry`, `contracts/vault` | For invoice payments |
 | Gateway, payee check, receipts, site | Off chain: `services/api`, `apps/web` | |
 | Model inference and response signatures | NEAR AI Cloud | |
@@ -276,12 +329,13 @@ flowchart LR
 
 - Testnet only. Mainnet USDC is a configuration value and has never been used.
 - The Mutual is protocol-backed coverage on testnet, not insurance. WARD is yield-bearing and loss-sharing; its price can fall.
-- Reputation tiers and WARD voting are simulated, also in near mode, until their contracts are deployed. The live sim starts with three groups that have a history, and two LPs.
+- In sim mode, reputation tiers and WARD voting are simulated; the live sim starts with three groups that have a history, and two LPs. In near mode both read the contracts.
+- On the testnet contracts: executing a WARD proposal records the decision as an event but does not yet change the meter's fees or coverage; a vote weighs the voter's WARD when they vote, not at the proposal's snapshot; redemptions unlock after the pool's `withdraw_delay_days`, currently 0 on testnet (7 in the contract's default); and `file_claim`, `deposit`, `request_withdraw` (cover pool) and `fund` (meter) do not check their caller. The scripts and the site never use the unchecked paths.
 - Token counts are not signed. A TEE signature shows which attested model signed the exact response bytes; the charge uses the provider's reported usage, capped at the reservation.
 - The attestor is trusted. Signers enter the registry from NEAR AI attestation reports; checking the TDX and GPU quotes inside them is not done independently here.
 - `provider_tee` signatures exist only for models NEAR AI serves itself. Gateway signatures are refused as proof of the model. Streaming responses are refused for now.
 - The payee check verifies control of an account and its link to a domain, at a stated trust level. It does not establish who legally owns a business.
-- The hosted links are temporary tunnels and may be offline; everything above runs locally.
+- Nothing is hosted right now; everything above runs locally.
 - This was built during the NEAR hackathon. More in [docs/LIMITATIONS.md](docs/LIMITATIONS.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Tracks

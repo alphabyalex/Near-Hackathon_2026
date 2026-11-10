@@ -2,6 +2,7 @@ import { InvalidPayeeInputError } from "@wardline/sdk";
 import { Hono } from "hono";
 import { VAULT_A } from "./mock/seed.js";
 import { registerActivityRoutes } from "./activity/index.js";
+import { registerLocalSigner } from "./local-signer.js";
 import { aiOverview, isChainOutage, registerAiPublicRoutes } from "./ai-routes.js";
 import { createMeterGateway } from "./meter/gateway.js";
 import { toDateClock } from "./time.js";
@@ -20,7 +21,7 @@ export const OWNER_PREFIX = "/owner";
  * The public app: /v1, published evaluations and the vault overview the site shows. Owner routes
  * live in owner-app.ts. They are mounted at /owner here unless they run on their own port.
  */
-export function createApp(deps: Deps, options: { mountOwner?: boolean } = {}): Hono<{ Variables: PublicVariables }> {
+export function createApp(deps: Deps, options: { mountOwner?: boolean; localSigner?: boolean } = {}): Hono<{ Variables: PublicVariables }> {
   const app = new Hono<{ Variables: PublicVariables }>();
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
 
@@ -48,6 +49,8 @@ export function createApp(deps: Deps, options: { mountOwner?: boolean } = {}): H
 
   registerAiPublicRoutes(app as never, deps);
   registerActivityRoutes(app as never, deps);
+  // Only when index.ts checked every guard (local-signer.ts): loopback, WARDLINE_LOCAL_SIGNER=1, testnet.
+  if (options.localSigner) registerLocalSigner(app as never, deps);
 
   app.get("/overview", async (c) => {
     const vaultId = c.req.query("vault_id") ?? VAULT_A;

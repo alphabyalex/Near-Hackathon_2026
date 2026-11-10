@@ -197,8 +197,11 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
 
     const reservation = await deps.chain.meter.reserve({ budget_id: key.budgetId, member: key.member, call_id: callId, model_id: model, max_amount: maxAmount.toString() });
     if (!reservation.ok) {
-      finish({ status: "refused", reason: reservation.reason, detail: reservation.detail });
+      // On chain the refusal is itself a transaction: the reserve the meter declined. It is the call's
+      // closing transaction, kept where a release would be.
+      finish({ status: "refused", reason: reservation.reason, detail: reservation.detail, releaseTx: reservation.tx ?? null });
       c.header("X-Wardline-Call", callId);
+      if (reservation.tx) c.header("X-Wardline-Settlement", reservation.tx);
       const limit = reservation.reason === "ALLOWANCE_EXHAUSTED" || reservation.reason === "BUDGET_EXHAUSTED";
       return openAiError(c, limit ? 402 : 403, limit ? "spend_limit_reached" : "budget_error", limit ? `Spend limit reached. ${reservation.detail} Nothing was sent to the model.` : reservation.detail, { code: reservation.reason, call_id: callId });
     }
@@ -249,10 +252,14 @@ export function createMeterGateway(deps: GatewayDeps): Hono {
 
     const amount = costFor(route, row.promptTokens ?? 0, row.completionTokens ?? 0);
     const capped = amount > BigInt(row.reserved) ? BigInt(row.reserved) : amount;
+    // On testnet the provider's share and the Mutual's fee move as USDC: the meter pays pay_to and sends
+    // the fee to the pool. Without pay_to the meter only updates its books. Sim mode keeps its own ledger.
+    const payTo = deps.chain.mode === "near" ? (env.WARDLINE_PROVIDER_PAY_TO ?? provider.payTo) : undefined;
     const settled = await deps.chain.meter.settle({
       call_id: callId,
       amount: capped.toString(),
       proof: { model_id: model, request_hash: requestHash, response_hash: row.responseHash, text: signature!.text, signature: signature!.signature, signing_address: check.signer, chat_id: row.chatId! },
+      ...(payTo ? { pay_to: payTo } : {}),
     });
     if (!settled.ok) return refuse(settled.reason, settled.detail, 502, "proof_refused", responseBytes);
     finish({ status: "verified", signer: check.signer, amount: settled.amount, refund: settled.refund, settlementTx: settled.tx });

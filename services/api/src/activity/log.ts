@@ -145,7 +145,7 @@ export function auditedRows(logText: string | null, stampText: string | null): {
   return { audited: true, rows, pending: lines.length - n };
 }
 
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
+export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 /** data/testnet/activity.jsonl and audit.json, or WARDLINE_ACTIVITY_LOG and WARDLINE_ACTIVITY_AUDIT. */
 export function activityPaths(env: Record<string, string | undefined> = process.env): { log: string; audit: string } {
