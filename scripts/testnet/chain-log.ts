@@ -11,7 +11,8 @@ import { activityPaths, makeRpc, rowFromChain, type ActivityRow, type Rpc, type 
 export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const DATA_DIR = join(REPO_ROOT, "data/testnet");
 export const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
-export const RPC_URLS = [RPC_URL, "https://rpc.testnet.near.org"];
+/** RPC_URL may list several endpoints, comma-separated; requests fail over between them. */
+export const RPC_URLS = [...RPC_URL.split(",").map((u) => u.trim()).filter(Boolean), "https://rpc.testnet.near.org"];
 export const DRY_RUN = process.argv.includes("--dry-run");
 
 /** Reads the repo's .env into process.env without overriding what is already set. Never prints values. */
