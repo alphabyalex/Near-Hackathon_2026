@@ -1,5 +1,53 @@
 # Status: alexander
 
+## A16: Your transactions from the chain (2026-11-10)
+
+On `alexander`, fast-forwarded from main (`37edd42`). No transactions sent.
+
+- **New route, `GET /v1/people/:account/transactions`** (`services/api/src/activity/transactions.ts`). It reads the account's Wardline transactions from the chain, so it works the same on the hosted site:
+  - **Lists** them with NearBlocks testnet API v3 (`/v3/accounts/:id/txns` and `/ft-txns`, no key). FastNEAR wasn't needed.
+  - **Keeps only our contracts:**
+    - `ft_transfer_call` on USDC, and only when its `receiver_id` is the pool;
+    - `request_redeem`, `request_withdraw`, `redeem`, `vote`, `propose`, `execute` and `ft_transfer` (WARD) on the pool.
+  - **Confirms each one with the RPC `tx` method:** same hash, signer, receiver and method. Amounts come from the confirmed transaction:
+    - USDC from its arguments;
+    - WARD from the pool's own `pool_deposited` event;
+    - price is USDC divided by WARD;
+    - the unlock date from `request_redeem`'s result.
+
+    A hash the RPC can't confirm is dropped. A failed transaction, or a deposit the pool refunded, is kept and shown as Failed.
+  - **Merges** with the account's audited rows from `activity.jsonl`, de-duplicated by hash (the chain's reading wins), newest first. `totals` (deposited, redeemed) come from confirmed rows only.
+  - **Caching:** 30 s per account. Each hash is confirmed once. NearBlocks calls are spaced at least 1.1 s apart. `?pending=<hash>` re-reads early, at most every 4 s, when a page is waiting for a new hash.
+  - **When NearBlocks is down,** it returns the rows already confirmed plus `complete: false`. The page then says "Some history may be missing. Check the explorer." with a link to the account on testnet.nearblocks.io.
+- **Your transactions on #/me** is now a Horizon table:
+  - **Columns:** Date (local time; full timestamp on hover), Type, USDC, WARD, WARD price, Status, and a short hash linking to testnet.nearblocks.io.
+  - **Types:** Bought WARD, Sell requested (with its unlock date), Sold WARD, Voted for or against #N, Proposed #N, Executed #N, Sent WARD, Received WARD.
+  - **Paging:** newest first, 10 at a time with Show more.
+  - **Telling them apart without red:** buys carry a solid violet dot and +WARD, sells an open violet ring and minus WARD, governance a small grey square. Failed rows are muted and struck through.
+  - **Phones:** each row is a two-line card, with no sideways scroll.
+- **Pending, then Confirmed:** right after Join, a redeem request, a redeem or a vote, the new row appears at the top as Pending with its hash. It asks the route again every 5 s and flips to Confirmed when the chain returns it. No reload needed.
+- **Totals:** Your share's deposited, redeemed and earned now come from the confirmed rows plus the pool's position. Earned shows for wallet members now, and matches the table.
+- **Live check** against the testnet API: `hyperios.testnet` shows Bought WARD on Nov 10, 10.00 USDC, +9.996121 WARD (shown as 9.99), WARD price 1.0004 (1.000388), Confirmed. The link opens `7UAt5yhw2b4nFb6L1tjWZwRXpbWZEEXPuiSk6Gax3mJp` on testnet.nearblocks.io, and Earned since joining reads 0.00 USDC. Screenshots, looked at and fixed once (column spacing, the USDC line on phone cards): `apps/web/screenshots/me-transactions-1440.png`, `me-transactions-iphone-se.png`, `me-share-1440.png`, `me-share-iphone-se.png`.
+- **Tests:**
+  - `services/api/test/transactions.test.ts` (10): the filter, including USDC sent anywhere but the pool; confirmation, where a fake hash and a wrong signer are dropped; a failed transaction kept; de-dup and order; totals; the 30 s cache; the indexer-down flag.
+  - `apps/web/test/transactions.test.tsx` (6): words, amounts, marks and links; Show more; the explorer line; no red; the Pending-to-Confirmed flip; totals.
+- **Full checks did not complete: needs a re-run.** OneDrive's sync took about two cores at 100% load during the run, and tests that normally take seconds took minutes.
+  - **`pnpm testnet:audit`:** passed, 202 of 202 rows.
+  - **`pnpm test`:** every package that reported passed, and the API had 250 of 251. The one failure is the demo scene "6. wrong approvals" timing out (6.5 s, then 10.5 s, against a 5 s limit). It's a CPU-heavy simulation untouched here, and it passed in A15. The web package didn't report because the run stopped at the API failure. The new test files pass on their own: API 10 of 10, web 6 of 6.
+  - **Chromium e2e:** stopped at 18 passed and 4 failed. The failures took 1 to 12 minutes each (normal is seconds), all in connect and member flows I didn't change.
+  - **iPhone WebKit:** not run.
+  - **Next step:** re-run all of these once OneDrive is idle, or from a clone outside OneDrive.
+- **Not covered:** "Received WARD" only finds transfers the indexer reports as token moves on the pool. The pool emits no NEP-141 events, so a WARD transfer from someone else may not be found.
+- **Files touched:**
+  - **New:** `services/api/src/activity/transactions.ts`, `services/api/test/transactions.test.ts`, `apps/web/src/data/transactions.ts`, `apps/web/src/views/site/Transactions.tsx`, `apps/web/src/views/site/transactions.css`, `apps/web/test/transactions.test.tsx`.
+  - **Changed:**
+    - `services/api/src/activity/routes.ts`: the route.
+    - `apps/web/src/views/site/Me.tsx`: the transactions section and the totals.
+    - `apps/web/src/views/site/Member.tsx`: the Join and redeem success states add a Pending row.
+    - `apps/web/src/views/site/Governance.tsx`: the vote success state adds a Pending row.
+    - `apps/web/src/brand.ts`: the `ME.tx` copy.
+    - `docs/status/alexander.md`.
+
 ## A15: tharun and alexander merged into main (2026-11-10)
 
 **main:** `723cec6`, the merged code (alexander on top of tharun), then the scheduled task's 21:00 UTC data as `2f2a72d`. This report fast-forwards main once more. `alexander` is fast-forwarded to main.
