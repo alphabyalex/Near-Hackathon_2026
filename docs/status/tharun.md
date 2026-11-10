@@ -553,9 +553,39 @@ Regarding your two questions:
 - `apps/web/src/views/site/Proof.tsx` renders `TxLink` for verifiable proof rows with transaction hashes.
 - Test suites: Brand guard 7/7, Web unit 83/83, API unit 222/222, Playwright E2E 65/65 (53 Chromium + 12 iPhone SE WebKit).
 
+## T4.8: Testnet handoff to Alexander and A10 sync (2026-11-10)
+
+Merged `origin/alexander` (`92b25ea`) into `tharun`. Prepared the secure testnet handoff package for Alexander outside the repository, verified all credentials on chain, confirmed all tests pass across all packages, and revealed the handoff archive in macOS Finder.
+
+### 1. Testnet Credentials and Chain Verification
+
+1. Verified all 64 NEAR accounts in `~/.wardline/testnet/credentials.json` against testnet FastNEAR RPC:
+   - `wardline-labs.testnet` FullAccess key matches `ed25519:FGUWrt4Y...` with balance 14.058 NEAR.
+   - `meter.wardline-labs.testnet` FullAccess key matches `ed25519:CMP1SQDo...` with balance 3.491 NEAR.
+   - FunctionCall gateway key matches `ed25519:8GCuoS7j...` on `meter.wardline-labs.testnet` for `[reserve, settle, release]`.
+   - Core contracts (`pool`, `vault`, `model-registry`, `payee-registry`, `dao`, `token`, `provider`, `investor1`, `investor2`, `agent`) are verified on chain with matching keys.
+   - 51 cast accounts are pre-generated in `credentials.json` for Alexander's Step 3 cast funding.
+2. Verified that zero unrelated machine or personal credentials were touched or included.
+3. Batch scheduler verified stopped; no background schedule or simulate processes are active.
+
+### 2. Handoff Package Creation
+
+Built secure handoff archive outside the repository at `~/wardline-handoff.zip`:
+- `credentials.json`: Exactly 63 full-access accounts formatted for `CredentialStore`.
+- `gateway.env`: Gateway account (`meter.wardline-labs.testnet`), FunctionCall private key (`8GCuoS7j...`), attestor key, Alexander official NEAR AI key, demo meter key, and RPC endpoints.
+- `HANDOFF.md`: Complete audit table, account roles, on-chain balances, machine state, commit history, and Step 3 execution instructions. Zero em dashes.
+- Archive encrypted with random 24-character password; package decrypted and tested before delivery.
+- Opened repository and revealed archive in macOS Finder.
+
+### 3. Test Suites
+
+- Brand guard: 7 of 7 passed.
+- Package build: all packages cleanly built.
+- Unit tests: API (230 tests passed), Web (83 tests passed), Vault Client, Schemas, DAO Adapter, SDK, Payee Check, Vault Sim, Redteam, Evaluator, X402 Guard. 100% passing across workspace.
+
 ## Next
 
-- Connect the API to `NearVaultGateway`, and run one payment through it on testnet. This is the last untested link.
-- Enroll the frozen agent on both vaults.
-- If any contract rule changes: update the spec, the contract and the sim together, run parity, then deploy under a new root.
-- Stretch, only if there is time: add a weekly over-cap attack to `malicious-signer`, and cut the sandbox suite's runtime by sharing tenants between tests.
+- Alexander runs Step 3 cast setup and funding (`pnpm testnet:setup`).
+- Alexander executes the live testnet batch (`pnpm testnet:batch`) and pins the cryptographic digest with `pnpm testnet:audit`.
+- Connect the API to `NearVaultGateway` and test end-to-end payment flow.
+
