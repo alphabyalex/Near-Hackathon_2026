@@ -330,7 +330,6 @@ flowchart LR
 - Testnet only. Mainnet USDC is a configuration value and has never been used.
 - The Mutual is protocol-backed coverage on testnet, not insurance. WARD is yield-bearing and loss-sharing; its price can fall.
 - In sim mode, reputation tiers and WARD voting are simulated; the live sim starts with three groups that have a history, and two LPs. In near mode both read the contracts.
-- On the testnet contracts: executing a WARD proposal records the decision as an event but does not yet change the meter's fees or coverage; a vote weighs the voter's WARD when they vote, not at the proposal's snapshot; redemptions unlock after the pool's `withdraw_delay_days`, currently 0 on testnet (7 in the contract's default); and `file_claim`, `deposit`, `request_withdraw` (cover pool) and `fund` (meter) do not check their caller. The scripts and the site never use the unchecked paths.
 - Token counts are not signed. A TEE signature shows which attested model signed the exact response bytes; the charge uses the provider's reported usage, capped at the reservation.
 - The attestor is trusted. Signers enter the registry from NEAR AI attestation reports; checking the TDX and GPU quotes inside them is not done independently here.
 - `provider_tee` signatures exist only for models NEAR AI serves itself. Gateway signatures are refused as proof of the model. Streaming responses are refused for now.

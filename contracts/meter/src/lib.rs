@@ -288,6 +288,10 @@ pub struct MeterContract {
     settled_chats: LookupSet<String>,
     attested_cache: IterableMap<String, String>,
     reputations: IterableMap<String, StoredReputation>,
+    pub coverage_multiplier_bps: u32,
+    pub fee_bps_bronze: u32,
+    pub fee_bps_silver: u32,
+    pub fee_bps_gold: u32,
 }
 
 #[near]
@@ -312,6 +316,10 @@ impl MeterContract {
             settled_chats: LookupSet::new(StorageKey::SettledChats),
             attested_cache: IterableMap::new(StorageKey::AttestedCache),
             reputations: IterableMap::new(StorageKey::Reputations),
+            coverage_multiplier_bps: 10_000,
+            fee_bps_bronze: 200,
+            fee_bps_silver: 150,
+            fee_bps_gold: 100,
         };
 
         // Seed default model signers for self-contained verification
@@ -342,7 +350,21 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
     #[init(ignore_state)]
     pub fn migrate() -> Self {
         #[near(serializers = [borsh])]
-        struct OldMeterContract {
+        struct OldMeterContract10 {
+            owner: AccountId,
+            token_contract: AccountId,
+            registry_contract: AccountId,
+            pool_contract: AccountId,
+            cover_fee_bps: u64,
+            budgets: IterableMap<String, StoredBudget>,
+            reservations: IterableMap<String, StoredReservation>,
+            settled_chats: LookupSet<String>,
+            attested_cache: IterableMap<String, String>,
+            reputations: IterableMap<String, StoredReputation>,
+        }
+
+        #[near(serializers = [borsh])]
+        struct OldMeterContract9 {
             owner: AccountId,
             token_contract: AccountId,
             registry_contract: AccountId,
@@ -354,7 +376,24 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             attested_cache: IterableMap<String, String>,
         }
 
-        if let Some(old) = env::state_read::<OldMeterContract>() {
+        if let Some(old) = env::state_read::<OldMeterContract10>() {
+            Self {
+                owner: old.owner,
+                token_contract: old.token_contract,
+                registry_contract: old.registry_contract,
+                pool_contract: old.pool_contract,
+                cover_fee_bps: old.cover_fee_bps,
+                budgets: old.budgets,
+                reservations: old.reservations,
+                settled_chats: old.settled_chats,
+                attested_cache: old.attested_cache,
+                reputations: old.reputations,
+                coverage_multiplier_bps: 11_000,
+                fee_bps_bronze: 200,
+                fee_bps_silver: 125,
+                fee_bps_gold: 100,
+            }
+        } else if let Some(old) = env::state_read::<OldMeterContract9>() {
             Self {
                 owner: old.owner,
                 token_contract: old.token_contract,
@@ -366,6 +405,10 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                 settled_chats: old.settled_chats,
                 attested_cache: old.attested_cache,
                 reputations: IterableMap::new(StorageKey::Reputations),
+                coverage_multiplier_bps: 11_000,
+                fee_bps_bronze: 200,
+                fee_bps_silver: 125,
+                fee_bps_gold: 100,
             }
         } else {
             env::state_read::<Self>().expect("Failed to deserialize state")
@@ -664,7 +707,7 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         let fee_bps = self
             .reputations
             .get(&reservation.budget_id)
-            .map(|r| r.fee_bps())
+            .map(|r| self.get_fee_bps_for_tier(r.tier_idx))
             .unwrap_or(self.cover_fee_bps as u32);
         let cover_fee = (amount.0 * fee_bps as u128) / 10_000;
         let provider_payout = amount.0.saturating_sub(cover_fee);
@@ -815,7 +858,7 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         let fee_bps = self
             .reputations
             .get(&reservation.budget_id)
-            .map(|r| r.fee_bps())
+            .map(|r| self.get_fee_bps_for_tier(r.tier_idx))
             .unwrap_or(self.cover_fee_bps as u32);
         let cover_fee = (amount.0 * fee_bps as u128) / 10_000;
 
@@ -910,6 +953,24 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
         self.reputations.insert(budget_id, rep);
     }
 
+    pub fn get_fee_bps_for_tier(&self, tier_idx: u8) -> u32 {
+        match tier_idx {
+            0 => self.fee_bps_bronze,
+            1 => self.fee_bps_silver,
+            _ => self.fee_bps_gold,
+        }
+    }
+
+    pub fn get_coverage_cap_for_tier(&self, tier_idx: u8) -> U128 {
+        let base: u128 = match tier_idx {
+            0 => 25_000_000,
+            1 => 50_000_000,
+            _ => 100_000_000,
+        };
+        let cap = (base.saturating_mul(self.coverage_multiplier_bps as u128)) / 10_000;
+        U128(cap)
+    }
+
     pub fn get_reputation(&self, budget_id: String) -> Option<ReputationView> {
         let budget = self.budgets.get(&budget_id)?;
         let rep = self
@@ -917,6 +978,8 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             .get(&budget_id)
             .cloned()
             .unwrap_or_else(StoredReputation::default);
+        let fee_bps = self.get_fee_bps_for_tier(rep.tier_idx);
+        let cap = self.get_coverage_cap_for_tier(rep.tier_idx);
         Some(ReputationView {
             budget_id: budget_id.clone(),
             name: budget.name.clone(),
@@ -927,8 +990,8 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
             claims: rep.claims,
             clean_calls: rep.clean_calls,
             next_tier_at: rep.next_tier_at(),
-            fee_bps: rep.fee_bps(),
-            coverage_cap: rep.coverage_cap().0.to_string(),
+            fee_bps,
+            coverage_cap: cap.0.to_string(),
             spent: rep.spent.to_string(),
             fees_paid: rep.fees_paid.to_string(),
         })
@@ -968,6 +1031,10 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
     }
 
     pub fn fund(&mut self, budget_id: String, amount: U128) {
+        require!(
+            env::predecessor_account_id() == self.token_contract,
+            "E_NOT_AUTHORIZED: funding must go through ft_on_transfer from token contract"
+        );
         let budget = self
             .budgets
             .get_mut(&budget_id)
@@ -1029,8 +1096,9 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
     pub fn set_param(&mut self, name: String, value: String) {
         require!(
             env::predecessor_account_id() == self.owner
+                || env::predecessor_account_id() == self.pool_contract
                 || env::predecessor_account_id().as_str().starts_with("dao."),
-            "E_NOT_OWNER: only owner or DAO can change parameters"
+            "E_NOT_OWNER: only owner, DAO, or pool contract can change parameters"
         );
         match name.as_str() {
             "cover_fee_bps" => {
@@ -1038,8 +1106,54 @@ fn roll_budget(budget: &mut StoredBudget, now_ns: u64) {
                 require!(bps <= 10_000, "Invalid fee bps");
                 self.cover_fee_bps = bps;
             }
+            "coverage_multiplier" | "coverage_multiplier_bps" => {
+                let bps: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    bps >= 2_500 && bps <= 40_000,
+                    "Coverage multiplier out of bounds (2500-40000 bps)"
+                );
+                self.coverage_multiplier_bps = bps;
+            }
+            "fee_bps_bronze" => {
+                let bps: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    bps >= 10 && bps <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                self.fee_bps_bronze = bps;
+            }
+            "fee_bps_silver" => {
+                let bps: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    bps >= 10 && bps <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                self.fee_bps_silver = bps;
+            }
+            "fee_bps_gold" => {
+                let bps: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    bps >= 10 && bps <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                self.fee_bps_gold = bps;
+            }
             _ => env::panic_str("Unknown parameter"),
         }
+        events::param_set(&name, &value);
+    }
+
+    pub fn get_fee_bps(&self, tier: String) -> u32 {
+        match tier.as_str() {
+            "bronze" => self.fee_bps_bronze,
+            "silver" => self.fee_bps_silver,
+            "gold" => self.fee_bps_gold,
+            _ => env::panic_str("Unknown tier"),
+        }
+    }
+
+    pub fn get_coverage_multiplier_bps(&self) -> u32 {
+        self.coverage_multiplier_bps
     }
 
     pub fn get_cover_fee_bps(&self) -> u64 {
@@ -1363,5 +1477,132 @@ mod tests {
         let reps = meter.list_reputations();
         assert_eq!(reps.len(), 1);
         assert_eq!(reps[0].budget_id, "bgt_rep");
+    }
+
+    #[test]
+    #[should_panic(expected = "E_NOT_AUTHORIZED")]
+    fn test_fund_rejects_unauthorized_caller() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let attacker: AccountId = "attacker.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut meter = MeterContract::new(
+            owner.clone(),
+            token.clone(),
+            "registry.testnet".parse().unwrap(),
+            "pool.testnet".parse().unwrap(),
+            Some(200),
+        );
+
+        meter.create_budget(
+            "bgt_fund_hole".to_string(),
+            "Test Budget".to_string(),
+            owner.clone(),
+            U128(10_000_000),
+            "week".to_string(),
+            vec![],
+        );
+
+        let attacker_context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(attacker)
+            .build();
+        testing_env!(attacker_context);
+
+        // Attacker calling fund directly must panic with E_NOT_AUTHORIZED
+        meter.fund("bgt_fund_hole".to_string(), U128(10_000_000));
+    }
+
+    #[test]
+    fn test_set_param_bounds_and_auth() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut meter = MeterContract::new(
+            owner.clone(),
+            token.clone(),
+            "registry.testnet".parse().unwrap(),
+            "pool.testnet".parse().unwrap(),
+            Some(200),
+        );
+
+        meter.create_budget(
+            "bgt_dyn".to_string(),
+            "Dyn Budget".to_string(),
+            owner.clone(),
+            U128(10_000_000),
+            "week".to_string(),
+            vec![],
+        );
+
+        // Update fee for silver and multiplier
+        meter.set_param("fee_bps_silver".to_string(), "125".to_string());
+        assert_eq!(meter.get_fee_bps("silver".to_string()), 125);
+
+        meter.set_param("coverage_multiplier".to_string(), "12500".to_string());
+        assert_eq!(meter.get_coverage_multiplier_bps(), 12500);
+
+        // Pool contract can also call set_param
+        let pool_context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id("pool.testnet".parse().unwrap())
+            .build();
+        testing_env!(pool_context);
+        meter.set_param("fee_bps_gold".to_string(), "80".to_string());
+        assert_eq!(meter.get_fee_bps("gold".to_string()), 80);
+    }
+
+    #[test]
+    #[should_panic(expected = "Fee bps out of bounds")]
+    fn test_set_param_fee_out_of_bounds() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut meter = MeterContract::new(
+            owner.clone(),
+            token.clone(),
+            "registry.testnet".parse().unwrap(),
+            "pool.testnet".parse().unwrap(),
+            Some(200),
+        );
+
+        meter.set_param("fee_bps_bronze".to_string(), "5000".to_string());
+    }
+
+    #[test]
+    #[should_panic(expected = "Coverage multiplier out of bounds")]
+    fn test_set_param_coverage_multiplier_out_of_bounds() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("meter.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut meter = MeterContract::new(
+            owner.clone(),
+            token.clone(),
+            "registry.testnet".parse().unwrap(),
+            "pool.testnet".parse().unwrap(),
+            Some(200),
+        );
+
+        meter.set_param("coverage_multiplier".to_string(), "50000".to_string());
     }
 }

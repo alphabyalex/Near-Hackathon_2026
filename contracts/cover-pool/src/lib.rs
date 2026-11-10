@@ -29,6 +29,11 @@ pub trait FtReceiver {
     ) -> PromiseOrValue<U128>;
 }
 
+#[ext_contract(ext_meter)]
+pub trait MeterParamReceiver {
+    fn set_param(&mut self, name: String, value: String);
+}
+
 fn read_transfer_outcome() -> bool {
     if env::promise_results_count() == 0 {
         return false;
@@ -236,6 +241,7 @@ pub enum StorageKey {
     Withdrawals,
     Proposals,
     ProposalVotes,
+    ProposalSnapshots,
 }
 
 #[near(contract_state)]
@@ -259,6 +265,12 @@ pub struct CoverPoolContract {
     price_history: Vec<WardPricePoint>,
     proposals: IterableMap<u32, StoredProposal>,
     proposal_votes: IterableMap<(u32, AccountId), String>,
+    proposal_snapshots: IterableMap<(u32, AccountId), u128>,
+    pub meter_contract: Option<AccountId>,
+    pub coverage_multiplier_bps: u32,
+    pub fee_bps_bronze: u32,
+    pub fee_bps_silver: u32,
+    pub fee_bps_gold: u32,
 }
 
 #[near]
@@ -273,6 +285,7 @@ impl CoverPoolContract {
         large_claim_threshold: Option<U128>,
         max_claim_bps: Option<u64>,
         trade_url: Option<String>,
+        meter_contract: Option<AccountId>,
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
         let now_ns = env::block_timestamp();
@@ -301,6 +314,12 @@ impl CoverPoolContract {
             price_history: initial_history,
             proposals: IterableMap::new(StorageKey::Proposals),
             proposal_votes: IterableMap::new(StorageKey::ProposalVotes),
+            proposal_snapshots: IterableMap::new(StorageKey::ProposalSnapshots),
+            meter_contract,
+            coverage_multiplier_bps: 10_000,
+            fee_bps_bronze: 200,
+            fee_bps_silver: 150,
+            fee_bps_gold: 100,
         }
     }
 
@@ -308,7 +327,29 @@ impl CoverPoolContract {
     #[init(ignore_state)]
     pub fn migrate() -> Self {
         #[near(serializers = [borsh])]
-        struct OldCoverPoolContract {
+        struct OldCoverPoolContractWithGov {
+            owner: AccountId,
+            token_contract: AccountId,
+            junior_holder: AccountId,
+            junior: u128,
+            senior: u128,
+            senior_shares: u128,
+            fees_earned: u128,
+            claims_paid: u128,
+            withdraw_delay_days: u32,
+            large_claim_threshold: u128,
+            max_claim_bps: u64,
+            trade_url: Option<String>,
+            positions: IterableMap<AccountId, u128>,
+            withdrawals: IterableMap<String, StoredWithdrawal>,
+            claims: Vec<ClaimView>,
+            price_history: Vec<WardPricePoint>,
+            proposals: IterableMap<u32, StoredProposal>,
+            proposal_votes: IterableMap<(u32, AccountId), String>,
+        }
+
+        #[near(serializers = [borsh])]
+        struct OldCoverPoolContractPreGov {
             owner: AccountId,
             token_contract: AccountId,
             junior_holder: AccountId,
@@ -327,7 +368,13 @@ impl CoverPoolContract {
             price_history: Vec<WardPricePoint>,
         }
 
-        if let Some(old) = env::state_read::<OldCoverPoolContract>() {
+        if let Some(old) = env::state_read::<OldCoverPoolContractWithGov>() {
+            let mut proposal_snapshots = IterableMap::new(StorageKey::ProposalSnapshots);
+            for (acc, &bal) in old.positions.iter() {
+                if bal > 0 {
+                    proposal_snapshots.insert((3, acc.clone()), bal);
+                }
+            }
             Self {
                 owner: old.owner,
                 token_contract: old.token_contract,
@@ -337,7 +384,34 @@ impl CoverPoolContract {
                 senior_shares: old.senior_shares,
                 fees_earned: old.fees_earned,
                 claims_paid: old.claims_paid,
-                withdraw_delay_days: old.withdraw_delay_days,
+                withdraw_delay_days: 7,
+                large_claim_threshold: old.large_claim_threshold,
+                max_claim_bps: old.max_claim_bps,
+                trade_url: old.trade_url,
+                positions: old.positions,
+                withdrawals: old.withdrawals,
+                claims: old.claims,
+                price_history: old.price_history,
+                proposals: old.proposals,
+                proposal_votes: old.proposal_votes,
+                proposal_snapshots,
+                meter_contract: Some("meter.wardline-labs.testnet".parse().unwrap()),
+                coverage_multiplier_bps: 11_000,
+                fee_bps_bronze: 200,
+                fee_bps_silver: 125,
+                fee_bps_gold: 100,
+            }
+        } else if let Some(old) = env::state_read::<OldCoverPoolContractPreGov>() {
+            Self {
+                owner: old.owner,
+                token_contract: old.token_contract,
+                junior_holder: old.junior_holder,
+                junior: old.junior,
+                senior: old.senior,
+                senior_shares: old.senior_shares,
+                fees_earned: old.fees_earned,
+                claims_paid: old.claims_paid,
+                withdraw_delay_days: 7,
                 large_claim_threshold: old.large_claim_threshold,
                 max_claim_bps: old.max_claim_bps,
                 trade_url: old.trade_url,
@@ -347,6 +421,12 @@ impl CoverPoolContract {
                 price_history: old.price_history,
                 proposals: IterableMap::new(StorageKey::Proposals),
                 proposal_votes: IterableMap::new(StorageKey::ProposalVotes),
+                proposal_snapshots: IterableMap::new(StorageKey::ProposalSnapshots),
+                meter_contract: Some("meter.wardline-labs.testnet".parse().unwrap()),
+                coverage_multiplier_bps: 11_000,
+                fee_bps_bronze: 200,
+                fee_bps_silver: 125,
+                fee_bps_gold: 100,
             }
         } else {
             env::state_read::<Self>().expect("Failed to deserialize state")
@@ -671,6 +751,10 @@ impl CoverPoolContract {
     }
 
     pub fn deposit(&mut self, account: AccountId, amount: U128) -> DepositResultView {
+        require!(
+            env::predecessor_account_id() == self.token_contract,
+            "E_NOT_AUTHORIZED: deposit must go through ft_on_transfer on the token contract"
+        );
         require!(amount.0 > 0, "Deposit must be positive");
         let shares = self.mint(&account, amount.0);
         let now_ns = env::block_timestamp();
@@ -690,6 +774,10 @@ impl CoverPoolContract {
         shares: Option<U128>,
         ward: Option<U128>,
     ) -> WithdrawResultView {
+        require!(
+            env::predecessor_account_id() == account,
+            "E_NOT_AUTHORIZED: can only request withdrawal for own account"
+        );
         let want = ward.or(shares).expect("Shares/ward must be specified");
         require!(want.0 > 0, "Shares must be positive");
         let held = self.positions.get(&account).copied().unwrap_or(0);
@@ -736,6 +824,10 @@ impl CoverPoolContract {
     }
 
     pub fn redeem(&mut self, account: AccountId, id: String) -> PromiseOrValue<RedeemResultView> {
+        require!(
+            env::predecessor_account_id() == account,
+            "E_NOT_AUTHORIZED: can only redeem for own account"
+        );
         let withdrawal = self
             .withdrawals
             .get(&id)
@@ -842,6 +934,10 @@ impl CoverPoolContract {
         amount: U128,
         reason: String,
     ) -> ClaimView {
+        require!(
+            env::predecessor_account_id() == self.owner,
+            "E_NOT_OWNER: only owner can file claims"
+        );
         let amt = amount.0;
         let claim_id = format!("clm_{}_{}", subject, self.claims.len() + 1);
         let pool = self.get_pool();
@@ -932,16 +1028,81 @@ impl CoverPoolContract {
         );
         match name.as_str() {
             "large_claim_threshold" => {
-                self.large_claim_threshold = value.parse().expect("Invalid u128");
+                let v: u128 = value.parse().expect("Invalid u128");
+                require!(
+                    v >= 100_000_000 && v <= 500_000_000_000,
+                    "Threshold out of bounds (100-500,000 USDC)"
+                );
+                self.large_claim_threshold = v;
             }
             "withdraw_delay_days" => {
-                self.withdraw_delay_days = value.parse().expect("Invalid u32");
+                let v: u32 = value.parse().expect("Invalid u32");
+                require!(v <= 90, "Withdraw delay out of bounds (0-90 days)");
+                self.withdraw_delay_days = v;
             }
             "max_claim_bps" => {
-                self.max_claim_bps = value.parse().expect("Invalid u64");
+                let v: u64 = value.parse().expect("Invalid u64");
+                require!(
+                    v >= 100 && v <= 5_000,
+                    "Max claim bps out of bounds (100-5000 bps)"
+                );
+                self.max_claim_bps = v;
             }
             "trade_url" => {
+                require!(value.len() <= 255, "Trade URL too long");
                 self.trade_url = if value.is_empty() { None } else { Some(value.clone()) };
+            }
+            "coverage_multiplier" | "coverage_multiplier_bps" => {
+                let v: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    v >= 2_500 && v <= 40_000,
+                    "Coverage multiplier out of bounds (2500-40000 bps)"
+                );
+                self.coverage_multiplier_bps = v;
+                if let Some(meter) = &self.meter_contract {
+                    let _ = ext_meter::ext(meter.clone())
+                        .with_static_gas(Gas::from_tgas(10))
+                        .set_param("coverage_multiplier".to_string(), value.clone());
+                }
+            }
+            "fee_bps_bronze" => {
+                let v: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    v >= 10 && v <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                self.fee_bps_bronze = v;
+                if let Some(meter) = &self.meter_contract {
+                    let _ = ext_meter::ext(meter.clone())
+                        .with_static_gas(Gas::from_tgas(10))
+                        .set_param("fee_bps_bronze".to_string(), value.clone());
+                }
+            }
+            "fee_bps_silver" => {
+                let v: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    v >= 10 && v <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                self.fee_bps_silver = v;
+                if let Some(meter) = &self.meter_contract {
+                    let _ = ext_meter::ext(meter.clone())
+                        .with_static_gas(Gas::from_tgas(10))
+                        .set_param("fee_bps_silver".to_string(), value.clone());
+                }
+            }
+            "fee_bps_gold" => {
+                let v: u32 = value.parse().expect("Invalid u32");
+                require!(
+                    v >= 10 && v <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                self.fee_bps_gold = v;
+                if let Some(meter) = &self.meter_contract {
+                    let _ = ext_meter::ext(meter.clone())
+                        .with_static_gas(Gas::from_tgas(10))
+                        .set_param("fee_bps_gold".to_string(), value.clone());
+                }
             }
             _ => env::panic_str("Unknown parameter"),
         }
@@ -978,6 +1139,13 @@ impl CoverPoolContract {
         let voting_days_ns = 3 * 24 * 60 * 60 * 1_000_000_000;
         let closes_at_ns = now_ns.saturating_add(voting_days_ns);
 
+        // Snapshot all current WARD holders' balances at proposal creation
+        for (account, &bal) in self.positions.iter() {
+            if bal > 0 {
+                self.proposal_snapshots.insert((id, account.clone()), bal);
+            }
+        }
+
         let proposal = StoredProposal {
             id,
             proposer,
@@ -1013,8 +1181,8 @@ impl CoverPoolContract {
             "Voting window has closed"
         );
 
-        let weight = self.positions.get(&voter).copied().unwrap_or(0);
-        require!(weight > 0, "No voting weight: zero WARD balance");
+        let weight = self.weight_of(id, voter.clone()).0;
+        require!(weight > 0, "No voting weight: zero WARD balance at snapshot");
 
         if support == "for" {
             p.votes_for = p.votes_for.saturating_add(weight);
@@ -1072,10 +1240,35 @@ impl CoverPoolContract {
                 self.approve_claim(claim_id.clone());
             }
             MutualAction::SetCoverageMultiplier { multiplier_bps } => {
+                require!(
+                    *multiplier_bps >= 2_500 && *multiplier_bps <= 40_000,
+                    "Coverage multiplier out of bounds (2500-40000 bps)"
+                );
+                self.coverage_multiplier_bps = *multiplier_bps;
                 events::param_set("coverage_multiplier", &multiplier_bps.to_string());
+                if let Some(meter) = &self.meter_contract {
+                    let _ = ext_meter::ext(meter.clone())
+                        .with_static_gas(Gas::from_tgas(10))
+                        .set_param("coverage_multiplier".to_string(), multiplier_bps.to_string());
+                }
             }
             MutualAction::SetFeeBps { tier, fee_bps } => {
+                require!(
+                    *fee_bps >= 10 && *fee_bps <= 1_000,
+                    "Fee bps out of bounds (10-1000 bps)"
+                );
+                match tier.as_str() {
+                    "bronze" => self.fee_bps_bronze = *fee_bps,
+                    "silver" => self.fee_bps_silver = *fee_bps,
+                    "gold" => self.fee_bps_gold = *fee_bps,
+                    _ => env::panic_str("Unknown tier for fee change"),
+                }
                 events::param_set(&format!("fee_bps_{}", tier), &fee_bps.to_string());
+                if let Some(meter) = &self.meter_contract {
+                    let _ = ext_meter::ext(meter.clone())
+                        .with_static_gas(Gas::from_tgas(10))
+                        .set_param(format!("fee_bps_{}", tier), fee_bps.to_string());
+                }
             }
             MutualAction::CoverModel { model_id, signing_address } => {
                 events::param_set(&format!("cover_model_{}", model_id), signing_address);
@@ -1122,8 +1315,20 @@ impl CoverPoolContract {
     }
 
     pub fn weight_of(&self, id: u32, voter: AccountId) -> U128 {
-        let _ = id;
-        U128(self.positions.get(&voter).copied().unwrap_or(0))
+        U128(self.proposal_snapshots.get(&(id, voter)).copied().unwrap_or(0))
+    }
+
+    pub fn get_fee_bps(&self, tier: String) -> u32 {
+        match tier.as_str() {
+            "bronze" => self.fee_bps_bronze,
+            "silver" => self.fee_bps_silver,
+            "gold" => self.fee_bps_gold,
+            _ => env::panic_str("Unknown tier"),
+        }
+    }
+
+    pub fn get_coverage_multiplier_bps(&self) -> u32 {
+        self.coverage_multiplier_bps
     }
 
     pub fn governance_params(&self) -> GovernanceParamsView {
@@ -1159,9 +1364,15 @@ mod tests {
             Some(U128(1_000_000_000)), // 1,000 USDC large threshold
             Some(1_000), // 10%
             None,
+            None,
         );
 
         let lp1: AccountId = "lp1.testnet".parse().unwrap();
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id("token.testnet".parse().unwrap())
+            .build();
+        testing_env!(dep_ctx);
         let dep = pool.deposit(lp1.clone(), U128(10_000_000_000));
         assert_eq!(dep.shares, "10000000000");
         assert_eq!(dep.ward, "10000000000");
@@ -1175,7 +1386,12 @@ mod tests {
         assert_eq!(p.ward_price, "1000000");
         assert_eq!(p.ward_supply, "10000000000");
 
-        // Small claim (under threshold) automatically paid junior first
+        // Small claim (under threshold) automatically paid junior first (caller must be owner)
+        let claim_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(claim_ctx);
         let claim = pool.file_claim(
             "call_test".to_string(),
             lp1.clone(),
@@ -1213,11 +1429,17 @@ mod tests {
             Some(U128(30_000_000)),
             Some(2_500),
             Some("https://app.ref.finance/#/pool/123".to_string()),
+            None,
         );
 
         let lp1: AccountId = "lp1.testnet".parse().unwrap();
         let lp2: AccountId = "lp2.testnet".parse().unwrap();
 
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id("token.testnet".parse().unwrap())
+            .build();
+        testing_env!(dep_ctx);
         pool.deposit(lp1.clone(), U128(50_000_000));
         assert_eq!(pool.ft_total_supply().0, 50_000_000);
         assert_eq!(pool.ft_balance_of(lp1.clone()).0, 50_000_000);
@@ -1263,6 +1485,7 @@ mod tests {
             Some(U128(30_000_000)),
             Some(2_500),
             None,
+            None,
         );
 
         let lp: AccountId = "lp.testnet".parse().unwrap();
@@ -1288,7 +1511,13 @@ mod tests {
         pool.add_fees(U128(10_000_000));
         assert_eq!(pool.price(), 1_100_000);
 
-        // Request withdraw 50 WARD
+        // Request withdraw 50 WARD (must be called by lp)
+        let withdraw_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(lp.clone())
+            .block_timestamp(start_time_ns)
+            .build();
+        testing_env!(withdraw_ctx);
         let req = pool.request_withdraw(lp.clone(), Some(U128(50_000_000)), None);
 
         // Fast forward 7 days + 1 second
@@ -1337,11 +1566,24 @@ mod tests {
             Some(U128(30_000_000)),
             Some(2_500),
             None,
+            None,
         );
 
         let lp: AccountId = "lp.testnet".parse().unwrap();
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .block_timestamp(start_time_ns)
+            .build();
+        testing_env!(dep_ctx);
         pool.deposit(lp.clone(), U128(100_000_000));
 
+        let withdraw_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(lp.clone())
+            .block_timestamp(start_time_ns)
+            .build();
+        testing_env!(withdraw_ctx);
         let req = pool.request_withdraw(lp.clone(), Some(U128(50_000_000)), None);
 
         // Attempting to redeem immediately fails (7 days delay)
@@ -1376,6 +1618,7 @@ mod tests {
             Some(7),
             Some(U128(30_000_000)),
             Some(2_500),
+            None,
             None,
         );
 
@@ -1456,6 +1699,7 @@ mod tests {
             Some(U128(30_000_000)),
             Some(2_500),
             None,
+            None,
         );
 
         let user: AccountId = "user.testnet".parse().unwrap();
@@ -1475,7 +1719,13 @@ mod tests {
         assert_eq!(sbo.total, NearToken::from_yoctonear(1_250_000_000_000_000_000_000));
 
         // Mint WARD and request_redeem
+        let mint_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .build();
+        testing_env!(mint_ctx);
         pool.deposit(user.clone(), U128(10_000_000));
+
         let user_ctx = VMContextBuilder::new()
             .current_account_id("pool.testnet".parse().unwrap())
             .predecessor_account_id(user.clone())
@@ -1513,9 +1763,15 @@ mod tests {
             Some(U128(30_000_000)),
             Some(2_500),
             None,
+            Some("meter.testnet".parse().unwrap()),
         );
 
-        // Deposit and mint WARD: Alice gets 40 WARD, Bob gets 60 WARD (total 100 WARD)
+        // Deposit and mint WARD via token contract: Alice gets 40 WARD, Bob gets 60 WARD (total 100 WARD)
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token.clone())
+            .build();
+        testing_env!(dep_ctx);
         pool.deposit(alice.clone(), U128(40_000_000));
         pool.deposit(bob.clone(), U128(60_000_000));
 
@@ -1565,6 +1821,7 @@ mod tests {
         let exec_view = pool.execute(prop_id);
         assert_eq!(exec_view.status, "executed");
         assert!(exec_view.executed_at.is_some());
+        assert_eq!(pool.get_fee_bps("silver".to_string()), 125);
 
         // 5. Governance params
         let params = pool.governance_params();
@@ -1575,5 +1832,439 @@ mod tests {
         let props = pool.list_proposals();
         assert_eq!(props.len(), 1);
         assert_eq!(props[0].id, 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "E_NOT_AUTHORIZED")]
+    fn test_hole1_caller_checks_deposit_unauthorized() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let attacker: AccountId = "attacker.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let attacker_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(attacker.clone())
+            .build();
+        testing_env!(attacker_ctx);
+
+        // Attacker calling deposit directly without USDC must panic with E_NOT_AUTHORIZED
+        pool.deposit(attacker, U128(10_000_000));
+    }
+
+    #[test]
+    #[should_panic(expected = "E_NOT_OWNER")]
+    fn test_hole1_caller_checks_file_claim_unauthorized() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let attacker: AccountId = "attacker.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            "usdc.testnet".parse().unwrap(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let attacker_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(attacker.clone())
+            .build();
+        testing_env!(attacker_ctx);
+
+        // Attacker calling file_claim must panic with E_NOT_OWNER
+        pool.file_claim(
+            "fake_subject".to_string(),
+            attacker,
+            U128(1_000_000),
+            "fraud".to_string(),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "E_NOT_AUTHORIZED")]
+    fn test_hole1_caller_checks_request_withdraw_unauthorized() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let victim: AccountId = "victim.testnet".parse().unwrap();
+        let attacker: AccountId = "attacker.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        pool.deposit(victim.clone(), U128(50_000_000));
+
+        let attacker_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(attacker)
+            .build();
+        testing_env!(attacker_ctx);
+
+        // Attacker attempting to request withdraw for victim's account must panic
+        pool.request_withdraw(victim, Some(U128(25_000_000)), None);
+    }
+
+    #[test]
+    #[should_panic(expected = "E_NOT_AUTHORIZED")]
+    fn test_hole1_caller_checks_redeem_unauthorized() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let victim: AccountId = "victim.testnet".parse().unwrap();
+        let attacker: AccountId = "attacker.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(0), // 0 delay for test
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        pool.deposit(victim.clone(), U128(50_000_000));
+
+        let victim_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(victim.clone())
+            .build();
+        testing_env!(victim_ctx);
+        let req = pool.request_withdraw(victim.clone(), Some(U128(25_000_000)), None);
+
+        let attacker_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(attacker)
+            .build();
+        testing_env!(attacker_ctx);
+
+        // Attacker calling redeem for victim must panic
+        let _ = pool.redeem(victim, req.id);
+    }
+
+    #[test]
+    #[should_panic(expected = "No voting weight")]
+    fn test_hole2_voting_snapshot_weight_cannot_be_gamed() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+        let bob: AccountId = "bob.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        // Alice gets 100 WARD, Bob gets 0
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        pool.deposit(alice.clone(), U128(100_000_000));
+
+        // Alice creates proposal
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Set coverage multiplier to 1.25x".to_string(),
+            MutualAction::SetCoverageMultiplier { multiplier_bps: 12500 },
+        );
+
+        // Alice votes with 100 weight
+        pool.vote(prop_id, "for".to_string());
+        let p = pool.get_proposal(prop_id).unwrap();
+        assert_eq!(p.votes_for, "100000000");
+
+        // Alice transfers all 100 WARD to Bob after proposal creation
+        let transfer_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(transfer_ctx);
+        pool.ft_transfer(bob.clone(), U128(100_000_000), None);
+        assert_eq!(pool.ft_balance_of(bob.clone()).0, 100_000_000);
+
+        // Bob tries to vote on the proposal
+        // Because snapshot weight for Bob at proposal creation was 0, Bob cannot vote!
+        let bob_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(bob.clone())
+            .build();
+        testing_env!(bob_ctx);
+
+        // This must panic with "No voting weight: zero WARD balance at snapshot"
+        pool.vote(prop_id, "for".to_string());
+    }
+
+    #[test]
+    fn test_hole3_execute_updates_parameters_and_enforces_bounds() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            Some("meter.testnet".parse().unwrap()),
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        pool.deposit(alice.clone(), U128(100_000_000));
+
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Set gold fee to 80 bps".to_string(),
+            MutualAction::SetFeeBps { tier: "gold".to_string(), fee_bps: 80 },
+        );
+        pool.vote(prop_id, "for".to_string());
+
+        let p = pool.get_proposal(prop_id).unwrap();
+        assert_eq!(p.status, "passed");
+
+        let exec = pool.execute(prop_id);
+        assert_eq!(exec.status, "executed");
+        assert_eq!(pool.get_fee_bps("gold".to_string()), 80);
+    }
+
+    #[test]
+    #[should_panic(expected = "Fee bps out of bounds")]
+    fn test_hole3_execute_out_of_bounds_fee_panics() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        pool.deposit(alice.clone(), U128(100_000_000));
+
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Crazy fee".to_string(),
+            MutualAction::SetFeeBps { tier: "gold".to_string(), fee_bps: 5000 },
+        );
+        pool.vote(prop_id, "for".to_string());
+        pool.execute(prop_id);
+    }
+
+    #[test]
+    #[should_panic(expected = "Coverage multiplier out of bounds")]
+    fn test_hole3_execute_out_of_bounds_multiplier_panics() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        pool.deposit(alice.clone(), U128(100_000_000));
+
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Crazy multiplier".to_string(),
+            MutualAction::SetCoverageMultiplier { multiplier_bps: 50000 },
+        );
+        pool.vote(prop_id, "for".to_string());
+        pool.execute(prop_id);
+    }
+
+    #[test]
+    fn test_hole4_set_param_redemption_delay_and_bounds() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            "usdc.testnet".parse().unwrap(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(0),
+            None,
+            None,
+            None,
+            None,
+        );
+        assert_eq!(pool.get_pool().withdraw_delay_days, 0);
+
+        pool.set_param("withdraw_delay_days".to_string(), "7".to_string());
+        assert_eq!(pool.get_pool().withdraw_delay_days, 7);
+    }
+
+    #[test]
+    #[should_panic(expected = "Withdraw delay out of bounds")]
+    fn test_hole4_set_param_withdraw_delay_out_of_bounds() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            "usdc.testnet".parse().unwrap(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        pool.set_param("withdraw_delay_days".to_string(), "100".to_string());
     }
 }
