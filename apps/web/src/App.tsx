@@ -41,9 +41,11 @@ export function App() {
   const route = useRoute();
   if (route.kind === "app") {
     return (
-      <Suspense fallback={<main className="signin"><Loading /></main>}>
-        <OwnerApp tab={route.tab} invoice={route.invoice} />
-      </Suspense>
+      <div key={`app-${route.tab}`} className="page-view">
+        <Suspense fallback={<main className="signin"><Loading /></main>}>
+          <OwnerApp tab={route.tab} invoice={route.invoice} />
+        </Suspense>
+      </div>
     );
   }
   const Page = PAGES[route.page];
@@ -55,7 +57,9 @@ export function App() {
       <SiteHeader page={route.page} />
       <div id="content" tabIndex={-1} className="content-anchor">
         <Suspense fallback={<PageFallback />}>
-          <Page />
+          <div key={route.page} className="page-view">
+            <Page />
+          </div>
         </Suspense>
       </div>
       <SiteFooter page={route.page} />

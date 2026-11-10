@@ -32,7 +32,7 @@
 .stat-row.results{border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
 
 /* The two sides of the line, joined */
-.sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--rule);border-radius:var(--r-card-lg);overflow:hidden}
+.sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--rule);border-radius:var(--r-card-lg);overflow:hidden;transition:border-color .2s ease}
 .side-panel{padding:32px 32px 28px;background:var(--surface);min-width:0}
 .side-panel.below{border-left:1px solid var(--rule-strong);background:var(--bg)}
 .side-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
@@ -60,7 +60,7 @@
 .light .mode-note{margin-top:24px;font-size:15px}
 
 /* The member card: dark, with a faint horizon in its corner */
-.member-card{position:relative;overflow:hidden;background:var(--bg);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 28px 60px -30px rgba(26,15,33,.55)}
+.member-card{position:relative;overflow:hidden;background:var(--bg);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 28px 60px -30px rgba(26,15,33,.55);transition:box-shadow .24s ease,border-color .24s ease}
 .member-card>*{position:relative;z-index:1}
 .member-card .member-horizon{position:absolute;right:-80px;bottom:-90px;opacity:.16;z-index:0;pointer-events:none}
 .member-card p{color:var(--text-2)}

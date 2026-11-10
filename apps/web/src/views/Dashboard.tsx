@@ -55,7 +55,7 @@ export function OwnerApp({ tab, invoice }: { tab: DashboardTab; invoice: string 
     };
   }, []);
   if (gate.state === "checking") return <main className="signin"><Loading /></main>;
-  if (gate.state === "signed-out") return <SignIn onSignedIn={(session) => setGate({ state: "signed-in", session })} />;
+  if (gate.state === "signed-out") return <div className="page-view"><SignIn onSignedIn={(session) => setGate({ state: "signed-in", session })} /></div>;
   return (
     <Dashboard
       tab={tab}
@@ -173,7 +173,7 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
           </div>
         </div>
 
-        <div className="appmain" key={`${tab}-${vaultId}`}>
+        <div className="appmain page-view" key={`${tab}-${vaultId}`}>
           {simulation.data?.compromised && <p className="notice" role="status">Simulated compromised agent: invoices attempt payment without safety checks. Vault limits still apply.</p>}
           {simulationError && <p role="alert">{simulationError}</p>}
           {pauseError && (
