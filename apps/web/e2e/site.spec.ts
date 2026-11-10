@@ -319,14 +319,17 @@ test.describe("public site", () => {
     await expect(page.locator('[data-unset]')).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("VITE_WARDLINE");
     await expect(page.locator("main")).not.toContainText("process.env.WARDLINE_API_URL");
-    await expect(page.locator("main")).not.toContainText("127.0.0.1");
+    // The hosted URLs, or the local ones while nothing is hosted (repo.config.json's hosted values empty).
+    const api = repo.hosted.api || "http://127.0.0.1:8787";
+    const mcp = repo.hosted.mcp || "http://127.0.0.1:8790/mcp";
+    if (repo.hosted.api) await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
-    await expect(page.locator("main")).toContainText(`curl -s ${repo.hosted.api}/v1/resolve`);
+    await expect(page.locator("main")).toContainText(`curl -s ${api}/v1/resolve`);
     const openai = page.locator(".conn").first();
     await expect(openai).toContainText("OpenAI client, one line");
-    await expect(openai).toContainText(`baseURL: "${repo.hosted.api}/v1/ai"`);
-    await expect(openai).toContainText(`base_url="${repo.hosted.api}/v1/ai"`);
-    await expect(page.locator("main")).toContainText(repo.hosted.mcp);
+    await expect(openai).toContainText(`baseURL: "${api}/v1/ai"`);
+    await expect(openai).toContainText(`base_url="${api}/v1/ai"`);
+    await expect(page.locator("main")).toContainText(mcp);
     await page.getByRole("button", { name: "Copy curl resolve example" }).click();
     await expect(page.getByRole("button", { name: "Copy curl resolve example" })).toHaveText("Copied");
     if (browserName === "chromium") expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");

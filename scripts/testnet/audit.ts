@@ -43,6 +43,7 @@ const EXPECT: Record<string, { method: string | string[]; check?: (value: unknow
   // WARD votes and proposals on the pool, or a community DAO's (Sputnik) proposals and votes.
   "vote:voted": { method: ["vote", "act_proposal"] },
   "proposal:opened": { method: ["propose", "add_proposal"] },
+  "proposal:executed": { method: "execute" },
 };
 const short = (a: string) => a.replace(/\.wardline-labs\.testnet$/, "");
 const usdc = (a: bigint | string) => (Number(a) / 1e6).toFixed(6);

@@ -101,3 +101,29 @@ export function saveSpend(ledger: SpendLedger, dryRun: boolean, path = SPEND_PAT
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(ledger, null, 2)}\n`, "utf8");
 }
+
+/**
+ * One function call, waited to FINAL, with the same shape as the vault client's callFinal. Throws with
+ * NEAR's own error (callFinal's error path cannot print an action that holds a bigint, which hides it).
+ */
+export async function sendCall(
+  signer: { account: { signAndSendTransaction: (tx: never) => Promise<unknown> } },
+  call: { contract_id: string; method: string; args: Record<string, unknown>; gas?: bigint; deposit?: bigint },
+): Promise<{ tx_hash: string; value: unknown }> {
+  const { actions } = await import("@wardline/vault-client");
+  let out: { transaction: { hash: string }; status: { SuccessValue?: string; Failure?: unknown } };
+  try {
+    out = (await signer.account.signAndSendTransaction({ receiverId: call.contract_id, actions: [actions.functionCall(call.method, call.args, call.gas ?? 100_000_000_000_000n, call.deposit ?? 0n)], waitUntil: "FINAL" } as never)) as typeof out;
+  } catch (error) {
+    throw new Error(`${call.method} on ${call.contract_id}: ${(error as Error).message}`);
+  }
+  if (out.status.Failure !== undefined) throw new Error(`${call.method} on ${call.contract_id} failed: ${JSON.stringify(out.status.Failure).slice(0, 300)}`);
+  const raw = out.status.SuccessValue ? Buffer.from(out.status.SuccessValue, "base64").toString("utf8") : "";
+  let value: unknown = raw;
+  try {
+    value = raw ? JSON.parse(raw) : null;
+  } catch {
+    value = raw;
+  }
+  return { tx_hash: out.transaction.hash, value };
+}

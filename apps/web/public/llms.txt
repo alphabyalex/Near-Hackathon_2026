@@ -13,11 +13,11 @@ Point any OpenAI-compatible client at the gateway with a meter key (wk_..., one 
 
 ```ts
 import OpenAI from "openai";
-const client = new OpenAI({ baseURL: "https://attempt-caused-antique-four.trycloudflare.com/v1/ai", apiKey: process.env.WARDLINE_METER_KEY });
+const client = new OpenAI({ baseURL: "http://127.0.0.1:8787/v1/ai", apiKey: process.env.WARDLINE_METER_KEY });
 ```
 
 ```python
-client = OpenAI(base_url="https://attempt-caused-antique-four.trycloudflare.com/v1/ai", api_key=os.environ["WARDLINE_METER_KEY"])
+client = OpenAI(base_url="http://127.0.0.1:8787/v1/ai", api_key=os.environ["WARDLINE_METER_KEY"])
 ```
 
 Routes: POST /v1/ai/chat/completions, GET /v1/ai/models, GET /v1/ai/calls/{call_id}, GET /v1/ai/budgets/{budget_id}. Non-streaming only; stream: true is refused with 400.
@@ -71,19 +71,19 @@ Every answer has an evidenceTier. It says what was verified, never legal ownersh
 
 ## MCP
 
-Streamable HTTP: https://realize-russell-societies-incl.trycloudflare.com/mcp
+Streamable HTTP: http://127.0.0.1:8790/mcp
 Stdio: node services/mcp/dist/stdio.js
 Tools: resolve_payee, check_payee, get_vendor, how_to_verify, get_ai_spend (read-only; needs WARDLINE_METER_KEY)
 
 ## HTTP
 
-Base URL: https://attempt-caused-antique-four.trycloudflare.com
+Base URL: http://127.0.0.1:8787
 
 ```sh
-curl -s https://attempt-caused-antique-four.trycloudflare.com/v1/resolve -H 'content-type: application/json' \
+curl -s http://127.0.0.1:8787/v1/resolve -H 'content-type: application/json' \
   -d '{"domain":"northwind.example","chain":"near:testnet"}'
 
-curl -s https://attempt-caused-antique-four.trycloudflare.com/v1/check -H 'content-type: application/json' \
+curl -s http://127.0.0.1:8787/v1/check -H 'content-type: application/json' \
   -d '{"payee":"near:testnet:northw1nd.testnet","vendor":{"domain":"northwind.example"}}'
 ```
 
@@ -97,7 +97,7 @@ Free tier: 200 calls per day per IP. Over that, HTTP 402 with x402 payment requi
 
 ```ts
 import { createWardline, assertPayable } from "@wardline/sdk";
-const wardline = createWardline({ mode: "hosted", baseUrl: "https://attempt-caused-antique-four.trycloudflare.com" });
+const wardline = createWardline({ mode: "hosted", baseUrl: "http://127.0.0.1:8787" });
 const result = await wardline.resolve({ domain: "northwind.example", chain: "near:testnet" });
 assertPayable(result);
 pay(result.account);

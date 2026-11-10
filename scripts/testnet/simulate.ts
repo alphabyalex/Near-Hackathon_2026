@@ -18,10 +18,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
-import { callFinal, makeProvider, makeSigner, NearModelRegistryClient, viewCall, type SignerHandle } from "@wardline/vault-client";
+import { makeProvider, makeSigner, NearModelRegistryClient, viewCall, type SignerHandle } from "@wardline/vault-client";
 import { verifyProviderProof, type ProviderSignature } from "@wardline/sdk";
 import { CredentialStore, defaultSecretsDir } from "../contracts/src/lib.js";
-import { ActivityWriter, addSpend, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, saveSpend, type SpendLedger } from "./chain-log.js";
+import { ActivityWriter, addSpend, sendCall as callFinal, DRY_RUN, HARD_CAP, loadDotEnv, loadSpend, REPO_ROOT, RPC_URL, saveSpend, type SpendLedger } from "./chain-log.js";
 import type { RowFields } from "../../services/api/src/activity/log.js";
 
 const MODEL = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
@@ -122,11 +122,29 @@ export async function runBatch(opts: { dryRun?: boolean; calls?: number } = {}):
   const leaked = live.filter((c) => c.leaked);
   console.log(`Cast on chain: ${live.length} of ${callers.length} members and individuals, ${lps.length} of ${cast.liquidity_providers.length} LPs.`);
 
+  // Calls lean towards the tier story: Mission Street climbs to Gold (35 clean calls), Nightshade,
+  // Hayes Valley and Aurora Lab to Silver (10). Each budget's members take turns within its share.
+  const WEIGHT: Record<string, number> = { bgt_mission: 5, bgt_nightshade: 2, bgt_hayes: 2, bgt_aurora: 2, bgt_kelp: 1 };
+  const byBudget = new Map<string, Caller[]>();
+  for (const c of honest) byBudget.set(c.budget, [...(byBudget.get(c.budget) ?? []), c]);
+  const rotation: Caller[] = [];
+  const turns = new Map<string, number>();
+  const pick = (budget: string) => {
+    const list = byBudget.get(budget)!;
+    const t = turns.get(budget) ?? 0;
+    turns.set(budget, t + 1);
+    return list[t % list.length]!;
+  };
+  const solos = [...byBudget.keys()].filter((b) => b.startsWith("bgt_ind_"));
+  for (let round = 0; round < 4; round++) {
+    for (const [budget, w] of Object.entries(WEIGHT)) if (byBudget.has(budget)) for (let k = 0; k < w; k++) rotation.push(pick(budget));
+    if (solos.length) rotation.push(pick(solos[round % solos.length]!));
+  }
   const plan = {
-    paid: honest.length ? Array.from({ length: calls }, (_, i) => ({ caller: honest[(ledger.total_calls + i) % honest.length]!, task: TASKS[(ledger.total_calls + i * 7) % TASKS.length]! })) : [],
+    paid: rotation.length ? Array.from({ length: calls }, (_, i) => ({ caller: rotation[(ledger.total_calls + i) % rotation.length]!, task: TASKS[(ledger.total_calls + i * 7) % TASKS.length]! })) : [],
     swapped: honest.length ? honest[(ledger.total_calls + 3) % honest.length]! : null,
     burst: leaked.length ? leaked[ledger.total_calls % leaked.length]! : null,
-    deposits: lps.slice(0, 2).map((lp, i) => ({ lp, amount: BigInt(1_000_000 + 250_000 * ((ledger.total_calls + i) % 3)) })),
+    deposits: lps.slice(0, 2).map((lp, i) => ({ lp, amount: BigInt(20_000 + 10_000 * ((ledger.total_calls + i) % 3)) })),
     vote: lps.length >= 2,
   };
   for (const p of plan.paid) console.log(`  paid call    ${short(p.caller.account)} on ${p.caller.budget}: "${p.task.slice(0, 48)}"`);
@@ -316,22 +334,32 @@ async function wardVote(lps: Cast["liquidity_providers"], cast: Cast, provider: 
   }
   const target = open[open.length - 1];
   if (!target) throw new Error("no open proposal");
+  // Every LP with WARD that has not voted votes. Once votes for it pass half the snapshot, it executes.
+  let voted = 0;
   for (const lp of lps) {
     const key = creds.get(lp.account);
     if (!key) continue;
     const weight = await viewCall<string>(provider, cast.contracts.pool, "weight_of", { id: target.id, voter: lp.account });
     if (BigInt(weight || "0") === 0n) continue;
-    const support = target.id % 3 === 2 ? "against" : "for";
-    console.log(`  WARD vote: ${short(lp.account)} votes ${support} on #${target.id}`);
+    console.log(`  WARD vote: ${short(lp.account)} votes for #${target.id}`);
     try {
-      const out = await callFinal(makeSigner(provider, lp.account, key), { contract_id: cast.contracts.pool, method: "vote", args: { id: target.id, support }, gas: GAS });
-      await record(out.tx_hash, lp.account, { actor: lp.account, community: "mutual", kind: "vote", amount: weight, model: null, outcome: "voted", side: "above", reason: null, text: `${lp.name} voted ${support}: ${target.description}` });
-      return;
+      const out = await callFinal(makeSigner(provider, lp.account, key), { contract_id: cast.contracts.pool, method: "vote", args: { id: target.id, support: "for" }, gas: GAS });
+      await record(out.tx_hash, lp.account, { actor: lp.account, community: "mutual", kind: "vote", amount: weight, model: null, outcome: "voted", side: "above", reason: null, text: `${lp.name} voted for: ${target.description}` });
+      voted++;
     } catch (error) {
       if (!/Already voted/.test((error as Error).message)) throw error;
     }
   }
-  console.log("    every LP with WARD has voted on the open proposal; no vote this batch.");
+  if (!voted) console.log("    every LP with WARD has voted on the open proposal.");
+  const now = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).find((p) => p.id === target.id);
+  if (now?.status === "passed") {
+    const executor = lps.find((l) => creds.get(l.account))!;
+    console.log(`  WARD proposal #${target.id} passed; ${short(executor.account)} executes it`);
+    const out = await callFinal(makeSigner(provider, executor.account, creds.get(executor.account)!), { contract_id: cast.contracts.pool, method: "execute", args: { id: target.id }, gas: GAS });
+    await record(out.tx_hash, executor.account, { actor: executor.account, community: "mutual", kind: "proposal", amount: null, model: null, outcome: "executed", side: "above", reason: null, text: `Passed and executed: ${target.description}` });
+  } else {
+    console.log(`    proposal #${target.id} is ${now?.status ?? "unknown"}.`);
+  }
 }
 
 if (process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/testnet/simulate.ts")) {

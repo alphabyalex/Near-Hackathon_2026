@@ -12,9 +12,12 @@ const env = import.meta.env;
 export const API_URL = clean(env.VITE_WARDLINE_API_URL);
 /** The MCP endpoint, shown on Connect. */
 export const MCP_URL = clean(env.VITE_WARDLINE_MCP_URL);
-/** What code snippets show: the configured URLs, or the hosted ones from repo.config.json. Never a variable or a local address. */
-export const SNIPPET_API_URL = API_URL ?? clean(repo.hosted.api)!;
-export const SNIPPET_MCP_URL = MCP_URL ?? clean(repo.hosted.mcp)!;
+/** Where a local run serves the API and the MCP endpoint (README, "Run it locally"). */
+export const LOCAL_API_URL = "http://127.0.0.1:8787";
+export const LOCAL_MCP_URL = "http://127.0.0.1:8790/mcp";
+/** What code snippets show: the configured URLs, else the hosted ones from repo.config.json, else the local ones while nothing is hosted. Never a variable. */
+export const SNIPPET_API_URL = API_URL ?? clean(repo.hosted.api) ?? LOCAL_API_URL;
+export const SNIPPET_MCP_URL = MCP_URL ?? clean(repo.hosted.mcp) ?? LOCAL_MCP_URL;
 /** What the browser calls. Without a URL, the same origin's /api, which the dev server proxies. */
 export const API_BASE = API_URL ?? "/api";
 /** Owner routes. Serve them on the same site as this app, so the session cookie is sent. */

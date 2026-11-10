@@ -10,12 +10,11 @@ Back the AI economy and earn from it: Wardline lets communities pool money, cove
 
 ## Hosted
 
-- Web app: https://lean-ballot-ref-script.trycloudflare.com
-- API: `https://attempt-caused-antique-four.trycloudflare.com`
-- MCP (streamable HTTP): `https://realize-russell-societies-incl.trycloudflare.com/mcp`
+Nothing is hosted right now: run Wardline on your own machine (below). The web app serves on `http://127.0.0.1:5173`, the API on `http://127.0.0.1:8787` and MCP (streamable HTTP) on `http://127.0.0.1:8790/mcp`.
+
 - NEAR testnet deployment: `scripts/contracts/deployments/testnet-wardline.json`, contracts under `wardline-labs.testnet`, Circle testnet USDC `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`
 
-These links live in `repo.config.json` (`hosted`); `pnpm test` fails if this file, `llms.txt`, `SKILL.md` or `services/mcp/server.json` disagree with it.
+Hosted links live in `repo.config.json` (`hosted`), empty while nothing is hosted; `pnpm test` fails if this file, `llms.txt`, `SKILL.md` or `services/mcp/server.json` disagree with it.
 
 ## Try it in 5 minutes
 

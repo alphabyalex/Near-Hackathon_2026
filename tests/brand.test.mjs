@@ -77,7 +77,23 @@ export const HOSTED_FILES = {
 
 test("hosted links live in repo.config.json, and README, llms.txt, SKILL.md and server.json match them", () => {
   const { hosted } = JSON.parse(readFileSync(join(ROOT, "repo.config.json"), "utf8"));
-  assert.ok(hosted && hosted.web && hosted.api && hosted.mcp, "repo.config.json needs hosted.web, hosted.api and hosted.mcp");
+  assert.ok(hosted && "web" in hosted && "api" in hosted && "mcp" in hosted, "repo.config.json needs hosted.web, hosted.api and hosted.mcp");
+  const set = [hosted.web, hosted.api, hosted.mcp].filter(Boolean).length;
+  assert.ok(set === 0 || set === 3, "Set all three hosted values, or leave all three empty while nothing is hosted.");
+  if (set === 0) {
+    // Not hosted: no tunnel or host link anywhere, and the docs point at the local API and MCP endpoint.
+    const problems = [];
+    for (const file of Object.keys(HOSTED_FILES)) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      for (const m of text.matchAll(/https:\/\/[a-z0-9.-]+\.(?:trycloudflare\.com|ngrok(?:-free)?\.app|loca\.lt)[^\s"'`)<]*/gi)) problems.push(`${file}: ${m[0]} is a dead hosted link`);
+    }
+    for (const file of ["README.md", "apps/web/public/llms.txt", "docs/skills/wardline-payee-check/SKILL.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      if (!text.includes("http://127.0.0.1:8787")) problems.push(`${file}: should show the local API http://127.0.0.1:8787`);
+    }
+    assert.deepEqual(problems, [], "Nothing is hosted: replace hosted links with the local addresses.");
+    return;
+  }
   const origins = new Set(Object.values(hosted).map((u) => new URL(u).origin));
   const problems = [];
   for (const [file, keys] of Object.entries(HOSTED_FILES)) {
