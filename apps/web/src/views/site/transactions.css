@@ -5,6 +5,7 @@
 .tx-table td { padding: 13px 12px 13px 0; border-bottom: 1px solid var(--rule-2); vertical-align: middle; }
 .tx-table tbody tr:last-child td { border-bottom: 0; }
 .tx-table .tx-num { text-align: right; }
+.tx-table th:nth-child(6), .tx-table td.tx-status { padding-left: 28px; }
 .tx-date { color: var(--text-2); white-space: nowrap; }
 .tx-date time { cursor: help; }
 .tx-type { color: var(--text); font-weight: 600; }
@@ -44,9 +45,11 @@
   .tx-table td { display: block; padding: 0; border: 0; text-align: left; }
   .tx-type { grid-area: type; white-space: normal; }
   .tx-table td.tx-num:nth-child(4) { grid-area: ward; text-align: right; font-weight: 600; }
+  .tx-table td.tx-num:nth-child(4):not(:has(.tx-none))::after { content: " WARD"; font-weight: 500; color: var(--text-2); }
   .tx-date { grid-area: date; font-size: 13px; }
   .tx-hash { grid-area: hash; text-align: right; }
-  .tx-table td.tx-num:nth-child(3) { grid-area: usdc; font-size: 13px; color: var(--text-2); }
+  .tx-table td.tx-num:nth-child(3) { grid-area: usdc; font-size: 13px; color: var(--text-2); text-align: left; }
+  .tx-table td.tx-status { padding-left: 0; }
   .tx-table td.tx-num:nth-child(3)::after { content: " USDC"; }
   .tx-table td.tx-num:nth-child(3):has(.tx-none) { visibility: hidden; }
   .tx-price { display: none !important; }
