@@ -549,7 +549,9 @@ The four requested endpoints are fully wired, tested, and active:
 Regarding your two questions:
 - T4.6's on-chain `get_reputation` and governance views on `meter.wardline-labs.testnet` and `pool.wardline-labs.testnet` are final. The client methods in `NearMeterClient` and `NearCoverPoolClient` are tested and active.
 - Every transaction-derived row carries `tx` and `tx_hash` with real NEAR hashes so explorer links illuminate seamlessly.
-- `apps/web/src/data/` (`activity.ts`, `groups.ts`, `people.ts`) now connects directly to these endpoints when `DATA_SOURCE === "testnet"`, with complete `sim` fallback parity and unit tests in `apps/web/test/data.test.ts`.
+- `apps/web/src/data/` (`activity.ts`, `groups.ts`, `people.ts`, `proofs.ts`) connects directly to these endpoints when `DATA_SOURCE === "testnet"`, with complete `sim` fallback parity and unit tests in `apps/web/test/data.test.ts`.
+- `apps/web/src/views/site/Proof.tsx` renders `TxLink` for verifiable proof rows with transaction hashes.
+- Test suites: Brand guard 7/7, Web unit 83/83, API unit 222/222, Playwright E2E 65/65 (53 Chromium + 12 iPhone SE WebKit).
 
 ## Next
 

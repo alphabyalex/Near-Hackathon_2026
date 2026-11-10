@@ -50,7 +50,7 @@ export async function getActivity(limit = 20): Promise<ActivityItem[]> {
     side: p.side,
     text: `${p.group}: ${p.side === "above" ? "proven and paid" : "refused"}`,
     amount: p.side === "above" ? p.amount : p.refund,
-    tx: null,
+    tx: p.tx ?? null,
   }));
   const payouts: ActivityItem[] = mutual.claims
     .filter((c) => c.status === "paid")

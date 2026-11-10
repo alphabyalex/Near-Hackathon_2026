@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getActivity, getActivityStats } from "../src/data/activity";
-import { getCommunities } from "../src/data/groups";
+import { getCommunities, getGroups } from "../src/data/groups";
 import { getPerson } from "../src/data/people";
+import { getProofs } from "../src/data/proofs";
 
 function stubFetch(routes: Record<string, unknown>) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -190,5 +191,79 @@ describe("data layer (sim and testnet parity)", () => {
     expect(person.votes.length).toBe(1);
     expect(person.votes[0]?.support).toBe("for");
     expect(person.weights[0]).toBe("25000000");
+  });
+
+  it("getGroups retrieves group list and tier rules", async () => {
+    stubFetch({
+      "/v1/groups": {
+        mode: "sim",
+        groups: [
+          {
+            budget_id: "bgt_aurora",
+            name: "Aurora Lab",
+            owner: "aurora.dao",
+            tier: "bronze",
+            deposit: "25000000",
+            members: 3,
+            period: "week",
+            proven_calls: 12,
+            clean_calls: 12,
+            refused_calls: 0,
+            capped_calls: 0,
+            blocked_payees: 0,
+            claims: 0,
+            next_tier_at: 20,
+            fee_bps: 200,
+            coverage_cap: "25000000",
+            spent: "50000",
+            fees_paid: "1000",
+          },
+        ],
+        tiers: {
+          coverage_multiplier_bps: 10000,
+          rules: [
+            { tier: "bronze", fee_bps: 200, coverage: "25000000", promote_after: 10 },
+            { tier: "silver", fee_bps: 150, coverage: "50000000", promote_after: 25 },
+            { tier: "gold", fee_bps: 100, coverage: "100000000", promote_after: null },
+          ],
+        },
+      },
+    });
+
+    const res = await getGroups();
+    expect(res.groups.length).toBe(1);
+    expect(res.groups[0]?.name).toBe("Aurora Lab");
+    expect(res.groups[0]?.tier).toBe("bronze");
+    expect(res.tiers.rules.length).toBe(3);
+  });
+
+  it("getProofs retrieves metered calls and handles tx link", async () => {
+    stubFetch({
+      "/v1/proofs": {
+        mode: "sim",
+        proofs: [
+          {
+            call_id: "call_abc123",
+            budget_id: "bgt_mission",
+            group: "Mission House",
+            side: "above",
+            status: "verified",
+            reason: null,
+            model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+            model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+            amount: "15000",
+            refund: "0",
+            created_at: "2026-11-10T04:00:00Z",
+            tx: "8fQG9z7N2dK283j8H1V5bE8J34f78kH283j8H1V5bE8J",
+          },
+        ],
+      },
+    });
+
+    const res = await getProofs(5);
+    expect(res.proofs.length).toBe(1);
+    expect(res.proofs[0]?.call_id).toBe("call_abc123");
+    expect(res.proofs[0]?.side).toBe("above");
+    expect(res.proofs[0]?.tx).toBe("8fQG9z7N2dK283j8H1V5bE8J34f78kH283j8H1V5bE8J");
   });
 });
