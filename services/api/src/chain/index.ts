@@ -7,8 +7,9 @@ import {
   makeProvider,
   makeSigner,
 } from "@wardline/vault-client";
-import { readFileSync } from "node:fs";
-import { activityPaths, auditedRows, readIfExists } from "../activity/log.js";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { activityPaths, auditedRows, readIfExists, REPO_ROOT } from "../activity/log.js";
 import type { DateClock as Clock } from "../time.js";
 import { createSimChain, createSimMutual, SimPool, type SimChainSeed } from "./sim.js";
 import type { AttestedModel, Chain, ChainMode, GovernanceClient, MutualProposalView, ReputationClient, ReputationView, TierRule } from "./types.js";
@@ -182,6 +183,22 @@ function cachedViews<T extends object>(client: T, views: readonly string[]): T {
   });
 }
 
+/**
+ * The testnet cast's budgets: every community and individual in scripts/testnet/cast.json. The meter
+ * also holds older test budgets (bgt_engineering, bgt_leaked_*); the list views show only the cast.
+ * Null when there is no cast file, and then nothing is filtered.
+ */
+export function castBudgetIds(path = join(REPO_ROOT, "scripts/testnet/cast.json")): Set<string> | null {
+  if (!existsSync(path)) return null;
+  const cast = JSON.parse(readFileSync(path, "utf8")) as { communities?: Array<{ id: string }>; individuals?: Array<{ budget: string }> };
+  return new Set([...(cast.communities ?? []).map((c) => c.id), ...(cast.individuals ?? []).map((i) => i.budget)]);
+}
+
+/** Keeps the views whose budget is in the cast; all of them when there is no cast. */
+export function onlyCast<T extends { budget_id: string }>(views: T[], cast: Set<string> | null): T[] {
+  return cast ? views.filter((v) => cast.has(v.budget_id)) : views;
+}
+
 /** Reputation in near mode: the meter contract's own get_reputation and list_reputations (T4.6). */
 class NearReputation implements ReputationClient {
   readonly mode = "near" as const;
@@ -189,6 +206,7 @@ class NearReputation implements ReputationClient {
     private readonly meter: NearMeterClient,
     /** The tier table is fixed in the meter contract; it has no view, so the API's copy of it answers. */
     private readonly rules: () => Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }>,
+    private readonly cast: Set<string> | null = castBudgetIds(),
   ) {}
   async getReputation(budgetId: string): Promise<ReputationView | null> {
     const view = await this.meter.getReputation(budgetId);
@@ -196,7 +214,7 @@ class NearReputation implements ReputationClient {
   }
   async listReputations(): Promise<ReputationView[]> {
     const capped = auditedCapped();
-    return (await this.meter.listReputations()).map((v) => withUncounted(v, capped));
+    return onlyCast(await this.meter.listReputations(), this.cast).map((v) => withUncounted(v, capped));
   }
   tierRules(): Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }> {
     return this.rules();
