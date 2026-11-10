@@ -16,6 +16,8 @@ export interface ActivityItem {
   at: string;
   actor: string;
   community: string;
+  group?: string;
+  budget_id?: string;
   kind: "call" | "payout" | "price" | "deposit" | "redeem" | "vote" | "proposal";
   side: "above" | "below";
   text: string;
@@ -24,6 +26,7 @@ export interface ActivityItem {
   outcome: "paid" | "refused" | "blocked" | "capped" | "voted" | "executed";
   reason: string | null;
   tx: string | null;
+  tx_hash?: string | null;
   block_height: number;
   explorer_url: string | null;
 }
@@ -59,9 +62,19 @@ export interface ActivityStats {
 
 export interface CommunitySummary {
   id: string;
+  budget_id?: string;
   name: string;
   owner: string;
+  dao_account?: string;
   members: string[];
+  members_count?: number;
+  deposit?: string;
+  spent?: string;
+  coverage_cap?: string;
+  fee_bps?: number;
+  claims?: number;
+  next_tier_at?: number | null;
+  period?: string | null;
   budget: {
     deposit: string;
     spent: string;

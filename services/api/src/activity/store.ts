@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Deps } from "../service.js";
+import type { PoolPosition } from "../chain/types.js";
 import type { ActivityItem, ActivityStats, CommunitySummary, MemberVote, PersonView } from "./types.js";
 
 const ACTIVITY_LOG_PATH = join(process.cwd(), "data/testnet/activity.jsonl");
@@ -31,6 +32,8 @@ export class ActivityStore {
           at: raw.at || new Date().toISOString(),
           actor: raw.actor || "",
           community: raw.community || "",
+          group: raw.community || "",
+          budget_id: raw.community || "",
           kind: raw.kind || "call",
           side: raw.side || (raw.outcome === "paid" ? "above" : "below"),
           text: raw.text || `${raw.community || "Group"}: ${raw.outcome || raw.kind}`,
@@ -39,6 +42,7 @@ export class ActivityStore {
           outcome: raw.outcome || "paid",
           reason: raw.reason || null,
           tx,
+          tx_hash: tx,
           block_height: raw.block_height || 0,
           explorer_url: explorerUrl,
         });
@@ -114,9 +118,19 @@ export class ActivityStore {
 
       summaries.push({
         id: r.budget_id,
+        budget_id: r.budget_id,
         name: r.name || r.budget_id,
         owner: r.owner || "",
+        dao_account: r.owner || "",
         members: budget?.members.map((m: { member: string }) => m.member) || [],
+        members_count: budget?.members.length || 0,
+        deposit: budget?.deposit || "0",
+        spent: budget?.spent || r.spent || "0",
+        coverage_cap: r.coverage_cap || "25000000",
+        fee_bps: r.fee_bps || 200,
+        claims: r.claims || 0,
+        next_tier_at: r.next_tier_at ?? null,
+        period: budget?.period || "week",
         budget: {
           deposit: budget?.deposit || "0",
           spent: budget?.spent || r.spent || "0",
@@ -177,9 +191,38 @@ export class ActivityStore {
       }
     }
 
+    let totalDeposited = position.deposited ? BigInt(position.deposited) : 0n;
+    let totalRedeemed = position.redeemed ? BigInt(position.redeemed) : 0n;
+    let earliestJoin = position.joined_at ?? null;
+
+    for (const item of userHistory) {
+      if (item.kind === "deposit" && item.amount) {
+        totalDeposited += BigInt(item.amount);
+        if (!earliestJoin || item.at < earliestJoin) earliestJoin = item.at;
+      } else if (item.kind === "redeem" && item.amount) {
+        totalRedeemed += BigInt(item.amount);
+      }
+    }
+
+    const enhancedPosition: PoolPosition = {
+      ...position,
+    };
+    const dep = totalDeposited > 0n ? totalDeposited.toString() : position.deposited;
+    if (dep !== undefined) {
+      enhancedPosition.deposited = dep;
+    }
+    const red = totalRedeemed > 0n ? totalRedeemed.toString() : position.redeemed;
+    if (red !== undefined) {
+      enhancedPosition.redeemed = red;
+    }
+    const joined = earliestJoin ?? position.joined_at;
+    if (joined !== undefined) {
+      enhancedPosition.joined_at = joined;
+    }
+
     return {
       account,
-      position,
+      position: enhancedPosition,
       mutual: {
         pool,
         claims,

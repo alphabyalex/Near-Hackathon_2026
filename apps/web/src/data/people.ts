@@ -1,11 +1,12 @@
 /**
  * One member's view: position, votes and the history behind their share. sim: composed from
  * /v1/mutual, /v1/pool/positions/:account and /v1/mutual/votes/:account. testnet: T4.7's
- * /v1/people/:account, once its response shape is documented.
+ * /v1/people/:account.
  */
 import type { MutualProposalView, MutualSummary, PoolPosition } from "../api/ai";
+import { apiGet } from "../api/client";
 import { getMutual, getPosition, getVotes, getVoteWeight, type MemberVote } from "./mutual";
-import { DATA_SOURCE, NotWiredYet } from "./source";
+import { DATA_SOURCE } from "./source";
 
 export interface Person {
   account: string;
@@ -18,7 +19,24 @@ export interface Person {
 }
 
 export async function getPerson(account: string): Promise<Person> {
-  if (DATA_SOURCE === "testnet") throw new NotWiredYet("/v1/people/:account");
+  if (DATA_SOURCE === "testnet") {
+    const res = await apiGet<{
+      account: string;
+      position: PoolPosition;
+      mutual: MutualSummary;
+      votes: MemberVote[];
+      weights: Record<number, string>;
+      open: MutualProposalView[];
+    }>(`/v1/people/${encodeURIComponent(account)}`);
+    return {
+      account: res.account,
+      position: res.position,
+      mutual: res.mutual,
+      votes: res.votes,
+      weights: res.weights,
+      open: res.open,
+    };
+  }
   const [mutual, position, { votes }] = await Promise.all([getMutual(), getPosition(account), getVotes(account)]);
   const open = mutual.governance.proposals.filter((p) => p.status === "open");
   const weights: Record<number, string> = {};

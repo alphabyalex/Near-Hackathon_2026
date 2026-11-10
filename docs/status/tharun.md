@@ -33,6 +33,7 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | On-Chain Reputation Tiers | `contracts/meter` | Done, `get_reputation`, `list_reputations`, `record_claim`, Bronze/Silver/Gold progression |
 | WARD-Holder Governance | `contracts/cover-pool` | Done, `propose`, `vote`, `execute`, snapshot weights, 20% quorum, execute-once |
 | Typed Client Extensions | `packages/vault-client` | Done, typed reputation and governance methods on NearMeterClient and NearCoverPoolClient |
+| T4.7 Data Layer & Testnet Activity | `services/api/src/activity`, `apps/web/src/data` | Done, full schema parity, activity feed, communities, and person views |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
 
@@ -45,6 +46,7 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | Testnet deployment with two vaults and a manifest | Nov 9 | **Met.** See below |
 | T4.5 USDC Movement & Deployment | Nov 11 | **Met** |
 | T4.6 Reputation Tiers & WARD Governance | Nov 12 | **Met.** Deployed to testnet and verified |
+| T4.7 / A8 Data Layer & Testnet Endpoints | Nov 13 | **Met.** Wired and tested in apps/web/src/data |
 
 ### Test results, last full run on the deployed wasm
 
@@ -504,6 +506,50 @@ None.
 - Lucy: `createGymVaultSim` is now implemented and exported from `@redline/vault-sim`, matching your `VaultSimFactory` signature (`transfers()`, `setNow(ns)`, `VaultSimInit[]`).
 - Lucy: `NearEvidenceClient` is now exported from `@redline/vault-client`. It provides `verifyReport(runId, computedReportDigest)` and `getReportDigest(runId)`, plus `publishRun({ run_id, suite_commitment, manifest_digest, report_digest, execution_status, assessment_outcome })` which executes `register_run` and `publish_result` sequentially for the issuer.
 - Lucy: Rejection order comparison: our contract and simulator check `BINDING_INACTIVE` (check 3) before `PAUSED` (check 4); and `NOT_YET_PAYABLE` (check 9) before `PAYABLE_EXPIRED` (check 10). We also have check 16 for `CAPACITY_FULL` (storage headroom). Otherwise checks match your list. `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
+
+## A8 Response for Alexander: Testnet Data Layer & Shapes
+
+The four requested endpoints are fully wired, tested, and active:
+
+1. `/v1/activity`:
+   - Returns `{ activity: ActivityItem[], total: number }`.
+   - Each row contains:
+     - `kind`: `"call" | "payout" | "price" | "deposit" | "redeem" | "vote" | "proposal"`
+     - `at`: ISO timestamp string
+     - `side`: `"above" | "below"`
+     - `amount`: Atomic USDC string (e.g. `"150000"` for $0.15)
+     - `group` / `budget_id`: Identifiers for the community or budget
+     - `tx_hash` / `tx`: NEAR transaction hash when available (null otherwise)
+     - `explorer_url`: Full testnet explorer link (`https://testnet.nearblocks.io/txns/...`)
+     - Query parameters support pagination: `?limit=20&cursor=...`
+
+2. `/v1/activity/stats`:
+   - Returns `{ total_items, total_pooled, pooled_usdc, ward_price, yield_earned, fees_earned_usdc, claims_paid_usdc, paid_above_line, kept_below_line, kept_below_line_by_reason, price_series, below: { swapped, lookalike, capped, total } }`.
+   - Aggregates directly from on-chain state and live activity log records.
+
+3. `/v1/communities`:
+   - Returns `{ communities: CommunitySummary[] }`.
+   - Properties per community:
+     - `id`, `name`, `owner`, `dao_account`: Identifiers and controlling DAO
+     - `members`: String array of member accounts; `members_count`: total members
+     - `budget`: `{ deposit, spent, reserved, period }`
+     - `tier`: `"bronze" | "silver" | "gold"`
+     - `proven_calls`, `clean_calls`, `refused_calls`, `capped_calls`, `blocked_payees`, `fees_paid`
+     - `coverage_cap`: Atomic USDC coverage cap (default $25.00 = 25,000,000)
+     - `fee_bps`: Tier coverage fee in basis points (e.g. 200 for 2.0%)
+     - `claims`: Number of claims against this group
+     - `next_tier_at`: Proven calls needed for next tier upgrade, or null if gold
+
+4. `/v1/people/:account`:
+   - Returns `{ account, position, mutual, votes, weights, open, history }`.
+   - `position`: `{ account, ward, locked_ward, unlock_at, deposited, redeemed, joined_at, pending_redemptions }`.
+   - `history`: User-specific activity rows from `activity.jsonl` matching this account.
+   - `votes`: Array of `{ proposal_id, support, weight }`.
+
+Regarding your two questions:
+- T4.6's on-chain `get_reputation` and governance views on `meter.wardline-labs.testnet` and `pool.wardline-labs.testnet` are final. The client methods in `NearMeterClient` and `NearCoverPoolClient` are tested and active.
+- Every transaction-derived row carries `tx` and `tx_hash` with real NEAR hashes so explorer links illuminate seamlessly.
+- `apps/web/src/data/` (`activity.ts`, `groups.ts`, `people.ts`) now connects directly to these endpoints when `DATA_SOURCE === "testnet"`, with complete `sim` fallback parity and unit tests in `apps/web/test/data.test.ts`.
 
 ## Next
 
