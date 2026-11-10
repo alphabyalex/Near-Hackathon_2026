@@ -76,6 +76,8 @@ export function loadSpend(path = SPEND_PATH): SpendLedger {
   if (!existsSync(path)) return { total_calls: 0, hard_cap: HARD_CAP, current_key: "key_1", key_1_spend: zero(), key_2_spend: zero(), last_call_at: null };
   const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<SpendLedger>;
   return {
+    // Keeps notes such as manual_checks (live calls made outside the batch, counted toward the cap).
+    ...raw,
     total_calls: raw.total_calls ?? 0,
     hard_cap: HARD_CAP,
     current_key: raw.current_key === "key_2" ? "key_2" : "key_1",

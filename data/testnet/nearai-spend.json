@@ -1,9 +1,9 @@
 {
-  "total_calls": 36,
+  "total_calls": 37,
   "hard_cap": 450,
   "current_key": "key_1",
   "key_1_spend": {
-    "calls": 36,
+    "calls": 37,
     "prompt_tokens": 1620,
     "completion_tokens": 5067,
     "cost_usd": 0.006566
@@ -14,5 +14,13 @@
     "completion_tokens": 0,
     "cost_usd": 0
   },
-  "last_call_at": "2026-11-10T10:37:12.364Z"
+  "last_call_at": "2026-11-10T10:37:12.364Z",
+  "manual_checks": [
+    {
+      "at": "2026-11-10T10:53:00Z",
+      "what": "one-line plug-in (pnpm demo:plugin, max_tokens 600)",
+      "tx": "CVYSkE9bmiRfKYSYaxHEGCJHdGQHNg17S9wDfk4b5EWR",
+      "note": "counted toward the 450 cap; its tokens are not in the token totals"
+    }
+  ]
 }
