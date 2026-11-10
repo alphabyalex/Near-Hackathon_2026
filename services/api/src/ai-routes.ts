@@ -175,12 +175,14 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
       amount: x.amount,
       refund: x.refund,
       created_at: x.createdAt,
+      // The settle or release transaction. In near mode a NEAR hash; in sim mode a simulated id.
+      tx: x.settlementTx ?? x.releaseTx,
     }));
     // In sim mode the feed is never empty: the live seed's groups' recent calls follow any real ones.
     if (chain.mode === "sim") {
       for (const s of SIM_SEED_PROOFS.slice(0, Math.max(0, limit - proofs.length))) {
         const { minutes_ago, ...row } = s;
-        proofs.push({ ...row, group: names.get(row.budget_id) ?? row.budget_id, side: row.status === "verified" ? "above" : "below", created_at: new Date(nowMs() - minutes_ago * 60_000).toISOString() });
+        proofs.push({ ...row, tx: null, group: names.get(row.budget_id) ?? row.budget_id, side: row.status === "verified" ? "above" : "below", created_at: new Date(nowMs() - minutes_ago * 60_000).toISOString() });
       }
     }
     return c.json({ mode: chain.mode, proofs });

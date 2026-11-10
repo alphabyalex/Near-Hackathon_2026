@@ -1,6 +1,7 @@
 /** The proof engine: why the Mutual's yield is safe. */
 import { useEffect, useState } from "react";
 import { Problem } from "../../components/Problem";
+import { TxLink } from "../../components/TxLink";
 import { getProofs, type ProofRow } from "../../data/proofs";
 import { callWords, modelName } from "../../ai/words";
 import { PROOF } from "../../brand";
@@ -98,7 +99,15 @@ function LatestProofs() {
                     <td>{p.group}</td>
                     <td>{whatHappened(p)}</td>
                     <td className="num r">{usd(p.side === "above" ? p.amount : p.refund)} USDC</td>
-                    <td className={p.side === "above" ? "side-above" : "side-below"}>{sideText(p)}</td>
+                    <td className={p.side === "above" ? "side-above" : "side-below"}>
+                      {sideText(p)}
+                      {p.tx && (
+                        <>
+                          {" "}
+                          <TxLink hash={p.tx} plain={false} />
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

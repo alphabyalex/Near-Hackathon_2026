@@ -1,5 +1,33 @@
 # Status: alexander
 
+## A10, part 2: second merge from Tharun (2026-11-10)
+
+Merged `origin/tharun` up to 4200a1c. These are the commits newer than d1c6b67:
+- f6cd74a docs(status): update E2E test results in tharun status
+- b0a9f43 feat(web,data): wire getGroups, getProofs and TxLink into frontend views
+- 4200a1c fix(testnet): strictly restrict execution to Alexander's official key
+
+**Kept**
+- The web wiring from b0a9f43: Groups and Proofs read the testnet routes when `WARDLINE_DATA=testnet`.
+- One file outside `apps/web/src/data`, as a new feature: `views/site/Proof.tsx` adds a View transaction link to each latest proof. It shows only for a real NEAR hash.
+- `/v1/proofs` now returns each call's settle or release transaction, so that link has something to show. The security test now allows that field; the transaction is public, and its arguments name no member.
+
+**Not kept**
+- 4200a1c's 12 new rows: `tx_` hashes again, plus a look-alike payout with no transaction. Also its spend ledger and its edits to the old `simulate.ts`. The log stays empty, the ledger stays at zero, and the step 2 batch stays.
+- The padding in b0a9f43's testnet branches:
+  - `fee_bps ?? 200` and a default coverage cap;
+  - silent fallbacks to simulated groups and proofs when a testnet route fails or is empty;
+  - `MODEL_NOT_ATTESTED` as the reason for any refusal without one;
+  - a DeepSeek default model, and "now" for a missing time.
+
+  In testnet mode a failure now shows as an error and an empty feed stays empty.
+
+**Open question:** 4200a1c restricts the old batch to `NEAR_AI_API_KEY` only. The step 2 batch uses key 2 only if `NEAR_AI_API_KEY_2` is set, and it isn't, so today it runs on key 1 alone.
+
+**Tests:** `pnpm test` passes (API 230, web 83). Chromium e2e: 53 of 53 passed.
+
+**Keys:** `%USERPROFILE%\.wardline\testnet\credentials.json` still doesn't exist, so step 3 hasn't started.
+
 ## A10: real testnet communities, steps 0 to 2 (2026-11-09)
 
 Stopped before step 3, as asked: the two testnet keys aren't on this machine yet. Nothing has been sent to the chain and no NEAR AI call has been made.

@@ -82,7 +82,8 @@ describe("what public routes expose", () => {
     // The real call comes first; in sim mode seeded rows follow it, with the same fields.
     expect(body.proofs[0]!.call_id).not.toMatch(/^call_sim_seed_/);
     for (const p of body.proofs) expect(Object.keys(p).sort()).toEqual(Object.keys(body.proofs[0]!).sort());
-    expect(Object.keys(body.proofs[0]!).sort()).toEqual(["amount", "budget_id", "call_id", "created_at", "group", "model_claimed", "model_proven", "reason", "refund", "side", "status"]);
+    // tx is the settle or release transaction: public on chain, and its arguments carry no member.
+    expect(Object.keys(body.proofs[0]!).sort()).toEqual(["amount", "budget_id", "call_id", "created_at", "group", "model_claimed", "model_proven", "reason", "refund", "side", "status", "tx"]);
     const text = JSON.stringify(body);
     for (const leak of ["alice.testnet", "secret prompt", key, "wk_", "key_id", "request_hash", "signature"]) expect(text).not.toContain(leak);
   });
