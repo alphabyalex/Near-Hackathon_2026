@@ -88,7 +88,7 @@ function Sources({ person }: { person: Person }) {
   // Deposits and redemptions never move the price; a run of fee events is one line with its count.
   const history: Array<(typeof person.mutual.pool.price_history)[number] & { runs?: number }> = [];
   for (const h of person.mutual.pool.price_history) {
-    if (Date.parse(h.at) < joined || h.event === "deposit" || h.event === "redeem") continue;
+    if (Date.parse(h.at) <= joined || h.event === "deposit" || h.event === "redeem") continue;
     const last = history[history.length - 1];
     if (h.event === "fees" && last?.event === "fees") history[history.length - 1] = { ...h, runs: (last.runs ?? 1) + 1 };
     else history.push(h);
