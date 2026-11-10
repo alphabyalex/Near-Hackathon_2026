@@ -234,7 +234,7 @@ export function Home() {
               {HOME.shareBody.map((p) => (
                 <p key={p}>{p}</p>
               ))}
-              {m.mode !== "sim" && <p className="mode-note">{HOME.modeMixed}</p>}
+              {m.mode !== "sim" && <p className="mode-note">{m.mutual_mode === "near" ? HOME.modeNear : HOME.modeMixed}</p>}
             </div>
             <MemberCard pool={m.pool} version={tick} onJoin={join} onChanged={refresh} />
           </div>

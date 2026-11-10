@@ -4,6 +4,7 @@ import { BRAND, HOME, TIERS } from "../src/brand";
 import { REDTEAM, engineLabel, firstContact, percent } from "../src/redteam";
 import { AccountDiff, countdown } from "../src/views/owner/ReviewDesk";
 import { snippets } from "../src/views/site/Connect";
+import { LOCAL_API_URL, PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL, servedLocally, snippetUrl } from "../src/config";
 import { poisonedAddress } from "../src/views/site/Demo";
 import { payeeMessage, proofFile } from "../src/views/site/Verify";
 import { REASON_WORDS } from "../src/payee/reasons";
@@ -53,6 +54,29 @@ describe("connect snippets", () => {
     const s = snippets("https://api.example.com", "https://mcp.example.com/mcp");
     // Keys come from the reader's environment; the URL never does.
     expect(JSON.stringify(s)).not.toMatch(/WARDLINE_API_URL|WARDLINE_MCP_URL|127\.0\.0\.1|localhost/);
+  });
+});
+
+describe("snippet URLs while nothing is hosted", () => {
+  const pick = (configured: string | null, hosted: string, isLocal: boolean) => snippetUrl(configured, hosted, LOCAL_API_URL, PLACEHOLDER_API_URL, isLocal);
+
+  it("prefer the configured URL, then the hosted one", () => {
+    expect(pick("https://api.example.com", "https://hosted.example", true)).toBe("https://api.example.com");
+    expect(pick(null, "https://hosted.example/", false)).toBe("https://hosted.example");
+  });
+
+  it("show the local API when the page is served locally, else the named placeholder, never a tunnel", () => {
+    expect(servedLocally("127.0.0.1")).toBe(true);
+    expect(servedLocally("localhost")).toBe(true);
+    expect(servedLocally("wardline.example")).toBe(false);
+    expect(pick(null, "", true)).toBe(LOCAL_API_URL);
+    expect(pick(null, "", false)).toBe(PLACEHOLDER_API_URL);
+    expect(PLACEHOLDER_API_URL).toMatch(/^https:\/\/your-wardline-api\.example$/);
+    expect(JSON.stringify(snippets(PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL))).not.toMatch(/trycloudflare|ngrok|loca\.lt/);
+  });
+
+  it("the direct SDK snippet names the deployed payee registry", () => {
+    expect(snippets(PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL).direct).toContain('registryAccount: "payee-registry.wardline-labs.testnet"');
   });
 });
 

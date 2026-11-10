@@ -187,7 +187,7 @@ export const revokeMeterKey = (id: string) => apiPost<{ revoked: string }>(`/own
 export interface WardPricePoint {
   at: string;
   price: string;
-  event: "launch" | "deposit" | "fees" | "claim" | "redeem";
+  event: "launch" | "deposit" | "fees" | "claim" | "redeem" | "first_loss";
 }
 
 export interface PoolView {
@@ -258,6 +258,7 @@ export interface ProofRow {
   amount: string;
   refund: string;
   created_at: string;
+  tx?: string | null;
 }
 export const getProofs = (limit = 12) => apiGet<{ mode: "sim" | "near"; proofs: ProofRow[] }>(`/v1/proofs?limit=${limit}`);
 export const getMutual = () => apiGet<MutualSummary>("/v1/mutual");

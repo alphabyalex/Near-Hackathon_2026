@@ -5,6 +5,7 @@ import { defineConfig } from "vitest/config";
 import { applyLegacyEnv } from "@wardline/schemas";
 import { BRAND } from "./src/brand";
 import { redteamSummary } from "./vite/redteam";
+import { checkLocalSigner } from "./vite/local-signer";
 import repo from "../../repo.config.json";
 
 const REPORT = fileURLToPath(new URL("../../evidence/redteam/report.json", import.meta.url));
@@ -49,8 +50,13 @@ export function siteHeaders(apiUrl: string | undefined): Record<string, string> 
   };
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   carryLegacyEnv(mode);
+  const viteEnv = loadEnv(mode, ENV_DIR, "VITE_");
+  const localSignerFlag = process.env.VITE_WARDLINE_LOCAL_SIGNER ?? viteEnv.VITE_WARDLINE_LOCAL_SIGNER;
+  const network = process.env.VITE_NEAR_NETWORK ?? viteEnv.VITE_NEAR_NETWORK;
+  // Refuses a build with the local test signer, and a dev server that is not on 127.0.0.1 or testnet.
+  checkLocalSigner({ flag: localSignerFlag, command, host: "127.0.0.1", network });
   const headers = siteHeaders(loadEnv(mode, ENV_DIR, "VITE_").VITE_WARDLINE_API_URL ?? process.env.VITE_WARDLINE_API_URL);
   return {
     // Read VITE_ variables from the repo root .env. Only VITE_-prefixed names ever reach the browser.
@@ -70,6 +76,12 @@ export default defineConfig(({ mode }) => {
       // Node closes an idle keep-alive connection after 5s. WebKit on Windows can reuse one at that moment
       // and then fails the POST ("rewinding of the data stream failed"), which reads as the API being down.
       // Holding idle connections longer than any browser keeps them avoids the race.
+      {
+        name: "wardline-local-signer-guard",
+        configureServer(server: { config: { server: { host?: string | boolean } } }) {
+          checkLocalSigner({ flag: localSignerFlag, command: "serve", host: server.config.server.host, network });
+        },
+      },
       {
         name: "wardline-keep-alive",
         configureServer(server: { httpServer: import("node:http").Server | null }) {

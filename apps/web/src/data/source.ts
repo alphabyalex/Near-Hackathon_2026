@@ -5,7 +5,8 @@
  *   WARDLINE_DATA=sim       the API's own routes (default). The API's chain mode decides whether
  *                           those numbers come from the simulation or from NEAR testnet contracts.
  *   WARDLINE_DATA=testnet   also the T4.7 read-only routes (/v1/activity, /v1/activity/stats,
- *                           /v1/communities, /v1/people/:account) once their shapes are documented.
+ *                           /v1/communities, /v1/people/:account). Off unless set. Run the API with
+ *                           WARDLINE_CHAIN_MODE=near; it answers 503 for activity no audit has checked.
  */
 
 export type DataSource = "sim" | "testnet";

@@ -14,7 +14,7 @@ import { createApiKey } from "../src/auth.js";
 import { createAttestor, ensureAttestorKey, requestHash } from "../src/payee/attestor.js";
 import { LOCAL_AUTH } from "./helpers.js";
 import { buildProofFile, createNearKeyLookup, nep413Hash, type NearKeyLookup, type PayeeProofFile } from "../src/payee/proofs.js";
-import { createPayeeRuntime, loadPayeeBackends, type PayeeOverrides } from "../src/payee/runtime.js";
+import { createPayeeRuntime, loadPayeeBackends, nearRegistry, type PayeeOverrides } from "../src/payee/runtime.js";
 import { evidenceHash, MERCHANT_IDENTITY_PATH, PAYEE_FILE_PATH } from "../src/payee/verify-vendor.js";
 import { isPublicAddress, type WellKnownFetcher } from "../src/payee/well-known.js";
 
@@ -180,6 +180,12 @@ describe("free tier", () => {
     expect((await via("8.8.8.8, 2.2.2.2")).status).toBe(402);
   });
 
+  it("does not count the Mutual's public pages or the AI gateway", async () => {
+    const app = createApp(bootstrap(":memory:", () => NOW_NS, { freeCallsPerDay: 0 }, LOCAL_AUTH));
+    for (const path of ["/v1/mutual", "/v1/groups", "/v1/proofs", "/v1/activity/stats", "/v1/communities"]) expect((await app.request(path)).status).not.toBe(402);
+    expect((await app.request("/v1/vendors")).status).toBe(402);
+  });
+
   it("does not limit the owner routes or the attestor key", async () => {
     const app = createApp(bootstrap(":memory:", () => NOW_NS, { freeCallsPerDay: 0 }, LOCAL_AUTH));
     expect((await app.request("/owner/review-queue")).status).toBe(200);
@@ -296,9 +302,16 @@ describe("backend modes", () => {
 
   it("refuses to start in a mode it cannot meet, rather than falling back to the stub", async () => {
     await expect(loadPayeeBackends({ WARDLINE_PAYEE_ENGINE: "live" })).rejects.toThrow(/payee-check/);
-    await expect(loadPayeeBackends({ WARDLINE_REGISTRY_MODE: "near" })).rejects.toThrow(/PayeeRegistryClient/);
     await expect(loadPayeeBackends({ WARDLINE_PAYEE_ENGINE: "other" })).rejects.toThrow(/Unknown/);
     await expect(loadPayeeBackends({ WARDLINE_REGISTRY_MODE: "other" })).rejects.toThrow(/Unknown/);
+  });
+
+  it("near registry mode reads the payee registry contract, with the SDK's tier names", async () => {
+    const backends = await loadPayeeBackends({ WARDLINE_REGISTRY_MODE: "near" });
+    expect(backends.registry).toBeDefined();
+    const contract = { getVendor: async () => ({ domain: "northwind.example", accounts: [{ account: "near:testnet:northwind.testnet", evidenceTier: "T2" }] }), listVendors: async () => [], findByAccount: async () => null, attestVendor: async () => ({}) };
+    const vendor = (await nearRegistry(contract as never).getVendor("northwind.example")) as unknown as { accounts: Array<{ evidenceTier: string }> };
+    expect(vendor.accounts[0]!.evidenceTier).toBe("T2_DOMAIN_LINKED");
   });
 
   it("reads free tier and x402 settings from env", () => {

@@ -61,7 +61,7 @@ For large payments, pass `minTier` to `assertPayable`.
 
 Accounts are CAIP-10 strings: `near:testnet:northwind.testnet`, `eip155:84532:0xabc...`, `solana:devnet:7xKX...`.
 
-**MCP**, at `https://realize-russell-societies-incl.trycloudflare.com/mcp` or over stdio with `node services/mcp/dist/stdio.js`:
+**MCP**, at `http://127.0.0.1:8790/mcp` or over stdio with `node services/mcp/dist/stdio.js`:
 
 - `resolve_payee { domain, chain }`
 - `check_payee { payee, vendor: { domain } }`
@@ -71,10 +71,10 @@ Accounts are CAIP-10 strings: `near:testnet:northwind.testnet`, `eip155:84532:0x
 **HTTP:**
 
 ```sh
-curl -s https://attempt-caused-antique-four.trycloudflare.com/v1/resolve -H 'content-type: application/json' \
+curl -s http://127.0.0.1:8787/v1/resolve -H 'content-type: application/json' \
   -d '{"domain":"northwind.example","chain":"near:testnet"}'
 
-curl -s https://attempt-caused-antique-four.trycloudflare.com/v1/check -H 'content-type: application/json' \
+curl -s http://127.0.0.1:8787/v1/check -H 'content-type: application/json' \
   -d '{"payee":"near:testnet:northw1nd.testnet","vendor":{"domain":"northwind.example"}}'
 ```
 
@@ -82,7 +82,7 @@ curl -s https://attempt-caused-antique-four.trycloudflare.com/v1/check -H 'conte
 
 ```ts
 import { createWardline, assertPayable } from "@wardline/sdk";
-const wardline = createWardline({ mode: "hosted", baseUrl: "https://attempt-caused-antique-four.trycloudflare.com" });
+const wardline = createWardline({ mode: "hosted", baseUrl: "http://127.0.0.1:8787" });
 const result = await wardline.resolve({ domain: "northwind.example", chain: "near:testnet" });
 assertPayable(result);
 pay(result.account);
@@ -97,7 +97,7 @@ Use `createWardline({ mode: "direct", nearRpcUrl, registryAccount })` to run che
 Record the payment so a later account change raises `PAYEE_CHANGED`. This needs the payer's API key with the `record` scope, which the system that settles payments should hold, not the agent:
 
 ```sh
-curl -s https://attempt-caused-antique-four.trycloudflare.com/v1/payments/record -H 'content-type: application/json' -H "authorization: Bearer $WARDLINE_RECORD_KEY" \
+curl -s http://127.0.0.1:8787/v1/payments/record -H 'content-type: application/json' -H "authorization: Bearer $WARDLINE_RECORD_KEY" \
   -d '{"payer":"acme.testnet","domain":"northwind.example","account":"near:testnet:northwind.testnet"}'
 ```
 

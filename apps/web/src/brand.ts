@@ -36,6 +36,7 @@ export const NAV = [
 ] as const;
 
 export const FOOTER = {
+  testnet: "NEAR testnet",
   owner: "Owner sign-in",
   vault: "The vault",
   llms: "llms.txt",
@@ -93,6 +94,7 @@ export const HOME = {
   ctaTitle: "Back the AI economy and earn from it.",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
   modeMixed: "Pool, budgets and model registry on NEAR testnet. Reputation tiers and WARD voting are simulated until their contracts are deployed.",
+  modeNear: "Pool, budgets, model registry, reputation tiers and WARD voting run on NEAR testnet.",
 } as const;
 
 export const MEMBER = {
@@ -153,6 +155,8 @@ export const WALLET = {
   disconnect: "Disconnect",
   connectedAs: (account: string) => `Connected as ${account}`,
   yourShare: (account: string) => `Your share, connected as ${account}`,
+  localSigner: "Local test signer: this machine's API signs real NEAR testnet transactions with the cast account's key. It exists only in the local dev server.",
+  localBadge: "Local test signer",
 } as const;
 
 /** The owner app's My share tab. */
@@ -167,7 +171,8 @@ export const SHARE = {
   launch: "Launch, 1.0000",
   sources: "Where your share came from",
   sourcesLede: "Every change in WARD's price, oldest first.",
-  events: { launch: "Launch at 1.0000 USDC", deposit: "Deposit, price unchanged", fees: "Fees from proven payments", claim: "Payout", redeem: "Redemption, price unchanged" },
+  events: { launch: "Launch at 1.0000 USDC", deposit: "Deposit, price unchanged", fees: "Fees from proven payments", claim: "Payout", redeem: "Redemption, price unchanged", first_loss: "Wardline added to its first-loss stake, price unchanged" },
+  feesRun: (n: number) => `Fees from ${n} proven payments`,
   coveredByUs: (usdc: string) => `Our stake paid ${usdc} USDC first`,
   coveredByWard: (usdc: string) => `WARD holders covered ${usdc} USDC`,
   none: "This account holds no WARD yet.",
@@ -249,6 +254,8 @@ export const TIERS: Record<EvidenceTier, { short: string; verified: string; notE
 export const DEMO = {
   label: "Demo",
   title: "Seven scenes, real code paths",
+  liveLine: "These scenes run offline. The same checks run live on NEAR testnet:",
+  liveLink: "see the latest proofs",
   lede: "Each scene runs the real Mutual, gateway, payee check, pool and reputation code against simulated contracts and recorded NEAR AI traffic.",
   run: "Run scene",
   replay: "Run again",
@@ -286,7 +293,7 @@ export const DEMO = {
       name: "A group plugs in",
       line: "A hacker house funds its AI budget by DAO vote.",
       steps: [
-        "Hayes Valley hacker house proposes 20 USDC for this week's AI budget. Two members approve.",
+        "Hayes Valley house proposes 20 USDC for this week's AI budget. Two members approve.",
         "A member's app changes one line: baseURL becomes <wardline>/v1/ai.",
         "Every call is paid only on proof. 2% of each goes to WARD holders, and WARD ticks up.",
       ],
@@ -391,6 +398,7 @@ export const CONNECT = {
   label: "Connect",
   title: `Put ${BRAND.name} in front of every payment.`,
   lede: "One base URL for AI calls. MCP for agents, HTTP for anything, the SDK for TypeScript.",
+  placeholder: "Nothing is hosted yet, so these snippets show a placeholder address. Run Wardline locally (see the README) and they show your local API, or replace the placeholder with your own API's address.",
   openai: "OpenAI client, one line",
   openaiLine: "Use any OpenAI-compatible client with a meter key. Each call is paid only on a verified model signature, and every response carries X-Wardline-Proof.",
   openaiJs: "JavaScript",
@@ -721,6 +729,8 @@ export const TX = {
 
 /** The member page, #/me, for any connected wallet. */
 export const ME = {
+  historyTitle: "Your transactions",
+  historyNone: "No transactions from this account yet.",
   title: "Your share",
   lede: "Your WARD, what it earned, the votes you can cast and where your share came from.",
   connectTitle: "Connect a wallet to see your share.",
@@ -740,6 +750,7 @@ export const ME = {
   noWeight: "You held no WARD when this opened, so it has no vote from you.",
   pastVotes: "Your votes",
   pastNone: "You haven't voted yet.",
+  pastOnChain: "Your votes are listed under Your transactions, each with its transaction.",
   votedFor: "For",
   votedAgainst: "Against",
   redemption: "Redemption in progress",

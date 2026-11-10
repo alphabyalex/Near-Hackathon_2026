@@ -7,11 +7,12 @@ import {
   makeProvider,
   makeSigner,
 } from "@wardline/vault-client";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { activityPaths, auditedRows, readIfExists, REPO_ROOT } from "../activity/log.js";
 import type { DateClock as Clock } from "../time.js";
 import { createSimChain, createSimMutual, SimPool, type SimChainSeed } from "./sim.js";
-import type { SimReputation } from "./sim-mutual.js";
-import type { AttestedModel, Chain, ChainMode, MeterClient, ReputationClient, ReputationView, TierRule } from "./types.js";
+import type { AttestedModel, Chain, ChainMode, GovernanceClient, MutualProposalView, ReputationClient, ReputationView, TierRule } from "./types.js";
 
 export * from "./types.js";
 export { createSimChain, createSimMutual, COVER_FEE_BPS, SimMeter, SimPool, SimRegistry, type MeterHooks, type PoolHooks, type SimBudgetSeed, type SimChainSeed, type SimMutual, type SimPoolSeed } from "./sim.js";
@@ -61,7 +62,7 @@ export function defaultSimSeed(): SimChainSeed {
     budgets: [
       {
         budget_id: GROUP_BUDGET,
-        name: "Aurora Lab shared AI budget",
+        name: "Aurora Lab",
         owner: GROUP_DAO,
         deposit: W(25),
         period: "week",
@@ -93,8 +94,8 @@ const DAY = 86_400_000;
 /** More groups with a track record, for the live sim: the leaderboard, the Groups page and the home stats. */
 export const SIM_GROUPS = [
   { budget_id: "bgt_mission", name: "Mission Street hacker house", owner: "mission-house.sputnikv2.testnet", members: ["dana.testnet", "eli.testnet", "build-bot.testnet"] },
-  { budget_id: "bgt_nightshade", name: "Nightshade research DAO", owner: "nightshade.sputnikv2.testnet", members: ["ruth.testnet", "tomas.testnet"] },
-  { budget_id: "bgt_kelp", name: "Kelp Robotics club", owner: "kelp-robotics.sputnikv2.testnet", members: ["ana.testnet", "kelp-agent.testnet"] },
+  { budget_id: "bgt_nightshade", name: "Nightshade DAO", owner: "nightshade.sputnikv2.testnet", members: ["ruth.testnet", "tomas.testnet"] },
+  { budget_id: "bgt_kelp", name: "Kelp Collective", owner: "kelp-robotics.sputnikv2.testnet", members: ["ana.testnet", "kelp-agent.testnet"] },
 ] as const;
 
 /**
@@ -140,26 +141,117 @@ export function liveSimSeed(): SimChainSeed {
   return seed;
 }
 
-/** Reputation in near mode until T4.6: simulated, with groups read from the meter contract's budgets. */
-class MeterBackedReputation implements ReputationClient {
-  readonly mode = "sim" as const;
-  constructor(
-    private readonly inner: SimReputation,
-    private readonly meter: MeterClient,
-  ) {}
-  private async sync(): Promise<void> {
-    for (const b of await this.meter.listBudgets().catch(() => [])) this.inner.ensure({ budget_id: b.budget_id, name: b.name || b.budget_id, owner: b.owner });
+/**
+ * The meter counts proven and refused calls. A reserve refused at an allowance changes no state, so it
+ * has no counter: its record is the transaction itself, one audited "capped" row each in the testnet
+ * activity log. Payee blocks happen before anything reaches the chain, so none is on chain to count.
+ */
+function auditedCapped(): Map<string, number> {
+  const paths = activityPaths();
+  const counts = new Map<string, number>();
+  for (const r of auditedRows(readIfExists(paths.log), readIfExists(paths.audit)).rows) {
+    if (r.kind === "call" && r.outcome === "capped") counts.set(r.community, (counts.get(r.community) ?? 0) + 1);
   }
+  return counts;
+}
+
+function withUncounted(view: Omit<ReputationView, "capped_calls" | "blocked_payees">, capped: Map<string, number>): ReputationView {
+  return { ...view, tier: view.tier as ReputationView["tier"], capped_calls: capped.get(view.budget_id) ?? 0, blocked_payees: 0 };
+}
+
+/**
+ * Near-mode views, cached for a few seconds: one page load asks for the same pool, budgets and
+ * reputations many times, and public testnet RPC rate-limits. Writes are never cached.
+ */
+const VIEW_CACHE_MS = 3_000;
+function cachedViews<T extends object>(client: T, views: readonly string[]): T {
+  const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      const original = Reflect.get(target, prop, receiver) as unknown;
+      if (typeof prop !== "string" || !views.includes(prop) || typeof original !== "function") return typeof original === "function" ? original.bind(target) : original;
+      return (...args: unknown[]) => {
+        const key = `${prop}:${JSON.stringify(args)}`;
+        const hit = cache.get(key);
+        if (hit && Date.now() - hit.at < VIEW_CACHE_MS) return hit.value;
+        const value = (original as (...a: unknown[]) => Promise<unknown>).apply(target, args);
+        cache.set(key, { at: Date.now(), value });
+        value.catch(() => cache.delete(key));
+        return value;
+      };
+    },
+  });
+}
+
+/**
+ * The testnet cast's budgets: every community and individual in scripts/testnet/cast.json. The meter
+ * also holds older test budgets (bgt_engineering, bgt_leaked_*); the list views show only the cast.
+ * Null when there is no cast file, and then nothing is filtered.
+ */
+export function castBudgetIds(path = join(REPO_ROOT, "scripts/testnet/cast.json")): Set<string> | null {
+  if (!existsSync(path)) return null;
+  const cast = JSON.parse(readFileSync(path, "utf8")) as { communities?: Array<{ id: string }>; individuals?: Array<{ budget: string }> };
+  return new Set([...(cast.communities ?? []).map((c) => c.id), ...(cast.individuals ?? []).map((i) => i.budget)]);
+}
+
+/** Keeps the views whose budget is in the cast; all of them when there is no cast. */
+export function onlyCast<T extends { budget_id: string }>(views: T[], cast: Set<string> | null): T[] {
+  return cast ? views.filter((v) => cast.has(v.budget_id)) : views;
+}
+
+/** Reputation in near mode: the meter contract's own get_reputation and list_reputations (T4.6). */
+class NearReputation implements ReputationClient {
+  readonly mode = "near" as const;
+  constructor(
+    private readonly meter: NearMeterClient,
+    /** The tier table is fixed in the meter contract; it has no view, so the API's copy of it answers. */
+    private readonly rules: () => Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }>,
+    private readonly cast: Set<string> | null = castBudgetIds(),
+  ) {}
   async getReputation(budgetId: string): Promise<ReputationView | null> {
-    await this.sync();
-    return this.inner.getReputation(budgetId);
+    const view = await this.meter.getReputation(budgetId);
+    return view ? withUncounted(view, auditedCapped()) : null;
   }
   async listReputations(): Promise<ReputationView[]> {
-    await this.sync();
-    return this.inner.listReputations();
+    const capped = auditedCapped();
+    return onlyCast(await this.meter.listReputations(), this.cast).map((v) => withUncounted(v, capped));
   }
   tierRules(): Promise<{ rules: TierRule[]; coverage_multiplier_bps: number }> {
-    return this.inner.tierRules();
+    return this.rules();
+  }
+}
+
+/**
+ * WARD-holder voting in near mode: the pool contract's proposals and weights (T4.6). Votes and proposals
+ * are signed by the holder's own wallet against the pool, so the API never casts one for them.
+ */
+const realTx = <T extends { tx?: string | null }>(p: T): T => ({ ...p, tx: p.tx && /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(p.tx) ? p.tx : null });
+
+class NearGovernance implements GovernanceClient {
+  readonly mode = "near" as const;
+  constructor(private readonly pool: NearCoverPoolClient) {}
+  // The pool labels an executed proposal "<contract>:proposal:<id>", which is not a transaction hash.
+  async listProposals(): Promise<MutualProposalView[]> {
+    return ((await this.pool.listProposals()) as unknown as MutualProposalView[]).map(realTx);
+  }
+  async getProposal(id: number): Promise<MutualProposalView | null> {
+    const p = (await this.pool.getProposal(id)) as unknown as MutualProposalView | null;
+    return p ? realTx(p) : null;
+  }
+  propose(): Promise<MutualProposalView> {
+    return Promise.reject(new Error("On testnet, a WARD holder proposes from their own wallet: call propose on the pool contract."));
+  }
+  vote(): Promise<MutualProposalView> {
+    return Promise.reject(new Error("On testnet, a WARD holder votes from their own wallet: call vote on the pool contract."));
+  }
+  execute(): Promise<MutualProposalView> {
+    return Promise.reject(new Error("On testnet, anyone executes a passed proposal by calling execute on the pool contract."));
+  }
+  weightOf(id: number, voter: string): Promise<string> {
+    return this.pool.weightOf(id, voter);
+  }
+  params(): Promise<{ quorum_bps: number; voting_days: number }> {
+    return this.pool.governanceParams();
   }
 }
 
@@ -171,8 +263,7 @@ export function chainModeFromEnv(env: Record<string, string | undefined> = proce
 
 /**
  * sim: the simulations in sim.ts. near: Tharun's typed clients from @wardline/vault-client against the
- * contracts in repo.config.json (each overridable by env). Reputation and WARD voting stay simulated
- * in near mode until T4.6 deploys them.
+ * contracts in repo.config.json (each overridable by env), including T4.6's reputation and WARD voting.
  */
 export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = defaultSimSeed()): Chain {
   if (mode === "sim") return createSimChain(seed, now);
@@ -192,27 +283,26 @@ export function createChain(mode: ChainMode, now: Clock, seed: SimChainSeed = de
       ? makeSigner(provider, signerAccount, signerKey)
       : undefined;
 
-  const meter = new NearMeterClient({
+  const meter = cachedViews(new NearMeterClient({
     contractId: meterContract,
     provider,
     signer,
-  });
+  }), ["listBudgets", "getBudget", "getReputation", "listReputations"]);
   const registry = new NearModelRegistryClient({
     contractId: registryContract,
     provider,
     signer,
   });
-  const nearPool = new NearCoverPoolClient({
+  const nearPool = cachedViews(new NearCoverPoolClient({
     contractId: poolContract,
     provider,
     signer,
-  });
+  }), ["getPool", "getPosition", "listClaims", "listProposals", "getProposal", "weightOf", "governanceParams", "ftBalanceOf"]);
 
-  // Until T4.6: voting weights come from a simulated WARD ledger, and tiers from a simulated record
-  // of the meter's budgets. Both report mode "sim" so the UI can say so.
-  const shadow = new SimPool(seed.pool, now);
-  const mutual = createSimMutual({ budgets: [], pool: shadow, registry: null, now });
-  return { mode: "near", meter, registry, pool: nearPool, reputation: new MeterBackedReputation(mutual.reputation, meter), governance: mutual.governance };
+  // Tiers and WARD voting are on chain since T4.6. Only the tier table, which the meter fixes in code
+  // and exposes no view for, comes from the API's copy.
+  const rules = createSimMutual({ budgets: [], pool: new SimPool(seed.pool, now), registry: null, now }).reputation;
+  return { mode: "near", meter, registry, pool: nearPool, reputation: new NearReputation(meter, () => rules.tierRules()), governance: new NearGovernance(nearPool) };
 }
 
 /** The numbers on the Mutual home page. extraBlocked: look-alike payouts flagged right now, not yet in any group's record. */

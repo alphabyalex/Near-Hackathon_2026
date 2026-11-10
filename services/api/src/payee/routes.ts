@@ -114,6 +114,9 @@ async function recordAuthorized(c: PublicContext, payer: string, body: unknown, 
   return null;
 }
 
+/** /v1 routes outside the payee API, so outside its free tier. */
+const UNMETERED = ["/v1/mutual", "/v1/groups", "/v1/reputation", "/v1/proofs", "/v1/activity", "/v1/communities", "/v1/people", "/v1/pool", "/v1/ai", "/v1/demo", "/v1/local-signer"];
+
 export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, runtime: PayeeRuntime, store: Store, auth: OwnerAuthConfig): void {
   const { context, engine, attestor } = runtime;
 
@@ -124,6 +127,9 @@ export function registerPayeeRoutes(app: Hono<{ Variables: PublicVariables }>, r
     c.set("apiKeyPayer", null);
     c.set("apiKeyScopes", []);
     if (c.req.method === "OPTIONS") return next();
+    // The free tier and x402 price the payee API. The Mutual's public pages and the AI gateway are not
+    // payee checks: they have their own limits (the app-wide rate limit, and meter keys for /v1/ai).
+    if (UNMETERED.some((prefix) => c.req.path === prefix || c.req.path.startsWith(`${prefix}/`))) return next();
     const day = runtime.nowDate().toISOString().slice(0, 10);
     const key = apiKeyFrom(c);
     if (key !== null) {

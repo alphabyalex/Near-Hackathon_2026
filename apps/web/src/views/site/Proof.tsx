@@ -1,12 +1,13 @@
 /** The proof engine: why the Mutual's yield is safe. */
 import { useEffect, useState } from "react";
 import { Problem } from "../../components/Problem";
+import { TxLink } from "../../components/TxLink";
 import { getProofs, type ProofRow } from "../../data/proofs";
 import { callWords, modelName } from "../../ai/words";
-import { PROOF } from "../../brand";
+import { CONNECT, PROOF } from "../../brand";
 import { CodeBlock } from "../../components/CodeBlock";
 import { Fingerprint } from "../../components/HorizonMark";
-import { SNIPPET_API_URL } from "../../config";
+import { SNIPPET_API_URL, SNIPPET_IS_PLACEHOLDER } from "../../config";
 import { percent, REDTEAM } from "../../redteam";
 
 const usd = (atomic: string) => (Number(BigInt(atomic)) / 1e6).toFixed(6);
@@ -98,7 +99,15 @@ function LatestProofs() {
                     <td>{p.group}</td>
                     <td>{whatHappened(p)}</td>
                     <td className="num r">{usd(p.side === "above" ? p.amount : p.refund)} USDC</td>
-                    <td className={p.side === "above" ? "side-above" : "side-below"}>{sideText(p)}</td>
+                    <td className={p.side === "above" ? "side-above" : "side-below"}>
+                      {sideText(p)}
+                      {p.tx && (
+                        <>
+                          {" "}
+                          <TxLink hash={p.tx} plain={false} />
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -131,6 +140,7 @@ export function Proof() {
             <p className="snippet-label">{PROOF.snippetLabel}</p>
             <CodeBlock code={SNIPPET(SNIPPET_API_URL)} label="OpenAI client" language="js" />
             <p className="fine">{PROOF.snippetNote}</p>
+            {SNIPPET_IS_PLACEHOLDER && <p className="fine" data-testid="snippet-placeholder">{CONNECT.placeholder}</p>}
           </div>
         </div>
       </section>

@@ -18,6 +18,22 @@ if (typeof document !== "undefined") {
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
+/**
+ * While a dialog is open the page behind it is inert: no focus, no clicks, and hidden from screen
+ * readers. Marks every other child of <body> and returns the ones it changed, so closing restores only
+ * those (a dialog opened from another dialog leaves the first one's marks alone).
+ */
+export function makeRestInert(keep: Element | null): HTMLElement[] {
+  const changed: HTMLElement[] = [];
+  for (const el of Array.from(document.body.children) as HTMLElement[]) {
+    if (el === keep || el.contains(keep) || el.hasAttribute("inert") || ["SCRIPT", "STYLE", "TEMPLATE"].includes(el.tagName)) continue;
+    el.setAttribute("inert", "");
+    el.setAttribute("aria-hidden", "true");
+    changed.push(el);
+  }
+  return changed;
+}
+
 /** Where an anchored panel sits: just under its button, right edges aligned, never off screen. */
 function useAnchor(anchor: HTMLElement | null | undefined): CSSProperties | undefined {
   const [style, setStyle] = useState<CSSProperties>();
@@ -42,6 +58,7 @@ function useAnchor(anchor: HTMLElement | null | undefined): CSSProperties | unde
 export function Dialog({ title, onClose, children, testId, anchor }: { title: string; onClose: () => void; children: ReactNode; testId?: string; anchor?: HTMLElement | null | undefined }) {
   const pop = useAnchor(anchor);
   const box = useRef<HTMLDivElement>(null);
+  const back = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const close = useRef(onClose);
   close.current = onClose;
@@ -73,15 +90,20 @@ export function Dialog({ title, onClose, children, testId, anchor }: { title: st
     document.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const hidden = makeRestInert(back.current);
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
+      for (const el of hidden) {
+        el.removeAttribute("inert");
+        el.removeAttribute("aria-hidden");
+      }
       opener?.focus?.();
     };
   }, []);
 
   return createPortal(
-    <div className={anchor ? "dlg-back pop" : "dlg-back"} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className={anchor ? "dlg-back pop" : "dlg-back"} ref={back} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={anchor ? "dlg pop" : "dlg"} style={pop} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={box} tabIndex={-1} data-testid={testId}>
         <div className="dlg-head">
           <h2 id={titleId}>{title}</h2>

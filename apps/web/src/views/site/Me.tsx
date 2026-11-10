@@ -85,7 +85,14 @@ function Redemptions({ person, onChanged }: { person: Person; onChanged: () => v
 function Sources({ person }: { person: Person }) {
   const joined = person.position.joined_at ? Date.parse(person.position.joined_at) : 0;
   // Deposits and redemptions never move the price, so only real changes are listed.
-  const history = person.mutual.pool.price_history.filter((h) => Date.parse(h.at) >= joined && h.event !== "deposit" && h.event !== "redeem");
+  // Deposits and redemptions never move the price; a run of fee events is one line with its count.
+  const history: Array<(typeof person.mutual.pool.price_history)[number] & { runs?: number }> = [];
+  for (const h of person.mutual.pool.price_history) {
+    if (Date.parse(h.at) < joined || h.event === "deposit" || h.event === "redeem") continue;
+    const last = history[history.length - 1];
+    if (h.event === "fees" && last?.event === "fees") history[history.length - 1] = { ...h, runs: (last.runs ?? 1) + 1 };
+    else history.push(h);
+  }
   const claims = [...person.mutual.claims].reverse().filter((c) => c.status === "paid" && Date.parse(c.filed_at) >= joined);
   let ci = 0;
   return (
@@ -109,7 +116,7 @@ function Sources({ person }: { person: Person }) {
           return (
             <li key={`${h.at}-${i}`} data-event={h.event} className={claim && claim.paid_from_senior !== "0" ? "below" : ""}>
               <span>
-                {SHARE.events[h.event]}
+                {h.runs ? SHARE.feesRun(h.runs) : SHARE.events[h.event]}
                 {claim && (
                   <small>
                     {SHARE.coveredByUs(formatUsdc(claim.paid_from_junior))}
@@ -123,6 +130,24 @@ function Sources({ person }: { person: Person }) {
         })}
         {history.length === 0 && <li data-event="none" className="muted">{ME.noPriceChange}</li>}
       </ol>
+    </section>
+  );
+}
+
+/** testnet: every audited transaction from this account, each linked to the explorer. */
+function History({ person }: { person: Person }) {
+  if (!person.history) return null;
+  return (
+    <section className="panel pb" aria-labelledby="me-history-title">
+      <h2 id="me-history-title">{ME.historyTitle}</h2>
+      <ul className="me-history">
+        {person.history.map((h) => (
+          <li key={h.tx ?? h.at} className={h.side === "above" ? "side-above" : "side-below"}>
+            <span className="muted num">{new Date(h.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span> {h.text} <TxLink hash={h.tx} plain={false} />
+          </li>
+        ))}
+        {person.history.length === 0 && <li className="muted">{ME.historyNone}</li>}
+      </ul>
     </section>
   );
 }
@@ -156,7 +181,7 @@ function Votes({ person, onChanged }: { person: Person; onChanged: () => void })
           {ME.pastVotes}
         </h2>
         {person.votes.length === 0 ? (
-          <p className="empty">{ME.pastNone}</p>
+          <p className="empty">{person.history ? ME.pastOnChain : ME.pastNone}</p>
         ) : (
           <ul className="me-list" data-testid="me-past-votes">
             {person.votes.map((v) => {
@@ -275,6 +300,7 @@ export function Me() {
               <Redemptions person={person} onChanged={refresh} />
               <Votes person={person} onChanged={refresh} />
               <Sources person={person} />
+              <History person={person} />
             </div>
           )}
         </div>

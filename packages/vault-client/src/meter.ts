@@ -61,9 +61,10 @@ export type ReserveRefusal =
   | "BUDGET_EXHAUSTED"
   | "DUPLICATE_CALL";
 
+/** tx: the reserve transaction, whether it held the amount or the meter refused it. */
 export type ReserveResult =
-  | { ok: true; reserved: string }
-  | { ok: false; reason: ReserveRefusal; detail: string };
+  | { ok: true; reserved: string; tx?: string }
+  | { ok: false; reason: ReserveRefusal; detail: string; tx?: string };
 
 export type SettleResult =
   | { ok: true; tx: string; amount: string; refund: string }
@@ -180,12 +181,13 @@ export class NearMeterClient {
     );
     const val = outcome.value as { ok: boolean; reserved?: string; reason?: ReserveRefusal; detail?: string };
     if (val.ok && val.reserved !== undefined) {
-      return { ok: true, reserved: val.reserved };
+      return { ok: true, reserved: val.reserved, tx: outcome.tx_hash };
     }
     return {
       ok: false,
       reason: val.reason ?? "BUDGET_EXHAUSTED",
       detail: val.detail ?? "Reservation failed",
+      tx: outcome.tx_hash,
     };
   }
 
@@ -227,7 +229,7 @@ export class NearMeterClient {
     if (val.ok && val.amount !== undefined && val.refund !== undefined) {
       return {
         ok: true,
-        tx: val.tx ?? outcome.tx_hash,
+        tx: outcome.tx_hash,
         amount: val.amount,
         refund: val.refund,
       };
@@ -259,7 +261,7 @@ export class NearMeterClient {
     );
     const val = outcome.value as { tx: string; refund: string };
     return {
-      tx: val.tx ?? outcome.tx_hash,
+      tx: outcome.tx_hash,
       refund: val.refund?.toString() ?? "0",
     };
   }
@@ -356,30 +358,14 @@ export class NearMeterClient {
     return { tx: outcome.tx_hash };
   }
 
+  /** null when the meter has no such budget. An RPC failure throws: it is not an empty answer. */
   async getReputation(budgetId: string): Promise<ReputationView | null> {
-    try {
-      return await viewCall<ReputationView>(
-        this.provider,
-        this.contractId,
-        "get_reputation",
-        { budget_id: budgetId },
-      );
-    } catch {
-      return null;
-    }
+    return viewCall<ReputationView | null>(this.provider, this.contractId, "get_reputation", { budget_id: budgetId });
   }
 
+  /** An RPC failure throws rather than reading as "no groups". */
   async listReputations(): Promise<ReputationView[]> {
-    try {
-      return await viewCall<ReputationView[]>(
-        this.provider,
-        this.contractId,
-        "list_reputations",
-        {},
-      );
-    } catch {
-      return [];
-    }
+    return viewCall<ReputationView[]>(this.provider, this.contractId, "list_reputations", {});
   }
 
   async recordClaim(

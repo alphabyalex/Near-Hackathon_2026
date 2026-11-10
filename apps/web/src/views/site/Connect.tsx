@@ -1,8 +1,8 @@
 import { CONNECT } from "../../brand";
 import { CodeBlock } from "../../components/CodeBlock";
-import { SNIPPET_API_URL, SNIPPET_MCP_URL } from "../../config";
+import { PAYEE_REGISTRY, SNIPPET_API_URL, SNIPPET_IS_PLACEHOLDER, SNIPPET_MCP_URL } from "../../config";
 
-/** Every snippet shows a real URL: the configured one, or the hosted one. */
+/** Every snippet shows a real URL: configured, hosted, local, or the named placeholder (see config.ts). */
 export function snippets(apiUrl: string, mcpUrl: string) {
   const shellBase = apiUrl;
   const tsBase = JSON.stringify(apiUrl);
@@ -57,7 +57,7 @@ assertPayable(result, { minTier: "T2_DOMAIN_LINKED" }); // throws on HOLD or BLO
 const wardline = createWardline({
   mode: "direct",
   nearRpcUrl: "https://test.rpc.fastnear.com",
-  registryAccount: "payees.redline-labs.testnet",
+  registryAccount: ${JSON.stringify(PAYEE_REGISTRY)},
 });
 
 const result = await wardline.check({
@@ -96,6 +96,7 @@ export function Connect() {
         <div className="wrap">
           <h1 className="h2">{CONNECT.title}</h1>
           <p className="lede ink">{CONNECT.lede}</p>
+          {SNIPPET_IS_PLACEHOLDER && <p className="fine" data-testid="snippet-placeholder">{CONNECT.placeholder}</p>}
         </div>
       </section>
       <section className="sec tight">
