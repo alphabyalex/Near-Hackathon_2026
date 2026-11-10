@@ -1,0 +1,8 @@
+{
+  "total_calls": 0,
+  "hard_cap": 450,
+  "current_key": "key_1",
+  "key_1_spend": { "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0 },
+  "key_2_spend": { "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0 },
+  "last_call_at": null
+}

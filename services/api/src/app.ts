@@ -1,6 +1,7 @@
 import { InvalidPayeeInputError } from "@wardline/sdk";
 import { Hono } from "hono";
 import { VAULT_A } from "./mock/seed.js";
+import { registerActivityRoutes } from "./activity/index.js";
 import { aiOverview, isChainOutage, registerAiPublicRoutes } from "./ai-routes.js";
 import { createMeterGateway } from "./meter/gateway.js";
 import { toDateClock } from "./time.js";
@@ -46,6 +47,7 @@ export function createApp(deps: Deps, options: { mountOwner?: boolean } = {}): H
   );
 
   registerAiPublicRoutes(app as never, deps);
+  registerActivityRoutes(app as never, deps);
 
   app.get("/overview", async (c) => {
     const vaultId = c.req.query("vault_id") ?? VAULT_A;

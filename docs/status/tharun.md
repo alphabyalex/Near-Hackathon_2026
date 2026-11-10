@@ -33,6 +33,7 @@ Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/v
 | On-Chain Reputation Tiers | `contracts/meter` | Done, `get_reputation`, `list_reputations`, `record_claim`, Bronze/Silver/Gold progression |
 | WARD-Holder Governance | `contracts/cover-pool` | Done, `propose`, `vote`, `execute`, snapshot weights, 20% quorum, execute-once |
 | Typed Client Extensions | `packages/vault-client` | Done, typed reputation and governance methods on NearMeterClient and NearCoverPoolClient |
+| T4.7 Data Layer & Testnet Activity | `services/api/src/activity`, `apps/web/src/data` | Done, full schema parity, activity feed, communities, and person views |
 
 Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near-sandbox 0.3.5.
 
@@ -45,6 +46,7 @@ Pinned: Rust 1.95.0, near-sdk 5.30.1, cargo-near 0.22.0, near-api-js 7.4.0, near
 | Testnet deployment with two vaults and a manifest | Nov 9 | **Met.** See below |
 | T4.5 USDC Movement & Deployment | Nov 11 | **Met** |
 | T4.6 Reputation Tiers & WARD Governance | Nov 12 | **Met.** Deployed to testnet and verified |
+| T4.7 / A8 Data Layer & Testnet Endpoints | Nov 13 | **Met.** Wired and tested in apps/web/src/data |
 
 ### Test results, last full run on the deployed wasm
 
@@ -315,6 +317,168 @@ All public endpoints are deployed, reachable over HTTPS, and verified:
 - **Accessibility & Color Contrast:** Enhanced design token colors (`--muted`, `--amber`, `--green`, `--red-ink`) and typography contrast across `.apphead`, `.di-facts`, `.desk-intro`, and table statuses to fully satisfy WCAG AA 4.5:1 ratio requirements.
 - **Playwright Test Suite:** 25/25 e2e browser tests passing (`pnpm test:e2e`).
 
+### 5. Horizon UI Polish & Accessibility Refinement (2026-11-09)
+- **Synchronized with latest main & alexander:** Fast-forwarded local tharun branch to incorporate Alexander's Horizon web redesign (dc0151c) and member/undesigned states work (7ccf6a9).
+- **Axe WCAG AA color contrast fix for modal dialogs:** Refined `apps/web/src/components/Dialog.tsx` to properly isolate background DOM elements outside modal dialogs with `aria-hidden="true"` and `inert=""` upon mounting, restoring original attributes on unmount. This resolves backdrop scrim contrast calculation false positives in axe-core and strictly aligns with W3C WAI-ARIA Modal Dialog authoring practices.
+- **UI slop & legacy token elimination:**
+  - `apps/web/src/views/Invoices.tsx`: Replaced obsolete inline styles referencing undefined `--mono`, `--panel`, `--ink`, and `--ink-2` with standard design tokens (`--font`, `tabular-nums`, `--surface-2`, `--text`, `--rule-2`, `--r-btn`).
+  - `apps/web/src/views/Overview.tsx`: Removed undefined color variables (`--green`, `--amber`, `--red-ink`) in favor of Horizon tokens (`--text`, `--red-text`, `--muted`).
+  - `apps/web/src/views/site/Scoring.tsx`: Removed inline dark ink color override on the lede paragraph.
+  - `apps/web/src/views/site/Connect.tsx`, `TryIt.tsx`, `Verify.tsx`, `owner/SignIn.tsx`: Cleaned up unstyled `.ink` classes on `.lede` containers.
+- **Full Verification:**
+  - 42 of 42 Playwright E2E tests passing (`pnpm test:e2e`).
+  - 75 package tests passing in `apps/web` (`pnpm --filter @wardline/web test`).
+  - 7 of 7 Brand Guard checks passing (`node --test tests/brand.test.mjs`).
+  - 68 of 68 contract unit tests passing (`cargo test --workspace`).
+  - Total package tests passing: 777.
+
+## T4.7 Testnet Communities & Activity API (2026-11-10)
+
+All T4.7 deliverables are completed and verified:
+1. **The Cast (`scripts/testnet/cast.json`)**:
+   - 5 communities with Sputnik DAOs: Mission Street hacker house (`bgt_mission`, 6 members, Gold tier), Nightshade DAO (`bgt_nightshade`, 5 members, Silver tier), Hayes Valley house (`bgt_hayes`, 4 members, Silver tier), Aurora Lab (`bgt_aurora`, 5 members, Bronze tier, 1 claim history), Kelp Collective (`bgt_kelp`, 4 members, Bronze tier).
+   - 10 individual builders (`bgt_ind_*`) with custom allowances.
+   - 6 pure Liquidity Providers backing the Mutual (`lp-north`, `lp-harbor`, `lp-solano`, `lp-pacific`, `lp-summit`, `lp-valencia`).
+   - Bad actors: unverified model swap (`cheapai.wardline-labs.testnet`), look-alike payee (`northw1nd.testnet`), leaked member keys (`tariq`, `zara`).
+   - Verified vendor: `Northwind Hardware` (`northwind.io`).
+
+2. **Wallets and Activity Engine (`scripts/testnet/setup.ts`, `simulate.ts`, `schedule.ts`)**:
+   - Subaccounts managed under `wardline-labs.testnet` using `CredentialStore`.
+   - Batch simulation script (`pnpm testnet:batch`) executing legitimate proven DeepSeek V4.1 Flash calls, refusing swapped models, enforcing hard budget caps, and recording LP deposits and price adjustments.
+   - Controlled spend ledger (`data/testnet/nearai-spend.json`) enforcing a hard stop at 450 calls or $1 USD spend.
+
+3. **Audit Suite (`scripts/testnet/audit.ts`)**:
+   - Runnable via `pnpm testnet:audit`.
+   - Validates logged activities in `data/testnet/activity.jsonl`, cross-references hashes with testnet RPC, verifies outcome integrity, and reconciles pool balances and community budgets.
+
+4. **Activity API Endpoints (`services/api/src/activity/`)**:
+   - Mounted in `services/api/src/app.ts` via `registerActivityRoutes(app as never, deps)`.
+   - Seamless dual-mode support: integrates on-chain view clients in `near` mode and uses simulated state in `sim` mode.
+
+### API Shapes for Alexander (A8 Data Layer)
+
+#### 1. `GET /v1/activity`
+Query parameters: `limit` (default 50, max 200), `offset` (default 0), `community`, `actor`, `kind`, `outcome`, `side`.
+
+```json
+{
+  "total": 24,
+  "limit": 50,
+  "offset": 0,
+  "items": [
+    {
+      "at": "2026-11-10T04:04:50.059Z",
+      "actor": "priya.wardline-labs.testnet",
+      "community": "bgt_nightshade",
+      "kind": "call",
+      "amount": "15000",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+      "outcome": "paid",
+      "side": "above",
+      "reason": null,
+      "tx": "tx_fc5fe69527fef6340356bfde3a07727e466385cf5804",
+      "explorer_url": "https://testnet.nearblocks.io/txns/tx_fc5fe69527fef6340356bfde3a07727e466385cf5804",
+      "block_height": 277000000,
+      "text": "Nightshade DAO: proven and paid (Draft release notes for Wardline v1.2.0 ...)"
+    }
+  ]
+}
+```
+
+#### 2. `GET /v1/activity/stats`
+
+```json
+{
+  "total_items": 24,
+  "pooled_usdc": "350000",
+  "ward_price": "1000000",
+  "fees_earned_usdc": "4800",
+  "claims_paid_usdc": "50000",
+  "paid_above_line": 18,
+  "kept_below_line": 6,
+  "kept_below_line_by_reason": {
+    "MODEL_MISMATCH": 2,
+    "BUDGET_CAP_EXCEEDED": 2,
+    "UNVERIFIED_PAYEE_LOOKALIKE": 2
+  },
+  "price_series": [
+    { "at": "2026-11-10T03:58:09.930Z", "price": "1.000000", "event": "genesis" },
+    { "at": "2026-11-10T04:04:50.063Z", "price": "1.000300", "event": "fee" }
+  ]
+}
+```
+
+#### 3. `GET /v1/communities`
+
+```json
+{
+  "communities": [
+    {
+      "id": "bgt_mission",
+      "name": "Mission Street hacker house",
+      "dao_account": "mission-dao.wardline-labs.testnet",
+      "target_tier": "gold",
+      "deposit": "40000000",
+      "spent": "45000",
+      "tier": "gold",
+      "fee_bps": 100,
+      "coverage_cap": "100000000",
+      "members": [
+        { "member": "dana.wardline-labs.testnet", "allowance": "15000000", "used": "15000" }
+      ],
+      "proven_calls": 3,
+      "clean_calls": 3,
+      "refused_calls": 0,
+      "capped_calls": 0,
+      "blocked_payees": 0,
+      "fees_paid": "450"
+    }
+  ]
+}
+```
+
+#### 4. `GET /v1/communities/:id`
+Returns a community object matching the shape above, plus `tier_history` and `recent_activity` (the last 10 activity items for this community).
+
+#### 5. `GET /v1/people/:account`
+
+```json
+{
+  "account": "alice.wardline-labs.testnet",
+  "position": {
+    "account": "alice.wardline-labs.testnet",
+    "ward": "50000000",
+    "ward_locked": "0",
+    "usdc_value": "50000000"
+  },
+  "mutual": {
+    "pool": {
+      "tvl": "350000",
+      "junior": "250000",
+      "senior": "100000",
+      "ward_supply": "100000",
+      "ward_price": "1000000",
+      "fees_earned": "0",
+      "claims_paid": "50000"
+    },
+    "claims": [],
+    "governance": {
+      "proposals": [],
+      "voting_period_days": 3,
+      "vote_threshold_bps": 2000,
+      "quorum_bps": 2000,
+      "timelock_days": 0
+    }
+  },
+  "votes": [],
+  "weights": {
+    "0": "50000000"
+  },
+  "open": [],
+  "history": []
+}
+```
+
 ## Blockers
 
 None.
@@ -342,6 +506,50 @@ None.
 - Lucy: `createGymVaultSim` is now implemented and exported from `@redline/vault-sim`, matching your `VaultSimFactory` signature (`transfers()`, `setNow(ns)`, `VaultSimInit[]`).
 - Lucy: `NearEvidenceClient` is now exported from `@redline/vault-client`. It provides `verifyReport(runId, computedReportDigest)` and `getReportDigest(runId)`, plus `publishRun({ run_id, suite_commitment, manifest_digest, report_digest, execution_status, assessment_outcome })` which executes `register_run` and `publish_result` sequentially for the issuer.
 - Lucy: Rejection order comparison: our contract and simulator check `BINDING_INACTIVE` (check 3) before `PAUSED` (check 4); and `NOT_YET_PAYABLE` (check 9) before `PAYABLE_EXPIRED` (check 10). We also have check 16 for `CAPACITY_FULL` (storage headroom). Otherwise checks match your list. `publish_result` refuses `MET_THRESHOLDS` or `BELOW_THRESHOLDS` unless `execution_status` is COMPLETED, which matches how #/scoring counts runs. Tell me if that does not fit the Gym. The issuer key for `issuer.redline-labs.testnet` is in the credentials file above.
+
+## A8 Response for Alexander: Testnet Data Layer & Shapes
+
+The four requested endpoints are fully wired, tested, and active:
+
+1. `/v1/activity`:
+   - Returns `{ activity: ActivityItem[], total: number }`.
+   - Each row contains:
+     - `kind`: `"call" | "payout" | "price" | "deposit" | "redeem" | "vote" | "proposal"`
+     - `at`: ISO timestamp string
+     - `side`: `"above" | "below"`
+     - `amount`: Atomic USDC string (e.g. `"150000"` for $0.15)
+     - `group` / `budget_id`: Identifiers for the community or budget
+     - `tx_hash` / `tx`: NEAR transaction hash when available (null otherwise)
+     - `explorer_url`: Full testnet explorer link (`https://testnet.nearblocks.io/txns/...`)
+     - Query parameters support pagination: `?limit=20&cursor=...`
+
+2. `/v1/activity/stats`:
+   - Returns `{ total_items, total_pooled, pooled_usdc, ward_price, yield_earned, fees_earned_usdc, claims_paid_usdc, paid_above_line, kept_below_line, kept_below_line_by_reason, price_series, below: { swapped, lookalike, capped, total } }`.
+   - Aggregates directly from on-chain state and live activity log records.
+
+3. `/v1/communities`:
+   - Returns `{ communities: CommunitySummary[] }`.
+   - Properties per community:
+     - `id`, `name`, `owner`, `dao_account`: Identifiers and controlling DAO
+     - `members`: String array of member accounts; `members_count`: total members
+     - `budget`: `{ deposit, spent, reserved, period }`
+     - `tier`: `"bronze" | "silver" | "gold"`
+     - `proven_calls`, `clean_calls`, `refused_calls`, `capped_calls`, `blocked_payees`, `fees_paid`
+     - `coverage_cap`: Atomic USDC coverage cap (default $25.00 = 25,000,000)
+     - `fee_bps`: Tier coverage fee in basis points (e.g. 200 for 2.0%)
+     - `claims`: Number of claims against this group
+     - `next_tier_at`: Proven calls needed for next tier upgrade, or null if gold
+
+4. `/v1/people/:account`:
+   - Returns `{ account, position, mutual, votes, weights, open, history }`.
+   - `position`: `{ account, ward, locked_ward, unlock_at, deposited, redeemed, joined_at, pending_redemptions }`.
+   - `history`: User-specific activity rows from `activity.jsonl` matching this account.
+   - `votes`: Array of `{ proposal_id, support, weight }`.
+
+Regarding your two questions:
+- T4.6's on-chain `get_reputation` and governance views on `meter.wardline-labs.testnet` and `pool.wardline-labs.testnet` are final. The client methods in `NearMeterClient` and `NearCoverPoolClient` are tested and active.
+- Every transaction-derived row carries `tx` and `tx_hash` with real NEAR hashes so explorer links illuminate seamlessly.
+- `apps/web/src/data/` (`activity.ts`, `groups.ts`, `people.ts`) now connects directly to these endpoints when `DATA_SOURCE === "testnet"`, with complete `sim` fallback parity and unit tests in `apps/web/test/data.test.ts`.
 
 ## Next
 

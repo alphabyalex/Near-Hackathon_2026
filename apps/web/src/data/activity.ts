@@ -1,14 +1,15 @@
 /**
  * What happened, newest first: proven and refused calls, payouts and changes to WARD's price.
- * sim: built from /v1/proofs and /v1/mutual. testnet: T4.7's /v1/activity and /v1/activity/stats,
- * once their response shapes are documented. Rows carry a transaction hash when one exists.
+ * sim: built from /v1/proofs and /v1/mutual. testnet: T4.7's /v1/activity and /v1/activity/stats.
+ * Rows carry a transaction hash when one exists.
  */
 import { getMutual, getProofs } from "../api/ai";
-import { DATA_SOURCE, NotWiredYet } from "./source";
+import { apiGet } from "../api/client";
+import { DATA_SOURCE } from "./source";
 
 export interface ActivityItem {
   at: string;
-  kind: "call" | "payout" | "price";
+  kind: "call" | "payout" | "price" | "deposit" | "redeem" | "vote" | "proposal";
   side: "above" | "below";
   text: string;
   /** Atomic USDC, when the row moved money. */
@@ -17,8 +18,31 @@ export interface ActivityItem {
   tx: string | null;
 }
 
+export interface ActivityStats {
+  total_items: number;
+  total_pooled?: string;
+  pooled_usdc?: string;
+  ward_price: string;
+  yield_earned?: string;
+  fees_earned_usdc?: string;
+  claims_paid_usdc?: string;
+  paid_above_line: number;
+  kept_below_line: number;
+  kept_below_line_by_reason?: Record<string, number>;
+  price_series?: Array<{ at: string; price: string; event: string }>;
+  below?: {
+    swapped: number;
+    lookalike: number;
+    capped: number;
+    total: number;
+  };
+}
+
 export async function getActivity(limit = 20): Promise<ActivityItem[]> {
-  if (DATA_SOURCE === "testnet") throw new NotWiredYet("/v1/activity");
+  if (DATA_SOURCE === "testnet") {
+    const res = await apiGet<{ activity: ActivityItem[]; total: number }>(`/v1/activity?limit=${limit}`);
+    return res.activity;
+  }
   const [{ proofs }, mutual] = await Promise.all([getProofs(limit), getMutual()]);
   const calls: ActivityItem[] = proofs.map((p) => ({
     at: p.created_at,
@@ -35,6 +59,6 @@ export async function getActivity(limit = 20): Promise<ActivityItem[]> {
 }
 
 /** Totals for the activity page (T4.7's /v1/activity/stats). */
-export async function getActivityStats(): Promise<never> {
-  throw new NotWiredYet("/v1/activity/stats");
+export async function getActivityStats(): Promise<ActivityStats> {
+  return apiGet<ActivityStats>("/v1/activity/stats");
 }

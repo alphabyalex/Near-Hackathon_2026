@@ -1,12 +1,43 @@
-/** Groups and their reputation. T4.7's /v1/communities will land here for WARDLINE_DATA=testnet. */
+/** Groups and their reputation. T4.7's /v1/communities lands here for WARDLINE_DATA=testnet. */
 import { getGroups as fetchGroups } from "../api/ai";
-import { DATA_SOURCE, NotWiredYet } from "./source";
+import { apiGet } from "../api/client";
+import { DATA_SOURCE } from "./source";
 
 export type { GroupSummary, TierRules, ReputationView } from "../api/ai";
 
 export const getGroups = fetchGroups;
 
-/** Testnet communities with real treasuries (T4.7). Not wired until its response shape is documented. */
-export async function getCommunities(): Promise<never> {
-  throw new NotWiredYet(DATA_SOURCE === "testnet" ? "/v1/communities" : "/v1/communities (read when WARDLINE_DATA=testnet)");
+export interface CommunitySummary {
+  id: string;
+  name: string;
+  owner: string;
+  dao_account?: string;
+  members: string[];
+  members_count?: number;
+  deposit?: string;
+  spent?: string;
+  coverage_cap?: string;
+  fee_bps?: number;
+  claims?: number;
+  next_tier_at?: number | null;
+  period?: string | null;
+  budget: {
+    deposit: string;
+    spent: string;
+    reserved: string;
+    period: string;
+  };
+  tier: string;
+  proven_calls: number;
+  clean_calls: number;
+  refused_calls: number;
+  capped_calls: number;
+  blocked_payees: number;
+  fees_paid: string;
+}
+
+/** Testnet communities with real treasuries (T4.7). */
+export async function getCommunities(): Promise<CommunitySummary[]> {
+  const res = await apiGet<{ communities: CommunitySummary[] }>("/v1/communities");
+  return res.communities;
 }

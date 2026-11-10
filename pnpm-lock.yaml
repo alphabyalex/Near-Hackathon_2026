@@ -205,6 +205,9 @@ importers:
       '@wardline/sdk':
         specifier: workspace:*
         version: link:packages/sdk
+      '@wardline/vault-client':
+        specifier: workspace:*
+        version: link:packages/vault-client
       '@wardline/x402-guard':
         specifier: workspace:*
         version: link:packages/x402-guard

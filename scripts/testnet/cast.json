@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "network": "testnet",
+  "root_account": "wardline-labs.testnet",
+  "description": "Wardline Testnet Cast of fictional communities, solo individuals, LPs, vendors and bad actors.",
+  "contracts": {
+    "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+    "meter": "meter.wardline-labs.testnet",
+    "pool": "pool.wardline-labs.testnet",
+    "model_registry": "model-registry.wardline-labs.testnet",
+    "payee_registry": "payee-registry.wardline-labs.testnet",
+    "vault": "vault.wardline-labs.testnet"
+  },
+  "communities": [
+    {
+      "id": "bgt_mission",
+      "name": "Mission Street hacker house",
+      "dao_account": "mission-dao.wardline-labs.testnet",
+      "target_tier": "gold",
+      "initial_deposit_usdc": "50.00",
+      "period": "week",
+      "council": [
+        "dana.wardline-labs.testnet",
+        "eli.wardline-labs.testnet",
+        "kai.wardline-labs.testnet"
+      ],
+      "members": [
+        {
+          "account": "dana.wardline-labs.testnet",
+          "name": "Dana",
+          "kind": "community_member",
+          "budget": "bgt_mission",
+          "allowance_usdc": "15.00",
+          "daily_call_rate": 18,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "5.00"
+        },
+        {
+          "account": "eli.wardline-labs.testnet",
+          "name": "Eli",
+          "kind": "community_member",
+          "budget": "bgt_mission",
+          "allowance_usdc": "12.00",
+          "daily_call_rate": 15,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "3.00"
+        },
+        {
+          "account": "build-bot.wardline-labs.testnet",
+          "name": "Build Bot",
+          "kind": "community_member",
+          "budget": "bgt_mission",
+          "allowance_usdc": "20.00",
+          "daily_call_rate": 25,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        },
+        {
+          "account": "kai.wardline-labs.testnet",
+          "name": "Kai",
+          "kind": "community_member",
+          "budget": "bgt_mission",
+          "allowance_usdc": "10.00",
+          "daily_call_rate": 12,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "4.00"
+        },
+        {
+          "account": "mina.wardline-labs.testnet",
+          "name": "Mina",
+          "kind": "community_member",
+          "budget": "bgt_mission",
+          "allowance_usdc": "10.00",
+          "daily_call_rate": 10,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "2.00"
+        },
+        {
+          "account": "tariq.wardline-labs.testnet",
+          "name": "Tariq",
+          "kind": "community_member",
+          "budget": "bgt_mission",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 8,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00",
+          "leaked_key": true
+        }
+      ]
+    },
+    {
+      "id": "bgt_nightshade",
+      "name": "Nightshade DAO",
+      "dao_account": "nightshade-dao.wardline-labs.testnet",
+      "target_tier": "silver",
+      "initial_deposit_usdc": "35.00",
+      "period": "week",
+      "council": [
+        "ruth.wardline-labs.testnet",
+        "tomas.wardline-labs.testnet"
+      ],
+      "members": [
+        {
+          "account": "ruth.wardline-labs.testnet",
+          "name": "Ruth",
+          "kind": "community_member",
+          "budget": "bgt_nightshade",
+          "allowance_usdc": "10.00",
+          "daily_call_rate": 12,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "4.00"
+        },
+        {
+          "account": "tomas.wardline-labs.testnet",
+          "name": "Tomas",
+          "kind": "community_member",
+          "budget": "bgt_nightshade",
+          "allowance_usdc": "10.00",
+          "daily_call_rate": 10,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "3.00"
+        },
+        {
+          "account": "chen.wardline-labs.testnet",
+          "name": "Chen",
+          "kind": "community_member",
+          "budget": "bgt_nightshade",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 8,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "2.00"
+        },
+        {
+          "account": "priya.wardline-labs.testnet",
+          "name": "Priya",
+          "kind": "community_member",
+          "budget": "bgt_nightshade",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 7,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        },
+        {
+          "account": "leo.wardline-labs.testnet",
+          "name": "Leo",
+          "kind": "community_member",
+          "budget": "bgt_nightshade",
+          "allowance_usdc": "6.00",
+          "daily_call_rate": 6,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        }
+      ]
+    },
+    {
+      "id": "bgt_hayes",
+      "name": "Hayes Valley house",
+      "dao_account": "hayes-dao.wardline-labs.testnet",
+      "target_tier": "silver",
+      "initial_deposit_usdc": "30.00",
+      "period": "week",
+      "council": [
+        "sam.wardline-labs.testnet",
+        "maya.wardline-labs.testnet"
+      ],
+      "members": [
+        {
+          "account": "sam.wardline-labs.testnet",
+          "name": "Sam",
+          "kind": "community_member",
+          "budget": "bgt_hayes",
+          "allowance_usdc": "10.00",
+          "daily_call_rate": 11,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "3.50"
+        },
+        {
+          "account": "zara.wardline-labs.testnet",
+          "name": "Zara",
+          "kind": "community_member",
+          "budget": "bgt_hayes",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 8,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00",
+          "leaked_key": true
+        },
+        {
+          "account": "owen.wardline-labs.testnet",
+          "name": "Owen",
+          "kind": "community_member",
+          "budget": "bgt_hayes",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 7,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        },
+        {
+          "account": "maya.wardline-labs.testnet",
+          "name": "Maya",
+          "kind": "community_member",
+          "budget": "bgt_hayes",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 7,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        }
+      ]
+    },
+    {
+      "id": "bgt_aurora",
+      "name": "Aurora Lab",
+      "dao_account": "aurora-dao.wardline-labs.testnet",
+      "target_tier": "bronze",
+      "initial_deposit_usdc": "25.00",
+      "period": "week",
+      "council": [
+        "alice.wardline-labs.testnet",
+        "dr-clara.wardline-labs.testnet"
+      ],
+      "members": [
+        {
+          "account": "alice.wardline-labs.testnet",
+          "name": "Alice",
+          "kind": "community_member",
+          "budget": "bgt_aurora",
+          "allowance_usdc": "6.00",
+          "daily_call_rate": 6,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "2.00"
+        },
+        {
+          "account": "bob.wardline-labs.testnet",
+          "name": "Bob",
+          "kind": "community_member",
+          "budget": "bgt_aurora",
+          "allowance_usdc": "6.00",
+          "daily_call_rate": 6,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "2.00"
+        },
+        {
+          "account": "ci-agent.wardline-labs.testnet",
+          "name": "CI Agent",
+          "kind": "community_member",
+          "budget": "bgt_aurora",
+          "allowance_usdc": "8.00",
+          "daily_call_rate": 10,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        },
+        {
+          "account": "dr-clara.wardline-labs.testnet",
+          "name": "Dr. Clara",
+          "kind": "community_member",
+          "budget": "bgt_aurora",
+          "allowance_usdc": "6.00",
+          "daily_call_rate": 5,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "2.00"
+        },
+        {
+          "account": "devin.wardline-labs.testnet",
+          "name": "Devin",
+          "kind": "community_member",
+          "budget": "bgt_aurora",
+          "allowance_usdc": "5.00",
+          "daily_call_rate": 5,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        }
+      ],
+      "claim_event": {
+        "subject": "rcpt_aurora_eval_0114",
+        "claimant": "aurora-dao.wardline-labs.testnet",
+        "amount_usdc": "1.50",
+        "reason": "Wardline approved payment for an attested benchmark provider that returned corrupted weights."
+      }
+    },
+    {
+      "id": "bgt_kelp",
+      "name": "Kelp Collective",
+      "dao_account": "kelp-dao.wardline-labs.testnet",
+      "target_tier": "bronze",
+      "initial_deposit_usdc": "15.00",
+      "period": "week",
+      "council": [
+        "ana.wardline-labs.testnet",
+        "sora.wardline-labs.testnet"
+      ],
+      "members": [
+        {
+          "account": "ana.wardline-labs.testnet",
+          "name": "Ana",
+          "kind": "community_member",
+          "budget": "bgt_kelp",
+          "allowance_usdc": "5.00",
+          "daily_call_rate": 5,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "2.00"
+        },
+        {
+          "account": "kelp-agent.wardline-labs.testnet",
+          "name": "Kelp Agent",
+          "kind": "community_member",
+          "budget": "bgt_kelp",
+          "allowance_usdc": "5.00",
+          "daily_call_rate": 5,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        },
+        {
+          "account": "sora.wardline-labs.testnet",
+          "name": "Sora",
+          "kind": "community_member",
+          "budget": "bgt_kelp",
+          "allowance_usdc": "4.00",
+          "daily_call_rate": 4,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "1.50"
+        },
+        {
+          "account": "mateo.wardline-labs.testnet",
+          "name": "Mateo",
+          "kind": "community_member",
+          "budget": "bgt_kelp",
+          "allowance_usdc": "4.00",
+          "daily_call_rate": 3,
+          "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+          "ward_target": "0.00"
+        }
+      ]
+    }
+  ],
+  "individuals": [
+    {
+      "account": "ivan.wardline-labs.testnet",
+      "name": "Ivan",
+      "kind": "individual",
+      "budget": "bgt_ind_ivan",
+      "allowance_usdc": "10.00",
+      "daily_call_rate": 14,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "3.00"
+    },
+    {
+      "account": "yuki.wardline-labs.testnet",
+      "name": "Yuki",
+      "kind": "individual",
+      "budget": "bgt_ind_yuki",
+      "allowance_usdc": "8.00",
+      "daily_call_rate": 9,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "2.50"
+    },
+    {
+      "account": "hassan.wardline-labs.testnet",
+      "name": "Hassan",
+      "kind": "individual",
+      "budget": "bgt_ind_hassan",
+      "allowance_usdc": "5.00",
+      "daily_call_rate": 4,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "1.00"
+    },
+    {
+      "account": "olivia.wardline-labs.testnet",
+      "name": "Olivia",
+      "kind": "individual",
+      "budget": "bgt_ind_olivia",
+      "allowance_usdc": "4.00",
+      "daily_call_rate": 3,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "1.00"
+    },
+    {
+      "account": "lucas.wardline-labs.testnet",
+      "name": "Lucas",
+      "kind": "individual",
+      "budget": "bgt_ind_lucas",
+      "allowance_usdc": "7.00",
+      "daily_call_rate": 8,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "2.00"
+    },
+    {
+      "account": "chloe.wardline-labs.testnet",
+      "name": "Chloe",
+      "kind": "individual",
+      "budget": "bgt_ind_chloe",
+      "allowance_usdc": "10.00",
+      "daily_call_rate": 12,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "3.00"
+    },
+    {
+      "account": "arjun.wardline-labs.testnet",
+      "name": "Arjun",
+      "kind": "individual",
+      "budget": "bgt_ind_arjun",
+      "allowance_usdc": "4.00",
+      "daily_call_rate": 3,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "0.50"
+    },
+    {
+      "account": "fiona.wardline-labs.testnet",
+      "name": "Fiona",
+      "kind": "individual",
+      "budget": "bgt_ind_fiona",
+      "allowance_usdc": "5.00",
+      "daily_call_rate": 4,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "1.00"
+    },
+    {
+      "account": "gabriel.wardline-labs.testnet",
+      "name": "Gabriel",
+      "kind": "individual",
+      "budget": "bgt_ind_gabriel",
+      "allowance_usdc": "7.00",
+      "daily_call_rate": 7,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "2.00"
+    },
+    {
+      "account": "nadia.wardline-labs.testnet",
+      "name": "Nadia",
+      "kind": "individual",
+      "budget": "bgt_ind_nadia",
+      "allowance_usdc": "4.00",
+      "daily_call_rate": 3,
+      "model_mix": { "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1.0 },
+      "ward_target": "1.00"
+    }
+  ],
+  "liquidity_providers": [
+    {
+      "account": "lp-north.wardline-labs.testnet",
+      "name": "North Capital LP",
+      "kind": "liquidity_provider",
+      "deposit_usdc": "50.00",
+      "ward_target": "50.00"
+    },
+    {
+      "account": "lp-harbor.wardline-labs.testnet",
+      "name": "Harbor Point LP",
+      "kind": "liquidity_provider",
+      "deposit_usdc": "35.00",
+      "ward_target": "35.00"
+    },
+    {
+      "account": "lp-solano.wardline-labs.testnet",
+      "name": "Solano Ventures LP",
+      "kind": "liquidity_provider",
+      "deposit_usdc": "25.00",
+      "ward_target": "25.00"
+    },
+    {
+      "account": "lp-pacific.wardline-labs.testnet",
+      "name": "Pacific Mutual LP",
+      "kind": "liquidity_provider",
+      "deposit_usdc": "20.00",
+      "ward_target": "20.00"
+    },
+    {
+      "account": "lp-summit.wardline-labs.testnet",
+      "name": "Summit Staking LP",
+      "kind": "liquidity_provider",
+      "deposit_usdc": "15.00",
+      "ward_target": "15.00"
+    },
+    {
+      "account": "lp-valencia.wardline-labs.testnet",
+      "name": "Valencia Angels LP",
+      "kind": "liquidity_provider",
+      "deposit_usdc": "10.00",
+      "ward_target": "10.00"
+    }
+  ],
+  "vendors": [
+    {
+      "account": "northwind.testnet",
+      "name": "Northwind Hardware",
+      "domain": "northwind.io",
+      "status": "verified",
+      "purpose": "Verified vendor in payee registry with domain proof"
+    }
+  ],
+  "bad_actors": [
+    {
+      "account": "cheapai.wardline-labs.testnet",
+      "name": "cheapai",
+      "kind": "swapped_model_provider",
+      "behavior": "Claims DeepSeek V4.1 Flash but responds with un-attested or GLM-5.3 Flash payload"
+    },
+    {
+      "account": "northw1nd.testnet",
+      "name": "Northw1nd Look-alike",
+      "kind": "look_alike_payee",
+      "target_domain": "northwind.io",
+      "behavior": "Look-alike payee blocked before payment execution"
+    },
+    {
+      "account": "tariq.wardline-labs.testnet",
+      "name": "Tariq Leaked Key",
+      "kind": "compromised_member",
+      "community": "bgt_mission",
+      "behavior": "Key compromised; attempts rapid burst of calls blocked by hard spending cap"
+    },
+    {
+      "account": "zara.wardline-labs.testnet",
+      "name": "Zara Leaked Key",
+      "kind": "compromised_member",
+      "community": "bgt_hayes",
+      "behavior": "Key compromised; attempts rapid burst of calls blocked by hard spending cap"
+    }
+  ]
+}
