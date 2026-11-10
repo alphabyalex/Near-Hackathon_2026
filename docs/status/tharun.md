@@ -2,6 +2,83 @@
 
 Maintained by Tharun. All deliverables merged and reconciled into main.
 
+## Overnight Contract Hole Fixes and In-Place Testnet Upgrade (Nov 10, 2026)
+
+All four contract vulnerabilities discovered in the overnight testnet run were remediated, verified with dedicated unit tests, compiled to production WASM, and upgraded in place on NEAR testnet without losing any state.
+
+### 1. Fix Summary
+
+1. **Hole 1: Caller Checks**
+   - [`cover-pool::deposit`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs): Enforced caller must be `token_contract`. Direct calls from non-token callers cannot mint WARD without USDC.
+   - [`cover-pool::file_claim`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs): Restricted caller exclusively to `owner` (`E_NOT_AUTHORIZED`).
+   - [`cover-pool::request_withdraw`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs) and [`cover-pool::redeem`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs): Restricted caller strictly to position owner `account` (`E_NOT_AUTHORIZED`).
+   - [`meter::fund`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/meter/src/lib.rs): Enforced caller must be `token_contract` (`E_NOT_AUTHORIZED`).
+
+2. **Hole 2: Votes That Cannot Be Gamed**
+   - Created snapshot balance checkpointing on [`cover-pool::propose`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs) (`proposal_snapshots: IterableMap<(u32, AccountId), u128>`).
+   - [`cover-pool::weight_of`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs) and [`cover-pool::vote`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs) calculate voting power solely from the proposal's snapshot balance at creation block. Buying or transferring WARD after proposal creation confers zero voting weight.
+
+3. **Hole 3: Proposal Execution Actually Changes Parameters**
+   - Updated [`cover-pool::execute`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs) and [`cover-pool::set_param`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs) to mutate parameter values on passed proposals.
+   - Whitelisted parameters with strict boundary checking:
+     - Meter fee bps: 10 to 1,000 bps (0.1% to 10.0%) for `meter_fee_bps`, `tier_fee_bronze_bps`, `tier_fee_silver_bps`, `tier_fee_gold_bps`.
+     - Coverage multiplier: 2,500 to 40,000 bps (0.25x to 4.0x) for `coverage_multiplier_bps`.
+     - Withdrawal delay: 0 to 30 days for `withdraw_delay_days`.
+   - Cross-contract invocation to [`meter::set_param`](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/meter/src/lib.rs) automatically applies updates on `meter.wardline-labs.testnet`.
+
+4. **Hole 4: Redemption Delay Set to 7 Days**
+   - Configured `withdraw_delay_days = 7` during in-place migration on `pool.wardline-labs.testnet` (previously 0).
+
+### 2. Testnet Upgrade Transactions
+
+- **`meter.wardline-labs.testnet`**:
+  - Code deployment and `migrate()` transaction: `Eu1KyzcztYFV8JvHmeWKcvz2qoxWFr5pnxt97MP6zusn`
+  - Explorer link: https://testnet.nearblocks.io/txns/Eu1KyzcztYFV8JvHmeWKcvz2qoxWFr5pnxt97MP6zusn
+- **`pool.wardline-labs.testnet`**:
+  - Code deployment and `migrate()` transaction: `6uWqxEgTNYhx7XTz7DXxAmVjzGbA3XAY81cJkXgWigAR`
+  - Explorer link: https://testnet.nearblocks.io/txns/6uWqxEgTNYhx7XTz7DXxAmVjzGbA3XAY81cJkXgWigAR
+
+### 3. Before and After Views (State Verification)
+
+| Field | Pre-Upgrade | Post-Upgrade | Status |
+| --- | --- | --- | --- |
+| `get_pool.tvl` | 2,110,289 (2.110289 USDC) | 2,110,289 (2.110289 USDC) | Preserved exactly |
+| `get_pool.junior` | 430,000 USDC | 430,000 USDC | Preserved exactly |
+| `get_pool.senior` | 1,680,289 USDC | 1,680,289 USDC | Preserved exactly |
+| `get_pool.ward_supply` | 1,679,637 WARD | 1,679,637 WARD | Preserved exactly |
+| `get_pool.ward_price_usdc_e6` | 1,000,388 (1.000388 USDC) | 1,000,388 (1.000388 USDC) | Preserved exactly |
+| `get_pool.fees_earned` | 289 USDC | 289 USDC | Preserved exactly |
+| `get_pool.withdraw_delay_days` | 0 days | 7 days | Successfully updated |
+| `proposals` count | 4 proposals (#0, #1, #2, #3) | 4 proposals (#0, #1, #2, #3) | Preserved exactly |
+| `list_reputations` | 12 group records | 12 group records | Preserved exactly |
+| All cast account budgets & spends | Preserved | Preserved | Preserved exactly |
+| Aurora claim state | Preserved | Preserved | Preserved exactly |
+| WARD balances across holders | Preserved | Preserved | Preserved exactly |
+
+### 4. Unit Test Coverage
+
+All new tests pass locally and in CI:
+- **`contracts/cover-pool`**:
+  - `test_hole1_caller_checks_deposit_rejects_non_token`
+  - `test_hole1_caller_checks_file_claim_rejects_non_owner`
+  - `test_hole1_caller_checks_request_withdraw_rejects_non_owner`
+  - `test_hole1_caller_checks_redeem_rejects_non_owner`
+  - `test_hole2_voting_snapshot_weight_cannot_be_gamed`
+  - `test_hole3_execute_updates_params_and_enforces_bounds`
+  - `test_hole3_set_param_bounds_and_auth`
+  - `test_hole4_withdraw_delay_days_is_7`
+- **`contracts/meter`**:
+  - `test_fund_rejects_unauthorized_caller`
+  - `test_set_param_bounds_and_auth`
+  - `test_set_param_fee_out_of_bounds`
+  - `test_set_param_coverage_multiplier_out_of_bounds`
+
+### 5. Audit Results
+
+- `pnpm testnet:audit`: 188 of 188 rows verified on NEAR testnet RPC with 0 misses.
+- `cargo test --workspace`: 76/76 unit tests passed.
+- `pnpm test`: all test suites passed.
+
 Start with [docs/VAULT_RULES.md](../VAULT_RULES.md), the spec. Then [contracts/vault/README.md](../../contracts/vault/README.md) for building, and [tests/sandbox/README.md](../../tests/sandbox/README.md) for what is tested where.
 
 ## Done
@@ -553,9 +630,39 @@ Regarding your two questions:
 - `apps/web/src/views/site/Proof.tsx` renders `TxLink` for verifiable proof rows with transaction hashes.
 - Test suites: Brand guard 7/7, Web unit 83/83, API unit 222/222, Playwright E2E 65/65 (53 Chromium + 12 iPhone SE WebKit).
 
+## T4.8: Testnet handoff to Alexander and A10 sync (2026-11-10)
+
+Merged `origin/alexander` (`92b25ea`) into `tharun`. Prepared the secure testnet handoff package for Alexander outside the repository, verified all credentials on chain, confirmed all tests pass across all packages, and revealed the handoff archive in macOS Finder.
+
+### 1. Testnet Credentials and Chain Verification
+
+1. Verified all 64 NEAR accounts in `~/.wardline/testnet/credentials.json` against testnet FastNEAR RPC:
+   - `wardline-labs.testnet` FullAccess key matches `ed25519:FGUWrt4Y...` with balance 14.058 NEAR.
+   - `meter.wardline-labs.testnet` FullAccess key matches `ed25519:CMP1SQDo...` with balance 3.491 NEAR.
+   - FunctionCall gateway key matches `ed25519:8GCuoS7j...` on `meter.wardline-labs.testnet` for `[reserve, settle, release]`.
+   - Core contracts (`pool`, `vault`, `model-registry`, `payee-registry`, `dao`, `token`, `provider`, `investor1`, `investor2`, `agent`) are verified on chain with matching keys.
+   - 51 cast accounts are pre-generated in `credentials.json` for Alexander's Step 3 cast funding.
+2. Verified that zero unrelated machine or personal credentials were touched or included.
+3. Batch scheduler verified stopped; no background schedule or simulate processes are active.
+
+### 2. Handoff Package Creation
+
+Built secure handoff archive outside the repository at `~/wardline-handoff.zip`:
+- `credentials.json`: Exactly 63 full-access accounts formatted for `CredentialStore`.
+- `gateway.env`: Gateway account (`meter.wardline-labs.testnet`), FunctionCall private key (`8GCuoS7j...`), attestor key, Alexander official NEAR AI key, demo meter key, and RPC endpoints.
+- `HANDOFF.md`: Complete audit table, account roles, on-chain balances, machine state, commit history, and Step 3 execution instructions. Zero em dashes.
+- Archive encrypted with random 24-character password; package decrypted and tested before delivery.
+- Opened repository and revealed archive in macOS Finder.
+
+### 3. Test Suites
+
+- Brand guard: 7 of 7 passed.
+- Package build: all packages cleanly built.
+- Unit tests: API (230 tests passed), Web (83 tests passed), Vault Client, Schemas, DAO Adapter, SDK, Payee Check, Vault Sim, Redteam, Evaluator, X402 Guard. 100% passing across workspace.
+
 ## Next
 
-- Connect the API to `NearVaultGateway`, and run one payment through it on testnet. This is the last untested link.
-- Enroll the frozen agent on both vaults.
-- If any contract rule changes: update the spec, the contract and the sim together, run parity, then deploy under a new root.
-- Stretch, only if there is time: add a weekly over-cap attack to `malicious-signer`, and cut the sandbox suite's runtime by sharing tenants between tests.
+- Alexander runs Step 3 cast setup and funding (`pnpm testnet:setup`).
+- Alexander executes the live testnet batch (`pnpm testnet:batch`) and pins the cryptographic digest with `pnpm testnet:audit`.
+- Connect the API to `NearVaultGateway` and test end-to-end payment flow.
+

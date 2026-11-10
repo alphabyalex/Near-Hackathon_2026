@@ -80,3 +80,14 @@ pub fn call_released(call_id: &str, reason: &str, refund: &str) {
         }),
     );
 }
+
+pub fn param_set(name: &str, value: &str) {
+    emit(
+        "param_set",
+        json!({
+            "name": name,
+            "value": value,
+        }),
+    );
+}
+

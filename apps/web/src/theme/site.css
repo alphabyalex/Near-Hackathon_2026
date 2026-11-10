@@ -15,13 +15,13 @@
 .form-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
 .hint{margin:0;font-size:15px;color:var(--muted)}
 .tablist{display:flex;gap:24px;border-bottom:1px solid var(--rule);margin-bottom:26px;overflow-x:auto}
-.tablist button{font:600 15px/1 var(--font);color:var(--muted);background:transparent;border:0;border-bottom:2px solid transparent;padding:14px 0;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+.tablist button{font:600 15px/1 var(--font);color:var(--muted);background:transparent;border:0;border-bottom:2px solid transparent;padding:14px 0;margin-bottom:-1px;cursor:pointer;white-space:nowrap;transition:color .18s ease,border-color .18s ease}
 .tablist button:hover{color:var(--text)}
 .tablist button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--violet)}
 .scopes label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);padding:3px 0}
 .scopes input{width:16px;height:16px;accent-color:var(--violet)}
 /* Choice buttons: square-cornered toggles, never pills */
-.choice{min-height:44px;padding:0 14px;font:600 14px/1 var(--font);color:var(--text-2);background:transparent;border:1px solid var(--rule-strong);border-radius:10px;cursor:pointer}
+.choice{min-height:44px;padding:0 14px;font:600 14px/1 var(--font);color:var(--text-2);background:transparent;border:1px solid var(--rule-strong);border-radius:10px;cursor:pointer;transition:color .18s ease,border-color .18s ease,background-color .18s ease}
 .choice:hover{color:var(--text);border-color:var(--muted)}
 .choice[aria-pressed="true"]{color:var(--text);border-color:var(--violet);background:var(--surface-2)}
 .wallet-choice{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;border:0;min-width:0}
@@ -38,7 +38,7 @@
 .chip:hover{color:var(--text)}
 
 /* Result card */
-.result{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card);padding:26px 28px;min-width:0}
+.result{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card);padding:26px 28px;min-width:0;transition:border-color .2s ease,box-shadow .2s ease}
 .r-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:14px 24px}
 .r-verdict{display:flex;align-items:center;gap:12px;font:700 40px/1 var(--font);letter-spacing:-0.04em}
 .r-line{margin:10px 0 0;font-size:15px;color:var(--text-2)}
