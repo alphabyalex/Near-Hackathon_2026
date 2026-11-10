@@ -7,6 +7,11 @@
     "api": "",
     "mcp": ""
   },
+  "local": {
+    "web": "http://127.0.0.1:5173",
+    "api": "http://127.0.0.1:8787",
+    "mcp": "http://127.0.0.1:8790/mcp"
+  },
   "near": {
     "network": "testnet",
     "rootAccount": "wardline-labs.testnet",
