@@ -322,7 +322,9 @@ async function lpDeposit(lp: Cast["liquidity_providers"][number], amount: bigint
 async function wardVote(lps: Cast["liquidity_providers"], cast: Cast, provider: ReturnType<typeof makeProvider>, creds: CredentialStore, record: Record_): Promise<void> {
   type P = { id: number; description: string; status: string; executed_at?: string | null };
   const proposals = await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {});
-  let open = proposals.filter((p) => p.status === "open");
+  // Only proposals the batch opens (PROPOSALS); others, like the browser check's, are left to their voters.
+  const ours = (p: P) => PROPOSALS.some((q) => q.description === p.description);
+  let open = proposals.filter((p) => p.status === "open" && ours(p));
   if (!open.length) {
     const proposer = lps.find((l) => creds.get(l.account));
     if (!proposer) throw new Error("no LP key to open a proposal");
@@ -330,7 +332,7 @@ async function wardVote(lps: Cast["liquidity_providers"], cast: Cast, provider: 
     console.log(`  WARD proposal: ${short(proposer.account)} opens "${next.description}"`);
     const out = await callFinal(makeSigner(provider, proposer.account, creds.get(proposer.account)!), { contract_id: cast.contracts.pool, method: "propose", args: { description: next.description, action: next.action }, gas: GAS });
     await record(out.tx_hash, proposer.account, { actor: proposer.account, community: "mutual", kind: "proposal", amount: null, model: null, outcome: "opened", side: "above", reason: null, text: `${proposer.name} opened a WARD vote: ${next.description}` });
-    open = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).filter((p) => p.status === "open");
+    open = (await viewCall<P[]>(provider, cast.contracts.pool, "list_proposals", {})).filter((p) => p.status === "open" && ours(p));
   }
   const target = open[open.length - 1];
   if (!target) throw new Error("no open proposal");
