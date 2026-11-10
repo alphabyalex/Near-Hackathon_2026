@@ -279,7 +279,19 @@ The Mission Street hacker house, Nightshade DAO, Hayes Valley house, Aurora Lab 
 - Mission Street funds its budget from its own Sputnik DAO by council proposal and vote. The other four fund theirs from a treasury account.
 - Every number on the site comes from a contract view, and every row links to its transaction on testnet.nearblocks.io. `data/testnet/activity.jsonl` holds the rows; `pnpm testnet:audit` re-checks each one (hash, signer, contract method and result, block) and the API serves only rows that passed.
 
-TESTNET_NUMBERS
+Numbers at the last audit (Nov 10, 15:30 UTC; `pnpm testnet:audit` re-derives them from the chain):
+
+| | |
+|---|---|
+| Rows in the log, all matched to a transaction | 161 of 161, 0 misses |
+| Live NEAR AI calls (DeepSeek V4.1 Flash, max 150 tokens) | 108 proven and settled, plus one plug-in check; $0.0196 in NEAR AI credit |
+| Swapped-model answers refused (`MODEL_MISMATCH`) | 4 |
+| Leaked-key reserves capped (`ALLOWANCE_EXHAUSTED`) | 10 |
+| Pool | 2.03 USDC; 0.000258 USDC of fees earned; WARD at 1.000368 |
+| Tiers | Mission Street Gold; Nightshade and Hayes Valley Silver; Aurora Lab Bronze after a claim; Kelp Bronze |
+| Claims | One, 0.02 USDC for Aurora Lab, paid from Wardline's first-loss stake (WARD unchanged) |
+
+A scheduled task adds a small batch every 6 hours until Nov 13, 20:00 UTC, each followed by the audit, so these numbers grow.
 
 ## How it works
 
