@@ -1,5 +1,14 @@
 # Status: alexander
 
+## A17: checks re-run on this machine, alexander and main in sync (2026-11-11)
+
+- **Re-run** with one worker and doubled timeouts, because OneDrive sync was taking about two cores. Everything passed on `29e7dfc` (A16):
+  - `node --test tests/brand.test.mjs`: 7 of 7.
+  - Unit tests in every package: API 251, web 119, agent 117, payee-check 89, sdk 59, x402-guard 53, vault-sim 50, schemas 31, evaluator 26, redteam 34, vault-client 14, dao-adapter 13, mcp 13, demo-provider 5. The demo scene that timed out under load before passed.
+  - Chromium e2e: 53 of 53. iPhone WebKit: 12 of 12.
+  - Nothing failed because of A16, so there was nothing to fix.
+- **Merge:** a no-op. Tharun had already merged alexander into main (`5a8a5c6`) and added `f1b1cb2`, which also reads NEP-141 events and counts `ft_transfer_call` on the pool as Sent or Received WARD. I reviewed it: it doesn't change how deposits, redeems or votes are read. `alexander` is fast-forwarded to main, and the API suite passes there: 252 of 252.
+
 ## A16: Your transactions from the chain (2026-11-10)
 
 On `alexander`, fast-forwarded from main (`37edd42`). No transactions sent.
