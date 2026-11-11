@@ -1,5 +1,90 @@
 # Status: alexander
 
+## A20: Horizon v2, four animated pages (2026-11-11)
+
+On `alexander` only, not merged. Only `apps/web` changed, plus `docs/design/v2` (committed as the references). No routes changed, no transactions sent.
+
+**What's new**
+- **Home hero, live:** ported from `Main.dc.html`.
+  - The line draws in over 1.2s, then the sphere assembles outward from it (0.6s to 2.4s). The headline, subline and buttons rise in at 1.4s, 1.7s and 2.0s.
+  - After that, only a 24-second light drift runs, at 12fps, and it stops off screen.
+  - The secondary button is "Watch a payment cross the line"; it scrolls to section 2 and focuses it.
+  - The stats strip reads `/v1/activity/stats` (sim: `/v1/mutual`) every 12s. A changed number rolls digit by digit, and its cell's top edge glows for 1.4s (violet, or red for Kept below it).
+  - "Live from NEAR testnet" shows only with the testnet data source.
+  - The latest-payment line comes from `/v1/activity` (latest AI call) and fades in when it changes.
+- **Watch a payment cross the line:** ported from `Explainer.dc.html`, with every time from its `draw(t)`.
+  - On Home under the hero, and on Demo above the scenes.
+  - Plays once when a third of it is on screen; Replay plays it again.
+  - Keeps the three columns, the canvas's text label, and an ordered text version for screen readers.
+  - From 1000px it uses the reference's 1440 x 520 stage, scaled. Below that, a 390 x 650 phone stage: results on the left, the dots end on the right, every line wrapped, all clear of the line.
+- **Groups as spheres:** ported from `Groups.dc.html`. It replaces the group cards; the tier cards and Start a group stay below.
+  - Real buttons with `aria-pressed`.
+  - Radius is 52 + 98 x sqrt(proven / busiest group's proven). Dot spacing and shade floor come from the tier: Gold 9px / 0.28, Silver 12 / 0.20, Bronze 16 / 0.14.
+  - Staggered assembly (0.22s apart), a 4px hover lift, and a faint violet ring on the selected group.
+  - The detail row shows tier and members, the record on chain, progress to the next tier, and the latest transaction (testnet).
+  - With 10 testnet groups the row wraps to two lines at 1440. On phones it scrolls in its own box at 0.62x size.
+- **Your share (#/me):** ported from `Share.dc.html`.
+  - The personal sphere is seeded from the account name: the reference's FNV-1a over the name and over its parts reversed. The same name always draws the same mark.
+  - The value counts up over 1.4s.
+  - Deposit more opens the existing Join dialog with the connected account set. Request to sell opens a WARD amount and signs the existing withdraw, next to the 7-day note.
+  - The open vote card stays. Your transactions keeps A16's behavior and data and is restyled to the reference table (columns When, What, USDC, WARD, Price, Status, Transaction; 6...6 hashes; the explorer link in its header).
+  - The price chart, past votes and Where your share came from move below the table.
+  - Phones: the sphere is 260px and stacks above the numbers.
+- **Staying connected:** a NEAR Connect connection is kept in localStorage, so it survives a refresh and a new tab. Once the page is idle, it checks the wallet NEAR Connect remembers (its own `selected-wallet` key) with no reconnect, and clears the connection if that wallet no longer has the account. Disconnect clears both. The test wallet and the local signer stay per tab.
+- **Every sphere comes from `horizonDots`.** It gains an optional `v2` look (square grid, shade floor, line gap, perpendicular offset) matching the references' `sphere()`. The classic mark, favicon and generated assets don't change.
+- **Motion rules:**
+  - One loop for every canvas (`src/v2/motion.ts`): device pixel ratio capped at 2, about 30fps, paused off screen and in hidden tabs, stopped when finished.
+  - Reduced motion draws only the final frame. Nothing follows the mouse, nothing loops except the hero's drift, and there are no pills or banners.
+  - `?frame=<name>:<seconds>` (for example `/?frame=explainer:4.5#/demo`) holds one animation at that second, for review.
+- **Tweak points:** one constants object per component: `HERO_MOTION` (Hero.tsx), `TIMELINE`, `WIDE`, `NARROW` (Explainer.tsx), `GROUPS_MOTION` (GroupSpheres.tsx), `GROUP_SPHERE` and `PERSONAL_SPHERE` (sphere.ts), `SHARE_MOTION` (ShareHero.tsx), and `ROLL` (Rolling.tsx).
+
+**Departures from the references, all on purpose**
+- **Hero sphere:** R 292 at cy 332, not 330 at 359. At 1440 x 900 the reference size ran into the stats labels.
+- **Copy alignment:** the copy aligns with the header (the 1280 container), not the reference's 56px edge. The line starts right of the copy column, so it never crosses the text.
+- **Separators:** tier lines use a comma, not a middle dot. Tier names are violet text, per BRAND.md.
+- **No blinking live dot:** the reference's live dot blinks forever, which breaks the "nothing loops" rule, so it's a still dot.
+
+**Gaps (no route changed)**
+- **Swapped calls:** `/v1/activity` rows don't say which model actually answered a swapped call, so the latest-payment line can't say "claimed DeepSeek, got GLM-5.3 Flash" as the reference does. It shows the model and the verdict.
+- **Group history:** `/v1/communities` has no claim amounts, tier history or funding source, so the detail row can't say "1 claim of 0.02 USDC, paid by our stake", "Dropped from Silver after its claim" or "funded by a DAO vote". It shows counts.
+- **Sim mode:** there is no `/v1/activity/stats` equivalent, so sim reads the same four numbers from `/v1/mutual`.
+- **BRAND.md:** its Motion section still says the hero is the only animated moment. I didn't edit it, since it's outside `apps/web`; it needs a line for these four.
+
+**Checks**
+- **Unit:** `pnpm --filter @wardline/web test` passes, 136 of 136. The new `test/v2.test.tsx` (17) covers number rolling, personal-sphere seeding, sphere sizing and tier density, reduced motion showing final frames, `?frame`, the layouts, and staying connected.
+- **Brand:** `tests/brand.test.mjs` passes.
+- **Chromium e2e:** the first run (one worker, doubled timeouts) had 3 axe failures, now fixed:
+  - the wallet panel's create-wallet links were told apart by color only, so they are now underlined;
+  - the sphere buttons' label didn't contain their visible text.
+- **e2e specs updated:** the hero, the explainer (plays in view, finishes, Replay), Groups, the loading skeleton, and testnet Groups.
+- **Then, with one worker and doubled timeouts:**
+  - Chromium e2e and the iPhone WebKit test pass, 66 of 66 (54 + 12). The iPhone test passed again, 12 of 12, after the last phone CSS change.
+  - `pnpm test` passes: the brand test 7 of 7, the full build, then every package (web 136, api 252, agent 117, payee-check 89, sdk 59, x402-guard 53, vault-sim 50, redteam 34, schemas 31, evaluator 26, vault-client 14, dao-adapter 13, mcp 13, demo-provider 5).
+
+**Screenshots** (`apps/web/screenshots/`, live testnet data; the folder is git-ignored, so they are on this machine only):
+- **Home hero, final frame:** `v2-home-1440.png`, `v2-home-390.png`.
+- **Explainer at 2s, 4.5s, 6.8s and 9.6s:** `v2-explainer-2s-1440.png`, `v2-explainer-4.5s-1440.png`, `v2-explainer-6.8s-1440.png`, `v2-explainer-9.6s-1440.png`, and the same at 390.
+- **Groups with a selection:** `v2-groups-1440.png`, `v2-groups-390.png`.
+- **Your share for hyperios.testnet, read-only:** `v2-share-1440.png`, `v2-share-390.png`.
+
+**Files touched**
+- **New:**
+  - `apps/web/src/v2/` (`sphere.ts`, `motion.ts`, `Rolling.tsx`, `Hero.tsx`, `Explainer.tsx`, `GroupSpheres.tsx`, `ShareHero.tsx`, `v2.css`);
+  - `apps/web/src/data/live.ts`;
+  - `apps/web/test/v2.test.tsx`;
+  - `docs/design/v2/*`.
+- **Changed:**
+  - `apps/web/src/brand.ts` (v2 copy);
+  - `apps/web/src/brand/horizon.ts` (the `v2` look);
+  - `apps/web/src/main.tsx`;
+  - `apps/web/src/theme/ai.css` (old hero rules removed);
+  - `apps/web/src/views/site/Home.tsx`, `Demo.tsx`, `Groups.tsx`, `Me.tsx`, `Transactions.tsx`;
+  - `apps/web/src/wallets/connected.ts`, `near.ts`, `wallet-panel.css`;
+  - `apps/web/test/wallet-panel.test.tsx`;
+  - `apps/web/e2e/site.spec.ts`, `member.spec.ts`, `screenshots.spec.ts`, `testnet.spec.ts`;
+  - `docs/status/alexander.md`.
+- **Deleted:** `apps/web/src/components/HeroHorizon.tsx`.
+
 ## Team split from 2026-11-11: Tharun on backend, Alexander on UI
 
 From tonight Tharun owns the backend: contracts, `packages/vault-client`, `services/api`, the testnet scripts and the scheduled task. Alexander owns the UI: `apps/web`, the wallet picker and connect flow, and the pages. A change that crosses the line goes to the other owner for review.
