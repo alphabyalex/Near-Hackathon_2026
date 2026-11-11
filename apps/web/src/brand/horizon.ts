@@ -22,9 +22,45 @@ export interface HorizonOptions {
   light: [number, number];
   top: string;
   bottom: string;
+  /**
+   * The Horizon v2 look (docs/design/v2, `sphere()`): a square grid, a shade floor so the far side
+   * keeps small dots, a gap of `gap` px around the line, and `off` as the perpendicular distance from
+   * the line. Left out, the classic mark: offset rows, no floor, the gap from the step.
+   */
+  v2?: { floor: number; gap: number };
+}
+
+/** The v2 sphere (the reference designs' `sphere()`), unassembled: every dot at full size. */
+function horizonDotsV2(o: HorizonOptions, v2: { floor: number; gap: number }): HorizonDot[] {
+  const out: HorizonDot[] = [];
+  const a = (-10 * Math.PI) / 180,
+    nx = -Math.sin(a),
+    ny = Math.cos(a);
+  let lx = o.light[0],
+    ly = o.light[1];
+  const l2 = lx * lx + ly * ly;
+  let lz = l2 < 1 ? Math.sqrt(1 - l2) : 0;
+  const ln = Math.hypot(lx, ly, lz) || 1;
+  lx /= ln;
+  ly /= ln;
+  lz /= ln;
+  const R = o.R;
+  for (let gy = -R; gy <= R + 0.001; gy += o.step) {
+    for (let gx = -R; gx <= R + 0.001; gx += o.step) {
+      const d2 = gx * gx + gy * gy;
+      if (d2 > R * R) continue;
+      const sd = gx * nx + gy * ny; // signed distance from the line: negative above it
+      if (Math.abs(sd) < v2.gap / 2) continue;
+      const z = Math.sqrt(Math.max(0, 1 - d2 / (R * R)));
+      const sh = v2.floor + (1 - v2.floor) * Math.max(0, (gx / R) * lx + (gy / R) * ly + z * lz);
+      out.push({ x: o.cx + gx, y: o.cy + gy, r: o.step * 0.48 * sh, fill: sd < 0 ? o.top : o.bottom, off: sd });
+    }
+  }
+  return out;
 }
 
 export function horizonDots(o: HorizonOptions): HorizonDot[] {
+  if (o.v2) return horizonDotsV2(o, o.v2);
   const out: HorizonDot[] = [];
   let L = [o.light[0], o.light[1], 0.75];
   const m = Math.hypot(L[0]!, L[1]!, L[2]!);

@@ -135,7 +135,7 @@ const SHOTS: Shot[] = [
     name: "groups",
     path: "#/groups",
     prepare: async (page) => {
-      await expect(page.locator(".gcard").first()).toBeVisible();
+      await expect(page.locator(".orb").first()).toBeVisible();
     },
   },
   {
@@ -255,7 +255,7 @@ const A9: Shot[] = [
   { name: "home", path: "#/", prepare: async (page) => void (await expect(page.getByTestId("governance")).toBeVisible()) },
   { name: "about", path: "#/about" },
   { name: "developers", path: "#/developers" },
-  { name: "groups", path: "#/groups", prepare: async (page) => void (await expect(page.locator(".gcard").first()).toBeVisible()) },
+  { name: "groups", path: "#/groups", prepare: async (page) => void (await expect(page.locator(".orb").first()).toBeVisible()) },
   { name: "proof", path: "#/proof", prepare: async (page) => void (await expect(page.getByTestId("proofs")).toBeVisible()) },
   {
     name: "demo-payout",

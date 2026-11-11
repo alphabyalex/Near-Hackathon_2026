@@ -1,0 +1,186 @@
+/* Horizon v2: the live hero, Watch a payment cross the line, groups as spheres and Your share.
+   Reference layouts in docs/design/v2. Colors and fonts come from theme/tokens.css. */
+
+/* ---------- The live hero (Main.dc.html) ---------- */
+.hero{position:relative;overflow:hidden;overflow:clip;min-height:min(830px,calc(100svh - 72px));display:flex;flex-direction:column;justify-content:space-between;border-bottom:1px solid var(--rule)}
+.hero-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.hero-copy{position:relative;z-index:1;width:100%;padding-top:96px}
+.hero-h1{margin:0;max-width:600px;font-weight:700;font-size:clamp(48px,5.85vw,84px);line-height:.98;letter-spacing:-0.036em}
+.hero-sub{margin:28px 0 0;max-width:500px;font-size:20px;line-height:1.5;color:var(--text-2)}
+.hero .actions{margin-top:36px}
+/* The copy rises in once, after the line and while the sphere finishes building. */
+.rise-1,.rise-2,.rise-3{animation:v2rise .9s cubic-bezier(.22,1,.36,1) both}
+.rise-1{animation-delay:1.4s}
+.rise-2{animation-delay:1.7s}
+.rise-3{animation-delay:2s}
+@keyframes v2rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+.hero-live{position:relative;z-index:1;width:100%;padding-top:56px;padding-bottom:40px}
+.live-label{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:13px;color:var(--muted)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--violet);flex:none}
+.live-cells{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0;border-top:1px solid var(--rule)}
+.live-cell{min-width:0;padding:18px 20px 0 0;margin-top:-1px;border-top:2px solid transparent;transition:border-color .4s ease}
+.live-cell.glow{border-top-color:var(--violet)}
+.live-cell.below.glow{border-top-color:var(--red)}
+.live-cell dt{font-size:14px;color:var(--muted)}
+.live-value{margin:6px 0 0;font-size:40px;font-weight:600;letter-spacing:-1px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.live-cell.below .live-value{color:var(--red-text)}
+.live-note{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.live-proof-slot{min-height:24px;margin-top:20px}
+.live-proof{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0;font-size:15px;color:var(--text-2);animation:v2fade .6s cubic-bezier(.22,1,.36,1) both}
+.live-proof-dot{width:8px;height:8px;border-radius:50%;background:var(--violet);flex:none}
+.live-proof.below .live-proof-dot{background:var(--red)}
+.live-who{color:var(--text);font-weight:500}
+.live-verdict{color:var(--violet-text)}
+.live-proof.below .live-verdict{color:var(--red-text)}
+.live-tx{margin-left:auto;font-size:14px;color:var(--violet-text);text-decoration:none}
+.live-tx:hover{color:var(--text)}
+@keyframes v2fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* A number rolling to its new value: changed digits slide up once. */
+.roll{display:inline-flex}
+.roll-slot{display:inline-block;height:1.1em;overflow:hidden;vertical-align:bottom}
+.roll-col{display:flex;flex-direction:column;transform:translateY(-50%);animation:v2roll var(--roll-ms,650ms) cubic-bezier(.22,1,.36,1) both}
+.roll-col>span{display:block;height:1.1em;line-height:1.1}
+@keyframes v2roll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+
+@media (max-width:759.98px){
+  /* The sphere sits above the copy: its radius is min(150px, 42% of the width less 40px). */
+  .hero{min-height:0}
+  .hero-copy{padding-top:calc(min(150px,(100vw - 40px) * .42) * 2 + 56px)}
+  .hero-h1{font-size:clamp(42px,12vw,56px)}
+  .hero-sub{font-size:18px}
+  .hero-live{padding-top:40px}
+  .live-cells{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:20px}
+  .live-value{font-size:32px}
+  .live-tx{margin-left:0}
+}
+
+/* ---------- Watch a payment cross the line (Explainer.dc.html) ---------- */
+.explainer{padding:64px 0 88px;border-bottom:1px solid var(--rule)}
+.explainer:focus{outline:none}
+.explainer-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.explainer .h2{margin:0;font-size:clamp(36px,3.7vw,52px);line-height:1.05;letter-spacing:-0.035em;max-width:none}
+.explainer-sub{margin:14px 0 0;font-size:19px;color:var(--text-2)}
+.replay{flex:none}
+.explainer-frame{max-width:1440px;margin:8px auto 0}
+.explainer-stage{display:block;width:100%;height:520px}
+.explainer-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;padding-top:28px;border-top:1px solid var(--rule)}
+.explainer-cols h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-0.01em}
+.explainer-cols p{margin:8px 0 0;font-size:15px;line-height:1.55;color:var(--text-2);max-width:46ch}
+@media (max-width:759.98px){
+  .explainer{padding:56px 0 64px}
+  .explainer-head{flex-direction:column;align-items:flex-start}
+  .explainer-cols{grid-template-columns:minmax(0,1fr);gap:24px}
+}
+
+/* ---------- Groups as spheres (Groups.dc.html) ---------- */
+.orbs-intro .lede{margin:14px 0 0;max-width:760px}
+.orbs-intro + .sec{padding-top:48px}
+.orbs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:36px 28px;min-height:420px;padding-bottom:28px;border-bottom:1px solid var(--rule)}
+.orb{font:inherit;color:inherit;background:transparent;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:16px;flex:0 0 auto;border-radius:14px;transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.orb:hover{transform:translateY(-4px)}
+.orb:focus-visible{outline:2px solid var(--focus);outline-offset:6px}
+.orb canvas{display:block}
+.orb-label{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:230px;text-align:center}
+.orb-title{font-size:17px;font-weight:600;color:var(--text-2)}
+.orb[aria-pressed="true"] .orb-title{color:var(--text)}
+.orb-meta{font-size:14px;color:var(--muted)}
+.orb-meta .tier-name{font-weight:500}
+.orb-detail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;margin-top:40px}
+.orb-k{margin:0;font-size:14px;color:var(--muted)}
+.orb-name{margin:6px 0 0;font-size:30px;font-weight:700;letter-spacing:-0.02em;line-height:1.15}
+.orb-big{margin:6px 0 0;font-size:30px;font-weight:600;line-height:1.15}
+.orb-line{margin:8px 0 0;font-size:16px;color:var(--text-2)}
+.orb-bar{height:6px;margin-top:18px;overflow:hidden;border-radius:3px;background:var(--rule)}
+.orb-bar i{display:block;height:6px;border-radius:3px;background:var(--violet);transition:width .5s ease}
+.orb-tx{display:inline-block;margin-top:10px;font-size:14px;color:var(--violet-text);text-decoration:none}
+.orb-tx:hover{color:var(--text)}
+@media (max-width:599.98px){
+  /* Phones: the row scrolls in its own box, never the page. */
+  .orbs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;min-height:0;gap:20px;padding:10px 6px 20px;margin:0 -6px}
+  .orb{scroll-snap-align:start}
+  .orb-label{max-width:150px}
+  .orb-title{font-size:15px}
+  .orb-detail{grid-template-columns:minmax(0,1fr);gap:24px}
+  .orb-name,.orb-big{font-size:24px}
+}
+
+/* ---------- Your share (Share.dc.html) ---------- */
+.mine{display:flex;gap:64px;align-items:center}
+.mine-left{flex:0 0 440px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+.mine-mark{display:block;width:440px;height:440px}
+.mine-acct{margin:0;font-size:18px;font-weight:600;max-width:100%;overflow-wrap:anywhere;text-align:center}
+.mine-note{margin:0;font-size:14px;color:var(--muted)}
+.mine-right{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:28px}
+.mine-k{margin:0;font-size:16px;color:var(--muted)}
+.mine-value{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin:6px 0 0}
+.mine-value .num{font-size:112px;font-weight:700;letter-spacing:-4px;line-height:1}
+.mine-unit{font-size:28px;font-weight:500;color:var(--text-2)}
+.mine-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:0;padding-top:20px;border-top:1px solid var(--rule)}
+.mine-facts dt{font-size:14px;color:var(--muted)}
+.mine-facts dd{margin:4px 0 0;font-size:28px;font-weight:600;white-space:nowrap}
+.mine-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.mine-wait{margin-left:6px;font-size:14px;color:var(--muted)}
+.mine-sell{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;padding:18px 20px;background:var(--surface);border:1px solid var(--rule);border-radius:16px}
+.mine-sell .field{flex:1 1 200px}
+.mine-sell-actions{display:flex;gap:8px;align-items:center}
+.mine-sell .ok-line,.mine-sell .problem{flex-basis:100%}
+.mine-votes .gov-h{margin:0 0 12px;font-size:17px}
+.mine-votes .me-vote{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:20px 22px}
+.me-body > .me-later{margin-top:8px}
+
+/* Your transactions, restyled to the reference table: no card, hairline rows. */
+.me-body .tx-panel{background:none;border:0;padding:0;border-radius:0}
+.tx-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px}
+.tx-head h2{margin:0;font-size:24px;font-weight:700;letter-spacing:-0.4px}
+.tx-head a{font-size:14px;color:var(--violet-text);text-decoration:none}
+.tx-head a:hover{color:var(--text)}
+.me-body .tx-table th{padding:10px 12px 10px 0;border-bottom-color:var(--rule)}
+.me-body .tx-table td{padding:16px 12px 16px 0;border-bottom:1px solid var(--rule)}
+.me-body .tx-table tbody tr:last-child td{border-bottom:1px solid var(--rule)}
+.me-body .tx-row:hover{background:var(--surface)}
+.me-body .tx-type{font-weight:400}
+.me-body .st-confirmed{color:var(--violet-text)}
+.me-body .tx-st{font-size:15px}
+.me-body .tx-hash{text-align:right}
+.me-body .tx-table th:last-child{text-align:right}
+.me-body .tx-hash .tx-link{font-size:15px}
+
+@media (max-width:980px){
+  .mine{flex-direction:column;align-items:stretch;gap:28px}
+  .mine-left{flex:none}
+  .mine-mark{width:260px;height:260px}
+  .mine-value .num{font-size:76px;letter-spacing:-2.5px}
+}
+@media (max-width:600px){
+  .mine-value .num{font-size:56px;letter-spacing:-2px}
+  .mine-unit{font-size:22px}
+  .mine-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mine-facts dd{font-size:22px}
+  .mine-wait{margin-left:0;flex-basis:100%}
+  .mine-facts dd{white-space:normal}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .rise-1,.rise-2,.rise-3,.live-proof,.roll-col{animation:none}
+  .live-cell{transition:none}
+  .orb,.orb:hover{transition:none;transform:none}
+  .orb-bar i{transition:none}
+}
+
+/* The open vote card in the share's right column: one column, the reference's card. */
+.mine-votes .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "bar" "facts" "act" "what" "msg";padding:4px 0 0;border-bottom:0;row-gap:12px}
+.mine-votes .prop-act{justify-content:flex-start}
+.mine-votes .prop-act small{text-align:left}
+.mine-votes .me-weight{margin:0 0 6px;font-size:14px;color:var(--muted)}
+@media (max-width:600px){.mine-votes .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "bar" "facts" "act" "what" "msg"}.mine-votes .prop-act{justify-content:flex-start}.mine-votes .prop-act small{text-align:left}}
+.orbs-intro{padding-bottom:0}
+.page-intro.me-intro{padding-bottom:0}
+.me-intro + .sec{padding-top:40px}
+/* Phones keep A16's two-line cards: no desktop cell padding or borders. */
+@media (max-width:720px){
+  .me-body .tx-table td,.me-body .tx-table tbody tr:last-child td{padding:0;border:0}
+  .me-body .tx-row{border-bottom:1px solid var(--rule)}
+  .me-body .tx-row:hover{background:none}
+}

@@ -1,11 +1,11 @@
-/** #/me: the connected wallet's share. Position, the price since launch, votes, redemption and history. */
+/** #/me: the connected wallet's share (Horizon v2). Personal mark, value, votes, redemption, transactions and history. */
 import { useCallback, useEffect, useState } from "react";
 import { ME, SHARE } from "../../brand";
-import { HorizonMark } from "../../components/HorizonMark";
 import { PriceChart } from "../../components/PriceChart";
 import { DATA_SOURCE } from "../../data/source";
 import { confirmedTotals, useTransactions } from "../../data/transactions";
 import { Transactions } from "./Transactions";
+import { ShareHero } from "../../v2/ShareHero";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
 import { getPerson, type Person } from "../../data/people";
@@ -137,55 +137,59 @@ function Sources({ person }: { person: Person }) {
   );
 }
 
-function Votes({ person, onChanged }: { person: Person; onChanged: () => void }) {
+/** The open vote card: the vote itself and this account's weight at the snapshot. */
+function OpenVotes({ person, onChanged }: { person: Person; onChanged: () => void }) {
   const connected = useConnected();
   const now = useNow();
   const voter = { account: connected?.account ?? "", wallet: connected?.wallet ?? null };
+  return (
+    <section className="me-votes mine-votes" aria-labelledby="me-open-title">
+      <h2 className="gov-h" id="me-open-title">
+        {ME.openVotes}
+      </h2>
+      {person.open.length === 0 ? (
+        <p className="empty">{ME.openNone}</p>
+      ) : (
+        <div className="props">
+          {person.open.map((p) => (
+            <div key={p.id} className="me-vote" data-testid="me-open-vote">
+              <p className="me-weight num">{person.weights[p.id] && person.weights[p.id] !== "0" ? ME.weight(formatUsdc(person.weights[p.id]!)) : ME.noWeight}</p>
+              <Proposal p={p} voter={voter} now={now} onChange={onChanged} />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PastVotes({ person }: { person: Person }) {
   const byId = new Map(person.mutual.governance.proposals.map((p) => [p.id, p]));
   return (
-    <>
-      <section className="me-votes" aria-labelledby="me-open-title">
-        <h2 className="gov-h" id="me-open-title">
-          {ME.openVotes}
-        </h2>
-        {person.open.length === 0 ? (
-          <p className="empty">{ME.openNone}</p>
-        ) : (
-          <div className="props">
-            {person.open.map((p) => (
-              <div key={p.id} className="me-vote" data-testid="me-open-vote">
-                <p className="me-weight num">{person.weights[p.id] && person.weights[p.id] !== "0" ? ME.weight(formatUsdc(person.weights[p.id]!)) : ME.noWeight}</p>
-                <Proposal p={p} voter={voter} now={now} onChange={onChanged} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-      <section className="me-votes" aria-labelledby="me-past-title">
-        <h2 className="gov-h" id="me-past-title">
-          {ME.pastVotes}
-        </h2>
-        {person.votes.length === 0 ? (
-          <p className="empty">{person.history ? ME.pastOnChain : ME.pastNone}</p>
-        ) : (
-          <ul className="me-list" data-testid="me-past-votes">
-            {person.votes.map((v) => {
-              const p = byId.get(v.id);
-              return (
-                <li key={v.id}>
-                  <span>
-                    <span className="prop-n">{v.id}</span> {p?.description ?? ""}
-                  </span>
-                  <span className="num">
-                    <b className={v.support === "for" ? "vote-for" : "vote-against"}>{v.support === "for" ? ME.votedFor : ME.votedAgainst}</b>, {formatUsdc(v.weight)} WARD
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-    </>
+    <section className="me-votes" aria-labelledby="me-past-title">
+      <h2 className="gov-h" id="me-past-title">
+        {ME.pastVotes}
+      </h2>
+      {person.votes.length === 0 ? (
+        <p className="empty">{person.history ? ME.pastOnChain : ME.pastNone}</p>
+      ) : (
+        <ul className="me-list" data-testid="me-past-votes">
+          {person.votes.map((v) => {
+            const p = byId.get(v.id);
+            return (
+              <li key={v.id}>
+                <span>
+                  <span className="prop-n">{v.id}</span> {p?.description ?? ""}
+                </span>
+                <span className="num">
+                  <b className={v.support === "for" ? "vote-for" : "vote-against"}>{v.support === "for" ? ME.votedFor : ME.votedAgainst}</b>, {formatUsdc(v.weight)} WARD
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -221,7 +225,7 @@ export function Me() {
 
   return (
     <main>
-      <section className="sec pagetop page-intro">
+      <section className="sec pagetop page-intro me-intro">
         <div className="wrap">
           <h1 className="h1">{ME.title}</h1>
           <p className="lede">{ME.lede}</p>
@@ -249,34 +253,22 @@ export function Me() {
           )}
           {connected && person && (held > 0n || person.position.pending_withdrawals.length > 0) && (
             <div className="me-body" data-testid="me-position">
-              <div className="me-grid">
-                <div className="value-card">
-                  <HorizonMark size={220} className="value-horizon" />
-                  <span className="vc-label">{ME.value}</span>
-                  <b className="vc-value num">{formatUsdc(person.position.value)} USDC</b>
-                  <dl className="vc-facts">
-                    <div>
-                      <dt>{ME.held}</dt>
-                      <dd className="num">{formatUsdc(held.toString())} WARD</dd>
-                    </div>
-                    {gain !== null && (
-                      <div>
-                        <dt>{ME.earned}</dt>
-                        <dd className={gain <= -CENT ? "num below-text" : "num"} data-testid="me-earned">
-                          {signedUsdc(gain)} USDC
-                        </dd>
-                      </div>
-                    )}
-                    <div>
-                      <dt>{ME.account}</dt>
-                      <dd className="acct">{connected.account}</dd>
-                    </div>
-                  </dl>
-                  {person.position.joined_at && <p className="vc-note">{ME.joined(person.position.joined_at.slice(0, 10))}</p>}
-                  <button type="button" className="btn ghost sm" onClick={() => setConnecting(true)}>
-                    {ME.change}
-                  </button>
-                </div>
+              <ShareHero
+                connected={connected}
+                value={person.position.value}
+                held={formatUsdc(held.toString())}
+                earned={gain === null ? null : signedUsdc(gain)}
+                earnedBelow={gain !== null && gain <= -CENT}
+                price={price(person.mutual.pool.ward_price)}
+                onDeposit={() => setJoining(true)}
+                onChanged={refresh}
+              >
+                <OpenVotes person={person} onChanged={refresh} />
+              </ShareHero>
+              <Redemptions person={person} onChanged={refresh} />
+              {DATA_SOURCE === "testnet" && <Transactions view={txs.view} rows={txs.rows} loading={!txs.view && !txs.error} />}
+              <PastVotes person={person} />
+              <div className="me-grid me-later">
                 <div className="panel chart-panel">
                   <div className="ph">
                     <h2>{ME.chart}</h2>
@@ -286,11 +278,8 @@ export function Me() {
                     <p className="fine">{SHARE.chartNote}</p>
                   </div>
                 </div>
+                <Sources person={person} />
               </div>
-              <Redemptions person={person} onChanged={refresh} />
-              <Votes person={person} onChanged={refresh} />
-              <Sources person={person} />
-              {DATA_SOURCE === "testnet" && <Transactions view={txs.view} rows={txs.rows} loading={!txs.view && !txs.error} />}
             </div>
           )}
         </div>

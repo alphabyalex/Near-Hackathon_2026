@@ -9,6 +9,7 @@ import { DEMO, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
 import { firstContact, onFile } from "../../redteam";
+import { Explainer } from "../../v2/Explainer";
 
 // The payee result card carries receipt verification (ed25519); only the invoice scene needs it.
 const ResultCard = lazy(() => import("../../payee/ResultCard").then((m) => ({ default: m.ResultCard })));
@@ -325,6 +326,7 @@ export function Demo() {
           <p className="lede">{DEMO.lede}</p>
         </div>
       </section>
+      <Explainer />
       <section className="sec tight">
         <div className="wrap demo">
           <div className="scenes-col">

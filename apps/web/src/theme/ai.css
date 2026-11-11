@@ -1,24 +1,5 @@
 /* The Mutual home, member card and dialogs, governance, Groups, Proof engine, Demo and the owner's group, spend and share. */
 
-/* Hero: the one animated moment on the site */
-.hero{position:relative;overflow:hidden;overflow:clip;min-height:min(680px,calc(100vh - 72px));display:flex;align-items:center;border-bottom:1px solid var(--rule)}
-.hero-art{position:absolute;top:50%;right:max(-60px,calc((100vw - 1280px) / 2 - 40px));width:min(640px,50vw);aspect-ratio:1;transform:translateY(-50%);pointer-events:none}
-.hero-horizon{display:block;width:100%;height:100%;overflow:visible}
-.hero-cut{fill:none;stroke:var(--rule-strong);stroke-width:1.2;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1;animation:cut 1.2s cubic-bezier(.7,0,.2,1) forwards}
-.hero-horizon.live{position:relative}
-.hero-line,.hero-dots{position:absolute;inset:0;width:100%;height:100%}
-.hero-line{overflow:visible}
-.hero-cut.drawn{stroke-dashoffset:0;animation:none}
-.hero-copy{position:relative;z-index:2;width:100%;padding-top:72px;padding-bottom:56px}
-.hero-h1{margin:0;max-width:9.6ch;font-weight:700;font-size:clamp(52px,6.2vw,96px);line-height:.95;letter-spacing:-0.055em}
-.hero-sub{margin:28px 0 0;max-width:40ch;font-size:19px;line-height:1.55;color:var(--text-2)}
-.fade-1,.fade-2,.fade-3{animation:fadeup .7s cubic-bezier(.2,.8,.2,1) both}
-.fade-1{animation-delay:.3s}
-.fade-2{animation-delay:.5s}
-.fade-3{animation-delay:.7s}
-@keyframes cut{to{stroke-dashoffset:0}}
-@keyframes fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.hero-cut{stroke-dashoffset:0}}
 
 /* Stats under a hairline */
 .stats{border-bottom:1px solid var(--rule)}
@@ -325,9 +306,6 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .share-top,.share-bottom{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:980px){
-  .hero{min-height:0;display:block}
-  .hero-art{position:relative;top:auto;right:auto;transform:none;width:min(400px,78vw);margin:40px auto 8px}
-  .hero-copy{padding-top:0;padding-bottom:72px}
   .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .stat-row>div:nth-child(3){padding-left:0;border-left:0}
   .stat-row>div:nth-child(n+3){border-top:1px solid var(--rule)}

@@ -4,73 +4,14 @@ import type { GroupSummary, MutualSummary } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { getMutual } from "../../data/mutual";
 import { HOME, REP } from "../../brand";
-import { HeroHorizon } from "../../components/HeroHorizon";
+import { Explainer } from "../../v2/Explainer";
+import { Hero } from "../../v2/Hero";
+import { prefersReducedMotion } from "../../v2/motion";
 import { feeText, TierBadge } from "../../components/TierBadge";
-import { formatUsdc } from "../../format";
 import { Governance } from "./Governance";
 import { JoinDialog, MemberCard } from "./Member";
-import { price, sinceLaunch } from "./Mutual";
 
 const count = (n: number) => n.toLocaleString("en-US");
-
-function Hero({ onJoin }: { onJoin: () => void }) {
-  return (
-    <section className="hero" aria-labelledby="hero-title">
-      <div className="hero-art">
-        <HeroHorizon />
-      </div>
-      <div className="wrap hero-copy">
-        <h1 className="hero-h1 fade-1" id="hero-title">
-          {HOME.heroLead} {HOME.heroRest}.
-        </h1>
-        <p className="hero-sub fade-2">{HOME.sub}</p>
-        <div className="actions fade-3">
-          <button type="button" className="btn" onClick={onJoin}>
-            {HOME.primary}
-          </button>
-          <a className="btn ghost" href="#/demo">
-            {HOME.secondary}
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Stats({ m }: { m: MutualSummary }) {
-  const s = m.stats;
-  const change = sinceLaunch(s);
-  return (
-    <section className="stats" aria-label={HOME.stats.price}>
-      <div className="wrap">
-        <dl className="stat-row" data-testid="home-stats">
-          <div>
-            <dt>{HOME.stats.pooled}</dt>
-            <dd className="num">{formatUsdc(s.total_pooled)}</dd>
-            <dd className="stat-note">{HOME.stats.pooledNote}</dd>
-          </div>
-          <div>
-            <dt>{HOME.stats.price}</dt>
-            <dd className="num" data-testid="ward-price">
-              {price(s.ward_price)}
-            </dd>
-            <dd className="stat-note num">{HOME.stats.sinceLaunch(change)}</dd>
-          </div>
-          <div>
-            <dt>{HOME.stats.above}</dt>
-            <dd className="num">{count(s.proven_payments)}</dd>
-            <dd className="stat-note">{HOME.stats.aboveNote}</dd>
-          </div>
-          <div>
-            <dt>{HOME.stats.below}</dt>
-            <dd className="num below-text">{count(s.below.total)}</dd>
-            <dd className="stat-note">{HOME.stats.belowNote}</dd>
-          </div>
-        </dl>
-      </div>
-    </section>
-  );
-}
 
 function Sides({ m }: { m: MutualSummary }) {
   const b = m.stats.below;
@@ -124,26 +65,13 @@ function Sides({ m }: { m: MutualSummary }) {
   );
 }
 
-/** The stats strip and the two sides, at their real size, while the numbers load. */
+/** The two sides, at their real size, while the numbers load. */
 function HomeSkeleton() {
   return (
     <div aria-busy="true" data-testid="home-loading">
       <p className="sr-only" role="status">
         Loading the Mutual
       </p>
-      <section className="stats" aria-hidden="true">
-        <div className="wrap">
-          <dl className="stat-row skel-row">
-            {[HOME.stats.pooled, HOME.stats.price, HOME.stats.above, HOME.stats.below].map((label) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd className="num skel-text">000.00</dd>
-                <dd className="stat-note skel-text">0000000000</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
       <section className="sec" aria-hidden="true">
         <div className="wrap">
           <span className="skel skel-title" />
@@ -211,17 +139,24 @@ export function Home() {
   }, [tick]);
   // A click before the numbers arrive still opens Join, as soon as they do.
   const join = () => setJoining(true);
+  // The hero's secondary button: down to Watch a payment cross the line, which plays once in view.
+  const watch = () => {
+    const el = document.getElementById("watch");
+    if (!el) return;
+    el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+    el.focus({ preventScroll: true });
+  };
 
   return (
     <main>
-      <Hero onJoin={join} />
+      <Hero onJoin={join} onWatch={watch} />
+      <Explainer />
       {error !== null && !m && (
         <div className="wrap state-wrap">
           <Problem error={error} onRetry={refresh} />
         </div>
       )}
       {!m && error === null && <HomeSkeleton />}
-      {m && <Stats m={m} />}
       {m && <Sides m={m} />}
 
       {m && (

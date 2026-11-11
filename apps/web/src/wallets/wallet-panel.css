@@ -94,8 +94,8 @@
 
 .wp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--rule-2); }
 .wp-new { margin: 0; font-size: 13px; color: var(--muted); }
-.wp-new a { color: var(--violet-text); text-decoration: none; }
-.wp-new a:hover { text-decoration: underline; }
+.wp-new a { color: var(--violet-text); text-decoration: underline; text-underline-offset: 2px; }
+.wp-new a:hover { color: var(--text); }
 
 /* Connected */
 .wp-who { display: flex; align-items: center; gap: 14px; }

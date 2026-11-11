@@ -177,11 +177,11 @@ test.describe("states: what happened and what to do next", () => {
       await r.continue();
     });
     await page.goto("/#/");
-    const skeleton = page.getByTestId("home-loading").locator(".stats");
+    const skeleton = page.getByTestId("hero-loading");
     await expect(skeleton).toBeVisible();
     const before = await skeleton.boundingBox();
     release();
-    const real = page.locator("section.stats").filter({ has: page.getByTestId("home-stats") });
+    const real = page.getByTestId("home-stats");
     await expect(real).toBeVisible();
     const after = await real.boundingBox();
     expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);

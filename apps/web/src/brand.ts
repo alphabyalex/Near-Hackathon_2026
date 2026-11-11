@@ -56,7 +56,23 @@ export const HOME = {
   heroRest: "for the AI economy",
   sub: "Members pool USDC, back AI agents, and earn from every payment that proves itself. Anything that can't prove itself stays below the line.",
   primary: "Become a member",
-  secondary: "Watch the demo",
+  secondary: "Watch a payment cross the line",
+  /** The live numbers under the hero (Horizon v2). */
+  live: {
+    label: "Live numbers",
+    testnet: "Live from NEAR testnet",
+    pooled: "Total pooled",
+    pooledNote: "USDC, members plus our stake",
+    price: "WARD price",
+    priceNote: (launch: string, up: boolean | null) => (up === null ? `USDC per WARD, the launch price` : `USDC per WARD, ${up ? "up" : "down"} from ${launch}`),
+    paid: "Paid above the line",
+    paidNote: "proven AI payments",
+    kept: "Kept below it",
+    keptNote: "refused, blocked or capped",
+    latest: "Latest payment",
+    view: "View transaction",
+    verdict: { paid: "Proven and paid", refused: "Refused and refunded", capped: "Capped at the spend limit", blocked: "Blocked before paying" },
+  },
   stats: {
     pooled: "Total pooled",
     pooledNote: "Members' USDC plus our stake",
@@ -763,7 +779,7 @@ export const ME = {
   historyTitle: "Your transactions",
   historyNone: "No transactions from this account yet.",
   tx: {
-    columns: { date: "Date", type: "Type", usdc: "USDC", ward: "WARD", price: "WARD price", status: "Status", hash: "Transaction" },
+    columns: { date: "When", type: "What", usdc: "USDC", ward: "WARD", price: "Price", status: "Status", hash: "Transaction" },
     buy: "Bought WARD",
     sellRequest: "Sell requested",
     unlocks: (date: string) => `Unlocks ${date}`,
@@ -809,4 +825,59 @@ export const ME = {
   sourcesLede: "Your deposits, and every change in WARD's price since you joined.",
   youDeposited: (usdc: string) => `You deposited ${usdc} USDC`,
   noPriceChange: "WARD's price hasn't changed since you joined.",
+} as const;
+
+/** "Watch a payment cross the line" (Horizon v2), on the home page and the demo page. */
+export const EXPLAINER = {
+  title: "Every payment lands on one side of the line.",
+  sub: "Ten seconds, two real cases from our practice network.",
+  replay: "Replay",
+  label: "Animation: a proven AI payment crosses above the line and is paid, then a payment from a swapped model is refused, drops below the line and is refunded.",
+  caption1: "An AI agent pays for a DeepSeek V4.1 Flash answer",
+  caption2: "Same claim, but the answer secretly came from GLM-5.3 Flash",
+  checks: ["Receipt signed by the model you paid for", "Money goes to the real company", "Inside the spending limit"],
+  failed: "Receipt is from a cheaper model than you paid for",
+  paid: "Proven and paid",
+  paidSub: "The provider gets paid, and 2% goes to the pool",
+  refused: "Refused and refunded",
+  refusedSub: "The money never left the budget",
+  closing: "Only proven payments cross the line.",
+  columns: [
+    ["Proven, then paid", "NEAR's AI service signs every answer. If the signature matches the model you paid for, the money goes through and 2% goes to the pool.", "above"],
+    ["Refused, then refunded", "A cheaper model, a look-alike company or a leaked key never gets paid. The money stays in the budget.", "below"],
+    ["Covered if we're ever wrong", "If Wardline approves something it shouldn't have, the pool pays it back, and our own stake pays first.", "above"],
+  ],
+} as const;
+
+/** Groups as spheres (Horizon v2). */
+export const SPHERES = {
+  title: "Groups that prove every payment.",
+  lede: "Each group is a sphere. The more proven payments it makes, the bigger it grows, and the cleaner its record, the denser it gets. Gold groups pay the lowest fee.",
+  rowLabel: "Covered groups",
+  proven: (n: number) => `${n.toLocaleString("en-US")} proven`,
+  selected: "Selected group",
+  tierRest: (members: string) => `tier, ${members}`,
+  record: "Record on chain",
+  recordLine: (refused: number, claims: number) => `${refused} refused, ${claims === 1 ? "1 claim" : `${claims} claims`}`,
+  toward: "Toward the next tier",
+  top: "Top tier reached. Lowest fee.",
+  next: (clean: number, need: number, tier: string) => `${clean} of ${need} clean payments to ${tier}`,
+  latest: "View latest transaction",
+} as const;
+
+/** Your share (Horizon v2), #/me. */
+export const MINE = {
+  markLabel: "Your personal Wardline mark, a halftone sphere made from your account name",
+  markNote: "Your mark, drawn from your account name",
+  worth: "Your share is worth",
+  held: "WARD held",
+  earned: "Earned since joining",
+  price: "WARD price",
+  deposit: "Deposit more",
+  sell: "Request to sell",
+  sellNote: "Selling takes 7 days. Your WARD keeps earning while you wait.",
+  sellAmount: "WARD to sell",
+  sellButton: "Request to sell this WARD",
+  sellCancel: "Cancel",
+  explorer: "See your account on the explorer",
 } as const;

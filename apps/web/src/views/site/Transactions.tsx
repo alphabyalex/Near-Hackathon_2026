@@ -4,7 +4,7 @@
  * the line). On phones each row is a two-line card.
  */
 import { useState } from "react";
-import { ME } from "../../brand";
+import { ME, MINE } from "../../brand";
 import { formatUsdc } from "../../format";
 import type { TransactionsView, WalletTx } from "../../data/transactions";
 import "./transactions.css";
@@ -40,7 +40,7 @@ const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "
 const full = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" });
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 const price = (p: string | null) => (p ? (Number(p) / 1_000_000).toFixed(4) : null);
-const short = (hash: string) => `${hash.slice(0, 6)}…${hash.slice(-4)}`;
+const short = (hash: string) => `${hash.slice(0, 6)}…${hash.slice(-6)}`;
 
 function Row({ r }: { r: WalletTx }) {
   const usdc = r.usdc ? formatUsdc(r.usdc) : null;
@@ -90,7 +90,14 @@ export function Transactions({ view, rows, loading }: { view: TransactionsView |
   const left = rows.length - page.length;
   return (
     <section className="panel pb tx-panel" aria-labelledby="me-history-title" data-testid="me-transactions">
-      <h2 id="me-history-title">{ME.historyTitle}</h2>
+      <div className="tx-head">
+        <h2 id="me-history-title">{ME.historyTitle}</h2>
+        {view?.explorer_account_url && (
+          <a href={view.explorer_account_url} target="_blank" rel="noreferrer">
+            {MINE.explorer}
+          </a>
+        )}
+      </div>
       {loading && rows.length === 0 ? (
         <p className="muted" role="status">
           {t.loading}

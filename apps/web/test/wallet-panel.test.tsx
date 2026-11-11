@@ -135,7 +135,7 @@ describe("one click connects", () => {
     await waitFor(() => expect(onSignIn).not.toBeNull());
     unmount();
     onSignIn!({ wallet: { manifest: { id: "meteor-wallet" } }, accounts: [{ accountId: ACCOUNT }] });
-    expect(JSON.parse(sessionStorage.getItem("wardline.connected")!)).toMatchObject({ account: ACCOUNT, wallet: "near-connect", via: "meteor-wallet" });
+    expect(JSON.parse(localStorage.getItem("wardline.connected")!)).toMatchObject({ account: ACCOUNT, wallet: "near-connect", via: "meteor-wallet" });
   });
 
   it("an account on another network does not stick", async () => {
@@ -144,7 +144,7 @@ describe("one click connects", () => {
     fireEvent.click(screen.getByRole("button", { name: /Meteor/ }));
     await waitFor(() => expect(onSignIn).not.toBeNull());
     act(() => onSignIn!({ accounts: [{ accountId: "someone.near" }] }));
-    expect(sessionStorage.getItem("wardline.connected")).toBeNull();
+    expect(localStorage.getItem("wardline.connected")).toBeNull();
   });
 });
 
@@ -209,6 +209,6 @@ describe("connected, in the same panel", () => {
     setConnected({ account: ACCOUNT, wallet: "near-connect" });
     render(<WalletPanel onClose={() => undefined} />);
     fireEvent.click(await screen.findByRole("button", { name: "Disconnect" }));
-    expect(sessionStorage.getItem("wardline.connected")).toBeNull();
+    expect(localStorage.getItem("wardline.connected")).toBeNull();
   });
 });

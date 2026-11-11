@@ -8,7 +8,7 @@
 import type { NearWalletBase } from "@hot-labs/near-connect";
 import { LOCAL_SIGNER, NEAR_NETWORK, TEST_WALLET } from "../config";
 import { WalletError, walletError } from "../data/errors";
-import { NEAR_WALLET_IDS, setConnected, type NearWalletId } from "./connected";
+import { currentConnected, NEAR_WALLET_IDS, setConnected, type NearWalletId } from "./connected";
 
 export { NEAR_WALLET_IDS, type NearWalletId };
 
@@ -176,6 +176,47 @@ export async function connectedNearAccount(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** NEAR Connect's own record of the wallet it last connected (its LocalStorage key). */
+const NEAR_CONNECT_SELECTED = "selected-wallet";
+
+/**
+ * On load: restore the wallet NEAR Connect already remembers, with no reconnect. Runs only when NEAR
+ * Connect has a wallet on record, so public pages never load it otherwise. Shows the remembered account
+ * at once, then asks the wallet; if it no longer has an account on this network, the connection is
+ * cleared. A typed-account wallet (test wallet, local signer) is left as it is.
+ */
+export async function restoreNearConnection(): Promise<void> {
+  if (typeof window === "undefined") return;
+  let selected: string | null = null;
+  try {
+    selected = window.localStorage.getItem(NEAR_CONNECT_SELECTED);
+  } catch {
+    return;
+  }
+  const now = currentConnected();
+  if (now && now.wallet !== "near-connect") return;
+  // A connection made in this tab (sessionStorage) is the tab's own; only a remembered one is re-checked.
+  const remembered = (): boolean => {
+    try {
+      return !window.sessionStorage.getItem("wardline.connected");
+    } catch {
+      return true;
+    }
+  };
+  if (!selected) {
+    if (now && remembered()) setConnected(null);
+    return;
+  }
+  const account = await connectedNearAccount();
+  const still = currentConnected();
+  if (still && still.wallet !== "near-connect") return;
+  if (!account) {
+    if (still && remembered()) setConnected(null);
+    return;
+  }
+  if (still?.account !== account) setConnected({ account, wallet: "near-connect", via: selected });
 }
 
 export async function disconnectNear(): Promise<void> {

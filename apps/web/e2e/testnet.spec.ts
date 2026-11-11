@@ -154,10 +154,11 @@ test("7: a redemption request, with its countdown on #/me", async ({ page }) => 
 
 test("8: groups show real tiers, proven calls and fees, and a transaction link that opens a real one", async ({ page }) => {
   await page.goto("/#/groups");
-  const mission = page.locator('.gcard[data-budget="bgt_mission"]');
+  const mission = page.locator('.orb[data-budget="bgt_mission"]');
   await expect(mission).toBeVisible();
   await expect(mission).toContainText(/Gold|Silver|Bronze/i);
-  const link = page.locator('.gcard a.tx-link[href*="/txns/"]').first();
+  await mission.click();
+  const link = page.getByTestId("group-detail").locator('a.orb-tx[href*="/txns/"]');
   await expect(link).toBeVisible();
   txs.groups = await hashOf(link);
   await shot(page, "groups");

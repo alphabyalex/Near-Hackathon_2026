@@ -1,14 +1,12 @@
-/** Groups: shared AI budgets from a DAO treasury, reputation tiers, every covered group and how to start one. */
+/** Groups: every covered group as a sphere (Horizon v2), the tiers, and how to start one. */
 import { useEffect, useState } from "react";
 import type { GroupSummary, TierRules } from "../../api/ai";
 import { Problem } from "../../components/Problem";
-import { getCommunity, getGroups } from "../../data/groups";
-import { DATA_SOURCE } from "../../data/source";
-import { TxLink } from "../../components/TxLink";
-import { GROUPS, REP } from "../../brand";
-import { GroupHorizon } from "../../components/HorizonMark";
+import { getGroups } from "../../data/groups";
+import { GROUPS, REP, SPHERES } from "../../brand";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
+import { GroupSpheres } from "../../v2/GroupSpheres";
 
 /** What earns the next tier: a 4px progress bar of clean proven calls, and the words. */
 export function NextTier({ g }: { g: Pick<GroupSummary, "tier" | "clean_calls" | "next_tier_at"> }) {
@@ -23,71 +21,6 @@ export function NextTier({ g }: { g: Pick<GroupSummary, "tier" | "clean_calls" |
       </span>
       <span>{REP.next(left, next)}</span>
     </span>
-  );
-}
-
-/** testnet: the community's latest transaction, linked quietly. Nothing in sim mode. */
-function LatestTx({ id }: { id: string }) {
-  const [row, setRow] = useState<{ text: string; tx: string | null } | null>(null);
-  useEffect(() => {
-    if (DATA_SOURCE !== "testnet") return;
-    let live = true;
-    getCommunity(id).then((r) => live && setRow(r.recent_activity.find((a) => a.tx) ?? null), () => live && setRow(null));
-    return () => {
-      live = false;
-    };
-  }, [id]);
-  if (!row?.tx) return null;
-  return (
-    <p className="gcard-tx muted">
-      {row.text} <TxLink hash={row.tx} plain={false} />
-    </p>
-  );
-}
-
-function GroupCard({ g }: { g: GroupSummary }) {
-  return (
-    <article className="gcard" data-budget={g.budget_id} data-tier={g.tier}>
-      <div className="gcard-head">
-        <GroupHorizon id={g.budget_id} size={64} />
-        <div>
-          <h3>{g.name}</h3>
-          <span className="acct muted">
-            {GROUPS.dao} {g.owner}
-          </span>
-        </div>
-        <TierBadge tier={g.tier} />
-      </div>
-      <dl className="gfacts">
-        <div>
-          <dt>{REP.proven}</dt>
-          <dd className="num">{g.proven_calls.toLocaleString("en-US")}</dd>
-        </div>
-        <div>
-          <dt>{REP.claims}</dt>
-          <dd className="num">{g.claims}</dd>
-        </div>
-        <div>
-          <dt>{REP.fee}</dt>
-          <dd className="num">{feeText(g.fee_bps)}</dd>
-        </div>
-        <div>
-          <dt>{REP.coverage}</dt>
-          <dd className="num">{formatUsdc(g.coverage_cap)} USDC</dd>
-        </div>
-        <div>
-          <dt>{REP.refused}</dt>
-          <dd className="num">{g.refused_calls}</dd>
-        </div>
-        <div>
-          <dt>{REP.spent}</dt>
-          <dd className="num">{formatUsdc(g.spent)} USDC</dd>
-        </div>
-      </dl>
-      <NextTier g={g} />
-      <LatestTx id={g.budget_id} />
-      <p className="gcard-foot muted">{GROUPS.members(g.members)}</p>
-    </article>
   );
 }
 
@@ -125,10 +58,10 @@ export function Groups() {
 
   return (
     <main>
-      <section className="sec pagetop page-intro">
+      <section className="sec pagetop orbs-intro">
         <div className="wrap">
-          <h1 className="h1">{GROUPS.title}</h1>
-          <p className="lede">{GROUPS.lede}</p>
+          <h1 className="h1">{SPHERES.title}</h1>
+          <p className="lede">{SPHERES.lede}</p>
         </div>
       </section>
       {error !== null && (
@@ -137,13 +70,14 @@ export function Groups() {
         </div>
       )}
       {!data && error === null && (
-        <div className="wrap" aria-busy="true">
+        <div className="wrap orbs-loading" aria-busy="true">
           <p className="sr-only" role="status">
             Loading groups
           </p>
           <div className="skel-card groups-skel" aria-hidden="true" />
         </div>
       )}
+      {data && <GroupSpheres groups={data.groups} />}
       {data && (
         <section className="sec tight" aria-labelledby="tiers-title">
           <div className="wrap">
@@ -152,20 +86,6 @@ export function Groups() {
             </h2>
             <TierCards tiers={data.tiers} />
             <p className="fine">{REP.rule}</p>
-          </div>
-        </section>
-      )}
-      {data && (
-        <section className="sec tight" aria-labelledby="list-title">
-          <div className="wrap">
-            <h2 className="h2" id="list-title">
-              {GROUPS.listTitle}
-            </h2>
-            <div className="gcards">
-              {data.groups.map((g) => (
-                <GroupCard key={g.budget_id} g={g} />
-              ))}
-            </div>
           </div>
         </section>
       )}

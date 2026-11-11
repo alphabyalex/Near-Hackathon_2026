@@ -43,8 +43,10 @@ test.describe("public site", () => {
     await expect(page.locator(".hero-sub")).toContainText("Anything that can't prove itself stays below the line.");
     const stats = page.getByTestId("home-stats");
     await expect(stats.locator("dt")).toHaveText(["Total pooled", "WARD price", "Paid above the line", "Kept below it"]);
-    await expect(stats).toContainText("since launch at 1.0000");
-    await expect(stats.locator(".below-text")).toHaveText(/^\d+$/);
+    await expect(stats).toContainText("USDC per WARD");
+    await expect(stats.locator(".live-cell.below .live-value")).toHaveText(/^\d+$/);
+    // Sim mode: the same strip, no live label.
+    await expect(page.getByText("Live from NEAR testnet")).toHaveCount(0);
     const sides = page.getByTestId("sides");
     await expect(sides.locator(".above h3")).toHaveText("Above the line");
     await expect(sides.locator(".above li b")).toHaveText(["The model is proven", "The payee is real", "It fits the budget"]);
@@ -60,41 +62,44 @@ test.describe("public site", () => {
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
     await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "Demo", "Developers", "About"]);
     await expect(nav.first()).toHaveAttribute("aria-current", "page");
-    await expect(page.getByRole("link", { name: "Watch the demo" })).toHaveAttribute("href", "#/demo");
+    await page.locator(".hero").getByRole("button", { name: "Watch a payment cross the line" }).click();
+    await expect(page.locator("#watch")).toBeInViewport();
+    await expect(page.locator("#watch")).toBeFocused();
     await page.getByLabel("Wardline home").first().click();
     await expect(page).toHaveURL(/#\/$/);
   });
 
-  test("hero: a static sphere under reduced motion; otherwise the cut, the assembly and a drift that stops off screen", async ({ page }) => {
+  test("hero: the final frame under reduced motion; otherwise the entrance, then a slow drift that stops off screen", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");
-    const still = page.locator("svg.hero-horizon");
-    await expect(still).toHaveAttribute("data-static", "true");
-    expect(await still.locator("circle").count()).toBeGreaterThan(500);
-    await expect(page.locator(".hero canvas")).toHaveCount(0);
-    expect(await still.locator(".hero-cut").evaluate((el) => getComputedStyle(el).strokeDashoffset)).toMatch(/^0(px)?$/);
-    const r1 = await still.locator("circle").nth(40).getAttribute("r");
-    await page.waitForTimeout(600);
-    expect(await still.locator("circle").nth(40).getAttribute("r")).toBe(r1);
+    const hero = page.getByTestId("hero-canvas");
+    await expect(hero).toHaveAttribute("data-motion", "still");
+    await expect(hero).toHaveAttribute("role", "img");
+    expect(await page.locator(".hero-h1").evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
 
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
-    const live = page.locator("div.hero-horizon");
-    await expect(live).toHaveAttribute("data-static", "false");
-    await expect(live.locator("canvas.hero-dots")).toHaveCount(1);
-    await expect(live).toHaveAttribute("role", "img");
-    // The line draws, the dots assemble, then the light drifts.
-    await expect(live).toHaveAttribute("data-phase", "assemble", { timeout: 3_000 });
-    await expect(live).toHaveAttribute("data-phase", "drift", { timeout: 8_000 });
-    await expect.poll(async () => Number(await live.getAttribute("data-frames")), { timeout: 5_000 }).toBeGreaterThan(3);
-    // Off screen, the drift stops.
+    await expect(hero).toHaveAttribute("data-motion", "playing");
+    // Off screen, the drift stops; back on screen it carries on.
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(400);
-    const offscreen = Number(await live.getAttribute("data-frames"));
-    await page.waitForTimeout(1200);
-    expect(Number(await live.getAttribute("data-frames"))).toBe(offscreen);
+    await expect(hero).toHaveAttribute("data-motion", "paused", { timeout: 5_000 });
     await page.evaluate(() => window.scrollTo(0, 0));
-    await expect.poll(async () => Number(await live.getAttribute("data-frames")), { timeout: 5_000 }).toBeGreaterThan(offscreen);
+    await expect(hero).toHaveAttribute("data-motion", "playing", { timeout: 5_000 });
+  });
+
+  test("watch a payment cross the line: plays once in view, stops when finished, and Replay plays it again", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/#/");
+    const stage = page.getByTestId("explainer-stage");
+    await expect(stage).toHaveAttribute("data-motion", "waiting");
+    await stage.scrollIntoViewIfNeeded();
+    await expect(stage).toHaveAttribute("data-motion", "playing", { timeout: 5_000 });
+    await expect(stage).toHaveAttribute("data-motion", "done", { timeout: 20_000 });
+    await page.locator("#watch").getByRole("button", { name: "Replay" }).click();
+    await expect(stage).toHaveAttribute("data-motion", "playing");
+    await expect(stage).toHaveAttribute("aria-label", /refused, drops below the line and is refunded/);
+    await page.goto("/#/demo");
+    await expect(page.getByTestId("explainer-stage")).toHaveCount(1);
   });
 
   test("hero: nothing listens to the mouse", async ({ page }) => {
@@ -113,7 +118,7 @@ test.describe("public site", () => {
       };
     });
     await page.goto("/#/");
-    await expect(page.locator(".hero-horizon")).toBeVisible();
+    await expect(page.getByTestId("hero-canvas")).toBeVisible();
     await page.waitForTimeout(800);
     const moves = await page.evaluate(() => (window as unknown as { __moves: string[] }).__moves);
     // React delegates its own events at its root; nothing else may listen for mouse movement.
@@ -276,24 +281,29 @@ test.describe("public site", () => {
 
   test("groups: three tier cards, every group with its own horizon, tier and history, and four steps to start one", async ({ page }) => {
     await page.goto("/#/groups");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("One shared AI budget for your crew.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Groups that prove every payment.");
     const tiers = page.getByTestId("tier-table").locator(".tier-card");
     await expect(tiers).toHaveCount(3);
     await expect(tiers.locator(".tier-name")).toHaveText(["Bronze", "Silver", "Gold"]);
     await expect(tiers.locator(".tc-fee")).toHaveText(["2.00%", "1.50%", "1.00%"]);
     await expect(tiers.nth(1)).toContainText("10 clean proven calls in a row at Bronze");
-    const mission = page.locator('.gcard[data-budget="bgt_mission"]');
+    const mission = page.locator('.orb[data-budget="bgt_mission"]');
     await expect(mission).toHaveAttribute("data-tier", "gold");
-    await expect(mission).toContainText("Top tier");
-    await expect(mission.locator("svg.group-horizon")).toBeVisible();
-    const kelp = page.locator('.gcard[data-budget="bgt_kelp"]');
+    await mission.click();
+    await expect(mission).toHaveAttribute("aria-pressed", "true");
+    const detail = page.getByTestId("group-detail");
+    await expect(detail).toContainText("Mission Street hacker house");
+    await expect(detail).toContainText("Top tier reached");
+    const kelp = page.locator('.orb[data-budget="bgt_kelp"]');
     await expect(kelp).toHaveAttribute("data-tier", "bronze");
-    await expect(kelp.locator(".gfacts")).toContainText("Claims1");
-    await expect(page.locator('.gcard[data-budget="bgt_nightshade"]')).toContainText("more clean proven calls to Gold");
-    // Each group's horizon has its own light.
-    const a = await mission.locator("svg.group-horizon circle").first().getAttribute("r");
-    const b = await kelp.locator("svg.group-horizon circle").first().getAttribute("r");
-    expect(a).not.toBe(b);
+    await kelp.click();
+    await expect(mission).toHaveAttribute("aria-pressed", "false");
+    await expect(detail).toContainText("1 claim");
+    await page.locator('.orb[data-budget="bgt_nightshade"]').click();
+    await expect(detail).toContainText("clean payments to Gold");
+    // A bigger record draws a bigger sphere.
+    const w = async (id: string) => (await page.locator(`.orb[data-budget="${id}"] canvas`).boundingBox())!.width;
+    expect(await w("bgt_mission")).toBeGreaterThan(await w("bgt_kelp"));
     await expect(page.locator(".steps-row li b")).toHaveText(["Connect your DAO", "Vote in a budget", "Members get keys", "Change one line"]);
     await expectAccessible(page);
   });
