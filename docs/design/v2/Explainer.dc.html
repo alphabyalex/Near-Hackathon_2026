@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Watch a payment cross the line</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+a{color:#A59BFF}a:hover{color:#F5F3F7}
+.wl-ghost:hover{border-color:#A79DB0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 820px; box-sizing: border-box; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column;">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 64px 56px 0;">
+<div>
+<h2 style="margin: 0; font-size: 52px; line-height: 1.05; letter-spacing: -1.8px; font-weight: 700;">Every payment lands on one side of the line.</h2>
+<p style="margin: 14px 0 0; font-size: 19px; color: #C3BACB;">Ten seconds, two real cases from our practice network.</p>
+</div>
+<button type="button" class="wl-ghost" onClick="{{replay}}" style="font: inherit; font-size: 15px; font-weight: 600; color: #F5F3F7; background: transparent; border: 1px solid #3A2E45; border-radius: 10px; padding: 11px 18px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+Replay
+</button>
+</div>
+<canvas ref="{{setStage}}" role="img" aria-label="Animation: a proven AI payment crosses above the line and is paid, then a payment from a swapped model is refused, drops below the line and is refunded." style="width: 1440px; height: 520px; display: block; margin-top: 8px;"></canvas>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; padding: 8px 56px 0; border-top: 1px solid #241A2B; margin: 0 56px; padding-left: 0; padding-right: 0; padding-top: 28px;">
+<div>
+<div style="font-size: 18px; font-weight: 600;">Proven, then paid</div>
+<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #C3BACB;">NEAR's AI service signs every answer. If the signature matches the model you paid for, the money goes through and 2% goes to the pool.</p>
+</div>
+<div>
+<div style="font-size: 18px; font-weight: 600; color: #FF7A8C;">Refused, then refunded</div>
+<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #C3BACB;">A cheaper model, a look-alike company or a leaked key never gets paid. The money stays in the budget.</p>
+</div>
+<div>
+<div style="font-size: 18px; font-weight: 600;">Covered if we're ever wrong</div>
+<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #C3BACB;">If Wardline approves something it shouldn't have, the pool pays it back, and our own stake pays first.</p>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    this.start();
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  start() {
+    cancelAnimationFrame(this.raf);
+    if (this.reduce) { this.draw(10); return; }
+    this.t0 = performance.now();
+    const loop = (now) => {
+      const t = (now - this.t0) / 1000;
+      this.draw(t);
+      if (t < 10.2) this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+  draw(t) {
+    const cv = this.stage; if (!cv) return;
+    const W = 1440, H = 520, dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const cl = (x) => Math.max(0, Math.min(1, x));
+    const eo = (x) => 1 - Math.pow(1 - cl(x), 3);
+    const eio = (x) => { x = cl(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+    const fade = (a, b, c, d) => Math.min(cl((t - a) / (b - a)), d === undefined ? 1 : 1 - cl((t - c) / (d - c)));
+    const cx = 720, cy = 260, tan = Math.tan(-10 * Math.PI / 180), yl = (x) => cy + tan * (x - cx);
+    const VIO = [123, 108, 255], RED = [255, 92, 115], WHITE = [245, 243, 247], VTXT = [165, 155, 255];
+    const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+    const mix = (a, b, u) => a.map((v, i) => Math.round(v + (b[i] - v) * cl(u)));
+    // the line
+    const p = eio(t / 1);
+    ctx.strokeStyle = 'rgba(167,157,176,0.7)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, yl(0)); ctx.lineTo(W * p, yl(W * p)); ctx.stroke();
+    // proof check ring
+    let pulse = 0, ringC = VIO;
+    if (t >= 2 && t < 3.9) pulse = Math.min(cl((t - 2) / 0.2), 1 - cl((t - 3.6) / 0.3));
+    if (t >= 5.9 && t < 7.2) pulse = Math.min(cl((t - 5.9) / 0.2), 1 - cl((t - 6.9) / 0.3));
+    if (t >= 6.1 && t < 7.6) ringC = mix(VIO, RED, (t - 6.1) / 0.2);
+    if (t >= 7.2) ringC = mix(RED, VIO, (t - 7.2) / 0.4);
+    const rr = 26 * (1 + 0.12 * pulse);
+    ctx.save(); ctx.shadowColor = rgba(ringC, pulse); ctx.shadowBlur = 22 * pulse;
+    ctx.strokeStyle = rgba(ringC, 0.35 + 0.65 * pulse); ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = rgba(ringC, 0.08 + 0.12 * pulse); ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.fill();
+    // text helper
+    const text = (s, x, y, size, weight, col, a, align) => {
+      if (a <= 0) return; ctx.globalAlpha = a; ctx.fillStyle = col; ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+      ctx.font = weight + ' ' + size + 'px Geist, system-ui, sans-serif'; ctx.fillText(s, x, y); ctx.globalAlpha = 1;
+    };
+    const icon = (kind, x, y, u, col, a) => {
+      if (a <= 0 || u <= 0) return; ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      if (kind === 'check') {
+        const k1 = Math.min(1, u * 1.6), k2 = cl(u * 1.6 - 1) / 0.6 * 0.6;
+        ctx.moveTo(x - 9, y + 1); ctx.lineTo(x - 9 + 6 * k1, y + 1 + 6 * k1);
+        if (u > 0.62) ctx.lineTo(x - 3 + 12 * cl((u - 0.62) / 0.38), y + 7 - 14 * cl((u - 0.62) / 0.38));
+      } else {
+        const a1 = cl(u * 2), b1 = cl(u * 2 - 1);
+        ctx.moveTo(x - 7, y - 7); ctx.lineTo(x - 7 + 14 * a1, y - 7 + 14 * a1);
+        if (b1 > 0) { ctx.moveTo(x + 7, y - 7); ctx.lineTo(x + 7 - 14 * b1, y - 7 + 14 * b1); }
+      }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    };
+    // captions
+    text('An AI agent pays for a DeepSeek V4.1 Flash answer', 100, 410, 17, 400, '#C3BACB', fade(1, 1.4, 2.2, 2.6));
+    text('Same claim, but the answer secretly came from GLM-5.3 Flash', 100, 410, 17, 400, '#C3BACB', fade(4.9, 5.3, 6, 6.4));
+    // checks for payment 1
+    const rows = [['Receipt signed by the model you paid for', 2.3], ['Money goes to the real company', 2.75], ['Inside the spending limit', 3.2]];
+    rows.forEach((r, i) => {
+      const y = 112 + i * 32, a = fade(r[1], r[1] + 0.3, 3.7, 4);
+      icon('check', 790, y, eo((t - r[1]) / 0.3), '#A59BFF', a);
+      text(r[0], 812, y, 17, 500, '#F5F3F7', a);
+    });
+    // failed check for payment 2
+    const fa = fade(6.3, 6.6, 7.3, 7.6);
+    icon('cross', 790, 144, eo((t - 6.3) / 0.3), '#FF7A8C', fa);
+    text('Receipt is from a cheaper model than you paid for', 812, 144, 17, 500, '#FF7A8C', fa);
+    // results
+    text('Proven and paid', 1160, 58, 26, 700, '#F5F3F7', fade(4.5, 4.9), 'right');
+    text('The provider gets paid, and 2% goes to the pool', 1160, 90, 16, 400, '#A79DB0', fade(4.7, 5.1), 'right');
+    text('Refused and refunded', 1160, 440, 26, 700, '#FF7A8C', fade(7.6, 8), 'right');
+    text('The money never left the budget', 1160, 472, 16, 400, '#A79DB0', fade(7.8, 8.2), 'right');
+    text('Only proven payments cross the line.', 56, 488, 28, 700, '#F5F3F7', fade(8.6, 9.3));
+    // payment dots
+    const dot = (x, y, col, a) => {
+      if (a <= 0) return; ctx.save(); ctx.globalAlpha = a; ctx.shadowColor = rgba(col, 0.9); ctx.shadowBlur = 20;
+      ctx.fillStyle = rgba(col, 1); ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.fill(); ctx.restore();
+    };
+    const sx = 100, sy = yl(100);
+    let x1 = sx, y1 = sy;
+    if (t < 2) { const u = eio((t - 1) / 1); x1 = sx + (cx - sx) * u; y1 = sy + (cy - sy) * u; }
+    else if (t < 3.9) { x1 = cx; y1 = cy; }
+    else { const u = eo((t - 3.9) / 0.8); x1 = cx + (1200 - cx) * u; y1 = cy + (74 - cy) * u; }
+    dot(x1, y1, mix(WHITE, VTXT, (t - 3.9) / 0.6), fade(0.9, 1.2));
+    let x2 = sx, y2 = sy;
+    if (t < 5.9) { const u = eio((t - 4.9) / 1); x2 = sx + (cx - sx) * u; y2 = sy + (cy - sy) * u; }
+    else if (t < 7) { x2 = cx; y2 = cy; }
+    else { const u = cl((t - 7) / 0.8); const g = u * u; x2 = cx + (1200 - cx) * u; y2 = cy + (456 - cy) * g; }
+    dot(x2, y2, mix(WHITE, RED, (t - 6.4) / 0.3), fade(4.8, 5.1));
+  }
+  renderVals() {
+    return {
+      setStage: (el) => { this.stage = el; },
+      replay: () => this.start()
+    };
+  }
+}
+</script>
+</body>
+</html>

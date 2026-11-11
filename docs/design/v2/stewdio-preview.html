@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:Geist;src:url(node_modules/geist/dist/fonts/geist-sans/Geist-Regular.woff2);font-weight:400}
+@font-face{font-family:Geist;src:url(node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2);font-weight:500}
+@font-face{font-family:Geist;src:url(node_modules/geist/dist/fonts/geist-sans/Geist-Bold.woff2);font-weight:700}
+body{margin:0;background:#000}</style></head><body><canvas id="c" width="1600" height="900"></canvas><script>
+// Mini re-implementation of the Stewdio scenes, using the same drawing code, to preview frames.
+const hex=h=>{h=h.replace('#','');const n=s=>parseInt(s,16)/255;return{r:n(h.slice(0,2)),g:n(h.slice(2,4)),b:n(h.slice(4,6)),a:h.length>6?n(h.slice(6,8)):1}};
+const css=(c,k=1)=>`rgba(${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)},${c.a*k})`;
+function bez(x1,y1,x2,y2,x){let t=x;for(let i=0;i<20;i++){const cx=3*x1*t*(1-t)**2+3*x2*t*t*(1-t)+t**3-x;const d=3*x1*(1-t)**2+6*(x2-x1)*t*(1-t)+3*(1-x2)*t*t;if(Math.abs(d)<1e-6)break;t-=cx/d;t=Math.max(0,Math.min(1,t))}return 3*y1*t*(1-t)**2+3*y2*t*t*(1-t)+t**3}
+function sample(kfs,t){if(t<=kfs[0][0])return typeof kfs[0][1]==='string'?hex(kfs[0][1]):kfs[0][1];const L=kfs[kfs.length-1];const fx=v=>typeof v==='string'?hex(v):v;if(t>=L[0])return fx(L[1]);for(let i=0;i<kfs.length-1;i++){const[a,va,e]=kfs[i],[b,vb]=kfs[i+1];if(t>=a&&t<b){let u=(t-a)/(b-a);if(e==='hold')return typeof va==='string'?hex(va):va;if(e)u=bez(...e,u);return lerp(va,vb,u)}}}
+function lerp(a,b,u){if(typeof a==='number')return a+(b-a)*u;if(Array.isArray(a))return a.map((x,i)=>x+(b[i]-x)*u);const A=hex(a),B=hex(b);return{r:A.r+(B.r-A.r)*u,g:A.g+(B.g-A.g)*u,b:A.b+(B.b-A.b)*u,a:A.a+(B.a-A.a)*u}}
+const D={
+ line(ctx,W,H,I){const p=Math.max(0,Math.min(1,I.draw));if(p<=0)return;const a=I.angle*Math.PI/180,cx=W*I.centerX,cy=H*I.centerY,dx=Math.cos(a),dy=Math.sin(a);const t0=(0-cx)/dx,t1=(W-cx)/dx;const x0=cx+dx*t0,y0=cy+dy*t0,x1=cx+dx*t1,y1=cy+dy*t1;const xe=x0+(x1-x0)*p,ye=y0+(y1-y0)*p;const col=css(I.lineColor);ctx.strokeStyle=col;ctx.lineWidth=I.thickness;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(xe,ye);ctx.stroke();if(p<1){ctx.shadowColor=col;ctx.shadowBlur=18;ctx.fillStyle=col;ctx.beginPath();ctx.arc(xe,ye,I.thickness*2.2,0,7);ctx.fill();ctx.shadowBlur=0}},
+ sphere(ctx,W,H,I){const cx=W/2,cy=H/2,R=Math.min(W,H)/2*I.radius,step=I.step,as=Math.max(0,Math.min(1,I.assemble));if(as<=0)return;const a=I.lineAngle*Math.PI/180,nx=-Math.sin(a),ny=Math.cos(a);let lx=I.lightX,ly=I.lightY;const l2=lx*lx+ly*ly;let lz=l2<1?Math.sqrt(1-l2):0;const ln=Math.hypot(lx,ly,lz)||1;lx/=ln;ly/=ln;lz/=ln;const top=css(I.topColor),bot=css(I.bottomColor);for(let gy=-R;gy<=R+.001;gy+=step)for(let gx=-R;gx<=R+.001;gx+=step){const d2=gx*gx+gy*gy;if(d2>R*R)continue;const sd=gx*nx+gy*ny;if(Math.abs(sd)<I.gap/2)continue;const z=Math.sqrt(Math.max(0,1-d2/(R*R)));const lit=gx/R*lx+gy/R*ly+z*lz;const sh=I.shadeFloor+(1-I.shadeFloor)*Math.max(0,lit);const t=Math.abs(sd)/R;const loc=Math.max(0,Math.min(1,(as*1.3-t)/.3));if(loc<=0)continue;const e=1-Math.pow(1-loc,3);const r=step*.48*sh*e;if(r<.35)continue;ctx.fillStyle=sd<0?top:bot;ctx.beginPath();ctx.arc(cx+gx,cy+gy,r,0,7);ctx.fill()}},
+ ring(ctx,W,H,I){const cx=W/2,cy=H/2,p=Math.max(0,Math.min(1,I.pulse)),c=I.ringColor,r=I.ringRadius*(1+.12*p);ctx.lineWidth=1.5;ctx.strokeStyle=css(c,.35+.65*p);if(p>0){ctx.shadowColor=css(c,p);ctx.shadowBlur=22*p}ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=css(c,.08+.12*p);ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill()},
+ icon(ctx,w,h,I){const p=Math.max(0,Math.min(1,I.draw));if(p<=0)return;ctx.strokeStyle=css(I.iconColor);ctx.lineWidth=Math.max(1,w*.11);ctx.lineCap='round';ctx.lineJoin='round';if(I.kind==='check'){const P=[[.16,.54],[.4,.76],[.86,.26]];const s1=Math.hypot((P[1][0]-P[0][0])*w,(P[1][1]-P[0][1])*h),s2=Math.hypot((P[2][0]-P[1][0])*w,(P[2][1]-P[1][1])*h);const len=(s1+s2)*p;ctx.beginPath();ctx.moveTo(P[0][0]*w,P[0][1]*h);const f1=Math.min(1,len/s1);ctx.lineTo((P[0][0]+(P[1][0]-P[0][0])*f1)*w,(P[0][1]+(P[1][1]-P[0][1])*f1)*h);if(len>s1){const f2=Math.min(1,(len-s1)/s2);ctx.lineTo((P[1][0]+(P[2][0]-P[1][0])*f2)*w,(P[1][1]+(P[2][1]-P[1][1])*f2)*h)}ctx.stroke()}else{const a=Math.min(1,p*2),b=Math.max(0,p*2-1);ctx.beginPath();ctx.moveTo(.22*w,.22*h);ctx.lineTo((.22+.56*a)*w,(.22+.56*a)*h);if(b>0){ctx.moveTo(.78*w,.22*h);ctx.lineTo((.78-.56*b)*w,(.22+.56*b)*h)}ctx.stroke()}},
+ dot(ctx,W,H,I){ctx.shadowColor=css(I.dotColor,.9);ctx.shadowBlur=I.glow;ctx.fillStyle=css(I.dotColor);ctx.beginPath();ctx.arc(W/2,H/2,I.dotRadius,0,7);ctx.fill();ctx.shadowBlur=0}
+};
+const E1=[.65,0,.35,1],EO=[.22,1,.36,1];
+const lineI={draw:1,angle:-10,centerX:.7,centerY:.5,thickness:1.5,lineColor:hex('#A79DB0B3')};
+const SCENES={
+hero:{bg:'#0E0912',layers:[
+ {g:'line',pos:[800,450],size:[1600,900],I:{...lineI},A:{draw:[[.2,0,E1],[1.5,1]]}},
+ {g:'sphere',pos:[1120,450],size:[700,700],I:{assemble:1,radius:.92,step:16,gap:14,lineAngle:-10,lightX:-.55,lightY:-.6,shadeFloor:.2,topColor:hex('#F5F3F7'),bottomColor:hex('#7B6CFF')},A:{assemble:[[1.1,0,EO],[3,1]],lightX:[[3,-.55,[.45,0,.55,1]],[7,-.25]],lightY:[[3,-.6,[.45,0,.55,1]],[7,-.45]]}},
+ {t:'A credit union\nfor the AI\neconomy.',pos:[120,140],anchor:[0,0],w:720,font:'700 84px Geist',lh:1.05,ls:-2.5,color:'#F5F3F7',F:{opacity:[[2,0,EO],[2.8,1]],position:[[2,[120,164],EO],[2.8,[120,140]]]}},
+ {t:'Members pool USDC and earn from every AI payment that proves itself.',pos:[120,440],anchor:[0,0],w:620,font:'400 28px Geist',lh:1.37,color:'#C3BACB',F:{opacity:[[2.6,0,EO],[3.4,1]]}},
+ {t:'Above the line: proven and paid',pos:[1180,92],anchor:[0,0],w:360,font:'500 18px Geist',lh:1.33,color:'#A59BFF',F:{opacity:[[3.4,0],[4.1,1]]}},
+ {t:'Below the line: refused and refunded',pos:[1180,784],anchor:[0,0],w:380,font:'500 18px Geist',lh:1.33,color:'#FF7A8C',F:{opacity:[[3.8,0],[4.5,1]]}},
+]},
+pay:{bg:'#0E0912',layers:[
+ {g:'line',pos:[800,450],size:[1600,900],I:{...lineI,centerX:.5},A:{draw:[[0,0,E1],[1,1]]}},
+ {g:'ring',pos:[800,450],size:[140,140],I:{pulse:0,ringRadius:30,ringColor:hex('#7B6CFF')},A:{pulse:[[2,0],[2.2,1],[3.6,1],[3.9,0],[5.9,0],[6.1,1],[6.9,1],[7.2,0]],ringColor:[[6.1,'#7B6CFF'],[6.3,'#FF5C73'],[7.2,'#FF5C73'],[7.6,'#7B6CFF']]}},
+ {t:'An AI agent pays for a DeepSeek V4.1 Flash answer',pos:[150,600],anchor:[0,0],w:560,font:'400 19px Geist',lh:1.3,color:'#C3BACB',F:{opacity:[[1,0],[1.4,1],[2.2,1],[2.6,0]]}},
+ {t:'Same claim, but the answer secretly came from GLM-5.3 Flash',pos:[150,600],anchor:[0,0],w:600,font:'400 19px Geist',lh:1.3,color:'#C3BACB',F:{opacity:[[4.9,0],[5.3,1],[6,1],[6.4,0]]}},
+ ...[[252,2.3,'Receipt signed by the model you paid for'],[294,2.75,'Money goes to the real company'],[336,3.2,'Inside the spending limit']].flatMap(([y,s,txt])=>[
+  {g:'icon',pos:[886,y],size:[28,28],I:{kind:'check',draw:1,iconColor:hex('#A59BFF')},A:{draw:[[s,0,EO],[s+.3,1]]},F:{opacity:[[3.7,1],[4,0]]}},
+  {t:txt,pos:[912,y],anchor:[0,.5],w:400,h:25,font:'500 19px Geist',lh:1.3,color:'#F5F3F7',F:{opacity:[[s,0],[s+.3,1],[3.7,1],[4,0]]}}]),
+ {g:'icon',pos:[886,252],size:[28,28],I:{kind:'cross',draw:1,iconColor:hex('#FF7A8C')},A:{draw:[[6.3,0,EO],[6.6,1]]},F:{opacity:[[7.3,1],[7.6,0]]}},
+ {t:'Receipt is from a cheaper model than you paid for',pos:[912,252],anchor:[0,.5],w:540,h:25,font:'500 19px Geist',lh:1.3,color:'#FF7A8C',F:{opacity:[[6.3,0],[6.6,1],[7.3,1],[7.6,0]]}},
+ {g:'dot',pos:[150,565],size:[90,90],I:{dotColor:hex('#F5F3F7'),dotRadius:9,glow:22},A:{dotColor:[[3.9,'#F5F3F7'],[4.5,'#A59BFF']]},F:{opacity:[[.9,0],[1.2,1]],position:[[1,[150,565],[.45,0,.2,1]],[2,[800,450],'hold'],[3.9,[800,450],[.3,0,.15,1]],[4.7,[1370,136]]]}},
+ {g:'dot',pos:[150,565],size:[90,90],I:{dotColor:hex('#F5F3F7'),dotRadius:9,glow:22},A:{dotColor:[[6.4,'#F5F3F7'],[6.7,'#FF5C73']]},F:{opacity:[[4.8,0],[5.1,1]],position:[[4.9,[150,565],[.45,0,.2,1]],[5.9,[800,450],'hold'],[7,[800,450],[.55,0,.9,.6]],[7.8,[1370,745]]]}},
+ {t:'Proven and paid',pos:[1330,108],anchor:[1,0],w:420,font:'700 30px Geist',lh:1.2,align:'right',color:'#F5F3F7',F:{opacity:[[4.5,0],[4.9,1]]}},
+ {t:'The provider gets paid, and 2% goes to the pool',pos:[1330,150],anchor:[1,0],w:460,font:'400 18px Geist',lh:1.33,align:'right',color:'#A79DB0',F:{opacity:[[4.7,0],[5.1,1]]}},
+ {t:'Refused and refunded',pos:[1330,715],anchor:[1,0],w:420,font:'700 30px Geist',lh:1.2,align:'right',color:'#FF7A8C',F:{opacity:[[7.6,0],[8,1]]}},
+ {t:'The money never left the budget',pos:[1330,757],anchor:[1,0],w:460,font:'400 18px Geist',lh:1.33,align:'right',color:'#A79DB0',F:{opacity:[[7.8,0],[8.2,1]]}},
+ {t:'Only proven payments cross the line.',pos:[120,790],anchor:[0,0],w:760,font:'700 36px Geist',lh:1.2,ls:-.5,align:'left',color:'#F5F3F7',F:{opacity:[[8.6,0,EO],[9.3,1]]}},
+]}};
+function wrap(ctx,text,w){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(' ')){const t=line?line+' '+word:word;if(ctx.measureText(t).width>w&&line){out.push(line);line=word}else line=t}out.push(line)}return out}
+window.renderAt=(name,t)=>{const S=SCENES[name],c=document.getElementById('c'),ctx=c.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.fillStyle=S.bg;ctx.fillRect(0,0,1600,900);
+ for(const L of S.layers){const F=L.F||{};const op=F.opacity?sample(F.opacity,t):1;const pos=F.position?sample(F.position,t):L.pos;if(op<=0)continue;ctx.save();ctx.globalAlpha=op;
+  if(L.g){const I={...L.I};for(const k in (L.A||{}))I[k]=sample(L.A[k],t);if(I.ringColor&&typeof I.ringColor==='string')I.ringColor=hex(I.ringColor);const [w,h]=L.size;ctx.translate(pos[0]-w/2,pos[1]-h/2);D[L.g](ctx,w,h,I)}
+  else{ctx.font=L.font;ctx.letterSpacing=(L.ls||0)+'px';const fs=parseFloat(L.font.split(' ')[1]);const lines=wrap(ctx,L.t,L.w);const H=L.h||lines.length*fs*L.lh;const x0=pos[0]-L.anchor[0]*L.w,y0=pos[1]-L.anchor[1]*H;ctx.fillStyle=L.color;ctx.textBaseline='middle';ctx.textAlign=L.align||'left';const ax=L.align==='right'?x0+L.w:L.align==='center'?x0+L.w/2:x0;lines.forEach((ln,i)=>ctx.fillText(ln,ax,y0+fs*L.lh*(i+.5)));if(window.DEBUG){ctx.strokeStyle='rgba(255,255,0,.4)';ctx.strokeRect(x0,y0,L.w,H)}}
+  ctx.restore()}};
+</script></body></html>
