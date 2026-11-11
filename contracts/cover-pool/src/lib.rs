@@ -234,6 +234,10 @@ pub struct StoredProposal {
     pub executed_at_ns: Option<u64>,
 }
 
+/// Raw storage key for WARD's icon (ft_metadata.icon), outside the borsh state.
+const WARD_ICON_KEY: &[u8] = b"ward_icon";
+const WARD_ICON_MAX: usize = 16_384;
+
 #[near]
 #[derive(BorshStorageKey)]
 pub enum StorageKey {
@@ -368,6 +372,11 @@ impl CoverPoolContract {
             price_history: Vec<WardPricePoint>,
         }
 
+        // Already the current shape: nothing to migrate (kept from Tharun's 276b5ab).
+        if let Some(state) = env::state_read::<Self>() {
+            return state;
+        }
+
         if let Some(old) = env::state_read::<OldCoverPoolContractWithGov>() {
             let mut proposal_snapshots = IterableMap::new(StorageKey::ProposalSnapshots);
             for (acc, &bal) in old.positions.iter() {
@@ -456,6 +465,9 @@ impl CoverPoolContract {
         self.senior_shares = self.senior_shares.saturating_add(shares);
         let existing = self.positions.get(account).copied().unwrap_or(0);
         self.positions.insert(account.clone(), existing.saturating_add(shares));
+        if shares > 0 {
+            events::ft_mint_event(account.as_str(), &shares.to_string(), None);
+        }
         shares
     }
 
@@ -473,10 +485,28 @@ impl CoverPoolContract {
             spec: "ft-1.0.0".to_string(),
             name: "Wardline Mutual share".to_string(),
             symbol: "WARD".to_string(),
-            icon: None,
+            icon: env::storage_read(WARD_ICON_KEY).and_then(|b| String::from_utf8(b).ok()),
             reference: None,
             reference_hash: None,
             decimals: 6,
+        }
+    }
+
+    /// Owner only: WARD's wallet icon, a data:image URL (the Horizon mark). None clears it. Kept in its own
+    /// storage key, outside the contract state, so it can change without a migration.
+    pub fn set_icon(&mut self, icon: Option<String>) {
+        require!(env::predecessor_account_id() == self.owner, "Only the owner can set the icon");
+        match icon {
+            Some(icon) => {
+                require!(icon.starts_with("data:image/"), "The icon must be a data:image URL");
+                require!(icon.len() <= WARD_ICON_MAX, "The icon must be 16 KB or less");
+                env::storage_write(WARD_ICON_KEY, icon.as_bytes());
+                events::param_set("icon", &format!("{} bytes", icon.len()));
+            }
+            None => {
+                env::storage_remove(WARD_ICON_KEY);
+                events::param_set("icon", "cleared");
+            }
         }
     }
 
@@ -630,9 +660,13 @@ impl CoverPoolContract {
         if unused > 0 {
             let receiver_bal = self.positions.get(&receiver_id).copied().unwrap_or(0);
             let to_refund = unused.min(receiver_bal);
-            self.positions.insert(receiver_id, receiver_bal.saturating_sub(to_refund));
+            self.positions.insert(receiver_id.clone(), receiver_bal.saturating_sub(to_refund));
             let sender_bal = self.positions.get(&sender_id).copied().unwrap_or(0);
-            self.positions.insert(sender_id, sender_bal.saturating_add(to_refund));
+            self.positions.insert(sender_id.clone(), sender_bal.saturating_add(to_refund));
+            // The refund is a transfer back, as NEP-141's own implementation logs it.
+            if to_refund > 0 {
+                events::ft_transfer_event(receiver_id.as_str(), sender_id.as_str(), &to_refund.to_string(), Some("refund"));
+            }
         }
 
         U128(unused)
@@ -863,6 +897,9 @@ impl CoverPoolContract {
                 &withdrawal.shares.to_string(),
                 &usdc_payout.to_string(),
             );
+            if withdrawal.shares > 0 {
+                events::ft_burn_event(account.as_str(), &withdrawal.shares.to_string(), None);
+            }
 
             return PromiseOrValue::Value(RedeemResultView {
                 tx: format!("{}:rd:{}", env::current_account_id(), now_ns),
@@ -914,6 +951,9 @@ impl CoverPoolContract {
             &shares.to_string(),
             &usdc_payout.to_string(),
         );
+        if shares > 0 {
+            events::ft_burn_event(account.as_str(), &shares.to_string(), None);
+        }
 
         RedeemResultView {
             tx: format!("{}:rd:{}", env::current_account_id(), now_ns),
@@ -1342,7 +1382,7 @@ impl CoverPoolContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use near_sdk::test_utils::VMContextBuilder;
+    use near_sdk::test_utils::{get_logs, VMContextBuilder};
     use near_sdk::testing_env;
 
     #[test]
@@ -2266,5 +2306,155 @@ mod tests {
         );
 
         pool.set_param("withdraw_delay_days".to_string(), "100".to_string());
+    }
+
+    // NEP-141 events and the WARD icon (A18).
+
+    fn ctx(predecessor: &AccountId, ts: u64, deposit: u128) {
+        testing_env!(VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(predecessor.clone())
+            .block_timestamp(ts)
+            .attached_deposit(NearToken::from_yoctonear(deposit))
+            .build());
+    }
+
+    fn fresh_pool(owner: &AccountId, token: &AccountId) -> CoverPoolContract {
+        ctx(owner, 0, 0);
+        CoverPoolContract::new(owner.clone(), token.clone(), "wardline.testnet".parse().unwrap(), U128(20_000_000), Some(7), None, None, None, None)
+    }
+
+    /// The one nep141 event in the logs with this name, parsed.
+    fn nep141(event: &str) -> near_sdk::serde_json::Value {
+        let logs = get_logs();
+        let found: Vec<near_sdk::serde_json::Value> = logs
+            .iter()
+            .filter_map(|l| l.strip_prefix("EVENT_JSON:"))
+            .map(|j| near_sdk::serde_json::from_str::<near_sdk::serde_json::Value>(j).unwrap())
+            .filter(|v| v["standard"] == "nep141" && v["event"] == event)
+            .collect();
+        assert_eq!(found.len(), 1, "exactly one {} event in {:?}", event, logs);
+        found.into_iter().next().unwrap()
+    }
+
+    #[test]
+    fn a_deposit_logs_ft_mint_with_the_spec_fields() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let lp: AccountId = "lp1.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&token, 1_000, 0);
+        let _ = pool.ft_on_transfer(lp.clone(), U128(10_000_000), "".to_string());
+        assert_eq!(
+            nep141("ft_mint"),
+            near_sdk::serde_json::json!({ "standard": "nep141", "version": "1.0.0", "event": "ft_mint", "data": [{ "owner_id": "lp1.testnet", "amount": "10000000" }] })
+        );
+    }
+
+    #[test]
+    fn fees_and_first_loss_mint_no_ward_so_log_no_ft_mint() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&token, 1_000, 0);
+        let _ = pool.ft_on_transfer("meter.testnet".parse().unwrap(), U128(1_000), "{\"fee\":true}".to_string());
+        assert!(get_logs().iter().all(|l| !l.contains("\"ft_mint\"")));
+    }
+
+    #[test]
+    fn ft_transfer_logs_ft_transfer_with_and_without_memo() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let a: AccountId = "lp1.testnet".parse().unwrap();
+        let b: AccountId = "lp2.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&token, 1_000, 0);
+        let _ = pool.ft_on_transfer(a.clone(), U128(10_000_000), "".to_string());
+
+        ctx(&a, 2_000, 1);
+        pool.ft_transfer(b.clone(), U128(3_000_000), Some("thanks".to_string()));
+        assert_eq!(
+            nep141("ft_transfer"),
+            near_sdk::serde_json::json!({ "standard": "nep141", "version": "1.0.0", "event": "ft_transfer", "data": [{ "old_owner_id": "lp1.testnet", "new_owner_id": "lp2.testnet", "amount": "3000000", "memo": "thanks" }] })
+        );
+
+        ctx(&a, 3_000, 1);
+        pool.ft_transfer(b.clone(), U128(2_000_000), None);
+        assert_eq!(
+            nep141("ft_transfer"),
+            near_sdk::serde_json::json!({ "standard": "nep141", "version": "1.0.0", "event": "ft_transfer", "data": [{ "old_owner_id": "lp1.testnet", "new_owner_id": "lp2.testnet", "amount": "2000000" }] })
+        );
+    }
+
+    #[test]
+    fn ft_transfer_call_logs_ft_transfer() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let a: AccountId = "lp1.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&token, 1_000, 0);
+        let _ = pool.ft_on_transfer(a.clone(), U128(10_000_000), "".to_string());
+        ctx(&a, 2_000, 1);
+        let _ = pool.ft_transfer_call("market.testnet".parse().unwrap(), U128(1_500_000), None, "".to_string());
+        assert_eq!(
+            nep141("ft_transfer"),
+            near_sdk::serde_json::json!({ "standard": "nep141", "version": "1.0.0", "event": "ft_transfer", "data": [{ "old_owner_id": "lp1.testnet", "new_owner_id": "market.testnet", "amount": "1500000" }] })
+        );
+    }
+
+    #[test]
+    fn a_redemption_logs_ft_burn_when_it_pays_out() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let a: AccountId = "lp1.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&token, 1_000, 0);
+        let _ = pool.ft_on_transfer(a.clone(), U128(10_000_000), "".to_string());
+        ctx(&a, 2_000_000_000, 0);
+        let req = pool.request_redeem(U128(4_000_000));
+        // Locking is not a burn: the WARD is still the holder's until it pays out.
+        assert!(get_logs().iter().all(|l| !l.contains("\"ft_burn\"")));
+        ctx(&a, 2_000_000_000 + 7 * 86_400 * 1_000_000_000 + 1, 0);
+        let _ = pool.redeem(a.clone(), req.id);
+        assert_eq!(
+            nep141("ft_burn"),
+            near_sdk::serde_json::json!({ "standard": "nep141", "version": "1.0.0", "event": "ft_burn", "data": [{ "owner_id": "lp1.testnet", "amount": "4000000" }] })
+        );
+    }
+
+    #[test]
+    fn ft_metadata_returns_the_icon_the_owner_set() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        assert_eq!(pool.ft_metadata().icon, None);
+        let icon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E".to_string();
+        ctx(&owner, 1_000, 0);
+        pool.set_icon(Some(icon.clone()));
+        let meta = pool.ft_metadata();
+        assert_eq!(meta.icon, Some(icon));
+        assert_eq!((meta.symbol.as_str(), meta.decimals), ("WARD", 6));
+        pool.set_icon(None);
+        assert_eq!(pool.ft_metadata().icon, None);
+    }
+
+    #[test]
+    #[should_panic(expected = "Only the owner can set the icon")]
+    fn a_non_owner_cannot_change_the_icon() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&"mallory.testnet".parse().unwrap(), 1_000, 0);
+        pool.set_icon(Some("data:image/svg+xml,x".to_string()));
+    }
+
+    #[test]
+    #[should_panic(expected = "The icon must be a data:image URL")]
+    fn the_icon_must_be_a_data_image_url() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let mut pool = fresh_pool(&owner, &token);
+        ctx(&owner, 1_000, 0);
+        pool.set_icon(Some("https://example.com/ward.png".to_string()));
     }
 }
