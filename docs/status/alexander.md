@@ -1,5 +1,65 @@
 # Status: alexander
 
+## A18: WARD emits NEP-141 events and carries the Horizon icon (2026-11-11)
+
+### Part 1: already merged, skipped
+A16 was already on main. Tharun merged it as `5a8a5c6`, and A17 re-ran every check on this machine. Main was `d91bca6` when this started, and `alexander` matched it. Part 2 is on `alexander` only and is not merged into main.
+
+### Part 2: events and logo, deployed to pool.wardline-labs.testnet
+
+**Contract** (`contracts/cover-pool`, commit `d048a22`):
+- **Events:** NEP-297 `EVENT_JSON` logs with standard `nep141`, version `1.0.0`, using the spec's field names:
+  - `ft_mint` (`owner_id`, `amount`) when a deposit mints WARD;
+  - `ft_burn` (`owner_id`, `amount`) when a redemption pays out (locking WARD for redemption is not a burn);
+  - `ft_transfer` (`old_owner_id`, `new_owner_id`, `amount`) on `ft_transfer`, `ft_transfer_call` and the `ft_resolve_transfer` refund (memo `refund`).
+
+  `memo` appears only when there is one. Fees and the first-loss stake mint no WARD, so they log no `ft_mint`.
+- **Icon:** owner-only `set_icon(icon: Option<String>)`. It accepts only a `data:image/` URL of 16 KB or less, and None clears it. `ft_metadata.icon` reads it from its own storage key (`ward_icon`), outside the contract state, so it can change later with no migration.
+- **Tests:** 8 new unit tests, 25 of 25 passing for the pool. They cover each event's exact JSON (`ft_mint`; `ft_transfer` with and without memo; `ft_transfer` from `ft_transfer_call`; `ft_burn` only at payout), no `ft_mint` for fees, `ft_metadata` returning the icon (and None after clearing), a non-owner refused, and a non-data icon refused.
+
+**Icon:** the favicon's Horizon mark (same `horizonDots` generator and parameters: R 98, step 16, light [-0.45, -0.5], on the `#0E0912` rounded square).
+- 96 dots, grouped by color, coordinates rounded, no metadata.
+- **3,418 bytes as SVG, 3,855 bytes as the data URL.**
+- Checked at 32, 48 and 200 px.
+
+**Deploy** (pool key, deploy only; no migrate was needed because the state layout didn't change):
+- **Saved first** to `%USERPROFILE%\.wardline\testnet\`:
+  - `a18-pre-upgrade.json`: `get_pool`, `ft_metadata`, `ft_total_supply`, `governance_params`, the 4 proposals, the 2 claims, and the WARD balances and positions of hyperios.testnet, lp-north, lp-harbor, lp-solano and dana.
+  - `a18-pool-before.wasm`: the on-chain wasm from `view_code` (315,535 bytes, code hash `Cu1apNGBvA6vqWfYSnnFqeLTwZVrCe4H8ve2TagoG7Rg`), ready for a rollback.
+- **Deploy tx:** [`2dbpowKhwUtq7khK3EyGNGAWaFsVHGLas7Pma6xYKu6r`](https://testnet.nearblocks.io/txns/2dbpowKhwUtq7khK3EyGNGAWaFsVHGLas7Pma6xYKu6r). The wasm is 318,509 bytes, and the new code hash `2qY1gC2u6PessLcZPNK3mqJYNNDRzQZ2ohCdJcdHPtwD` equals the local build's.
+- **set_icon tx:** [`GdAKbDnwPGbwzLACq5ue1Pwt6nRRj5TfX9K414PhrBJZ`](https://testnet.nearblocks.io/txns/GdAKbDnwPGbwzLACq5ue1Pwt6nRRj5TfX9K414PhrBJZ), signed by the owner, wardline-labs.testnet. `ft_metadata.icon` now returns the mark, **3,855 bytes**.
+- **Before and after:** identical after the deploy and again after `set_icon`, comparing `ft_metadata` without the icon. That covers:
+  - the pool: TVL 12.150305 USDC, WARD supply 11.715742;
+  - governance params, all proposals and claims;
+  - every saved balance and position: hyperios 9.996121, lp-north 0.269936, lp-harbor 0.249949, lp-solano 0.100000, dana 0.999736 WARD.
+
+  Storage went from 329,017 to 335,895 bytes (+2,974 for code, +3,904 for the icon), paid from the pool's own 3.5 NEAR.
+- `pnpm testnet:audit` passes: 202 of 202 rows, 0 misses.
+
+**Windows toolchain notes:**
+- **Rust:** 1.95.0 with the GNU host (`x86_64-pc-windows-gnu`, since this machine has no MSVC build tools), plus the `wasm32-unknown-unknown` target.
+- **cargo-near 0.22.0:** the prebuilt release, SHA-256 checked.
+- **Binutils:** GNU builds need a working `dlltool` and assembler. Rust's bundled `dlltool` can't run without `as.exe`, so WinLibs GCC 16.2 (portable, in `%USERPROFILE%\.wardline-mingw`) supplies `as` and `dlltool`. For `cargo test` it also supplies `gcc`, `cmake` and `nasm` (`aws-lc-sys` comes in through near-sdk's unit-testing feature).
+- **No ABI embedded:** `cargo near build` can't generate the ABI on the GNU host (it fails to link near-sdk's host functions), so the wasm is built with `--no-abi`. The previous wasm may have had one; nothing calls it.
+- **Build output** goes to `%USERPROFILE%\.wardline-target`, outside OneDrive.
+
+**What a wallet will show:** the contract now announces every WARD move. But balances minted before this deploy were never announced, so a wallet or indexer that discovers tokens from events may not list WARD for hyperios.testnet until an event involves that account (its next deposit, a redemption, or a WARD transfer). Adding the token by contract (`pool.wardline-labs.testnet`) in Meteor works now, with the icon.
+
+### Part 3: Tharun had done it too; mine is deployed
+- **What Tharun had:** `origin/tharun` has `276b5ab`, "emit standard NEP-141 event logs and upgrade cover pool on testnet", which isn't on main. It was what was deployed: the old on-chain wasm contains his `ft_mint`, `ft_burn` and `refund` strings, and no `set_icon`.
+- **Kept:** his `migrate` fix, which returns state already in the current shape unchanged. It doesn't overlap with this task.
+  - **Caveat:** near-sdk's `state_read` panics, rather than returning None, when stored state is an older shape. So with this line, migrating from an older shape would fail instead of falling through. Nothing on chain is an older shape, and this deploy didn't call `migrate`.
+- **Replaced with mine:**
+  - the NEP-141 event helpers in `events.rs`;
+  - `ft_mint` in `mint`;
+  - `ft_burn` on both redeem paths;
+  - the refund `ft_transfer` in `ft_resolve_transfer`;
+  - his event test (`test_nep141_event_logs_exact_json`), replaced by the tests above.
+
+  His event JSON had the same field names, so indexers see the same shapes either way. The icon is new in mine.
+- **Not taken, outside this task's files:** `scripts/contracts/src/upgrade-nep141.ts` and his `docs/status/tharun.md` notes.
+- **On chain:** mine replaced his build (code hash `Cu1apNGB…` became `2qY1gC2u…`), with the state saved and compared first.
+
 ## A17: checks re-run on this machine, alexander and main in sync (2026-11-11)
 
 - **Re-run** with one worker and doubled timeouts, because OneDrive sync was taking about two cores. Everything passed on `29e7dfc` (A16):
