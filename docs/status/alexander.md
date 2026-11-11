@@ -1,5 +1,29 @@
 # Status: alexander
 
+## Team split from 2026-11-11: Tharun on backend, Alexander on UI
+
+From tonight Tharun owns the backend: contracts, `packages/vault-client`, `services/api`, the testnet scripts and the scheduled task. Alexander owns the UI: `apps/web`, the wallet picker and connect flow, and the pages. A change that crosses the line goes to the other owner for review.
+
+## A19: NEAR AI key 2 checked, alexander merged into main (2026-11-11)
+
+- **NEAR AI keys:** one models-list request each, no completion.
+  - `NEAR_AI_API_KEY` and `NEAR_AI_API_KEY_2` both answer HTTP 200 with 63 models, DeepSeek V4.1 Flash among them. The two keys differ.
+  - NEAR AI's models response carries no credit or balance, so remaining credit isn't shown.
+  - The scripts' own ledger (main's `data/testnet/nearai-spend.json`): key 1 has 134 calls for $0.0241; key 2 has 0. The hard cap is 450 calls.
+- **Where the key comes from:**
+  - `pnpm testnet:batch` and `pnpm testnet:scheduled` read the repo `.env` (`loadDotEnv`).
+  - The scheduled task's clone reads this same `.env` in place (`WARDLINE_DOTENV` in `scheduled-run.cmd`), so key 2 is available to it, and nothing is copied.
+- **When it switches** (`scripts/testnet/simulate.ts`, `activeKey`):
+  - from key 1 to key 2 when key 1's remaining credit drops under 1 USD, where remaining credit is `NEAR_AI_KEY_1_CREDIT_USD` minus the ledger's key 1 spend;
+  - or when NEAR AI refuses key 1 with HTTP 402 or 401.
+
+  The switch is saved in the ledger (`current_key`).
+- **What isn't set:** `NEAR_AI_KEY_1_CREDIT_USD` isn't set, so the under-1-USD rule can't be computed. Today only a refusal from NEAR AI would switch. A 401 (an invalid or revoked key) also switches, which is broader than the credit rule.
+- **Next scheduled batch:** key 1 (`current_key: key_1`).
+- **Merge:** `alexander` was main plus A18, a fast-forward with no conflicts.
+  - Checks first, with one worker and doubled timeouts: the pool's cargo tests, then `pnpm test` (brand, build, every package).
+  - Main is now this commit; `alexander` matches it.
+
 ## A18: WARD emits NEP-141 events and carries the Horizon icon (2026-11-11)
 
 ### Part 1: already merged, skipped
