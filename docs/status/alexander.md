@@ -1,5 +1,184 @@
 # Status: alexander
 
+## A21: real-product polish pass on apps/web (2026-11-11)
+
+On `alexander` only; main is untouched. Only `apps/web` changed: no route changes, no transactions, and nothing loops forever.
+
+### Findings: what changed, and what's only flagged
+
+Each entry: file:line, then the old text, then the new text. All are applied unless they say flagged.
+
+**1. Replay buttons (applied)**
+- **The explainer**, `src/v2/Explainer.tsx:324` (Home and How it works).
+  - Old: a Replay button, its `playKey` state and handler, and the `.replay` style.
+  - New: no button. It plays once in view and rests on its last frame.
+  - `playKey` is also gone from `src/v2/motion.ts`. The constants objects (`TIMELINE`, `WIDE`, `NARROW`) are kept.
+- **How it works**, `src/views/site/HowItWorks.tsx:216`.
+  - Old: "Run again" after a step had run.
+  - New: the step button shows only before the step runs. On an error, the error's own Try again stays.
+- **No other replay controls:** the terminal on the vault page had no replay or loop, only a stale comment, now corrected.
+
+**2. Section 2 subtitle (applied)**
+- `src/brand.ts:845`: "Ten seconds, two real cases from our practice network." → "Two payments, ten seconds apart."
+
+**3. Network badges (applied)**
+- **Hero label**, `src/brand.ts:62`: "Live from NEAR testnet" → "Live". It still shows only with the testnet data source.
+- **Footer**, `src/views/site/SiteChrome.tsx` (removed line):
+  - Old: the "NEAR testnet" footer badge, with `FOOTER.testnet` and its `.foot-net` style.
+  - New: removed.
+- **Wallet panel**, `src/wallets/WalletPanel.tsx:149` and `:203`: a new small "NEAR testnet" line (dot plus 12px text) in the picker and the connected view, from `WALLET.network(NEAR_NETWORK)` at `src/brand.ts:181`. This is now the only network indicator.
+- **Found by grep, same kind:**
+  - `src/brand.ts:149` approvingNote: "...on NEAR testnet." → "...on NEAR."
+  - `src/brand.ts:191` nearConnectNote: "Only wallets that work on NEAR testnet are listed." → "Only wallets that work on this network are listed."
+  - `src/brand.ts:809` the transactions loading line: "...from NEAR testnet" → "...from NEAR".
+  - `src/brand.ts:779` walletTransaction: "On testnet the Mutual takes real transactions..." → "The Mutual takes real transactions...".
+  - `src/views/site/Home.tsx` (removed line) plus `HOME.modeNear` / `HOME.modeMixed`: the "...run on NEAR testnet" / "...are simulated until their contracts are deployed" note under Hold a share is removed.
+
+**4. /demo becomes How it works (applied)**
+- **Nav and footer**, `src/brand.ts:33` and `:46`: "Demo" (`#/demo`) → "How it works" (`#/how-it-works`).
+- **Routing**, `src/router.ts:37`: `#/how-it-works` is an alias of the same page. `#/demo` still opens it, with no redirect.
+- **Page file**, `src/views/site/Demo.tsx` → `src/views/site/HowItWorks.tsx`, and the export `Demo` → `HowItWorks`, so the built chunk is no longer named Demo. The page id stays `demo` inside the router.
+- **Heading**, `src/brand.ts:311`: "Seven scenes, real code paths" → "How it works".
+- **Lede**, `src/brand.ts:314`:
+  - Old: "Each scene runs the real Mutual... against simulated contracts and recorded NEAR AI traffic."
+  - New: "Seven steps through Wardline: how a member joins, how a group pays for AI, what happens when something is wrong, and who covers a mistake. Each step runs Wardline's own checks and shows the numbers they produce."
+- **Live line**, `src/brand.ts:312`: "These scenes run offline. The same checks run live on NEAR testnet:" → "The same checks run on every payment that goes through Wardline:"
+- **Step counter**, `src/views/site/HowItWorks.tsx:207` and `src/brand.ts:315`: "Scene 1 of 7" → "Step 1 of 7".
+- **Button**, `src/brand.ts:316`: "Run scene" → "See what happens". At `:318`: "Next scene" → "Next step".
+- **Eval block**, `src/views/site/HowItWorks.tsx:289` and `src/brand.ts:449`:
+  - Old: "30 cases, 20 of them scams, through the invoice agent on z-ai/glm-5.3-flash... When the agent already had the vendor's account on file: ..."
+  - New: "Without Wardline the agent paid 5 of 20 scams. With it, none." This is computed from the same numbers; no model id and no case counts.
+- **Proof page link**, `src/views/site/Proof.tsx`: "Watch it refuse a swapped model" now links to `#/how-it-works`.
+
+**5. Proof page stats (applied)**
+- **Title**, `src/brand.ts:248`: "Scam payees, thrown at the checks." → "Scam payees, stopped before they're paid."
+- **Labels and captions**, `src/views/site/Proof.tsx:63` and `src/brand.ts:249`:
+  - "Attacks stopped" / "159 written, 48 model-invented" → "Scams caught" / "of scam payees held before any money moved".
+  - "Unsafe payments" / "PAY on a scam payee" → "Scams paid" / "payments that reached a scam payee".
+  - "False positives" / "40 legitimate invoices" → "Real invoices held" / "of genuine invoices wrongly held".
+  - "Check latency" / "p50 in process, p95 0.305 ms" → "Time to check" / "added to a payment, typically".
+- The four headline numbers are unchanged.
+
+**6. Latest proofs (applied)**
+- **Collapsed repeats**, `src/views/site/Proof.tsx:30` and `:123`: back-to-back rows with the same group, outcome and side show once, with a "×3" count. Screen readers hear ", 3 times in a row".
+- **More rows read:** the table reads 30 rows and shows up to 12 after collapsing.
+- **Amounts**, `src/views/site/Proof.tsx:14`:
+  - Old: always six decimals ("0.000000 USDC").
+  - New: two decimals, "<0.01" for a fraction of a cent, and "0.00" when nothing moved.
+- **Empty state**, `src/brand.ts:236`: "No calls yet. Run a scene in the demo, or point..." → "No calls yet. Point an OpenAI client at /v1/ai with a meter key, and its first proof appears here."
+
+**7. Dev addresses in code samples (applied)**
+- **One constant**, `src/config.ts:25` and `:36`:
+  - Old: samples showed `http://127.0.0.1:8787` and `:8790/mcp` whenever the page was served locally.
+  - New: `PUBLIC_API_URL` / `PUBLIC_MCP_URL` read `VITE_PUBLIC_API_URL` / `VITE_PUBLIC_MCP_URL`, then the old `VITE_WARDLINE_*`, then `repo.config.json` hosted, then the clearly named `PLACEHOLDER_API_URL` / `PLACEHOLDER_MCP_URL` (`https://your-wardline-api.example`). I didn't choose a production domain; a `TODO(alexander)` marks the placeholder.
+- **Removed:** `LOCAL_API_URL`, `LOCAL_MCP_URL` and `servedLocally`. `config.ts` and `brand.ts` now use named JSON imports, so the local block of `repo.config.json` no longer reaches the JS bundle.
+- **Placeholder note**, `src/brand.ts:456`: "...Run Wardline locally (see the README) and they show your local API..." → "Replace the placeholder address with your Wardline API's address."
+
+**8. The vault page (applied)**
+- **Terminal labels**, `src/components/Terminal.tsx:19` and `:20`:
+  - Old: "malicious-signer.ts" / "vault-a.wardline.testnet".
+  - New: "A stolen agent key tries six ways out" / "Agent vault".
+  - The aria-label goes from "Attack script output" to "Six attempts with a stolen agent key, each refused by the vault". The error codes are unchanged.
+- **Lede**, `src/views/site/Vault.tsx:19`: "No AI here. Just the agent's own key, trying every way out." → "A stolen agent key tries six ways out. The vault refuses every one by itself, before any money moves."
+- **Heading:** the page title is now an `h1`; the page had none. The copy moved to `VAULT` in brand.ts.
+
+**9. Footer (applied, plus one flag)**
+- **llms.txt**, `src/brand.ts:47`: dropped from the main footer. It's still linked on Developers, where it already had its own block.
+- **Flagged, unchanged:** "Owner sign-in" in the footer.
+
+**12. Phone transaction card (applied)**
+- `src/v2/v2.css:186`: on phones, WARD, the hash and the status now end on the same right edge.
+
+### Flagged only, not changed
+
+**10. Seed-looking data**
+- **Group names:** "Ivan (solo)", "Lucas (solo)" (0 proven) and the other solo budgets come from the chain via `/v1/communities`. They aren't in `apps/web`; renaming them is a backend or chain change (Tharun). Hiding groups with 0 proven calls from the sphere row would be a UI option if you want it.
+- **`maya.testnet`:** hard-coded in How it works step 1 copy (`src/brand.ts:343`). The step's result row also comes from the `/v1/demo` API. The copy could change, but the result would still say maya.testnet unless the API changes.
+- **`.example` domains, all hard-coded in apps/web:**
+  - Check a payee examples: `src/views/site/TryIt.tsx:15-34`, northwind / fernhill / unknown-shop.example;
+  - the About invoice: `src/views/site/About.tsx:38` and `:82`, ap@northwind.example;
+  - the Developers samples: `src/views/site/Connect.tsx:40-65`;
+  - step 5 copy: `src/brand.ts:378`.
+
+  The Try and Developers ones must match domains actually registered in the payee registry on chain, or the checks stop returning their verdicts. Swapping in realistic names means registering them there first (backend). The About invoice is pure illustration and could change on its own.
+
+**11. Other things a customer might notice**
+- **"Loading the Mutual"** (`src/views/site/Home.tsx:73`): screen-reader-only text (`sr-only`) inside the Home skeleton while `/v1/mutual` loads. It isn't meant to be visible. If you saw it on screen, that was most likely the first unstyled paint on a cold dev-server load. Worth a look on a production build.
+- **The owner app** (behind Owner sign-in) still says "Simulate compromised agent" / "Simulated compromise ON" and lists "Business A (vault-a)" / `vault-a.wardline.testnet` (`src/views/Dashboard.tsx:35`, `:146`). Not changed, with Owner sign-in.
+- **`TX.simulated`** ("Simulated transaction ab12cd34", `src/brand.ts:787`) shows only in sim mode, for ids that aren't on chain. It's honest labelling, so I kept it.
+- **Faucet errors** (`src/brand.ts:777-778`, notEnoughUsdc / notEnoughNear) name testnet faucets. They're actionable on testnet and would need new wording on mainnet.
+- **`ERRORS.notWired`** ("This view isn't connected to testnet data yet... Switch WARDLINE_DATA back to sim") is a developer-facing data-source error.
+- **`public/llms.txt`:**
+  - It still shows the `127.0.0.1` addresses and says "Reputation tiers and voting are simulated until their contracts deploy".
+  - The local addresses are what `tests/brand.test.mjs` requires while `repo.config.json`'s hosted block is empty. The "simulated" sentence is stale, since tiers and voting are on chain now.
+  - I left both for you: the file is agent-facing, and the brand test owns its addresses.
+- **No visible "TODO", "mock", "sample", "beta", "hackathon", "v2" or "reference"** in any rendered string, alt or aria text, or `index.html` meta. The only TODO is a code comment in `src/config.ts`, which is stripped from the build.
+- **No "undefined"/"NaN" paths** found in rendered templates.
+
+**Proposed BRAND.md edit (not made):** in Motion, replace "One animated moment, the hero" with: "Four animated moments: the hero, Watch a payment cross the line, the group spheres and the personal sphere. Each plays once (the explainer when scrolled into view) and rests on its last frame; only the hero's light drifts, one cycle per 24 seconds. Under reduced motion each shows its final frame." Also drop "animated lines other than the hero cut" from Never, since the explainer draws its own line.
+
+### Built output: every remaining hit
+
+From `pnpm --filter @wardline/web build`; hits outside source maps.
+
+- **"Replay" (3):**
+  - React's internal `$$reactFormReplay`;
+  - the proof error code `REPLAYED` ("This signed response was already paid for"), a real check;
+  - the schema enum `replay` in payee-check provenance;
+  - `llms.txt` listing `REPLAYED`.
+
+  None is a button or visible copy.
+- **"demo" (8):**
+  - the internal page id `demo` and the `#/how-it-works`→`demo` alias, kept so `#/demo` works;
+  - the `/v1/demo/:scene` API path, unchanged since routes are off limits;
+  - the CSS class `.demo`;
+  - zod's `$ZodEmoji` (a substring match).
+
+  None is visible copy.
+- **"testnet" (78), all on-chain or configuration:**
+  - the deployed contract ids (`*.wardline-labs.testnet`) and the account ids in examples;
+  - CAIP-10 chain ids `near:testnet` in the payee check;
+  - `NEAR_NETWORK`'s default and the RPC and explorer hosts;
+  - the wallet panel's network line;
+  - the faucet errors and notWired (above);
+  - the owner app's vault ids;
+  - NEAR Connect's own `providers.testnet`;
+  - `llms.txt`.
+
+  Visible copy now names testnet only in the wallet panel, in account ids, and in testnet-only error advice.
+- **"127.0.0.1" (7):** all in `llms.txt` (brand-test owned, above). None in JS, CSS or HTML. The source map of the config chunk still holds the JSON source; source maps are emitted by the existing build config.
+- **"practice" (0).**
+- **"simulated" (5):**
+  - `TX.simulated` (sim mode only);
+  - the owner app's two "Simulate compromised agent" strings;
+  - the payee-check schema enum `simulated-compromise`;
+  - `llms.txt`.
+- **"offline" (0)** outside source maps; one in a `.map`.
+
+### Checks
+- **`pnpm test` passes:** the brand test 7 of 7, the full build, then every package (web 140, api 252, agent 117, payee-check 89, sdk 59, x402-guard 53, vault-sim 50, redteam 34, schemas 31, evaluator 26, vault-client 14, dao-adapter 13, mcp 13, demo-provider 5).
+- **New web unit tests:** the `#/how-it-works` alias, proof amounts, row collapsing, and an explainer with no buttons.
+- **e2e, one worker and doubled timeouts:** Chromium 54 of 54 and iPhone WebKit 12 of 12. The specs now check:
+  - no Replay and no rerun button;
+  - "How it works" in the nav, with both addresses;
+  - "Step 1 of 7" and the one-sentence outcome;
+  - no network badge in the footer;
+  - the placeholder snippet address, never 127.0.0.1.
+
+**Screenshots, retaken** (`apps/web/screenshots/`, git-ignored, local only): `v2-home-1440/390`, `v2-explainer-{2,4.5,6.8,9.6}s-1440/390`, `v2-groups-1440/390`, `v2-share-1440/390`.
+
+### Files touched
+- **apps/web/src:**
+  - `brand.ts`, `config.ts`, `router.ts`, `App.tsx`, `virtual.d.ts`;
+  - `components/Terminal.tsx`;
+  - `theme/base.css`;
+  - `v2/Explainer.tsx`, `v2/motion.ts`, `v2/v2.css`;
+  - `views/site/Demo.tsx` → `views/site/HowItWorks.tsx`, `views/site/Home.tsx`, `views/site/Proof.tsx`, `views/site/SiteChrome.tsx`, `views/site/Vault.tsx`;
+  - `wallets/WalletPanel.tsx`, `wallets/wallet-panel.css`.
+- **apps/web/test:** `payee.test.tsx`, `site.test.tsx`, `v2.test.tsx`.
+- **apps/web/e2e:** `site.spec.ts`, `a11y.spec.ts`, `testnet.spec.ts`.
+- **docs:** `docs/status/alexander.md`.
+
 ## A20: Horizon v2, four animated pages (2026-11-11)
 
 On `alexander` only, not merged. Only `apps/web` changed, plus `docs/design/v2` (committed as the references). No routes changed, no transactions sent.
