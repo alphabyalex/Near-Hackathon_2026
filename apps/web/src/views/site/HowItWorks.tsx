@@ -1,4 +1,4 @@
-/** Seven scenes, each calling the real /v1/demo endpoint and showing its real numbers. */
+/** How it works: seven steps, each calling the /v1/demo endpoint and showing the numbers Wardline's own checks produce. */
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
 import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
@@ -8,7 +8,7 @@ import { callWords, modelName } from "../../ai/words";
 import { DEMO, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
-import { firstContact, onFile } from "../../redteam";
+import { firstContact } from "../../redteam";
 import { Explainer } from "../../v2/Explainer";
 
 // The payee result card carries receipt verification (ed25519); only the invoice scene needs it.
@@ -204,7 +204,7 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
   return (
     <div className="stage" data-testid="stage">
       <div className="stage-head">
-        <span className="stage-n num">Scene {n} of 7</span>
+        <span className="stage-n num">{DEMO.step(n, SCENES.length)}</span>
         <h2>{scene.name}</h2>
         <p>{scene.line}</p>
       </div>
@@ -213,9 +213,9 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
           <li key={step}>{step}</li>
         ))}
       </ol>
-      {run?.state !== "busy" && (
+      {run === null && (
         <button type="button" className="btn" onClick={onRun} data-run={id}>
-          {run ? DEMO.replay : DEMO.run}
+          {DEMO.run}
         </button>
       )}
       <div aria-live="polite">
@@ -275,7 +275,6 @@ function DotRow({ label, paid, of }: { label: string; paid: number; of: number }
 
 export function Comparison() {
   const first = firstContact();
-  const known = onFile();
   if (!first) return null;
   return (
     <section className="sec" aria-labelledby="cmp-title">
@@ -287,17 +286,13 @@ export function Comparison() {
           <DotRow label={DEMO.agentAlone} paid={first.agentAlone.unsafePayees} of={first.attacks} />
           <DotRow label={DEMO.withWardline} paid={first.agentWithWardline.unsafePayees} of={first.attacks} />
         </div>
-        <p className="fine engine-note">
-          {first.cases} cases, {first.attacks} of them scams, through the invoice agent on {first.model}. Both paid {first.agentWithWardline.legitPaid} of {first.legitRecurring}{" "}
-          legitimate invoices.
-          {known && ` ${DEMO.onFileNote} ${known.agentAlone.unsafePayees} and ${known.agentWithWardline.unsafePayees} scams paid.`}
-        </p>
+        <p className="fine engine-note">{DEMO.outcome(first.agentAlone.unsafePayees, first.agentWithWardline.unsafePayees, first.attacks)}</p>
       </div>
     </section>
   );
 }
 
-export function Demo() {
+export function HowItWorks() {
   const [current, setCurrent] = useState<SceneName>("mutual");
   const [runs, setRuns] = useState<Partial<Record<SceneName, Run>>>({});
   const live = useRef(true);

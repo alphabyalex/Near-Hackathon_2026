@@ -67,7 +67,7 @@ test.afterAll(() => {
 
 test("home: testnet numbers, and the footer says so", async ({ page }) => {
   await page.goto("/#/");
-  await expect(page.locator("footer")).toContainText("NEAR testnet");
+  await expect(page.locator(".live-label")).toHaveText("Live");
   await expect(page.locator(".stats")).toBeVisible();
   await expect(page.locator(".stats dd").first()).toContainText(/\d/);
   await expect(page.locator(".stats")).not.toContainText("141.24");
@@ -180,7 +180,7 @@ test("10: the demo's seven offline scenes still run, and link to the live proofs
   await page.goto("/#/demo");
   await expect(page.locator(".scenes li")).toHaveCount(7);
   await expect(page.locator(".scenes-live a[href='#/proof']")).toBeVisible();
-  await page.getByRole("button", { name: "Run scene" }).click();
-  await expect(page.locator(".stage")).not.toContainText("Run scene", { timeout: 60_000 });
+  await page.getByRole("button", { name: "See what happens" }).click();
+  await expect(page.locator(".stage")).not.toContainText("See what happens", { timeout: 60_000 });
   await shot(page, "demo");
 });

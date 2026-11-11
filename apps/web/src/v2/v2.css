@@ -62,7 +62,6 @@
 .explainer-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
 .explainer .h2{margin:0;font-size:clamp(36px,3.7vw,52px);line-height:1.05;letter-spacing:-0.035em;max-width:none}
 .explainer-sub{margin:14px 0 0;font-size:19px;color:var(--text-2)}
-.replay{flex:none}
 .explainer-frame{max-width:1440px;margin:8px auto 0}
 .explainer-stage{display:block;width:100%;height:520px}
 .explainer-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;padding-top:28px;border-top:1px solid var(--rule)}
@@ -183,4 +182,10 @@
   .me-body .tx-table td,.me-body .tx-table tbody tr:last-child td{padding:0;border:0}
   .me-body .tx-row{border-bottom:1px solid var(--rule)}
   .me-body .tx-row:hover{background:none}
+  /* The right column: WARD, the hash and the status all end on the same edge. */
+  .me-body .tx-table td.tx-hash,.me-body .tx-table td.tx-status,.me-body .tx-table td.tx-num:nth-child(4){justify-self:end;text-align:right}
+  .me-body .tx-st{justify-content:flex-end}
 }
+
+/* Latest proofs: a run of the same outcome shows once, with its count. */
+.proof-repeat{color:var(--muted);font-weight:600;margin-left:4px}

@@ -223,3 +223,37 @@ describe("staying connected", () => {
     localStorage.removeItem("selected-wallet");
   });
 });
+
+describe("product polish", () => {
+  it("#/how-it-works and #/demo open the same page", async () => {
+    const { parseRoute } = await import("../src/router");
+    expect(parseRoute("#/how-it-works")).toEqual({ kind: "site", page: "demo" });
+    expect(parseRoute("#/demo")).toEqual({ kind: "site", page: "demo" });
+  });
+
+  it("proof amounts: two decimals, <0.01 for a fraction of a cent, 0.00 when nothing moved", async () => {
+    const { proofAmount } = await import("../src/views/site/Proof");
+    expect(proofAmount("0")).toBe("0.00");
+    expect(proofAmount("200")).toBe("<0.01");
+    expect(proofAmount("9999")).toBe("<0.01");
+    expect(proofAmount("10000")).toBe("0.01");
+    expect(proofAmount("1234567")).toBe("1.23");
+  });
+
+  it("back-to-back proofs from one group with one outcome collapse into one row with a count", async () => {
+    const { collapseProofs } = await import("../src/views/site/Proof");
+    const row = (id: string, group: string, side: "above" | "below", amount = "200", refund = "0") => ({ call_id: id, group, side, amount, refund }) as never;
+    const key = (p: { group: string; side: string }) => `${p.group}|${p.side}`;
+    const out = collapseProofs([row("a", "Mission", "below"), row("b", "Mission", "below"), row("c", "Mission", "below"), row("d", "Kelp", "above"), row("e", "Mission", "below")], key);
+    expect(out.map((g) => [g.row.call_id, g.count])).toEqual([["a", 3], ["d", 1], ["e", 1]]);
+    expect(out[1]!.total).toBe("200");
+  });
+
+  it("the explainer has no replay", async () => {
+    media(true);
+    const { Explainer } = await import("../src/v2/Explainer");
+    const { container } = render(<Explainer />);
+    expect(container.querySelectorAll("button")).toHaveLength(0);
+    expect(container.textContent).not.toMatch(/replay|practice/i);
+  });
+});

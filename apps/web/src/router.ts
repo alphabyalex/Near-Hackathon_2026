@@ -5,6 +5,8 @@ export type DashboardTab = "overview" | "share" | "group" | "invoices" | "review
 export type Route = { kind: "site"; page: SitePage } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
 const SITE_PAGES: readonly string[] = ["me", "groups", "proof", "try", "demo", "developers", "verify", "about", "vault", "scoring"];
+/** Other names for a page: #/how-it-works is the How it works page, which #/demo still opens too. */
+const ALIASES: Record<string, SitePage> = { "how-it-works": "demo" };
 /** Old routes that moved. Links to them land on the new page, and the address bar shows the new route. */
 const MOVED: Record<string, string> = { connect: "developers" };
 
@@ -32,6 +34,7 @@ export function parseRoute(hash: string): Route {
     const tab = second && TABS.includes(second) ? (second as DashboardTab) : "overview";
     return { kind: "app", tab, invoice: tab === "invoices" ? decode(third) : null };
   }
+  if (first && ALIASES[first]) return { kind: "site", page: ALIASES[first] };
   return { kind: "site", page: first && SITE_PAGES.includes(first) ? (first as SitePage) : "home" };
 }
 

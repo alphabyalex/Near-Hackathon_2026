@@ -12,7 +12,7 @@
  */
 
 import type { EvidenceTier } from "@wardline/schemas";
-import repo from "../../../repo.config.json";
+import { url as repoUrl } from "../../../repo.config.json";
 
 const NAME = "Wardline";
 
@@ -22,7 +22,7 @@ export const BRAND = {
   metaDescription: "Back the AI economy and earn from it. Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely.",
   homeLabel: `${NAME} home`,
   /** Source repository. Lives in repo.config.json at the root; the GitHub rename to "wardline" is a one-line change there. */
-  repoUrl: repo.url,
+  repoUrl,
 } as const;
 
 /** Main navigation. The Mutual is the home page. */
@@ -30,13 +30,12 @@ export const NAV = [
   { page: "home", href: "#/", label: "Mutual" },
   { page: "groups", href: "#/groups", label: "Groups" },
   { page: "proof", href: "#/proof", label: "Proof engine" },
-  { page: "demo", href: "#/demo", label: "Demo" },
+  { page: "demo", href: "#/how-it-works", label: "How it works" },
   { page: "developers", href: "#/developers", label: "Developers" },
   { page: "about", href: "#/about", label: "About" },
 ] as const;
 
 export const FOOTER = {
-  testnet: "NEAR testnet",
   owner: "Owner sign-in",
   vault: "The vault",
   llms: "llms.txt",
@@ -44,8 +43,8 @@ export const FOOTER = {
   verify: "Verify your business",
   /** Footer columns: [title, [label, href][]]. */
   columns: [
-    ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["Demo", "#/demo"]]],
-    ["Build", [["Developers", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"], ["llms.txt", "/llms.txt"]]],
+    ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["How it works", "#/how-it-works"]]],
+    ["Build", [["Developers", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"]]],
     ["Wardline", [["About", "#/about"], ["The vault", "#/vault"], ["Owner sign-in", "#/app/overview"]]],
   ],
 } as const;
@@ -60,7 +59,7 @@ export const HOME = {
   /** The live numbers under the hero (Horizon v2). */
   live: {
     label: "Live numbers",
-    testnet: "Live from NEAR testnet",
+    testnet: "Live",
     pooled: "Total pooled",
     pooledNote: "USDC, members plus our stake",
     price: "WARD price",
@@ -109,8 +108,6 @@ export const HOME = {
   boardAll: "Every group and how tiers work",
   ctaTitle: "Back the AI economy and earn from it.",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
-  modeMixed: "Pool, budgets and model registry on NEAR testnet. Reputation tiers and WARD voting are simulated until their contracts are deployed.",
-  modeNear: "Pool, budgets, model registry, reputation tiers and WARD voting run on NEAR testnet.",
 } as const;
 
 export const MEMBER = {
@@ -149,7 +146,7 @@ export const JOIN = {
   wallet: "Sign with",
   deposit: (usdc: string) => `Deposit ${usdc} USDC`,
   approving: "Approve the deposit in your wallet",
-  approvingNote: "Your wallet sends the deposit to the pool contract on NEAR testnet.",
+  approvingNote: "Your wallet sends the deposit to the pool contract on NEAR.",
   connectFirst: "Connect a NEAR wallet",
   connectNote: "Your wallet tells Wardline your account. It signs the deposit itself.",
   checking: "Checking your wallet's USDC and NEAR",
@@ -180,6 +177,8 @@ export const WALLET = {
   stillWaitingNext: "Finish in the wallet window, or try again. If you approve it there, this page picks it up.",
   tryAgain: "Try again",
   connectedTitle: "Your wallet",
+  /** The one place the network shows: a small line in the wallet panel. */
+  network: (net: string) => `NEAR ${net}`,
   via: (name: string) => `Connected with ${name}`,
   balances: "Balances",
   lowNear: "Add a little NEAR to this account to pay network fees (about 0.05 NEAR).",
@@ -189,7 +188,7 @@ export const WALLET = {
   developerNote: "Only in local development builds. Never in the grid, never in production.",
   logoAlt: (name: string) => name,
   nearConnect: "Connect a NEAR wallet",
-  nearConnectNote: "Opens NEAR Connect. Choose your wallet there; it tells Wardline your account. Only wallets that work on NEAR testnet are listed.",
+  nearConnectNote: "Opens NEAR Connect. Choose your wallet there; it tells Wardline your account. Only wallets that work on this network are listed.",
   connecting: "Waiting for your wallet",
   account: "NEAR account",
   wallet: "Wallet",
@@ -234,7 +233,10 @@ export const PROOF = {
     ["Settle", "Pay what it cost, refund the rest. A failed proof refunds everything."],
   ],
   latestTitle: "Latest proofs",
-  latestEmpty: "No calls yet. Run a scene in the demo, or point an OpenAI client at /v1/ai with a meter key.",
+  latestEmpty: "No calls yet. Point an OpenAI client at /v1/ai with a meter key, and its first proof appears here.",
+  repeat: (n: number) => `×${n}`,
+  repeatLabel: (n: number) => `${n} times in a row`,
+  under: "<0.01",
   col: { fingerprint: "Call", group: "Group", what: "What happened", amount: "Amount", side: "Side of the line" },
   above: "Above, paid",
   below: (how: string) => `Below, ${how}`,
@@ -243,7 +245,17 @@ export const PROOF = {
   secondary: "Check a payee",
   verifyLink: "Verify your business",
   resultsLabel: "Red-team results",
-  resultsTitle: "Scam payees, thrown at the checks.",
+  resultsTitle: "Scam payees, stopped before they're paid.",
+  results: {
+    caught: "Scams caught",
+    caughtNote: "of scam payees held before any money moved",
+    unsafe: "Scams paid",
+    unsafeNote: "payments that reached a scam payee",
+    falsePositive: "Real invoices held",
+    falsePositiveNote: "of genuine invoices wrongly held",
+    latency: "Time to check",
+    latencyNote: "added to a payment, typically",
+  },
 } as const;
 
 export const TRY = {
@@ -295,15 +307,15 @@ export const TIERS: Record<EvidenceTier, { short: string; verified: string; notE
 };
 
 export const DEMO = {
-  label: "Demo",
-  title: "Seven scenes, real code paths",
-  liveLine: "These scenes run offline. The same checks run live on NEAR testnet:",
+  label: "How it works",
+  title: "How it works",
+  liveLine: "The same checks run on every payment that goes through Wardline:",
   liveLink: "see the latest proofs",
-  lede: "Each scene runs the real Mutual, gateway, payee check, pool and reputation code against simulated contracts and recorded NEAR AI traffic.",
-  run: "Run scene",
-  replay: "Run again",
+  lede: "Seven steps through Wardline: how a member joins, how a group pays for AI, what happens when something is wrong, and who covers a mistake. Each step runs Wardline's own checks and shows the numbers they produce.",
+  step: (n: number, of: number) => `Step ${n} of ${of}`,
+  run: "See what happens",
   running: "Running",
-  next: "Next scene",
+  next: "Next step",
   doing: {
     mutual: "Reading the Mutual and depositing 25 USDC",
     group: "Funding the budget by vote, then sending eight calls",
@@ -434,14 +446,14 @@ export const DEMO = {
   agentAlone: "AI agent alone",
   withWardline: `AI agent with ${BRAND.name}`,
   scamsThrough: "scams paid",
-  onFileNote: "When the agent already had the vendor's account on file:",
+  outcome: (alone: number, withUs: number, scams: number) => `Without ${BRAND.name} the agent paid ${alone} of ${scams} scams. With it, ${withUs === 0 ? "none" : withUs}.`,
 } as const;
 
 export const CONNECT = {
   label: "Connect",
   title: `Put ${BRAND.name} in front of every payment.`,
   lede: "One base URL for AI calls. MCP for agents, HTTP for anything, the SDK for TypeScript.",
-  placeholder: "Nothing is hosted yet, so these snippets show a placeholder address. Run Wardline locally (see the README) and they show your local API, or replace the placeholder with your own API's address.",
+  placeholder: "Replace the placeholder address with your Wardline API's address.",
   openai: "OpenAI client, one line",
   openaiLine: "Use any OpenAI-compatible client with a meter key. Each call is paid only on a verified model signature, and every response carries X-Wardline-Proof.",
   openaiJs: "JavaScript",
@@ -764,7 +776,7 @@ export const ERRORS = {
   notWired: { title: "This view isn't connected to testnet data yet.", next: "Switch WARDLINE_DATA back to sim, or wait for the testnet routes." },
   notEnoughUsdc: { title: "Not enough USDC in this wallet for that deposit.", next: "Lower the amount, or get testnet USDC for this account from Circle's faucet (faucet.circle.com, NEAR testnet), then try again." },
   notEnoughNear: { title: "You need about 0.05 NEAR for network fees.", next: "Send a little testnet NEAR to this account (from another account or a testnet faucet), then try again." },
-  walletTransaction: { title: "On testnet the Mutual takes real transactions, not signed messages.", next: "Connect a NEAR wallet and sign the transaction in it." },
+  walletTransaction: { title: "The Mutual takes real transactions, not signed messages.", next: "Connect a NEAR wallet and sign the transaction in it." },
   unknown: { title: "The request failed.", next: "Nothing was changed. Try again, or reload the page." },
 } as const;
 
@@ -794,7 +806,7 @@ export const ME = {
     showMore: (n: number) => `Show ${n} more`,
     missing: "Some history may be missing.",
     missingLink: "Check the explorer",
-    loading: "Reading your transactions from NEAR testnet",
+    loading: "Reading your transactions from NEAR",
   },
   title: "Your share",
   lede: "Your WARD, what it earned, the votes you can cast and where your share came from.",
@@ -830,8 +842,7 @@ export const ME = {
 /** "Watch a payment cross the line" (Horizon v2), on the home page and the demo page. */
 export const EXPLAINER = {
   title: "Every payment lands on one side of the line.",
-  sub: "Ten seconds, two real cases from our practice network.",
-  replay: "Replay",
+  sub: "Two payments, ten seconds apart.",
   label: "Animation: a proven AI payment crosses above the line and is paid, then a payment from a swapped model is refused, drops below the line and is refunded.",
   caption1: "An AI agent pays for a DeepSeek V4.1 Flash answer",
   caption2: "Same claim, but the answer secretly came from GLM-5.3 Flash",
@@ -880,4 +891,15 @@ export const MINE = {
   sellButton: "Request to sell this WARD",
   sellCancel: "Cancel",
   explorer: "See your account on the explorer",
+} as const;
+
+/** The vault page: a stolen agent key against the vault's own limits. */
+export const VAULT = {
+  title: "Steal the agent's key. The money stays put.",
+  lede: "A stolen agent key tries six ways out. The vault refuses every one by itself, before any money moves.",
+  logLabel: "Six attempts with a stolen agent key, each refused by the vault",
+  logTitle: "A stolen agent key tries six ways out",
+  logTarget: "Agent vault",
+  moved: "moved from the vault",
+  limitsTitle: "Four limits the agent cannot move.",
 } as const;

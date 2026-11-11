@@ -107,7 +107,7 @@ describe("routing", () => {
     stubApi();
     render(<App />);
     const main = within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link");
-    expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "Demo", "Developers", "About"]);
+    expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "How it works", "Developers", "About"]);
     const footer = within(screen.getByRole("navigation", { name: "Footer" })).getAllByRole("link");
     expect(footer.at(-1)?.getAttribute("href")).toBe("#/app/overview");
     expect(footer.at(-1)?.textContent).toBe("Owner sign-in");

@@ -46,7 +46,9 @@ test.describe("public site", () => {
     await expect(stats).toContainText("USDC per WARD");
     await expect(stats.locator(".live-cell.below .live-value")).toHaveText(/^\d+$/);
     // Sim mode: the same strip, no live label.
-    await expect(page.getByText("Live from NEAR testnet")).toHaveCount(0);
+    await expect(page.locator(".live-label")).toHaveCount(0);
+    // No network badge outside the wallet panel.
+    await expect(page.locator("footer")).not.toContainText("testnet");
     const sides = page.getByTestId("sides");
     await expect(sides.locator(".above h3")).toHaveText("Above the line");
     await expect(sides.locator(".above li b")).toHaveText(["The model is proven", "The payee is real", "It fits the budget"]);
@@ -60,7 +62,7 @@ test.describe("public site", () => {
     await expect(board.locator("tbody tr").first().locator(".tier-name")).toHaveText("Gold");
     await expect(board.locator('tr[data-budget="bgt_kelp"] .tier-name')).toHaveText("Bronze");
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
-    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "Demo", "Developers", "About"]);
+    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "How it works", "Developers", "About"]);
     await expect(nav.first()).toHaveAttribute("aria-current", "page");
     await page.locator(".hero").getByRole("button", { name: "Watch a payment cross the line" }).click();
     await expect(page.locator("#watch")).toBeInViewport();
@@ -87,7 +89,7 @@ test.describe("public site", () => {
     await expect(hero).toHaveAttribute("data-motion", "playing", { timeout: 5_000 });
   });
 
-  test("watch a payment cross the line: plays once in view, stops when finished, and Replay plays it again", async ({ page }) => {
+  test("watch a payment cross the line: plays once in view and rests on its last frame, with no replay", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto("/#/");
     const stage = page.getByTestId("explainer-stage");
@@ -95,11 +97,14 @@ test.describe("public site", () => {
     await stage.scrollIntoViewIfNeeded();
     await expect(stage).toHaveAttribute("data-motion", "playing", { timeout: 5_000 });
     await expect(stage).toHaveAttribute("data-motion", "done", { timeout: 20_000 });
-    await page.locator("#watch").getByRole("button", { name: "Replay" }).click();
-    await expect(stage).toHaveAttribute("data-motion", "playing");
+    await expect(page.locator("#watch").getByRole("button")).toHaveCount(0);
     await expect(stage).toHaveAttribute("aria-label", /refused, drops below the line and is refunded/);
-    await page.goto("/#/demo");
+    await page.goto("/#/how-it-works");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("How it works");
     await expect(page.getByTestId("explainer-stage")).toHaveCount(1);
+    // The old address still opens the same page.
+    await page.goto("/#/demo");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("How it works");
   });
 
   test("hero: nothing listens to the mouse", async ({ page }) => {
@@ -143,8 +148,9 @@ test.describe("public site", () => {
     await expect(card.locator(".tier")).toContainText("Not verified");
   });
 
-  test("demo: seven scenes run the real endpoints, each lands above or below the line, then the red-team numbers", async ({ page }) => {
-    await page.goto("/#/demo");
+  test("how it works: seven steps run the real endpoints, each lands above or below the line, then the outcome in one sentence", async ({ page }) => {
+    await page.goto("/#/how-it-works");
+    await expect(page.getByTestId("stage").locator(".stage-n")).toHaveText("Step 1 of 7");
     await expect(page.locator("[data-scene]")).toHaveCount(7);
     const stage = page.getByTestId("stage");
     const run = async (id: string) => {
@@ -152,6 +158,8 @@ test.describe("public site", () => {
       await stage.locator(`[data-run="${id}"]`).click();
       const out = stage.locator(`[data-scene-result="${id}"]`);
       await expect(out).toBeVisible({ timeout: 15_000 });
+      // A step runs once: no button to run it again.
+      await expect(stage.locator(`[data-run="${id}"]`)).toHaveCount(0);
       return out;
     };
 
@@ -198,14 +206,15 @@ test.describe("public site", () => {
     await expect(out).toContainText("0.0100 USDC");
     await expect(out).toContainText("0.0075 USDC");
 
-    // Next scene moves along the list.
+    // Next step moves along the list.
     await page.locator('[data-scene="swap"]').click();
-    await stage.getByRole("button", { name: "Next scene" }).click();
+    await stage.getByRole("button", { name: "Next step" }).click();
     await expect(stage.locator("h2")).toHaveText("Leaked key");
 
     const rows = page.locator(".cmp-row");
     await expect(rows.nth(0)).toContainText("5 of 20");
     await expect(rows.nth(1)).toContainText("0 of 20");
+    await expect(page.locator(".engine-note")).toHaveText("Without Wardline the agent paid 5 of 20 scams. With it, none.");
   });
 
   test("join the Mutual: a dialog with quick picks, our stake in front, a wallet approval, then the member card and a 7-day redemption", async ({ page, wallets }) => {
@@ -331,10 +340,10 @@ test.describe("public site", () => {
     await expect(page.locator('[data-unset]')).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("VITE_WARDLINE");
     await expect(page.locator("main")).not.toContainText("process.env.WARDLINE_API_URL");
-    // The hosted URLs, or the local ones while nothing is hosted (repo.config.json's hosted values empty).
-    const api = repo.hosted.api || "http://127.0.0.1:8787";
-    const mcp = repo.hosted.mcp || "http://127.0.0.1:8790/mcp";
-    if (repo.hosted.api) await expect(page.locator("main")).not.toContainText("127.0.0.1");
+    // The hosted URLs, or the named placeholder while nothing is hosted: never a local address.
+    const api = repo.hosted.api || "https://your-wardline-api.example";
+    const mcp = repo.hosted.mcp || "https://your-wardline-api.example/mcp";
+    await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
     await expect(page.locator("main")).toContainText(`curl -s ${api}/v1/resolve`);
     const openai = page.locator(".conn").first();

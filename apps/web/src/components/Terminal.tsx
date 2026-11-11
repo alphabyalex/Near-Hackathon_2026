@@ -1,3 +1,5 @@
+import { VAULT } from "../brand";
+
 const ATTEMPTS = [
   ["pay a bill that does not exist", "UNKNOWN_PAYABLE"],
   ["pay invoice 55120 again", "ALREADY_PAID"],
@@ -9,15 +11,13 @@ const ATTEMPTS = [
 
 const STEP_SECONDS = 0.8;
 
-/** The attack log replay. The sequence loops in CSS and rests fully visible under reduced motion. */
+/** Six attempts with a stolen agent key and the vault's answer to each. The error codes are the point. */
 export function Terminal() {
   return (
-    <div className="term" role="log" aria-label="Attack script output">
+    <div className="term" role="log" aria-label={VAULT.logLabel}>
       <div className="bar">
-        <span>
-          malicious-signer.ts<span className="caret" />
-        </span>
-        <span>vault-a.wardline.testnet</span>
+        <span>{VAULT.logTitle}</span>
+        <span>{VAULT.logTarget}</span>
       </div>
       {ATTEMPTS.map(([attempt, result], index) => (
         <div className="line" style={{ animationDelay: `${index * STEP_SECONDS}s` }} key={attempt}>
@@ -27,7 +27,7 @@ export function Terminal() {
         </div>
       ))}
       <div className="total" style={{ animationDelay: `${ATTEMPTS.length * STEP_SECONDS}s` }}>
-        <span>moved from the vault</span>
+        <span>{VAULT.moved}</span>
         <b>0.00 USDC</b>
       </div>
     </div>

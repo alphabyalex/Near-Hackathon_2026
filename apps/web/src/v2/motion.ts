@@ -9,7 +9,7 @@ export const prefersReducedMotion = (): boolean => typeof window !== "undefined"
 
 /**
  * `?frame=<name>:<seconds>` in the page URL holds one animation at that second, for screenshots and
- * review, for example `/?frame=explainer:4.5#/demo`. Real data still drives everything else.
+ * review, for example `/?frame=explainer:4.5#/how-it-works`. Real data still drives everything else.
  */
 export function frozenFrame(name: string, search: string = typeof window === "undefined" ? "" : window.location.search): number | null {
   const raw = new URLSearchParams(search).getAll("frame");
@@ -29,8 +29,6 @@ export interface AnimationOptions {
   fps?: number | ((t: number) => number);
   /** Start the first time the element is a third on screen, not on mount. */
   startOnView?: boolean;
-  /** Change it to play again from the start. */
-  playKey?: number;
   /** Hold this frame (see frozenFrame). */
   freezeAt?: number | null;
 }
@@ -43,7 +41,7 @@ export interface AnimationOptions {
 export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: (t: number) => void, opts: AnimationOptions): void {
   const drawRef = useRef(draw);
   drawRef.current = draw;
-  const { duration, finalAt, fps = 30, startOnView = false, playKey = 0, freezeAt = null } = opts;
+  const { duration, finalAt, fps = 30, startOnView = false, freezeAt = null } = opts;
   const fpsRef = useRef(fps);
   fpsRef.current = fps;
 
@@ -76,7 +74,7 @@ export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: 
       };
     }
 
-    let started = !(startOnView && playKey === 0);
+    let started = !startOnView;
     let done = false;
     let raf = 0;
     let origin = 0;
@@ -135,7 +133,7 @@ export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: 
       resizeObserver?.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [target, duration, finalAt, startOnView, playKey, freezeAt]);
+  }, [target, duration, finalAt, startOnView, freezeAt]);
 }
 
 /** The element's CSS size, read where a draw needs it. */

@@ -51,12 +51,12 @@ test.describe("keyboard only", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("me-past-votes")).toContainText("Lower the Gold fee to 0.75%");
 
-    // Run a demo scene.
-    await page.goto("/#/demo");
+    // Run a step on How it works.
+    await page.goto("/#/how-it-works");
     await expect(page.locator(".scenes")).toBeVisible();
     await tabTo(page, (el) => el.tag === "button" && el.name.includes("Swapped model"));
     await page.keyboard.press("Enter");
-    await tabTo(page, (el) => el.tag === "button" && el.name === "Run scene");
+    await tabTo(page, (el) => el.tag === "button" && el.name === "See what happens");
     await page.keyboard.press("Enter");
     await expect(page.locator('[data-scene-result="swap"] .verdict')).toHaveText("Below the line: refused and refunded");
   });

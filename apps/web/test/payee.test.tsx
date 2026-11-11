@@ -4,8 +4,8 @@ import { BRAND, HOME, TIERS } from "../src/brand";
 import { REDTEAM, engineLabel, firstContact, percent } from "../src/redteam";
 import { AccountDiff, countdown } from "../src/views/owner/ReviewDesk";
 import { snippets } from "../src/views/site/Connect";
-import { LOCAL_API_URL, PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL, servedLocally, snippetUrl } from "../src/config";
-import { poisonedAddress } from "../src/views/site/Demo";
+import { PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL, SNIPPET_API_URL, SNIPPET_MCP_URL, snippetUrl } from "../src/config";
+import { poisonedAddress } from "../src/views/site/HowItWorks";
 import { payeeMessage, proofFile } from "../src/views/site/Verify";
 import { REASON_WORDS } from "../src/payee/reasons";
 import { summarize } from "../vite/redteam";
@@ -58,19 +58,16 @@ describe("connect snippets", () => {
 });
 
 describe("snippet URLs while nothing is hosted", () => {
-  const pick = (configured: string | null, hosted: string, isLocal: boolean) => snippetUrl(configured, hosted, LOCAL_API_URL, PLACEHOLDER_API_URL, isLocal);
+  const pick = (configured: string | null, hosted: string) => snippetUrl(configured, hosted, PLACEHOLDER_API_URL);
 
   it("prefer the configured URL, then the hosted one", () => {
-    expect(pick("https://api.example.com", "https://hosted.example", true)).toBe("https://api.example.com");
-    expect(pick(null, "https://hosted.example/", false)).toBe("https://hosted.example");
+    expect(pick("https://api.example.com", "https://hosted.example")).toBe("https://api.example.com");
+    expect(pick(null, "https://hosted.example/")).toBe("https://hosted.example");
   });
 
-  it("show the local API when the page is served locally, else the named placeholder, never a tunnel", () => {
-    expect(servedLocally("127.0.0.1")).toBe(true);
-    expect(servedLocally("localhost")).toBe(true);
-    expect(servedLocally("wardline.example")).toBe(false);
-    expect(pick(null, "", true)).toBe(LOCAL_API_URL);
-    expect(pick(null, "", false)).toBe(PLACEHOLDER_API_URL);
+  it("show the named placeholder, never a local address or a tunnel, even on the dev server", () => {
+    expect(pick(null, "")).toBe(PLACEHOLDER_API_URL);
+    expect(`${SNIPPET_API_URL} ${SNIPPET_MCP_URL}`).not.toMatch(/127\.0\.0\.1|localhost|:8787|:8790/);
     expect(PLACEHOLDER_API_URL).toMatch(/^https:\/\/your-wardline-api\.example$/);
     expect(JSON.stringify(snippets(PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL))).not.toMatch(/trycloudflare|ngrok|loca\.lt/);
   });

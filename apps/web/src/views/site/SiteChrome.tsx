@@ -3,7 +3,6 @@ import { FOOTER, NAV } from "../../brand";
 import { Logo } from "../../components/Logo";
 import type { SitePage } from "../../router";
 import { ConnectWallet } from "./Member";
-import { DATA_SOURCE } from "../../data/source";
 
 function PageLinks({ page }: { page: SitePage }) {
   return NAV.map((link) => (
@@ -55,7 +54,6 @@ export function SiteFooter(_props: { page: SitePage }) {
             </div>
           ))}
         </nav>
-        {DATA_SOURCE === "testnet" && <p className="foot-net">{FOOTER.testnet}</p>}
       </div>
     </footer>
   );

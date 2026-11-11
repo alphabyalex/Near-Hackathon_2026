@@ -1,10 +1,10 @@
 /**
  * "Watch a payment cross the line" (docs/design/v2/Explainer.dc.html): ten seconds, played once when
- * scrolled into view, with Replay. A proven payment rises above the line and is paid; a swapped-model
+ * scrolled into view, then held on its last frame. A proven payment rises above the line and is paid; a swapped-model
  * payment is refused, drops below and is refunded. Two layouts: the reference's 1440 x 520 stage
  * (scaled down to 1000px), and a phone stage whose text is wrapped and placed clear of the line.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { EXPLAINER } from "../brand";
 import { boxOf, frozenFrame, useCanvasAnimation } from "./motion";
 import { clamp01, easeInOut, easeOut, fitCanvas } from "./sphere";
@@ -288,7 +288,7 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
   ctx.restore();
 }
 
-function Stage({ playKey }: { playKey: number }) {
+function Stage() {
   const ref = useRef<HTMLCanvasElement>(null);
   const freezeAt = frozenFrame("explainer");
   const draw = useCallback((t: number) => {
@@ -303,13 +303,12 @@ function Stage({ playKey }: { playKey: number }) {
     if (!ctx) return;
     drawExplainer(ctx, t, layout, scale, Math.max(0, (w - layout.w * scale) / 2));
   }, []);
-  useCanvasAnimation(ref, draw, { duration: TIMELINE.end, finalAt: TIMELINE.final, startOnView: true, playKey, freezeAt });
+  useCanvasAnimation(ref, draw, { duration: TIMELINE.end, finalAt: TIMELINE.final, startOnView: true, freezeAt });
   return <canvas ref={ref} className="explainer-stage" role="img" aria-label={EXPLAINER.label} data-testid="explainer-stage" />;
 }
 
 /** The section. `id` lets the hero's secondary button scroll here. */
 export function Explainer({ id = "watch", headingLevel = 2 }: { id?: string; headingLevel?: 2 | 3 }) {
-  const [playKey, setPlayKey] = useState(0);
   const H = headingLevel === 2 ? "h2" : "h3";
   return (
     <section className="explainer" id={id} aria-labelledby={`${id}-title`} tabIndex={-1}>
@@ -320,16 +319,9 @@ export function Explainer({ id = "watch", headingLevel = 2 }: { id?: string; hea
           </H>
           <p className="explainer-sub">{EXPLAINER.sub}</p>
         </div>
-        <button type="button" className="btn ghost sm replay" onClick={() => setPlayKey((k) => k + 1)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 12a9 9 0 1 0 3-6.7" />
-            <path d="M3 4v5h5" />
-          </svg>
-          {EXPLAINER.replay}
-        </button>
       </div>
       <div className="explainer-frame">
-        <Stage playKey={playKey} />
+        <Stage />
       </div>
       {/* The canvas, as text: the same story in order. */}
       <ol className="sr-only">

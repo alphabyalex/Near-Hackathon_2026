@@ -3,6 +3,7 @@ import { useApi } from "../../api/client";
 import { limitsFromOverview } from "../../api/limits";
 import { DotBar } from "../../components/DotBar";
 import { Terminal } from "../../components/Terminal";
+import { VAULT } from "../../brand";
 
 const STAGGER_SECONDS = 0.15;
 
@@ -14,8 +15,8 @@ export function Vault() {
       <section className="sec night pagetop">
         <div className="wrap split">
           <div>
-            <h2 className="h2">Steal the agent's key. The money stays put.</h2>
-            <p className="lede">No AI here. Just the agent's own key, trying every way out.</p>
+            <h1 className="h2">{VAULT.title}</h1>
+            <p className="lede">{VAULT.lede}</p>
           </div>
           <Terminal />
         </div>
@@ -24,7 +25,7 @@ export function Vault() {
       <section className="sec">
         <div className="wrap">
           <h2 className="h2" style={{ marginBottom: 56 }}>
-            Four limits the agent cannot move.
+            {VAULT.limitsTitle}
           </h2>
           <div className="limits">
             {limits.map((limit, index) => (

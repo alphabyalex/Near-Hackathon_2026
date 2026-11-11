@@ -14,6 +14,9 @@ declare module "virtual:redteam-summary" {
 
 interface ImportMetaEnv {
   readonly VITE_WARDLINE_API_URL?: string;
+  /** The public API and MCP addresses code samples show. */
+  readonly VITE_PUBLIC_API_URL?: string;
+  readonly VITE_PUBLIC_MCP_URL?: string;
   readonly VITE_WARDLINE_MCP_URL?: string;
   readonly VITE_WARDLINE_OWNER_URL?: string;
   readonly VITE_NEAR_NETWORK?: string;

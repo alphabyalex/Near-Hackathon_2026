@@ -146,6 +146,10 @@ function Picker({ onConnected, onCancel }: { onConnected: () => void; onCancel: 
           </button>
         </div>
       )}
+      <p className="wp-net">
+        <span className="wp-net-dot" aria-hidden="true" />
+        {WALLET.network(NEAR_NETWORK)}
+      </p>
       <div className="wp-foot">
         <p className="wp-new">
           {WALLET.newToNear} {WALLET.createWith}{" "}
@@ -196,6 +200,10 @@ function ConnectedView({ connected, onClose, onSwitch }: { connected: Connected;
         <div>
           <b className="wp-account">{connected.account}</b>
           {via && <span className="wp-via">{WALLET.via(via)}</span>}
+          <span className="wp-net">
+            <span className="wp-net-dot" aria-hidden="true" />
+            {WALLET.network(NEAR_NETWORK)}
+          </span>
         </div>
       </div>
       {balances && (

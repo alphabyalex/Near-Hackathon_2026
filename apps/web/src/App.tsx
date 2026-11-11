@@ -9,7 +9,7 @@ import { useLinkRouting, useRoute, type SitePage } from "./router";
 const page = <M,>(load: () => Promise<M>, name: keyof M) => lazy(async () => ({ default: (await load())[name] as React.ComponentType }));
 const About = page(() => import("./views/site/About"), "About");
 const Connect = page(() => import("./views/site/Connect"), "Connect");
-const Demo = page(() => import("./views/site/Demo"), "Demo");
+const HowItWorks = page(() => import("./views/site/HowItWorks"), "HowItWorks");
 const Groups = page(() => import("./views/site/Groups"), "Groups");
 const Me = page(() => import("./views/site/Me"), "Me");
 const Proof = page(() => import("./views/site/Proof"), "Proof");
@@ -34,7 +34,7 @@ function PageFallback() {
 // The owner app loads on first visit to #/app, so public pages never download it.
 const OwnerApp = lazy(() => import("./views/Dashboard").then((m) => ({ default: m.OwnerApp })));
 
-const PAGES: Record<SitePage, React.ComponentType> = { home: Home, me: Me, groups: Groups, proof: Proof, try: TryIt, demo: Demo, developers: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
+const PAGES: Record<SitePage, React.ComponentType> = { home: Home, me: Me, groups: Groups, proof: Proof, try: TryIt, demo: HowItWorks, developers: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
 
 export function App() {
   useLinkRouting();

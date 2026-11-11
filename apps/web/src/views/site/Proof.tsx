@@ -10,7 +10,35 @@ import { Fingerprint } from "../../components/HorizonMark";
 import { SNIPPET_API_URL, SNIPPET_IS_PLACEHOLDER } from "../../config";
 import { percent, REDTEAM } from "../../redteam";
 
-const usd = (atomic: string) => (Number(BigInt(atomic)) / 1e6).toFixed(6);
+/** USDC for the table: two decimals, "<0.01" for a fraction of a cent, "0.00" when nothing moved. */
+export function proofAmount(atomic: string): string {
+  const n = BigInt(atomic);
+  if (n === 0n) return "0.00";
+  if (n < 10_000n) return PROOF.under;
+  return (Number(n) / 1e6).toFixed(2);
+}
+
+/** One table row: a call, or a run of the same outcome from the same group shown once with its count. */
+export interface ProofGroup {
+  row: ProofRow;
+  count: number;
+  /** Atomic USDC, summed over the run. */
+  total: string;
+}
+
+/** Collapses back-to-back rows with the same group, outcome and side into one, so repeats read as one line. */
+export function collapseProofs(rows: ProofRow[], key: (p: ProofRow) => string): ProofGroup[] {
+  const out: ProofGroup[] = [];
+  for (const p of rows) {
+    const value = BigInt(p.side === "above" ? p.amount : p.refund);
+    const last = out[out.length - 1];
+    if (last && key(last.row) === key(p)) {
+      last.count++;
+      last.total = (BigInt(last.total) + value).toString();
+    } else out.push({ row: p, count: 1, total: value.toString() });
+  }
+  return out;
+}
 
 const SNIPPET = (apiUrl: string) => `import OpenAI from "openai";
 
@@ -31,12 +59,13 @@ function whatHappened(p: ProofRow): string {
 }
 
 export function ResultsStrip() {
-  const { headline, cases } = REDTEAM;
+  const { headline } = REDTEAM;
+  const R = PROOF.results;
   const cells = [
-    ["Attacks stopped", percent(headline.attackCatchRate), `${cases.attacks} written, ${cases.adversarial} model-invented`],
-    ["Unsafe payments", String(headline.unsafePays), "PAY on a scam payee"],
-    ["False positives", percent(headline.legitFalsePositiveRate), `${cases.legit} legitimate invoices`],
-    ["Check latency", `${headline.latencyP50Ms} ms`, `p50 in process, p95 ${headline.latencyP95Ms} ms`],
+    [R.caught, percent(headline.attackCatchRate), R.caughtNote],
+    [R.unsafe, String(headline.unsafePays), R.unsafeNote],
+    [R.falsePositive, percent(headline.legitFalsePositiveRate), R.falsePositiveNote],
+    [R.latency, `${headline.latencyP50Ms} ms`, R.latencyNote],
   ] as const;
   return (
     <section className="sec" aria-labelledby="results-title">
@@ -64,7 +93,7 @@ function LatestProofs() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     setError(null);
-    getProofs(12).then(
+    getProofs(30).then(
       (r) => setRows(r.proofs),
       (e: unknown) => setError(e),
     );
@@ -91,14 +120,24 @@ function LatestProofs() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((p) => (
-                  <tr key={p.call_id} data-side={p.side}>
+                {collapseProofs(rows, (p) => `${p.group}|${p.side}|${whatHappened(p)}`)
+                  .slice(0, 12)
+                  .map(({ row: p, count, total }) => (
+                  <tr key={p.call_id} data-side={p.side} data-count={count}>
                     <td>
                       <Fingerprint id={p.call_id} side={p.side} />
                     </td>
                     <td>{p.group}</td>
-                    <td>{whatHappened(p)}</td>
-                    <td className="num r">{usd(p.side === "above" ? p.amount : p.refund)} USDC</td>
+                    <td>
+                      {whatHappened(p)}
+                      {count > 1 && (
+                        <span className="proof-repeat num">
+                          <span aria-hidden="true"> {PROOF.repeat(count)}</span>
+                          <span className="sr-only">, {PROOF.repeatLabel(count)}</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="num r">{proofAmount(total)} USDC</td>
                     <td className={p.side === "above" ? "side-above" : "side-below"}>
                       {sideText(p)}
                       {p.tx && (
@@ -128,7 +167,7 @@ export function Proof() {
             <h1 className="h1">{PROOF.title}</h1>
             <p className="lede">{PROOF.sub}</p>
             <div className="actions">
-              <a className="btn" href="#/demo">
+              <a className="btn" href="#/how-it-works">
                 {PROOF.primary}
               </a>
               <a className="btn ghost" href="#/try">
