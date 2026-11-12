@@ -21,6 +21,8 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
   const accountTxs = new AccountTransactions({
     indexer: indexer ?? nearblocksIndexer({ pool: deps.ai.contracts.pool }),
     rpc: makeRpc(rpcUrls),
+    // Regular RPCs drop older transactions; the archival RPC still has them (an early deposit, say).
+    archival: makeRpc((env.WARDLINE_NEAR_ARCHIVAL_RPC_URL ?? "https://archival-rpc.testnet.fastnear.com,https://archival-rpc.testnet.near.org").split(",").map((u) => u.trim()).filter(Boolean)),
     contracts: { pool: deps.ai.contracts.pool, usdc: deps.ai.contracts.token },
     log: (account) => {
       try {

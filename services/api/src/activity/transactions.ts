@@ -12,7 +12,9 @@
  * 4. Rows from the audited activity log (the scripts' rows) are merged in, de-duplicated by hash.
  *
  * Cached per account for 30 seconds. When the indexer is down, the last rows this server confirmed
- * are returned with complete: false, and the page says some history may be missing.
+ * are returned with complete: false, and the page says some history may be missing. complete is also
+ * false when a listed transaction could not be read from any RPC (regular, then archival), or when the
+ * account has more transactions than the indexer pages we read: a total built from the rows would be wrong.
  */
 import type { ActivityItem } from "./types.js";
 import type { Rpc } from "./log.js";
@@ -59,9 +61,15 @@ export interface IndexedTx {
 }
 
 export interface Indexer {
-  /** Transactions that involve the account, newest first. Throws when the indexer can't be read. */
-  list(account: string): Promise<IndexedTx[]>;
+  /**
+   * Transactions that involve the account, newest first. Throws when the indexer can't be read.
+   * `truncated` is set when there were more than the pages read.
+   */
+  list(account: string): Promise<IndexedTx[] & { truncated?: boolean }>;
 }
+
+/** The RPC couldn't read a transaction at all (as opposed to reading it and finding it isn't ours). */
+export const UNREADABLE = Symbol("unreadable");
 
 const EXPLORER = "https://testnet.nearblocks.io";
 const HASH = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/;
@@ -109,15 +117,24 @@ const nsToIso = (ns: unknown): string | null => {
 const priceOf = (usdc: string | null, ward: string | null): string | null => (usdc && ward && BigInt(ward) > 0n ? ((BigInt(usdc) * 1_000_000n) / BigInt(ward)).toString() : null);
 
 /**
- * Step 3: confirms one transaction with the RPC and reads what it did. Null when the RPC doesn't know
- * the hash, or the transaction isn't what the indexer said, or it isn't one of ours after all.
+ * Step 3: confirms one transaction with the RPC and reads what it did. A regular RPC only keeps recent
+ * transactions, so an older one is read from the archival RPC. UNREADABLE when neither can read it;
+ * null when the transaction isn't what the indexer said, or isn't one of ours after all.
  */
-export async function confirmTx(rpc: Rpc, t: IndexedTx, account: string, contracts: { pool: string; usdc: string }): Promise<WalletTx | null> {
+export async function confirmTx(rpc: Rpc, t: IndexedTx, account: string, contracts: { pool: string; usdc: string }, archival?: Rpc): Promise<WalletTx | null | typeof UNREADABLE> {
+  const params = { tx_hash: t.hash, sender_account_id: t.signer, wait_until: "FINAL" };
+  // "No such transaction" is an answer (null); a timeout or an unreachable RPC is not (UNREADABLE).
+  const unknown = (e: unknown): boolean => /UNKNOWN_TRANSACTION/.test(String((e as { rpcName?: string })?.rpcName ?? (e as Error)?.message ?? e));
   let result: any;
   try {
-    result = await rpc("tx", { tx_hash: t.hash, sender_account_id: t.signer, wait_until: "FINAL" });
-  } catch {
-    return null;
+    result = await rpc("tx", params);
+  } catch (e) {
+    if (!archival) return unknown(e) ? null : UNREADABLE;
+    try {
+      result = await archival("tx", params);
+    } catch (e2) {
+      return unknown(e2) ? null : UNREADABLE;
+    }
   }
   const tx = result?.transaction;
   if (!tx || tx.hash !== t.hash || tx.signer_id !== t.signer || tx.receiver_id !== t.receiver) return null;
@@ -236,7 +253,9 @@ export function totals(rows: WalletTx[]): { deposited: string; redeemed: string 
  * The NearBlocks testnet API (v3, no key). Lists the account's transactions and its fungible-token
  * moves (for WARD received from others). Calls are spaced at least `gapMs` apart for the free tier.
  */
-export function nearblocksIndexer(opts: { base?: string; fetch?: typeof fetch; gapMs?: number; pool: string } ): Indexer {
+export function nearblocksIndexer(opts: { base?: string; fetch?: typeof fetch; gapMs?: number; pool: string; perPage?: number; maxPages?: number }): Indexer {
+  const perPage = opts.perPage ?? 50;
+  const maxPages = opts.maxPages ?? 10;
   const base = opts.base ?? "https://api-testnet.nearblocks.io";
   const get = opts.fetch ?? fetch;
   const gap = opts.gapMs ?? 1_100;
@@ -252,9 +271,20 @@ export function nearblocksIndexer(opts: { base?: string; fetch?: typeof fetch; g
   return {
     async list(account) {
       const id = encodeURIComponent(account);
-      const txns = (await call(`/v3/accounts/${id}/txns?per_page=50`)) as { data?: any[] };
-      if (!Array.isArray(txns.data)) throw new Error("NearBlocks returned no transaction list");
-      const out: IndexedTx[] = txns.data.map((t) => ({
+      // Every page, not just the newest 50: an older deposit missing from the list makes the totals wrong.
+      const listed: any[] = [];
+      let truncated = false;
+      for (let page = 1; ; page++) {
+        const txns = (await call(`/v3/accounts/${id}/txns?per_page=${perPage}&page=${page}`)) as { data?: any[] };
+        if (!Array.isArray(txns.data)) throw new Error("NearBlocks returned no transaction list");
+        listed.push(...txns.data);
+        if (txns.data.length < perPage) break;
+        if (page >= maxPages) {
+          truncated = true;
+          break;
+        }
+      }
+      const out: IndexedTx[] & { truncated?: boolean } = listed.map((t) => ({
         hash: String(t.transaction_hash),
         signer: String(t.signer_account_id),
         receiver: String(t.receiver_account_id),
@@ -268,6 +298,7 @@ export function nearblocksIndexer(opts: { base?: string; fetch?: typeof fetch; g
         if (out.some((t) => t.hash === m.transaction_hash)) continue;
         out.push({ hash: String(m.transaction_hash), signer: String(m.involved_account_id ?? ""), receiver: opts.pool, methods: ["ft_transfer"], timestampNs: String(m.block_timestamp ?? "0") });
       }
+      if (truncated) out.truncated = true;
       return out;
     },
   };
@@ -280,7 +311,7 @@ export class AccountTransactions {
   private readonly confirmed = new Map<string, WalletTx | null>();
 
   constructor(
-    private readonly o: { indexer: Indexer; rpc: Rpc; contracts: { pool: string; usdc: string }; log: (account: string) => ActivityItem[]; ttlMs?: number; now?: () => number },
+    private readonly o: { indexer: Indexer; rpc: Rpc; archival?: Rpc; contracts: { pool: string; usdc: string }; log: (account: string) => ActivityItem[]; ttlMs?: number; now?: () => number },
   ) {}
 
   /**
@@ -306,11 +337,21 @@ export class AccountTransactions {
     let chain: WalletTx[];
     let complete = true;
     try {
-      const listed = (await this.o.indexer.list(account)).filter((t) => touchesWardline(t, this.o.contracts));
+      const all = await this.o.indexer.list(account);
+      if (all.truncated) complete = false;
+      const listed = all.filter((t) => touchesWardline(t, this.o.contracts));
       chain = [];
       for (const t of listed) {
         // A confirmed transaction never changes, so each hash is read from the RPC once.
-        if (!this.confirmed.has(t.hash) || this.confirmed.get(t.hash) === null) this.confirmed.set(t.hash, await confirmTx(this.o.rpc, t, account, this.o.contracts));
+        if (!this.confirmed.has(t.hash) || this.confirmed.get(t.hash) === null) {
+          const read = await confirmTx(this.o.rpc, t, account, this.o.contracts, this.o.archival);
+          // One we couldn't read at all is tried again next time, and the list says it may be missing rows.
+          if (read === UNREADABLE) {
+            complete = false;
+            continue;
+          }
+          this.confirmed.set(t.hash, read);
+        }
         const row = this.confirmed.get(t.hash);
         if (row) chain.push(row);
       }

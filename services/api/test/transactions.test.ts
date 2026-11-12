@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Rpc } from "../src/activity/log.js";
-import { AccountTransactions, confirmTx, fromLog, mergeRows, totals, touchesWardline, type IndexedTx, type Indexer } from "../src/activity/transactions.js";
+import { AccountTransactions, confirmTx, fromLog, mergeRows, nearblocksIndexer, totals, touchesWardline, UNREADABLE, type IndexedTx, type Indexer } from "../src/activity/transactions.js";
 import type { ActivityItem } from "../src/activity/types.js";
 
 const ME = "hyperios.testnet";
@@ -139,5 +139,82 @@ describe("the indexer and the cache", () => {
     expect(down.complete).toBe(false);
     expect(down.transactions.map((r) => r.hash)).toEqual([DEPOSIT.hash]);
     expect(down.explorer_account_url).toBe(`https://testnet.nearblocks.io/address/${ME}`);
+  });
+});
+
+/**
+ * hyperios.testnet's first deposit (7UAt5yhw..., 10 USDC for 9,996,121 WARD) was missing from Your
+ * transactions: the regular RPC answered the older hash with TIMEOUT_ERROR (NOT_OBSERVED), confirmTx turned
+ * that into "not ours", the row was dropped, and the list still said complete: true. Only the archival RPC
+ * still has it.
+ */
+describe("an older deposit only the archival RPC still has", () => {
+  const EARLY: IndexedTx = { hash: H("7"), signer: ME, receiver: C.usdc, methods: ["ft_transfer_call"], timestampNs: "1794343320450662019" };
+  const LATER: IndexedTx = { ...DEPOSIT, timestampNs: "1794372306237390981" };
+  const timeout = () => Object.assign(new Error("tx: TIMEOUT_ERROR"), { rpcName: "TIMEOUT_ERROR", definite: true });
+  /** The regular RPC: knows the later deposit, times out on the early one. */
+  const recent: Rpc = async (m, p) => {
+    if ((p as { tx_hash: string }).tx_hash === EARLY.hash) throw timeout();
+    return rpc(m, p);
+  };
+  /** The archival RPC: has both. */
+  const archival: Rpc = async (m, p) => {
+    const { tx_hash } = p as { tx_hash: string };
+    if (tx_hash !== EARLY.hash) return rpc(m, p);
+    return { ...(await rpc(m, { ...(p as object), tx_hash: DEPOSIT.hash })), transaction: { ...(await rpc(m, { ...(p as object), tx_hash: DEPOSIT.hash })).transaction, hash: EARLY.hash } };
+  };
+
+  it("reads it from the archival RPC, so both deposits count", async () => {
+    const indexer: Indexer = { list: async () => [LATER, EARLY] };
+    const view = await new AccountTransactions({ indexer, rpc: recent, archival, contracts: C, log: () => [] }).get(ME);
+    expect(view.complete).toBe(true);
+    expect(view.transactions.map((r) => [r.hash, r.type, r.usdc])).toEqual([
+      [DEPOSIT.hash, "buy", "10000000"],
+      [EARLY.hash, "buy", "10000000"],
+    ]);
+    expect(totals(view.transactions).deposited).toBe("20000000");
+  });
+
+  it("says the list is incomplete, instead of dropping it quietly, when no RPC can read it", async () => {
+    expect(await confirmTx(recent, EARLY, ME, C)).toBe(UNREADABLE);
+    const indexer: Indexer = { list: async () => [LATER, EARLY] };
+    const t = new AccountTransactions({ indexer, rpc: recent, contracts: C, log: () => [] });
+    const view = await t.get(ME);
+    expect(view.complete).toBe(false);
+    expect(view.transactions.map((r) => r.hash)).toEqual([DEPOSIT.hash]);
+  });
+
+  it("a hash no RPC has ever seen is still just not ours", async () => {
+    const none: Rpc = async () => {
+      throw Object.assign(new Error("tx: UNKNOWN_TRANSACTION"), { rpcName: "UNKNOWN_TRANSACTION", definite: true });
+    };
+    expect(await confirmTx(none, FAKE, ME, C, none)).toBeNull();
+  });
+});
+
+describe("the NearBlocks indexer reads every page", () => {
+  const page = (n: number, from: number) => ({ data: Array.from({ length: n }, (_, i) => ({ transaction_hash: H(String.fromCharCode(65 + from + i)), signer_account_id: ME, receiver_account_id: C.pool, actions: [{ method: "vote" }], block_timestamp: NS })) });
+  const fakeFetch = (pages: Array<{ data: unknown[] }>) =>
+    (async (url: string) => {
+      const u = new URL(url);
+      if (u.pathname.endsWith("/ft-txns")) return new Response(JSON.stringify({ data: [] }));
+      const p = Number(u.searchParams.get("page") ?? "1");
+      return new Response(JSON.stringify(pages[p - 1] ?? { data: [] }));
+    }) as unknown as typeof fetch;
+
+  it("follows pages until a short one, so an old deposit past the first page is listed", async () => {
+    const idx = nearblocksIndexer({ pool: C.pool, fetch: fakeFetch([page(2, 0), page(2, 2), page(1, 4)]), gapMs: 0, perPage: 2 });
+    const listed = await idx.list(ME);
+    expect(listed).toHaveLength(5);
+    expect(listed.truncated).toBeUndefined();
+  });
+
+  it("marks the list truncated when the account has more than it reads", async () => {
+    const idx = nearblocksIndexer({ pool: C.pool, fetch: fakeFetch([page(2, 0), page(2, 2), page(2, 4)]), gapMs: 0, perPage: 2, maxPages: 2 });
+    const listed = await idx.list(ME);
+    expect(listed).toHaveLength(4);
+    expect(listed.truncated).toBe(true);
+    const view = await new AccountTransactions({ indexer: idx, rpc, contracts: C, log: () => [] }).get(ME);
+    expect(view.complete).toBe(false);
   });
 });
