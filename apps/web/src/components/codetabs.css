@@ -16,7 +16,7 @@
 .ct-line { display: flex; align-items: baseline; padding-right: 20px; }
 .ct-line.is-one { padding-right: 0; }
 .ct-line.is-one { background: rgba(123, 108, 255, 0.12); box-shadow: inset 2px 0 0 var(--violet); }
-.ct-n { flex: none; width: 44px; padding-right: 18px; box-sizing: border-box; text-align: right; color: var(--rule-strong); user-select: none; }
+.ct-n { flex: none; width: 44px; padding-right: 18px; box-sizing: border-box; text-align: right; color: var(--muted); user-select: none; }
 .ct-src { white-space: pre; }
 .ct-tag { position: sticky; align-self: stretch; display: inline-flex; align-items: center; right: 0; margin-left: auto; padding: 0 14px 0 24px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--violet) 12%, var(--surface)) 18px); font: 500 12px/1 var(--font); color: var(--violet-text); white-space: nowrap; user-select: none; }
 .tk-k { color: var(--violet-text); }

@@ -77,3 +77,4 @@
   .bal-grid{grid-template-columns:minmax(0,calc(360px + var(--wide) * .15)) minmax(0,1fr)}
   .bal-left .mine-mark{width:min(calc(320px + var(--wide) * .15),100%)}
 }
+.bal-later section{max-width:880px}

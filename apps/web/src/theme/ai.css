@@ -428,7 +428,8 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .propose[data-open] .disclose-body{grid-template-rows:1fr}
 .disclose-inner{overflow:hidden;min-height:0}
 .propose[data-open] .disclose-inner{padding-bottom:16px}
-.mine-votes .prop{grid-template-areas:"top" "what" "prog" "when" "act" "msg"}
+.mine-votes .prop,.mine-votes .prop[data-status]{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg";row-gap:10px}
+.mine-votes .prop-progress{max-width:520px}
 @media (max-width:980px){.prop,.prop[data-status="executed"],.prop[data-status="rejected"]{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg"}.prop-act,.prop-tx{justify-content:flex-start;text-align:left}.prop-act small{text-align:left}}
 @media (prefers-reduced-motion:reduce){.disclose-body,.disclose-chev,.prop-line i{transition:none}}
 /* Home: the tally on the line, Hold a share's three lines, For builders (A21 big pass). */
@@ -442,3 +443,4 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .about-why .lede p + p{margin-top:12px}
 .about-team .lede p{margin:0}
 .about-team .lede p + p{margin-top:8px}
+@media (max-width:600px){.member-card .member-horizon{width:72px;height:72px;top:20px;right:20px}.member-card .mc-value{font-size:32px}.mc-label{padding-right:84px}}
