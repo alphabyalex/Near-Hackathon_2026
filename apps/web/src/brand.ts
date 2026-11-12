@@ -1013,22 +1013,6 @@ export const EXPLAINER = {
   ],
 } as const;
 
-/** Groups as spheres (Horizon v2). */
-export const SPHERES = {
-  title: "Groups that prove every payment.",
-  lede: "Each group is a sphere. The more proven payments it makes, the bigger it grows, and the cleaner its record, the denser it gets. Gold groups pay the lowest fee.",
-  rowLabel: "Covered groups",
-  proven: (n: number) => `${n.toLocaleString("en-US")} proven`,
-  selected: "Selected group",
-  tierRest: (members: string) => `tier, ${members}`,
-  record: "Record on chain",
-  recordLine: (refused: number, claims: number) => `${refused} refused, ${claims === 1 ? "1 claim" : `${claims} claims`}`,
-  toward: "Toward the next tier",
-  top: "Top tier reached. Lowest fee.",
-  next: (clean: number, need: number, tier: string) => `${clean} of ${need} clean payments to ${tier}`,
-  latest: "View latest transaction",
-} as const;
-
 /** The Groups page, #/groups: every group and solo builder on one tilted orbit (GroupsOrbit.dc.html). */
 export const ORBIT = {
   kicker: "Groups",

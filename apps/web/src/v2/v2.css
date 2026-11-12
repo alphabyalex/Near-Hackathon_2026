@@ -73,38 +73,6 @@
   .explainer-cols{grid-template-columns:minmax(0,1fr);gap:24px}
 }
 
-/* ---------- Groups as spheres (Groups.dc.html) ---------- */
-.orbs-intro .lede{margin:14px 0 0;max-width:760px}
-.orbs-intro + .sec{padding-top:48px}
-.orbs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:36px 28px;min-height:420px;padding-bottom:28px;border-bottom:1px solid var(--rule)}
-.orb{font:inherit;color:inherit;background:transparent;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:16px;flex:0 0 auto;border-radius:14px;transition:transform .35s cubic-bezier(.22,1,.36,1)}
-.orb:hover{transform:translateY(-4px)}
-.orb:focus-visible{outline:2px solid var(--focus);outline-offset:6px}
-.orb canvas{display:block}
-.orb-label{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:230px;text-align:center}
-.orb-title{font-size:17px;font-weight:600;color:var(--text-2)}
-.orb[aria-pressed="true"] .orb-title{color:var(--text)}
-.orb-meta{font-size:14px;color:var(--muted)}
-.orb-meta .tier-name{font-weight:500}
-.orb-detail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;margin-top:40px}
-.orb-k{margin:0;font-size:14px;color:var(--muted)}
-.orb-name{margin:6px 0 0;font-size:30px;font-weight:700;letter-spacing:-0.02em;line-height:1.15}
-.orb-big{margin:6px 0 0;font-size:30px;font-weight:600;line-height:1.15}
-.orb-line{margin:8px 0 0;font-size:16px;color:var(--text-2)}
-.orb-bar{height:6px;margin-top:18px;overflow:hidden;border-radius:3px;background:var(--rule)}
-.orb-bar i{display:block;height:6px;border-radius:3px;background:var(--violet);transition:width .5s ease}
-.orb-tx{display:inline-block;margin-top:10px;font-size:14px;color:var(--violet-text);text-decoration:none}
-.orb-tx:hover{color:var(--text)}
-@media (max-width:599.98px){
-  /* Phones: the row scrolls in its own box, never the page. */
-  .orbs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;min-height:0;gap:20px;padding:10px 6px 20px;margin:0 -6px}
-  .orb{scroll-snap-align:start}
-  .orb-label{max-width:150px}
-  .orb-title{font-size:15px}
-  .orb-detail{grid-template-columns:minmax(0,1fr);gap:24px}
-  .orb-name,.orb-big{font-size:24px}
-}
-
 /* ---------- Your share (Share.dc.html) ---------- */
 .mine{display:flex;gap:64px;align-items:center}
 .mine-left{flex:0 0 440px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
@@ -164,8 +132,6 @@
 @media (prefers-reduced-motion:reduce){
   .rise-1,.rise-2,.rise-3,.live-proof,.roll-col{animation:none}
   .live-cell{transition:none}
-  .orb,.orb:hover{transition:none;transform:none}
-  .orb-bar i{transition:none}
 }
 
 /* The open vote card in the share's right column: one column, the reference's card. */
@@ -174,7 +140,6 @@
 .mine-votes .prop-act small{text-align:left}
 .mine-votes .me-weight{margin:0 0 6px;font-size:14px;color:var(--muted)}
 @media (max-width:600px){.mine-votes .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "bar" "facts" "act" "what" "msg"}.mine-votes .prop-act{justify-content:flex-start}.mine-votes .prop-act small{text-align:left}}
-.orbs-intro{padding-bottom:0}
 .page-intro.me-intro{padding-bottom:0}
 .me-intro + .sec{padding-top:40px}
 /* Phones keep A16's two-line cards: no desktop cell padding or borders. */
