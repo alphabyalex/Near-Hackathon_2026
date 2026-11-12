@@ -1,135 +1,105 @@
-import { CONNECT } from "../../brand";
-import { CodeBlock } from "../../components/CodeBlock";
-import { PAYEE_REGISTRY, SNIPPET_API_URL, SNIPPET_IS_PLACEHOLDER, SNIPPET_MCP_URL } from "../../config";
+import { useEffect, useId, useMemo, useState } from "react";
+import { CONNECT, DEVELOPERS } from "../../brand";
+import { CodeTabs } from "../../components/CodeTabs";
+import { SNIPPET_API_URL, SNIPPET_IS_PLACEHOLDER, SNIPPET_MCP_URL } from "../../config";
+import { DEVELOPER_PATHS, developerTabs, type DeveloperPathId } from "../../data/snippets";
+import { useRoute } from "../../router";
+import "./developers.css";
 
-/** Every snippet shows a real URL: configured, hosted, local, or the named placeholder (see config.ts). */
-export function snippets(apiUrl: string, mcpUrl: string) {
-  const shellBase = apiUrl;
-  const tsBase = JSON.stringify(apiUrl);
-  const jsBase = JSON.stringify(`${apiUrl}/v1/ai`);
-  const pyBase = JSON.stringify(`${apiUrl}/v1/ai`);
-  return {
-    openaiJs: `import OpenAI from "openai";
+export { pluginSnippets, pluginTabs, snippets } from "../../data/snippets";
 
-const client = new OpenAI({
-  baseURL: ${jsBase}, // the one line
-  apiKey: process.env.WARDLINE_METER_KEY,
-});
+const ICONS: Record<DeveloperPathId, string> = {
+  ai: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6",
+  vendors: "M4 7h16v10H4zM4 11h16M8 15h3",
+  app: "M8 6l-5 6 5 6M16 6l5 6-5 6",
+};
 
-const { data, response } = await client.chat.completions
-  .create({ model: "deepseek-ai/DeepSeek-V4.1-Flash-1017", messages: [{ role: "user", content: "Summarize this invoice." }] })
-  .withResponse();
-console.log(response.headers.get("x-wardline-proof")); // verified, or the call was refunded`,
-    openaiPy: `import os
-from openai import OpenAI
+const isPath = (value: string | undefined): value is DeveloperPathId => value !== undefined && (DEVELOPER_PATHS as readonly string[]).includes(value);
 
-client = OpenAI(
-    base_url=${pyBase},  # the one line
-    api_key=os.environ["WARDLINE_METER_KEY"],
-)
-
-raw = client.chat.completions.with_raw_response.create(
-    model="deepseek-ai/DeepSeek-V4.1-Flash-1017",
-    messages=[{"role": "user", "content": "Summarize this invoice."}],
-)
-print(raw.headers["x-wardline-proof"])  # verified, or the call was refunded
-reply = raw.parse()`,
-    mcp: JSON.stringify({ mcpServers: { wardline: { type: "http", url: mcpUrl } } }, null, 2),
-    resolve: `curl -s ${shellBase}/v1/resolve \\
-  -H 'content-type: application/json' \\
-  -d '{"domain":"northwind.example","chain":"near:testnet"}'`,
-    check: `curl -s ${shellBase}/v1/check \\
-  -H 'content-type: application/json' \\
-  -d '{"payee":"near:testnet:northw1nd.testnet","vendor":{"domain":"northwind.example"}}'`,
-    hosted: `import { createWardline, assertPayable } from "@wardline/sdk";
-
-const wardline = createWardline({
-  mode: "hosted",
-  baseUrl: ${tsBase},
-  apiKey: process.env.WARDLINE_API_KEY, // check-only key for agents
-});
-
-const result = await wardline.resolve({ domain: "northwind.example", chain: "near:testnet" });
-assertPayable(result, { minTier: "T2_DOMAIN_LINKED" }); // throws on HOLD or BLOCK
-// pay result.account`,
-    direct: `import { createWardline, assertPayable } from "@wardline/sdk";
-
-const wardline = createWardline({
-  mode: "direct",
-  nearRpcUrl: "https://test.rpc.fastnear.com",
-  registryAccount: ${JSON.stringify(PAYEE_REGISTRY)},
-});
-
-const result = await wardline.check({
-  payee: "eip155:84532:0x...",
-  vendor: { domain: "northwind.example" },
-});
-assertPayable(result);`,
-    x402: `import { createWardline } from "@wardline/sdk";
-import { withWardline } from "@wardline/x402-guard";
-import { wrapFetchWithPayment } from "@x402/fetch";
-
-const wardline = createWardline({ mode: "hosted", baseUrl: ${tsBase} });
-
-// The guard sits inside the payment wrapper, so it sees every 402 first.
-const pay = wrapFetchWithPayment(withWardline(fetch, { wardline }), x402Client);`,
-  };
-}
-
-function Block({ title, line, children }: { title: string; line?: string; children: React.ReactNode }) {
-  return (
-    <div className="conn">
-      <div className="conn-head">
-        <h2>{title}</h2>
-        {line && <p>{line}</p>}
-      </div>
-      <div className="conn-body">{children}</div>
-    </div>
-  );
-}
-
+/** Developers (#/developers, and #/developers/ai | vendors | app to open one path). */
 export function Connect() {
-  const s = snippets(SNIPPET_API_URL, SNIPPET_MCP_URL);
+  const route = useRoute();
+  const section = route.kind === "site" ? route.section : undefined;
+  const [pick, setPick] = useState<DeveloperPathId>(isPath(section) ? section : "ai");
+  useEffect(() => {
+    if (isPath(section)) setPick(section);
+  }, [section]);
+  const tabs = useMemo(() => developerTabs(SNIPPET_API_URL, SNIPPET_MCP_URL), []);
+  const askId = useId();
+  const path = DEVELOPERS.paths[pick];
+
   return (
-    <main>
-      <section className="sec pagetop page-intro">
-        <div className="wrap">
-          <h1 className="h2">{CONNECT.title}</h1>
-          <p className="lede ink">{CONNECT.lede}</p>
-          {SNIPPET_IS_PLACEHOLDER && <p className="fine" data-testid="snippet-placeholder">{CONNECT.placeholder}</p>}
-        </div>
-      </section>
-      <section className="sec tight">
-        <div className="wrap">
-          <div className="conns">
-            <Block title={CONNECT.openai} line={CONNECT.openaiLine}>
-              <CodeBlock code={s.openaiJs} label={`${CONNECT.openaiJs} OpenAI client`} language="js" />
-              <CodeBlock code={s.openaiPy} label={`${CONNECT.openaiPy} OpenAI client`} language="py" />
-            </Block>
-            <Block title={CONNECT.mcp} line={CONNECT.mcpLine}>
-              <CodeBlock code={SNIPPET_MCP_URL} label="MCP URL" language="url" />
-              <CodeBlock code={s.mcp} label="MCP client config" language="json" />
-            </Block>
-            <Block title={CONNECT.resolve}>
-              <CodeBlock code={s.resolve} label="curl resolve example" language="sh" />
-            </Block>
-            <Block title={CONNECT.check}>
-              <CodeBlock code={s.check} label="curl check example" language="sh" />
-            </Block>
-            <Block title={CONNECT.sdkHosted}>
-              <CodeBlock code={s.hosted} label="SDK hosted quickstart" language="ts" />
-            </Block>
-            <Block title={CONNECT.sdkDirect} line={CONNECT.sdkDirectLine}>
-              <CodeBlock code={s.direct} label="SDK direct quickstart" language="ts" />
-            </Block>
-            <Block title={CONNECT.x402}>
-              <CodeBlock code={s.x402} label="x402 guard snippet" language="ts" />
-            </Block>
-            <Block title={CONNECT.llms} line={CONNECT.llmsLine}>
+    <main className="dv">
+      <section className="sec pagetop dv-sec">
+        <div className="wrap dv-grid">
+          <div className="dv-side">
+            <p className="dv-eyebrow">{DEVELOPERS.eyebrow}</p>
+            <h1 className="dv-title">{DEVELOPERS.title}</h1>
+            <p className="dv-lede">{DEVELOPERS.lede}</p>
+            <h2 className="dv-ask" id={askId}>
+              {DEVELOPERS.ask}
+            </h2>
+            <div className="dv-picks" role="group" aria-labelledby={askId}>
+              {DEVELOPER_PATHS.map((id) => {
+                const p = DEVELOPERS.paths[id];
+                return (
+                  <button key={id} type="button" className="dv-pick" aria-pressed={pick === id} data-path={id} onClick={() => setPick(id)}>
+                    <span className="dv-mark" aria-hidden="true">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d={ICONS[id]} />
+                      </svg>
+                    </span>
+                    <span className="dv-pick-text">
+                      <span className="dv-pick-title">{p.title}</span>
+                      <span className="dv-pick-line">{p.line}</span>
+                    </span>
+                    <span className="dv-dot" aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="dv-llms">
+              {DEVELOPERS.llmsLead}{" "}
               <a className="link" href="/llms.txt">
-                /llms.txt
+                {DEVELOPERS.llmsLink}
               </a>
-            </Block>
+              .
+            </p>
+          </div>
+
+          <div className="dv-main" data-path={pick}>
+            <CodeTabs key={pick} tabs={tabs[pick]} label={DEVELOPERS.codeLabel(path.title)} />
+            {SNIPPET_IS_PLACEHOLDER && (
+              <p className="fine dv-placeholder" data-testid="snippet-placeholder">
+                {CONNECT.placeholder}
+              </p>
+            )}
+            <div className="dv-after">
+              <div>
+                <h2 className="dv-h">{DEVELOPERS.getBack}</h2>
+                <ul className="dv-back">
+                  {path.back.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h2 className="dv-h">{DEVELOPERS.also}</h2>
+                <ul className="dv-also">
+                  {path.also.map((link) => (
+                    <li key={link.href + link.label}>
+                      <a href={link.href}>
+                        <span>{link.label}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M5 12h14" />
+                          <path d="M13 6l6 6-6 6" />
+                        </svg>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </section>

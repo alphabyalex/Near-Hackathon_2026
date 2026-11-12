@@ -1,0 +1,53 @@
+/* Developers (Connect.tsx) and the CodeTabs panel. Open layout: hairlines, big type, one code surface. */
+
+.dv-grid { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 64px; align-items: start; }
+.dv-side { display: flex; flex-direction: column; min-width: 0; }
+.dv-main { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+
+.dv-eyebrow { margin: 0; font-size: 14px; color: var(--muted); }
+.dv-title { margin: 8px 0 0; font-size: clamp(38px, 3.3vw, 54px); font-weight: 700; line-height: 1.02; letter-spacing: -0.035em; }
+.dv-lede { margin: 18px 0 40px; font-size: 17px; line-height: 1.55; color: var(--text-2); max-width: 40ch; }
+.dv-ask { margin: 0 0 12px; font-size: 14px; font-weight: 500; color: var(--muted); }
+
+.dv-picks { border-bottom: 1px solid var(--rule); }
+.dv-pick { font: inherit; color: inherit; text-align: left; width: 100%; display: grid; grid-template-columns: 44px minmax(0, 1fr) 8px; gap: 16px; align-items: center; background: transparent; border: 0; border-top: 1px solid var(--rule); padding: 20px 6px; cursor: pointer; transition: background-color .18s ease; }
+.dv-pick:hover, .dv-pick[aria-pressed="true"] { background: color-mix(in srgb, var(--surface) 60%, var(--bg)); }
+.dv-pick:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dv-mark { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); background: var(--surface); transition: color .18s ease; }
+.dv-pick[aria-pressed="true"] .dv-mark { color: var(--text); background: linear-gradient(170deg, var(--surface-2) 0 52%, var(--violet-ink) 52% 100%); }
+.dv-pick-text { min-width: 0; }
+.dv-pick-title { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.dv-pick-line { display: block; margin-top: 3px; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.dv-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dv-pick[aria-pressed="true"] .dv-dot { background: var(--violet); }
+
+.dv-llms { margin: 22px 0 0; font-size: 14px; line-height: 1.55; color: var(--muted); }
+.dv-placeholder { margin: -12px 0 0; font-size: 14px; }
+
+.dv-after { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+.dv-h { margin: 0 0 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.dv-back, .dv-also { list-style: none; margin: 0; padding: 0; }
+.dv-back li { padding: 12px 0; border-top: 1px solid var(--rule); font-size: 15px; line-height: 1.55; color: var(--text-2); }
+.dv-also a { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule); font-size: 15px; color: var(--text-2); text-decoration: none; }
+.dv-also a:hover { color: var(--text); }
+.dv-also a:hover svg { color: var(--violet-text); }
+.dv-also a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.dv-also svg { flex: none; }
+
+/* CodeTabs */
+
+
+@media (max-width: 1080px) {
+  .dv-grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
+  .dv-lede { max-width: 58ch; }
+}
+@media (max-width: 640px) {
+  .dv-title { font-size: 38px; }
+  .dv-lede { margin-bottom: 32px; }
+  .dv-pick { padding: 18px 4px; gap: 14px; }
+  .dv-after { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  /* Phones: the tag waits at the end of the line, so it never covers the code. */
+}
+@media (prefers-reduced-motion: reduce) {
+  .dv-pick, .dv-mark, .ct-tab, .ct-copy { transition: none; }
+}

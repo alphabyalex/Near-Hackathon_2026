@@ -1,0 +1,37 @@
+/* The code panel with language tabs (CodeTabs.tsx), used on Developers and Home's For builders. */
+.codetabs { min-width: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-card); overflow: hidden; }
+.ct-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 14px 0 18px; border-bottom: 1px solid var(--rule); }
+.ct-tabs { display: flex; flex-wrap: wrap; column-gap: 20px; min-width: 0; }
+.ct-tab { font: 500 13px/1.2 var(--font); color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 14px 2px 12px; cursor: pointer; white-space: nowrap; transition: color .15s ease, border-color .15s ease; }
+.ct-tab:hover { color: var(--text); }
+.ct-tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--violet); }
+.ct-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 4px; }
+.ct-copy { flex: none; min-height: 32px; font: 500 13px/1 var(--font); color: var(--text-2); background: transparent; border: 1px solid var(--rule-2); border-radius: 8px; padding: 0 12px; cursor: pointer; transition: color .15s ease, border-color .15s ease; }
+.ct-copy:hover { color: var(--text); border-color: var(--rule-strong); }
+.ct-copy[data-copied] { color: var(--violet-text); border-color: var(--violet-ink); }
+.ct-copy:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ct-panel pre { margin: 0; padding: 22px 0 24px; min-height: calc(var(--ct-lines, 1) * 1.75em + 46px); box-sizing: border-box; overflow-x: auto; font: 13.5px/1.75 var(--code); font-variant-numeric: tabular-nums; color: var(--text-2); white-space: pre; }
+.ct-panel pre:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.ct-panel code { display: block; min-width: max-content; font: inherit; }
+.ct-line { display: flex; align-items: baseline; padding-right: 20px; }
+.ct-line.is-one { padding-right: 0; }
+.ct-line.is-one { background: rgba(123, 108, 255, 0.12); box-shadow: inset 2px 0 0 var(--violet); }
+.ct-n { flex: none; width: 44px; padding-right: 18px; box-sizing: border-box; text-align: right; color: var(--rule-strong); user-select: none; }
+.ct-src { white-space: pre; }
+.ct-tag { position: sticky; align-self: stretch; display: inline-flex; align-items: center; right: 0; margin-left: auto; padding: 0 14px 0 24px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--violet) 12%, var(--surface)) 18px); font: 500 12px/1 var(--font); color: var(--violet-text); white-space: nowrap; user-select: none; }
+.tk-k { color: var(--violet-text); }
+.tk-s { color: var(--text); }
+.tk-c { color: var(--muted); font-style: italic; }
+.ct-note { margin: 0; padding: 14px 18px; border-top: 1px solid var(--rule); font-size: 14px; line-height: 1.5; color: var(--muted); }
+@media (max-width: 640px) {
+  .ct-bar { flex-wrap: wrap; align-items: flex-start; padding: 0 10px 0 14px; column-gap: 12px; }
+  .ct-tabs { column-gap: 16px; flex: 1 1 0; }
+  .ct-copy { margin: 8px 0; }
+  .ct-panel pre { padding: 16px 0 18px; font-size: 12.5px; min-height: calc(var(--ct-lines, 1) * 1.75em + 34px); }
+  .ct-n { width: 34px; padding-right: 12px; }
+  .ct-line { padding-right: 14px; }
+  .ct-tag { position: static; background: none; padding-left: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-tab, .ct-copy { transition: none; }
+}
