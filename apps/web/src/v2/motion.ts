@@ -31,6 +31,8 @@ export interface AnimationOptions {
   startOnView?: boolean;
   /** Hold this frame (see frozenFrame). */
   freezeAt?: number | null;
+  /** A new value plays the animation again from 0, for motion a person starts (the Groups orbit turning). */
+  restartKey?: unknown;
 }
 
 /**
@@ -41,7 +43,7 @@ export interface AnimationOptions {
 export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: (t: number) => void, opts: AnimationOptions): void {
   const drawRef = useRef(draw);
   drawRef.current = draw;
-  const { duration, finalAt, fps = 30, startOnView = false, freezeAt = null } = opts;
+  const { duration, finalAt, fps = 30, startOnView = false, freezeAt = null, restartKey } = opts;
   const fpsRef = useRef(fps);
   fpsRef.current = fps;
 
@@ -133,7 +135,7 @@ export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: 
       resizeObserver?.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [target, duration, finalAt, startOnView, freezeAt]);
+  }, [target, duration, finalAt, startOnView, freezeAt, restartKey]);
 }
 
 /** The element's CSS size, read where a draw needs it. */
