@@ -1,0 +1,97 @@
+/* The proof engine page: the latest proofs feed, the stats under the line and the verify section.
+   Open layouts only: hairlines (var(--rule)), type and space, no filled panels. */
+
+/* Latest proofs. Each row is a button that opens its explanation in place; the fingerprint sits beside the
+   button, and the button's ::before covers the whole line so a click anywhere on it toggles the row. */
+.pf-feed{margin-top:8px}
+.pf-head,.pf-line{display:grid;grid-template-columns:22px minmax(0,1.2fr) minmax(0,2.2fr) 150px 92px 14px;column-gap:20px;align-items:center}
+.pf-head{padding:0 0 12px;font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap}
+.pf-head .r{text-align:right}
+.pf-list{margin:0;padding:0;list-style:none;border-top:1px solid var(--rule)}
+.pf-item{border-bottom:1px solid var(--rule)}
+.pf-line{position:relative}
+.pf-fp{pointer-events:none}
+.pf-row{grid-column:2 / -1;display:grid;grid-template-columns:subgrid;align-items:center;min-height:64px;padding:16px 0;margin:0;border:0;background:none;color:var(--text-2);font:inherit;font-size:15px;text-align:left;cursor:pointer;min-width:0}
+.pf-row::before{content:"";position:absolute;inset:0;border-radius:6px}
+.pf-row:focus-visible{outline:none}
+.pf-row:focus-visible::before{outline:2px solid var(--focus);outline-offset:2px}
+.pf-group{color:var(--text);font-weight:500;min-width:0;overflow-wrap:anywhere}
+.pf-what{min-width:0}
+.pf-repeat{color:var(--muted);font-weight:600}
+.pf-amt{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pf-verdict{font-weight:600;white-space:nowrap}
+.pf-verdict.is-paid{color:var(--violet-text)}
+.pf-verdict.is-below{color:var(--red-text)}
+.pf-chev{color:var(--muted);transition:transform .25s ease,color .2s ease}
+.pf-line:hover .pf-chev,.pf-row:focus-visible .pf-chev{color:var(--text)}
+.pf-line:hover .pf-what{color:var(--text)}
+.pf-item[data-open="true"] .pf-chev{transform:rotate(180deg);color:var(--text)}
+
+/* Smooth height: the row animates 0fr to 1fr. Closed content is hidden (and inert), so nothing in it is focusable. */
+.pf-detail{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .3s cubic-bezier(.2,.7,.2,1),visibility 0s linear .3s}
+.pf-item[data-open="true"] .pf-detail{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .3s cubic-bezier(.2,.7,.2,1),visibility 0s}
+.pf-detail-in{min-height:0;overflow:hidden}
+.pf-detail-body{padding:2px 0 28px 42px;max-width:calc(68ch + 42px)}
+.pf-story{margin:0;font-size:18px;line-height:1.6;color:var(--text)}
+.pf-receipt{margin:12px 0 0;font-size:15px;line-height:1.55;color:var(--muted)}
+.pf-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;margin:14px 0 0;font-size:14px;color:var(--muted)}
+
+.pf-skel{border-top:1px solid var(--rule)}
+.pf-skel span{display:block;height:64px;border-bottom:1px solid var(--rule)}
+
+/* Under the line: the scam numbers people ask about next, small and labelled. */
+.pf-minor{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 40px;padding:24px 0 0}
+.pf-minor dl{display:flex;flex-wrap:wrap;gap:12px 40px;margin:0}
+.pf-minor dl div{display:flex;align-items:baseline;gap:10px}
+.pf-minor dt{font-size:14px;color:var(--muted)}
+.pf-minor dd{margin:0;font-size:20px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.pf-minor p{margin:0;font-size:14px;color:var(--muted)}
+
+/* Verify your business. */
+.pf-verify{border-top:1px solid var(--rule)}
+.pf-eyebrow{margin:0 0 18px;font-size:15px;font-weight:500;color:var(--violet-text)}
+.pf-verify .h2{max-width:18ch}
+.pf-h3{margin:64px 0 0;font-size:15px;font-weight:500;color:var(--muted)}
+.pf-why,.pf-vsteps{display:grid;gap:0 40px;margin:18px 0 0;padding:0;list-style:none}
+.pf-why{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pf-vsteps{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pf-why li,.pf-vsteps li{display:flex;flex-direction:column;gap:10px;padding:24px 0 8px;border-top:1px solid var(--rule);min-width:0}
+.pf-why b{font-size:24px;font-weight:700;letter-spacing:-0.025em;line-height:1.15}
+.pf-vsteps b{font-size:28px;font-weight:700;letter-spacing:-0.03em;line-height:1.1}
+.pf-why span,.pf-vsteps li>span:last-child{font-size:16px;line-height:1.55;color:var(--text-2)}
+.pf-vstep-n{font-size:64px;font-weight:700;letter-spacing:-0.05em;line-height:1;color:var(--violet-text);font-variant-numeric:tabular-nums}
+.pf-verify .btn{margin-top:56px}
+
+@media (max-width:980px){
+  .pf-head,.pf-line{grid-template-columns:22px minmax(0,1fr) minmax(0,1.6fr) 120px 84px 14px;column-gap:16px}
+  .pf-detail-body{padding-left:38px}
+  .pf-why{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .pf-head{display:none}
+  .pf-line{grid-template-columns:22px minmax(0,1fr);column-gap:14px}
+  .pf-row{grid-column:2;grid-template-columns:minmax(0,1fr) auto 14px;grid-template-areas:"group verdict chev" "what amt chev";gap:4px 14px}
+  .pf-group{grid-area:group}
+  .pf-what{grid-area:what;font-size:14px}
+  .pf-amt{grid-area:amt;font-size:14px}
+  .pf-verdict{grid-area:verdict;text-align:right}
+  .pf-chev{grid-area:chev}
+  .pf-detail-body{padding-left:36px}
+  .pf-story{font-size:17px}
+  .pf-vsteps{grid-template-columns:minmax(0,1fr)}
+  .pf-vstep-n{font-size:48px}
+  .pf-h3{margin-top:48px}
+}
+@media (max-width:560px){
+  /* The good side here carries a label, a note and a sub: a taller block keeps the line clear of them. */
+  .pf-stats .linestats{min-height:380px}
+  .pf-why{grid-template-columns:minmax(0,1fr)}
+  .pf-why b{font-size:21px}
+  .pf-vsteps b{font-size:24px}
+  .pf-detail-body{padding-left:0}
+  .pf-verify .btn{width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .pf-detail,.pf-item[data-open="true"] .pf-detail{transition:none}
+  .pf-chev{transition:none}
+}
