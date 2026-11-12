@@ -1,4 +1,4 @@
-/** How it works: seven steps, each calling the /v1/demo endpoint and showing the numbers Wardline's own checks produce. */
+/** How it works: the seven steps on About, each calling the /v1/demo endpoint and showing the numbers Wardline's own checks produce. */
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { PayeeCheckRequest, PayeeCheckResult } from "@wardline/schemas";
 import { runDemoScene, type BudgetView, type CallView, type ClaimView, type PoolView, type ReputationView, type SceneName } from "../../api/ai";
@@ -8,8 +8,6 @@ import { callWords, modelName } from "../../ai/words";
 import { DEMO, REP } from "../../brand";
 import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
-import { firstContact } from "../../redteam";
-import { Explainer } from "../../v2/Explainer";
 
 // The payee result card carries receipt verification (ed25519); only the invoice scene needs it.
 const ResultCard = lazy(() => import("../../payee/ResultCard").then((m) => ({ default: m.ResultCard })));
@@ -257,42 +255,11 @@ function Stage({ id, run, onRun, onNext, hasNext }: { id: SceneName; run: Run; o
   );
 }
 
-function DotRow({ label, paid, of }: { label: string; paid: number; of: number }) {
-  return (
-    <div className="cmp-row">
-      <div className="cmp-label">{label}</div>
-      <div className="cmp-dots" role="img" aria-label={`${paid} of ${of} ${DEMO.scamsThrough}`}>
-        {Array.from({ length: of }, (_, i) => (
-          <i key={i} className={i < paid ? "paid" : ""} />
-        ))}
-      </div>
-      <div className="cmp-value num">
-        {paid} of {of} <small>{DEMO.scamsThrough}</small>
-      </div>
-    </div>
-  );
-}
-
-export function Comparison() {
-  const first = firstContact();
-  if (!first) return null;
-  return (
-    <section className="sec" aria-labelledby="cmp-title">
-      <div className="wrap">
-        <h2 className="h2 cmp-title" id="cmp-title">
-          {DEMO.comparisonTitle}
-        </h2>
-        <div className="cmp">
-          <DotRow label={DEMO.agentAlone} paid={first.agentAlone.unsafePayees} of={first.attacks} />
-          <DotRow label={DEMO.withWardline} paid={first.agentWithWardline.unsafePayees} of={first.attacks} />
-        </div>
-        <p className="fine engine-note">{DEMO.outcome(first.agentAlone.unsafePayees, first.agentWithWardline.unsafePayees, first.attacks)}</p>
-      </div>
-    </section>
-  );
-}
-
-export function HowItWorks() {
+/**
+ * The seven interactive steps, on About (#/about/steps; #/how-it-works and #/demo redirect there). Kept in
+ * its own component so the module can be swapped without touching the page around it.
+ */
+export function Steps() {
   const [current, setCurrent] = useState<SceneName>("mutual");
   const [runs, setRuns] = useState<Partial<Record<SceneName, Run>>>({});
   const live = useRef(true);
@@ -314,16 +281,14 @@ export function HowItWorks() {
   const idx = SCENES.indexOf(current);
 
   return (
-    <main>
-      <section className="sec pagetop page-intro">
-        <div className="wrap">
-          <h1 className="h1">{DEMO.title}</h1>
-          <p className="lede">{DEMO.lede}</p>
-        </div>
-      </section>
-      <Explainer />
-      <section className="sec tight">
-        <div className="wrap demo">
+    <section className="sec steps-sec" id="steps" aria-labelledby="steps-title" tabIndex={-1}>
+      <div className="wrap">
+        <h2 className="h2" id="steps-title">
+          {DEMO.title}
+        </h2>
+        <p className="lede">{DEMO.lede}</p>
+      </div>
+      <div className="wrap demo">
           <div className="scenes-col">
           <ol className="scenes">
             {SCENES.map((id, i) => (
@@ -343,9 +308,7 @@ export function HowItWorks() {
           </p>
           </div>
           <Stage id={current} run={runs[current] ?? null} onRun={() => play(current)} onNext={() => setCurrent(SCENES[idx + 1]!)} hasNext={idx < SCENES.length - 1} />
-        </div>
-      </section>
-      <Comparison />
-    </main>
+      </div>
+    </section>
   );
 }

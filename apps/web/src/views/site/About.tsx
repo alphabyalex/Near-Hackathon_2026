@@ -1,30 +1,58 @@
 import type { EvidenceTier } from "@wardline/schemas";
 import { ABOUT, BRAND, TIERS } from "../../brand";
 import { TIER_CODES } from "../../payee/reasons";
+import { Steps } from "./HowItWorks";
 
 const TIER_ORDER: EvidenceTier[] = ["T0_NONE", "T1_WALLET_CONTROL", "T2_DOMAIN_LINKED", "T3_RELATIONSHIP", "T4_EXTERNAL_KYB"];
 
+/** About: why Wardline exists, the seven interactive steps, trust levels with a real decision, and who builds it. */
 export function About() {
   return (
     <main>
-      <section className="sec pagetop page-intro">
+      <section className="sec pagetop page-intro about-why">
         <div className="wrap">
           <h1 className="h1">{ABOUT.title}</h1>
-          <p className="lede">{ABOUT.lede}</p>
+          <div className="lede">
+            {ABOUT.why.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+          <p>
+            <a className="link" href="#/mutual/watch">
+              {ABOUT.watch}
+            </a>
+          </p>
         </div>
       </section>
 
-      <section className="sec tight">
+      <Steps />
+
+      <section className="sec">
         <div className="wrap">
-          <h2 className="h3">{ABOUT.flowTitle}</h2>
-          <ol className="flow">
-            {ABOUT.flow.map(([name, line]) => (
-              <li key={name}>
-                <b>{name}</b>
-                <span>{line}</span>
-              </li>
-            ))}
-          </ol>
+          <h2 className="h2 trust-title">{ABOUT.trustTitle}</h2>
+          <div className="scrollx">
+            <table className="tbl trust">
+              <thead>
+                <tr>
+                  <th scope="col">Level</th>
+                  <th scope="col">What we verified</th>
+                  <th scope="col">What it does not establish</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TIER_ORDER.map((tier) => (
+                  <tr key={tier}>
+                    <td>
+                      <span className="mono">{TIER_CODES[tier]}</span> {TIERS[tier].short}
+                    </td>
+                    <td data-label="What we verified">{TIERS[tier].verified}</td>
+                    <td data-label="What it does not establish">{TIERS[tier].notEstablished}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="engine-note">{ABOUT.trustNote}</p>
         </div>
       </section>
 
@@ -90,46 +118,21 @@ export function About() {
         </div>
       </section>
 
-      <section className="sec">
+      <section className="sec about-team" aria-labelledby="team-title">
         <div className="wrap">
-          <h2 className="h2 trust-title">{ABOUT.trustTitle}</h2>
-          <div className="scrollx">
-            <table className="tbl trust">
-              <thead>
-                <tr>
-                  <th scope="col">Level</th>
-                  <th scope="col">What we verified</th>
-                  <th scope="col">What it does not establish</th>
-                </tr>
-              </thead>
-              <tbody>
-                {TIER_ORDER.map((tier) => (
-                  <tr key={tier}>
-                    <td>
-                      <span className="mono">{TIER_CODES[tier]}</span> {TIERS[tier].short}
-                    </td>
-                    <td data-label="What we verified">{TIERS[tier].verified}</td>
-                    <td data-label="What it does not establish">{TIERS[tier].notEstablished}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="engine-note">{ABOUT.trustNote}</p>
-        </div>
-      </section>
-
-      <section className="sec night">
-        <div className="wrap">
-          <h2 className="h3">{ABOUT.piecesTitle}</h2>
-          <div className="pieces">
-            {ABOUT.pieces.map(([name, line]) => (
-              <div key={name}>
-                <b>{name}</b>
-                <span>{line}</span>
-              </div>
+          <h2 className="h2" id="team-title">
+            {ABOUT.teamTitle}
+          </h2>
+          <div className="lede">
+            {ABOUT.team.map((line) => (
+              <p key={line}>{line}</p>
             ))}
           </div>
+          <p>
+            <a className="link" href={BRAND.repoUrl} target="_blank" rel="noreferrer">
+              {ABOUT.source}
+            </a>
+          </p>
         </div>
       </section>
     </main>
