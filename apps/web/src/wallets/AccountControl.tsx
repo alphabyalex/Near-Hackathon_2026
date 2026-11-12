@@ -8,7 +8,6 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } f
 import { WALLET } from "../brand";
 import { HorizonMark } from "../components/HorizonMark";
 import { getPosition } from "../data/mutual";
-import { formatUsdc } from "../format";
 import { navigate } from "../router";
 import { personalSphere } from "../v2/sphere";
 import { walletName } from "./catalog";
@@ -50,7 +49,8 @@ export function useShareValue(account: string | null): string | null {
 /** The member's own sphere, small: the same seed as the big one on the Balance page. */
 export function MiniSphere({ account, size = 22 }: { account: string; size?: number }) {
   const seed = personalSphere(account);
-  return <HorizonMark size={size} light={seed.light} step={34} className="acct-sphere" />;
+  // Bigger marks get more, smaller dots, so the sphere still reads at 30px.
+  return <HorizonMark size={size} light={seed.light} step={size >= 28 ? 22 : 34} className="acct-sphere" />;
 }
 
 export function disconnectWallet(connected: Connected | null): void {
@@ -215,7 +215,7 @@ export function AccountControl({ onBalance }: { onBalance: boolean }) {
       <div className="seg" data-testid="account-control">
         <button type="button" className="seg-balance" onClick={() => navigate("#/wallet")} {...(onBalance ? { "aria-current": "page" as const } : {})} data-testid="balance-button">
           <span className="seg-k">{WALLET.balance}</span>
-          <span className="num seg-v">{value === null ? "…" : `${formatUsdc(value)} USDC`}</span>
+          <span className="num seg-v">{value === null ? "…" : `$${(Number(value) / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
         </button>
         <i aria-hidden="true" />
         <button

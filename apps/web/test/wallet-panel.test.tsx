@@ -223,7 +223,7 @@ describe("the header's Joined control and account menu", () => {
   });
 
   it("the Balance page's NEAR line is quiet, and a warning only under 0.05 NEAR", () => {
-    expect(nearFees(394_000_000_000_000_000_000_000n)).toEqual({ text: "0.394 NEAR for network fees", low: false });
+    expect(nearFees(394_000_000_000_000_000_000_000n)).toEqual({ text: "0.394 NEAR set aside for network fees, not counted in your balance", low: false });
     const low = nearFees(10_000_000_000_000_000_000_000n);
     expect(low.low).toBe(true);
     expect(low.text).toContain("0.010 NEAR left for network fees");

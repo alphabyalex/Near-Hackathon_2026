@@ -27,12 +27,12 @@ export const SHARE_MOTION = {
 
 const count = (atomic: string, u: number): string => ((Number(atomic) / 1e6) * u).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function PersonalMark({ account, value, valueRef }: { account: string; value: string; valueRef: React.RefObject<HTMLSpanElement | null> }) {
+export function PersonalMark({ account, value, valueRef }: { account: string; value: string; valueRef?: React.RefObject<HTMLSpanElement | null> }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const seed = personalSphere(account);
   const draw = useCallback(
     (t: number) => {
-      const out = valueRef.current;
+      const out = valueRef?.current;
       if (out) {
         const u = easeOut((t - SHARE_MOTION.countFrom) / SHARE_MOTION.countFor);
         out.textContent = u >= 1 ? formatUsdc(value) : count(value, u);

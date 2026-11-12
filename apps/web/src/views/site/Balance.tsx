@@ -17,7 +17,7 @@ import { confirmedTotals, useTransactions, type WalletTx } from "../../data/tran
 import { MIN_NEAR_FOR_FEES, poolContracts } from "../../data/wallet-pool";
 import { formatUsdc } from "../../format";
 import { PersonalMark, SellForm } from "../../v2/ShareHero";
-import { shareChanged } from "../../wallets/AccountControl";
+import { MiniSphere, shareChanged } from "../../wallets/AccountControl";
 import { useConnected, type Connected } from "../../wallets/connected";
 import { WalletPanel } from "../../wallets/WalletPanel";
 import { Proposal } from "./Governance";
@@ -37,7 +37,56 @@ export function nearFees(near: bigint): { text: string; low: boolean } {
   const low = near < MIN_NEAR_FOR_FEES;
   return { text: low ? BALANCE.lowFees(nearText(near)) : BALANCE.fees(nearText(near)), low };
 }
-const signedUsdc = (atomic: bigint): string => (atomic > -CENT && atomic < CENT ? "0.00" : `${atomic < 0n ? "-" : "+"}${formatUsdc((atomic < 0n ? -atomic : atomic).toString())}`);
+/** Atomic USDC (or USDC-valued) as dollars to the cent, with thousands separators. 1 USDC is $1. */
+export const dollars = (atomic: bigint): string => (Number(atomic) / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** WARD in dollars: WARD held (free and locked) times today's WARD price (6 decimals). NEAR is never counted. */
+export const wardDollars = (held: bigint, wardPrice: string | bigint): bigint => (held * BigInt(wardPrice)) / 1_000_000n;
+
+/**
+ * What the share has earned since joining: value now + what was redeemed - what was deposited. Null (the
+ * line is hidden) unless the history is complete and the member holds WARD: a missing deposit would
+ * otherwise show as a made-up gain.
+ */
+export function earned(o: { value: bigint; deposited: bigint | null; redeemed: bigint | null; held: bigint; complete: boolean }): bigint | null {
+  if (!o.complete || o.held <= 0n || o.deposited === null || o.redeemed === null) return null;
+  return o.value + o.redeemed - o.deposited;
+}
+
+/** "+$0.01" or "-$0.05"; under a cent either way is "+$0.00". */
+export const signedDollars = (atomic: bigint): string => (atomic <= -CENT ? `-$${dollars(-atomic)}` : `+$${dollars(atomic < 0n ? 0n : atomic)}`);
+
+/** The two-part bar: wallet USDC (white) and the share (violet), growing in once. Either part alone fills it. */
+function SplitBar({ ready, earning }: { ready: bigint; earning: bigint }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setShown(true), 60);
+    return () => window.clearTimeout(t);
+  }, []);
+  const parts = [
+    { key: "ready", value: ready, label: BALANCE.ready },
+    { key: "earning", value: earning, label: BALANCE.earning },
+  ].filter((p) => p.value > 0n);
+  if (parts.length === 0) return null;
+  return (
+    <div className="bal-split" data-testid="bal-split" role="img" aria-label={BALANCE.barLabel(dollars(ready), dollars(earning))}>
+      <div className="bal-bar" aria-hidden="true">
+        {parts.map((p) => (
+          <i key={p.key} className={`bal-seg seg-${p.key}`} style={{ flexGrow: shown ? Number(p.value / 10_000n) || 1 : 1 }} />
+        ))}
+      </div>
+      <div className="bal-legend" aria-hidden="true">
+        {parts.map((p) => (
+          <span key={p.key} className={`bal-leg leg-${p.key}`}>
+            <i />
+            <span>{p.label}</span>
+            <b className="num">${dollars(p.value)}</b>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 /** The wallet's own USDC and NEAR, read from the chain. Sim mode has no wallet balances. */
 function useWalletBalances(account: string | null, tick: number): { usdc: bigint; near: bigint } | null {
@@ -209,7 +258,6 @@ export function Balance() {
   const [connecting, setConnecting] = useState(false);
   const [joining, setJoining] = useState(false);
   const [selling, setSelling] = useState(false);
-  const totalRef = useRef<HTMLSpanElement>(null);
   const connectButton = useRef<HTMLButtonElement>(null);
   const refresh = useCallback(() => {
     setTick((t) => t + 1);
@@ -236,10 +284,14 @@ export function Balance() {
   const person = loaded && DATA_SOURCE === "testnet" && txs.view ? { ...loaded, position: { ...loaded.position, deposited: sums.deposited, redeemed: sums.redeemed } } : loaded;
 
   const held = person ? BigInt(person.position.ward) + BigInt(person.position.ward_locked) : 0n;
-  const share = person ? BigInt(person.position.value) : 0n;
-  const total = share + (wallet?.usdc ?? 0n);
+  const share = person ? wardDollars(held, person.mutual.pool.ward_price) : 0n;
+  const cash = wallet?.usdc ?? 0n;
+  const total = share + cash;
   const p = person?.position;
-  const gain = p && p.deposited !== undefined && p.redeemed !== undefined && held > 0n ? BigInt(p.value) + BigInt(p.redeemed) - BigInt(p.deposited) : null;
+  // testnet: deposits come from the chain history, which must be complete; sim tracks them in the pool.
+  const complete = DATA_SOURCE !== "testnet" || txs.view?.complete === true;
+  const gain = p ? earned({ value: BigInt(p.value), deposited: p.deposited !== undefined ? BigInt(p.deposited) : null, redeemed: p.redeemed !== undefined ? BigInt(p.redeemed) : null, held, complete }) : null;
+  const [whole, cents] = dollars(total).split(".");
   const fees = wallet ? nearFees(wallet.near) : null;
   const lowNear = fees?.low ?? false;
 
@@ -263,25 +315,34 @@ export function Balance() {
             {load.state === "error" && <Problem error={load.error} onRetry={refresh} />}
             <div className="bal-grid" data-testid="me-position" aria-busy={!person}>
               <div className="bal-left">
-                <PersonalMark account={connected.account} value={total.toString()} valueRef={totalRef} />
+                <PersonalMark account={connected.account} value={total.toString()} />
                 <p className="bal-acct acct">{connected.account}</p>
               </div>
               <div className="bal-right">
-                <p className="bal-k">{BALANCE.label}</p>
-                <p className="bal-total">
-                  <span ref={totalRef} className="num" data-testid="share-value">
-                    {person ? formatUsdc(total.toString()) : "0.00"}
+                <p className="bal-k" id="bal-total-label">
+                  {BALANCE.label}
+                </p>
+                <p className="bal-total num" data-testid="share-value" aria-label={BALANCE.totalLabel(dollars(total))}>
+                  <span className="bal-cur" aria-hidden="true">
+                    $
                   </span>
-                  <span className="bal-unit">{BALANCE.totalUnit}</span>
+                  <span className="bal-whole" aria-hidden="true">
+                    {person ? whole : "0"}
+                  </span>
+                  <span className="bal-cents" aria-hidden="true">
+                    .{person ? cents : "00"}
+                  </span>
                 </p>
                 {gain !== null && (
                   <p className="bal-earned">
-                    {BALANCE.earned}{" "}
-                    <span className={gain <= -CENT ? "num below-text" : "num"} data-testid="me-earned">
-                      {signedUsdc(gain)} USDC
-                    </span>
+                    {BALANCE.earnedLead}{" "}
+                    <span className={gain <= -CENT ? "num earned-below" : "num earned-above"} data-testid="me-earned">
+                      {signedDollars(gain)}
+                    </span>{" "}
+                    {BALANCE.earnedTail}
                   </p>
                 )}
+                {person && <SplitBar ready={cash} earning={share} />}
 
                 <div className="bal-rows" role="list" aria-label={BALANCE.rows}>
                   <div className="bal-row" role="listitem" data-testid="bal-usdc">
@@ -292,7 +353,14 @@ export function Balance() {
                       <b>{BALANCE.usdc}</b>
                       <small>{BALANCE.usdcNote}</small>
                     </span>
-                    <span className="bal-amt num">{wallet ? formatUsdc(wallet.usdc.toString()) : ""}</span>
+                    <span className="bal-amt num">
+                      {wallet && (
+                        <>
+                          ${dollars(wallet.usdc)}
+                          <small>{BALANCE.tokens(formatUsdc(wallet.usdc.toString()), "USDC")}</small>
+                        </>
+                      )}
+                    </span>
                     <span className="bal-act">
                       <button type="button" className="btn sm" onClick={() => setJoining(true)} disabled={!person}>
                         {BALANCE.deposit}
@@ -300,14 +368,18 @@ export function Balance() {
                     </span>
                   </div>
                   <div className="bal-row" role="listitem" data-testid="bal-ward">
-                    <HorizonMark size={26} step={34} className="bal-ico" />
+                    <span className="bal-ico">
+                      <MiniSphere account={connected.account} size={30} />
+                    </span>
                     <span className="bal-name">
                       <b>{BALANCE.ward}</b>
-                      <small>{BALANCE.wardNote(person ? price(person.mutual.pool.ward_price) : "1.0000")}</small>
+                      <small>
+                        {BALANCE.wardNote(person ? price(person.mutual.pool.ward_price) : "1.0000")}
+                      </small>
                     </span>
                     <span className="bal-amt num">
-                      {formatUsdc(held.toString())}
-                      <small>{BALANCE.worth(formatUsdc(share.toString()))}</small>
+                      ${dollars(share)}
+                      <small>{BALANCE.tokens(formatUsdc(held.toString()), "WARD")}</small>
                     </span>
                     <span className="bal-act">
                       <button type="button" className="btn ghost sm" aria-expanded={selling} disabled={held === 0n} onClick={() => setSelling((s) => !s)}>

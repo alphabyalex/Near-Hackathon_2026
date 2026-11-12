@@ -5,21 +5,42 @@
 .bal-left .mine-mark{width:min(320px,100%);aspect-ratio:1;height:auto;display:block}
 .bal-acct{margin:0;font-size:16px;font-weight:600;text-align:center}
 .bal-k{margin:0;font-size:14px;color:var(--muted)}
-.bal-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:6px 0 0}
-.bal-total .num{font-size:96px;font-weight:700;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums}
-.bal-unit{font-size:24px;font-weight:500;color:var(--text-2)}
-.bal-earned{margin:10px 0 0;font-size:15px;color:var(--muted)}
-.bal-earned .num{color:var(--text);font-weight:600}
+/* The total in dollars (BalanceDollars.dc.html): a small muted $, the whole dollars big, the cents smaller. */
+.bal-total{display:flex;align-items:flex-start;margin:6px 0 0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bal-cur{font-size:52px;font-weight:600;color:var(--muted);margin:18px 6px 0 0;line-height:1}
+.bal-whole{font-size:132px;font-weight:700;letter-spacing:-0.045em;line-height:1}
+.bal-cents{font-size:52px;font-weight:600;color:var(--text-2);margin-top:18px;letter-spacing:-0.02em;line-height:1}
+.bal-earned{margin:14px 0 0;font-size:16px;color:var(--text-2)}
+.bal-earned .num{font-weight:600}
+.earned-above{color:var(--violet-text)}
+.earned-below{color:var(--red-text)}
+/* The two-part bar: white is ready to deposit, violet is earning in the Mutual. It grows in once. */
+.bal-split{margin-top:40px}
+.bal-bar{display:flex;gap:3px;height:10px}
+.bal-seg{display:block;height:100%;flex-basis:0;transition:flex-grow .6s cubic-bezier(.22,1,.36,1)}
+.bal-seg:first-child{border-radius:5px 0 0 5px}
+.bal-seg:last-child{border-radius:0 5px 5px 0}
+.bal-seg:only-child{border-radius:5px}
+.seg-ready{background:var(--text)}
+.seg-earning{background:var(--violet)}
+.bal-legend{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;margin-top:14px;font-size:14px}
+.bal-leg{display:inline-flex;align-items:center;gap:8px}
+.bal-leg i{width:8px;height:8px;border-radius:50%;flex:none}
+.leg-ready i{background:var(--text)}
+.leg-earning i{background:var(--violet)}
+.bal-leg span{color:var(--text-2)}
+.bal-leg b{font-weight:600}
+@media (prefers-reduced-motion:reduce){.bal-seg{transition:none}}
 
 .bal-rows{margin-top:32px;border-top:1px solid var(--rule)}
-.bal-row{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,160px) minmax(0,170px);align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.bal-row{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,200px) minmax(0,160px);align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--rule)}
 .bal-ico{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:13px;font-weight:700;flex:none}
 .bal-ico-usdc{background:#2775ca;color:#fff}
 .bal-ico-near{width:22px;height:22px;font-size:11px;background:var(--surface-2);border:1px solid var(--rule-strong);color:var(--text-2)}
 .bal-name{min-width:0}
 .bal-name b{display:block;font-size:16px;font-weight:600}
 .bal-name small{display:block;font-size:13px;color:var(--muted)}
-.bal-amt{text-align:right;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.bal-amt{text-align:right;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;padding-right:14px}
 .bal-amt small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
 .bal-act{text-align:right}
 .bal-act .btn{min-height:40px;border-radius:10px}
@@ -59,8 +80,10 @@
 }
 @media (max-width:600px){
   .bal-sec{padding-top:28px}
-  .bal-total .num{font-size:60px}
-  .bal-unit{font-size:18px}
+  .bal-whole{font-size:76px}
+  .bal-cur,.bal-cents{font-size:32px;margin-top:10px}
+  .bal-legend{flex-direction:column;gap:8px}
+  .bal-amt{padding-right:0}
   .bal-row{grid-template-columns:26px minmax(0,1fr) auto;grid-template-areas:"ico name amt" "act act act";row-gap:12px}
   .bal-row > :nth-child(1){grid-area:ico}
   .bal-row > :nth-child(2){grid-area:name}
@@ -72,7 +95,7 @@
   .bal-lines time{margin-left:22px}
 }
 @media (min-width:1600px){
-  .bal-total .num{font-size:calc(96px + var(--wide) * .04)}
+  .bal-whole{font-size:calc(132px + var(--wide) * .04)}
   .bal-grid{grid-template-columns:minmax(0,calc(360px + var(--wide) * .15)) minmax(0,1fr)}
   .bal-left .mine-mark{width:min(calc(320px + var(--wide) * .15),100%)}
 }
