@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Groups, orbit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+a{color:#A59BFF;text-decoration:none}a:hover{color:#F5F3F7}
+.arrow{width:48px;height:48px;border-radius:12px;border:1px solid #3A2E45;background:#150D1B;color:#F5F3F7;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s}
+.arrow:hover{border-color:#7B6CFF}
+.arrow:focus-visible{outline:2px solid #A59BFF;outline-offset:3px}
+.tab{font:inherit;font-size:15px;font-weight:500;color:#A79DB0;background:transparent;border:0;border-bottom:2px solid transparent;padding:8px 2px;cursor:pointer}
+.tab:hover{color:#F5F3F7}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif;">
+<div style="position: absolute; left: 56px; top: 48px; z-index: 2;">
+<div style="font-size: 14px; color: #A79DB0;">Groups</div>
+<h2 style="margin: 6px 0 0; font-size: 52px; line-height: 1.02; letter-spacing: -1.8px; font-weight: 700;">The orbit.</h2>
+<p style="margin: 12px 0 0; font-size: 18px; color: #C3BACB; max-width: 420px; line-height: 1.5;">Every group circles the pool. Bring one to the front to see how big its record is.</p>
+</div>
+<div style="position: absolute; right: 56px; top: 64px; z-index: 2; display: flex; gap: 22px;">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+<button type="button" class="tab" onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="{{f.style}}">{{f.label}}</button>
+</sc-for>
+</div>
+<canvas ref="{{setStage}}" onClick="{{pickAt}}" role="img" aria-label="Groups arranged on a tilted orbit. The group at the front is shown large, sized by its proven payments." style="position: absolute; left: 0; top: 0; width: 1440px; height: 900px; cursor: pointer;"></canvas>
+<div style="position: absolute; left: 56px; bottom: 56px; z-index: 2; width: 520px;">
+<div style="display: flex; align-items: baseline; gap: 14px;">
+<span style="font-size: 15px; color: #A59BFF; font-variant-numeric: tabular-nums;">{{sel.rank}}</span>
+<span style="font-size: 15px; color: #A79DB0;">{{sel.kind}}</span>
+</div>
+<div style="font-size: 40px; font-weight: 700; letter-spacing: -1.2px; margin-top: 4px;">{{sel.name}}</div>
+<div style="display: flex; gap: 36px; margin-top: 18px; font-variant-numeric: tabular-nums;">
+<div><div style="font-size: 13px; color: #A79DB0;">Proven</div><div style="font-size: 28px; font-weight: 600; margin-top: 2px;">{{sel.calls}}</div></div>
+<div><div style="font-size: 13px; color: #A79DB0;">Tier</div><div style="font-size: 28px; font-weight: 600; margin-top: 2px;">{{sel.tier}}</div></div>
+<div><div style="font-size: 13px; color: #A79DB0;">Fee</div><div style="font-size: 28px; font-weight: 600; margin-top: 2px;">{{sel.fee}}</div></div>
+<div><div style="font-size: 13px; color: #A79DB0;">Refused</div><div style="{{sel.refStyle}}">{{sel.refused}}</div></div>
+</div>
+<div style="height: 4px; background: #241A2B; border-radius: 2px; margin-top: 20px;"><div style="{{sel.bar}}"></div></div>
+<div style="font-size: 14px; color: #C3BACB; margin-top: 10px;">{{sel.next}}</div>
+</div>
+<div style="position: absolute; right: 56px; bottom: 56px; z-index: 2; display: flex; align-items: center; gap: 14px;">
+<span style="font-size: 14px; color: #A79DB0; font-variant-numeric: tabular-nums;">{{counter}}</span>
+<button type="button" class="arrow" onClick="{{prev}}" aria-label="Previous group"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<button type="button" class="arrow" onClick="{{next}}" aria-label="Next group"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+<a href="#" style="font-size: 14px; margin-left: 10px;">Open group</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.all = [
+      { name: 'Mission Street hacker house', kind: 'Group of 3', tier: 'Gold', calls: 64, refused: 1, fee: '1.00%', next: 'Top tier reached. Lowest fee.', prog: 1 },
+      { name: 'Hayes Valley house', kind: 'Group of 2', tier: 'Silver', calls: 24, refused: 0, fee: '1.25%', next: '14 of 25 clean payments to Gold', prog: 0.56 },
+      { name: 'Nightshade DAO', kind: 'Group of 2', tier: 'Silver', calls: 24, refused: 2, fee: '1.25%', next: '14 of 25 clean payments to Gold', prog: 0.56 },
+      { name: 'Aurora Lab', kind: 'Group of 2', tier: 'Bronze', calls: 23, refused: 0, fee: '2.00%', next: 'Dropped after a claim. 8 of 10 to climb back.', prog: 0.8 },
+      { name: 'Kelp Collective', kind: 'Group of 2', tier: 'Silver', calls: 12, refused: 0, fee: '1.25%', next: '2 of 25 clean payments to Gold', prog: 0.08 },
+      { name: 'yuki.wardline-labs.testnet', kind: 'Solo builder', tier: 'Bronze', calls: 2, refused: 0, fee: '2.00%', next: '2 of 10 clean payments to Silver', prog: 0.2 },
+      { name: 'hassan.wardline-labs.testnet', kind: 'Solo builder', tier: 'Bronze', calls: 2, refused: 0, fee: '2.00%', next: '2 of 10 clean payments to Silver', prog: 0.2 },
+      { name: 'ivan.wardline-labs.testnet', kind: 'Solo builder', tier: 'Bronze', calls: 2, refused: 1, fee: '2.00%', next: '2 of 10 clean payments to Silver', prog: 0.2 },
+      { name: 'olivia.wardline-labs.testnet', kind: 'Solo builder', tier: 'Bronze', calls: 2, refused: 0, fee: '2.00%', next: '2 of 10 clean payments to Silver', prog: 0.2 }
+    ];
+    this.state = { filter: 'All', sel: 0 };
+    this.rot = 0; this.target = 0; this.arrive = 0;
+  }
+  list() { const f = this.state.filter; return this.all.filter((g) => f === 'All' || (f === 'Groups' ? g.kind !== 'Solo builder' : g.kind === 'Solo builder')); }
+  componentDidMount() {
+    this.reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    this.arrive = 0; this.kick();
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  kick() {
+    cancelAnimationFrame(this.raf);
+    const step = () => {
+      const d = this.target - this.rot;
+      this.rot = this.reduce ? this.target : this.rot + d * 0.14;
+      this.arrive = this.reduce ? 1 : Math.min(1, this.arrive + 0.035);
+      this.draw();
+      if (Math.abs(d) > 0.0005 || this.arrive < 1) this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+  select(i) {
+    const L = this.list(), n = L.length; if (!n) return;
+    i = ((i % n) + n) % n;
+    let delta = (i - this.state.sel) % n; if (delta > n / 2) delta -= n; if (delta < -n / 2) delta += n;
+    this.target -= delta * (Math.PI * 2 / n);
+    this.arrive = 0;
+    this.setState({ sel: i }, () => this.kick());
+  }
+  layout() {
+    const L = this.list(), n = L.length, cx = 860, cy = 470, rx = 470, ry = 150, tilt = -10 * Math.PI / 180;
+    const max = Math.max.apply(null, this.all.map((g) => g.calls));
+    return L.map((g, i) => {
+      const th = Math.PI / 2 + i * (Math.PI * 2 / n) + this.rot + this.state.sel * (Math.PI * 2 / n) - this.target + this.target;
+      const a = Math.PI / 2 + (i - this.state.sel) * (Math.PI * 2 / n) + (this.rot - this.target);
+      const ex = Math.cos(a) * rx, ey = Math.sin(a) * ry;
+      const x = cx + ex * Math.cos(tilt) - ey * Math.sin(tilt), y = cy + ex * Math.sin(tilt) + ey * Math.cos(tilt);
+      const depth = (Math.sin(a) + 1) / 2;
+      const base = 18 + 150 * Math.sqrt(g.calls / max);
+      const front = i === this.state.sel;
+      const R = front ? base * (0.55 + 0.45 * this.easeOut(this.arrive)) * 1.25 : base * (0.28 + 0.42 * depth);
+      return { g, i, x, y: front ? y - R * 0.55 : y, R, depth, front };
+    });
+  }
+  easeOut(x) { return 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3); }
+  sphere(ctx, cx, cy, R, step, o) {
+    const a = -10 * Math.PI / 180, nx = -Math.sin(a), ny = Math.cos(a);
+    let lx = -0.55, ly = -0.6, lz = Math.sqrt(1 - lx * lx - ly * ly);
+    for (let gy = -R; gy <= R + 0.001; gy += step) for (let gx = -R; gx <= R + 0.001; gx += step) {
+      const d2 = gx * gx + gy * gy; if (d2 > R * R) continue;
+      const sd = gx * nx + gy * ny; if (Math.abs(sd) < Math.max(2, step * 0.8) / 2) continue;
+      const z = Math.sqrt(Math.max(0, 1 - d2 / (R * R)));
+      const sh = o.floor + (1 - o.floor) * Math.max(0, gx / R * lx + gy / R * ly + z * lz);
+      const loc = Math.max(0, Math.min(1, (o.as * 1.3 - Math.abs(sd) / R) / 0.3)); if (loc <= 0) continue;
+      const r = step * 0.48 * sh * (1 - Math.pow(1 - loc, 3)); if (r < 0.3) continue;
+      ctx.globalAlpha = o.alpha;
+      ctx.fillStyle = sd < 0 ? '#F5F3F7' : '#7B6CFF';
+      ctx.beginPath(); ctx.arc(cx + gx, cy + gy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  draw() {
+    const cv = this.stage; if (!cv) return;
+    const W = 1440, H = 900, dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const cx = 860, cy = 470, rx = 470, ry = 150, tilt = -10 * Math.PI / 180;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt);
+    ctx.strokeStyle = 'rgba(167,157,176,0.22)'; ctx.lineWidth = 1; ctx.setLineDash([2, 6]);
+    ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(167,157,176,0.45)';
+    ctx.beginPath(); ctx.moveTo(-760, 0); ctx.lineTo(760, 0); ctx.stroke();
+    ctx.restore();
+    const items = this.layout(); this.items = items;
+    items.slice().sort((p, q) => p.depth - q.depth).forEach((it) => {
+      const tierStep = it.g.tier === 'Gold' ? 0.075 : it.g.tier === 'Silver' ? 0.1 : 0.13;
+      const step = Math.max(3, it.R * tierStep * (it.front ? 0.9 : 1.2));
+      const alpha = it.front ? 1 : 0.35 + 0.55 * it.depth;
+      this.sphere(ctx, it.x, it.y, it.R, step, { floor: it.g.tier === 'Gold' ? 0.28 : it.g.tier === 'Silver' ? 0.2 : 0.14, as: it.front ? this.easeOut(this.arrive * 1.1) : 1, alpha });
+      const rank = this.all.indexOf(it.g);
+      if (!it.front) {
+        ctx.globalAlpha = 0.4 + 0.6 * it.depth; ctx.fillStyle = '#C3BACB'; ctx.textAlign = 'center';
+        ctx.font = '500 ' + Math.round(11 + 3 * it.depth) + 'px Geist, system-ui, sans-serif';
+        const label = (rank < 3 ? (rank + 1) + '  ' : '') + it.g.name.replace('.wardline-labs.testnet', '');
+        ctx.fillText(label, it.x, it.y + it.R + 18); ctx.globalAlpha = 1;
+      }
+    });
+  }
+  renderVals() {
+    const L = this.list(), s = this.state, g = L[s.sel] || L[0];
+    const rank = this.all.indexOf(g);
+    return {
+      setStage: (el) => { this.stage = el; },
+      pickAt: (e) => {
+        const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) * (1440 / r.width), y = (e.clientY - r.top) * (900 / r.height);
+        const hit = (this.items || []).filter((it) => Math.hypot(it.x - x, it.y - y) < Math.max(26, it.R)).sort((p, q) => q.depth - p.depth)[0];
+        if (hit) this.select(hit.i);
+      },
+      prev: () => this.select(s.sel - 1), next: () => this.select(s.sel + 1),
+      counter: (s.sel + 1) + ' of ' + L.length,
+      filters: ['All', 'Groups', 'Solo builders'].map((label) => {
+        const key = label === 'Solo builders' ? 'Solo' : label;
+        const on = s.filter === key;
+        return { label, pressed: on ? 'true' : 'false', style: on ? 'color: #F5F3F7; border-bottom-color: #7B6CFF;' : '',
+          pick: () => { this.target = 0; this.rot = 0; this.arrive = 0; this.setState({ filter: key, sel: 0 }, () => this.kick()); } };
+      }),
+      sel: {
+        name: g.name, kind: g.kind, tier: g.tier, calls: g.calls, fee: g.fee, refused: g.refused, next: g.next,
+        rank: rank < 3 ? 'No. ' + (rank + 1) + ' on the network' : 'Rank ' + (rank + 1),
+        refStyle: 'font-size: 28px; font-weight: 600; margin-top: 2px; color: ' + (g.refused ? '#FF7A8C' : '#F5F3F7') + ';',
+        bar: 'height: 4px; border-radius: 2px; background: #7B6CFF; width: ' + Math.round(g.prog * 100) + '%; transition: width .5s;'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

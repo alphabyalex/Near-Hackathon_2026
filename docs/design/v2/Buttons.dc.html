@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Primary button options, round 3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+.g-btn{font:inherit;font-weight:600;color:#1A0F21;background:#F5F3F7;border:0;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 0 0 0 rgba(123,108,255,0);transition:box-shadow .25s,background .25s}
+.g-btn svg{transition:transform .25s cubic-bezier(.22,1,.36,1)}
+.g-btn:hover{background:#FFFFFF;box-shadow:0 0 0 4px rgba(123,108,255,.35)}
+.g-btn:hover svg{transform:translateX(3px)}
+.h-btn{font:inherit;font-weight:600;color:#FFFFFF;background:#6A5AF9;border:0;border-radius:12px;cursor:pointer;box-shadow:0 4px 0 0 #3A2B9C,0 10px 22px -6px rgba(106,90,249,.55);transform:translateY(0);transition:transform .12s,box-shadow .12s,background .2s}
+.h-btn:hover{background:#7566FF}
+.h-btn:active{transform:translateY(3px);box-shadow:0 1px 0 0 #3A2B9C,0 4px 10px -4px rgba(106,90,249,.5)}
+.i-btn{position:relative;overflow:hidden;font:inherit;font-weight:600;color:#F5F3F7;border:1px solid transparent;border-radius:12px;cursor:pointer;background:linear-gradient(#150D1B,#150D1B) padding-box,linear-gradient(120deg,#F5F3F7 0%,#7B6CFF 45%,#4B3BD9 100%) border-box}
+.i-btn::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(245,243,247,.18),transparent);transform:skewX(-10deg);transition:left .6s cubic-bezier(.22,1,.36,1)}
+.i-btn:hover::after{left:120%}
+.i-btn:hover{background:linear-gradient(#1C1323,#1C1323) padding-box,linear-gradient(120deg,#F5F3F7 0%,#7B6CFF 45%,#4B3BD9 100%) border-box}
+.ghost{font:inherit;font-weight:600;color:#F5F3F7;background:transparent;border:1px solid #3A2E45;border-radius:12px;cursor:pointer}
+.ghost:hover{border-color:#A79DB0}
+.now{font:inherit;font-weight:600;color:#FFFFFF;background:#6A5AF9;border:0;border-radius:12px;cursor:pointer}
+@media (prefers-reduced-motion: reduce){.g-btn,.g-btn svg,.h-btn,.i-btn::after{transition:none}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif; padding: 56px; display: flex; flex-direction: column; gap: 36px;">
+<div style="display: flex; align-items: baseline; justify-content: space-between;">
+<h2 style="margin: 0; font-size: 40px; letter-spacing: -1.2px; font-weight: 700;">Primary button: round 3, three different directions</h2>
+<div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #A79DB0;">Today's button <button type="button" class="now" style="font-size: 14px; padding: 10px 16px;">Become a member</button></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; flex: 1 1 auto;">
+
+<div style="background: #150D1B; border: 1px solid #241A2B; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 22px;">
+<div>
+<div style="font-size: 13px; color: #A79DB0;">Option G</div>
+<div style="font-size: 24px; font-weight: 700; margin-top: 4px;">Light</div>
+<p style="margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: #C3BACB;">Off-white with dark ink text, the color of the top of the sphere. The brightest thing on a dark page, so it reads as premium and confident, not loud. On hover a soft violet ring and the arrow nudges forward.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding-top: 8px; border-top: 1px solid #241A2B;">
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">In the wallet panel</div>
+<button type="button" class="g-btn" style="width: 100%; font-size: 15px; padding: 14px 16px;">Deposit USDC<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></button>
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">In the hero</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button type="button" class="g-btn" style="font-size: 16px; padding: 15px 22px;">Become a member<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></button>
+<button type="button" class="ghost" style="font-size: 16px; padding: 15px 20px;">Watch the demo</button>
+</div>
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">Small</div>
+<div><button type="button" class="g-btn" style="font-size: 14px; padding: 10px 16px;">Vote for</button></div>
+</div>
+</div>
+
+<div style="background: #150D1B; border: 1px solid #241A2B; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 22px;">
+<div>
+<div style="font-size: 13px; color: #A79DB0;">Option H</div>
+<div style="font-size: 24px; font-weight: 700; margin-top: 4px;">Keycap</div>
+<p style="margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: #C3BACB;">Our violet, but with a solid edge underneath like a physical key. Click it and it actually presses down. Feels tactile and deliberate, right for moments where money moves.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding-top: 8px; border-top: 1px solid #241A2B;">
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">In the wallet panel (click and hold)</div>
+<button type="button" class="h-btn" style="width: 100%; font-size: 15px; padding: 14px 16px;">Deposit USDC</button>
+<div style="font-size: 12px; color: #A79DB0; padding-top: 14px;">In the hero</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button type="button" class="h-btn" style="font-size: 16px; padding: 15px 24px;">Become a member</button>
+<button type="button" class="ghost" style="font-size: 16px; padding: 15px 20px;">Watch the demo</button>
+</div>
+<div style="font-size: 12px; color: #A79DB0; padding-top: 14px;">Small</div>
+<div><button type="button" class="h-btn" style="font-size: 14px; padding: 10px 16px;">Vote for</button></div>
+</div>
+</div>
+
+<div style="background: #150D1B; border: 1px solid #241A2B; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 22px;">
+<div>
+<div style="font-size: 13px; color: #A79DB0;">Option I</div>
+<div style="font-size: 24px; font-weight: 700; margin-top: 4px;">Sheen</div>
+<p style="margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: #C3BACB;">A dark button with a thin edge that fades from white to violet, the sphere's light in one stroke. On hover one beam of light passes across it at our -10° angle. Quiet at rest, special on hover.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; padding-top: 8px; border-top: 1px solid #241A2B;">
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">In the wallet panel</div>
+<button type="button" class="i-btn" style="width: 100%; font-size: 15px; padding: 14px 16px;">Deposit USDC</button>
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">In the hero</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button type="button" class="i-btn" style="font-size: 16px; padding: 15px 24px;">Become a member</button>
+<button type="button" class="ghost" style="font-size: 16px; padding: 15px 20px;">Watch the demo</button>
+</div>
+<div style="font-size: 12px; color: #A79DB0; padding-top: 10px;">Small</div>
+<div><button type="button" class="i-btn" style="font-size: 14px; padding: 10px 16px;">Vote for</button></div>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

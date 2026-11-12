@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Balance button options</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+.nav{font-size:15px;color:#C3BACB}
+.acct{font:inherit;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#F5F3F7;background:#150D1B;border:1px solid #2A2030;border-radius:10px;padding:8px 12px 8px 9px;cursor:pointer}
+.acct:hover{border-color:#3A2E45}
+.tick{font:inherit;color:#F5F3F7;background:transparent;border:0;cursor:pointer;display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;padding:4px 2px 6px;border-bottom:2px solid transparent;transition:border-color .2s}
+.tick:hover{border-bottom-color:#3A2E45}
+.tick[aria-current="page"]{border-bottom-color:#7B6CFF}
+.tick:focus-visible{outline:2px solid #A59BFF;outline-offset:4px}
+.sh{position:relative;overflow:hidden;font:inherit;display:inline-flex;align-items:baseline;gap:7px;font-size:14px;font-weight:600;color:#F5F3F7;border:1px solid transparent;border-radius:10px;padding:9px 14px;cursor:pointer;background:linear-gradient(#150D1B,#150D1B) padding-box,linear-gradient(120deg,#F5F3F7 0%,#7B6CFF 45%,#4B3BD9 100%) border-box}
+.sh::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(245,243,247,.18),transparent);transform:skewX(-10deg);transition:left .6s cubic-bezier(.22,1,.36,1)}
+.sh:hover::after{left:120%}
+.sh[aria-current="page"]{background:linear-gradient(#221735,#221735) padding-box,linear-gradient(120deg,#F5F3F7 0%,#7B6CFF 45%,#4B3BD9 100%) border-box}
+.seg{display:inline-flex;align-items:stretch;background:#150D1B;border:1px solid #2A2030;border-radius:12px;overflow:hidden}
+.seg button{font:inherit;color:#F5F3F7;background:transparent;border:0;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;font-size:14px;font-weight:600;transition:background .2s}
+.seg button:hover{background:#1C1323}
+.seg button[aria-current="page"]{background:#221735;box-shadow:inset 0 -2px 0 #7B6CFF}
+.seg i{width:1px;background:#2A2030}
+@media (prefers-reduced-motion: reduce){.sh::after{transition:none}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 860px; box-sizing: border-box; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif; padding: 56px; display: flex; flex-direction: column; gap: 30px;">
+<div style="display: flex; align-items: baseline; justify-content: space-between;">
+<h2 style="margin: 0; font-size: 40px; letter-spacing: -1.2px; font-weight: 700;">Balance button: three ways</h2>
+<div style="font-size: 14px; color: #A79DB0;">Click each to see its "you're on the Balance page" state</div>
+</div>
+
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 12px;">
+<div style="display: flex; align-items: baseline; gap: 14px;"><span style="font-size: 13px; color: #A79DB0;">{{o.label}}</span><span style="font-size: 20px; font-weight: 700;">{{o.name}}</span><span style="font-size: 14px; color: #C3BACB;">{{o.why}}</span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: #0E0912; border: 1px solid #241A2B; border-radius: 14px;">
+<div style="display: flex; align-items: center; gap: 40px;"><span style="font-size: 19px; font-weight: 700;">Wardline</span><span style="display: flex; gap: 28px;"><span class="nav">Mutual</span><span class="nav">Groups</span><span class="nav">Proof engine</span><span class="nav">About</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px;">
+<sc-if value="{{o.isTick}}" hint-placeholder-val="{{false}}">
+<button type="button" class="tick" onClick="{{o.toggle}}" aria-current="{{o.cur}}" aria-label="Balance, 20.00 USDC"><span style="font-size: 11px; color: #A79DB0; letter-spacing: 0.4px;">Balance</span><span style="font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums;">20.00 <span style="font-size: 12px; color: #A79DB0; font-weight: 500;">USDC</span></span></button>
+<span class="acct"><canvas ref="{{o.setMini}}" aria-hidden="true" style="width: 20px; height: 20px;"></canvas>hyperios.testnet</span>
+</sc-if>
+<sc-if value="{{o.isSheen}}" hint-placeholder-val="{{false}}">
+<button type="button" class="sh" onClick="{{o.toggle}}" aria-current="{{o.cur}}"><span style="color: #C3BACB; font-weight: 500;">Balance</span><span style="font-variant-numeric: tabular-nums;">20.00</span></button>
+<span class="acct"><canvas ref="{{o.setMini}}" aria-hidden="true" style="width: 20px; height: 20px;"></canvas>hyperios.testnet</span>
+</sc-if>
+<sc-if value="{{o.isSeg}}" hint-placeholder-val="{{false}}">
+<div class="seg">
+<button type="button" onClick="{{o.toggle}}" aria-current="{{o.cur}}"><span style="color: #A79DB0; font-weight: 500;">Balance</span><span style="font-variant-numeric: tabular-nums;">20.00 USDC</span></button>
+<i aria-hidden="true"></i>
+<button type="button"><canvas ref="{{o.setMini}}" aria-hidden="true" style="width: 20px; height: 20px;"></canvas>hyperios.testnet<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A79DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</sc-for>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { on: [false, false, false] }; this.minis = []; }
+  componentDidMount() { this.draw(); }
+  componentDidUpdate() { this.draw(); }
+  seed(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; }
+  draw() {
+    const r1 = this.seed('hyperios.testnet'), r2 = this.seed('testnet.hyperios');
+    this.minis.forEach((cv) => {
+      if (!cv) return;
+      const d = Math.min(2, window.devicePixelRatio || 1); cv.width = 20 * d; cv.height = 20 * d;
+      const ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, 20, 20);
+      const a = -10 * Math.PI / 180, nx = -Math.sin(a), ny = Math.cos(a), R = 9.5, step = 2.6;
+      let lx = -0.75 + 0.45 * r1, ly = -0.7 + 0.3 * r2; const lz = Math.sqrt(Math.max(0, 1 - lx * lx - ly * ly));
+      for (let gy = -R; gy <= R; gy += step) for (let gx = -R; gx <= R; gx += step) {
+        const d2 = gx * gx + gy * gy; if (d2 > R * R) continue; const sd = gx * nx + gy * ny; if (Math.abs(sd) < 0.9) continue;
+        const z = Math.sqrt(1 - d2 / (R * R)), sh = 0.22 + 0.78 * Math.max(0, gx / R * lx + gy / R * ly + z * lz), r = step * 0.48 * sh; if (r < 0.3) continue;
+        ctx.fillStyle = sd < 0 ? '#F5F3F7' : '#7B6CFF'; ctx.beginPath(); ctx.arc(10 + gx, 10 + gy, r, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+  }
+  renderVals() {
+    const on = this.state.on;
+    const meta = [
+      ['Option 1', 'Ticker', 'No box. A tiny label over your number, like a market ticker. A violet underline when you are on the page.'],
+      ['Option 2', 'Sheen', 'The same white-to-violet edge as every primary button, so it reads as the place your money lives.'],
+      ['Option 3', 'Joined', 'Balance and your account in one connected control. Left half opens your balance, right half opens the wallet menu.']
+    ];
+    return {
+      opts: meta.map((m, i) => ({
+        label: m[0], name: m[1], why: m[2], isTick: i === 0, isSheen: i === 1, isSeg: i === 2,
+        cur: on[i] ? 'page' : 'false',
+        toggle: () => { const n = on.slice(); n[i] = !n[i]; this.setState({ on: n }); },
+        setMini: (el) => { this.minis[i] = el; }
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Developers, redesigned</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+a{color:#A59BFF;text-decoration:none}a:hover{color:#F5F3F7}
+.pick{font:inherit;color:inherit;text-align:left;width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 20px;gap:16px;align-items:center;background:transparent;border:0;border-top:1px solid #241A2B;padding:20px 6px;cursor:pointer}
+.pick:hover{background:#130C19}
+.pick:focus-visible{outline:2px solid #A59BFF;outline-offset:-2px}
+.lang{font:inherit;font-size:13px;font-weight:500;color:#A79DB0;background:transparent;border:0;border-bottom:2px solid transparent;padding:12px 2px 10px;cursor:pointer}
+.lang:hover{color:#F5F3F7}
+.copy{font:inherit;font-size:13px;font-weight:500;color:#C3BACB;background:transparent;border:1px solid #2A2030;border-radius:8px;padding:6px 12px;cursor:pointer}
+.copy:hover{color:#F5F3F7;border-color:#3A2E45}
+.also{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid #241A2B;font-size:14px;color:#C3BACB}
+.also:hover{color:#F5F3F7}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1060px; box-sizing: border-box; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif; padding: 64px 56px; display: flex; gap: 64px;">
+<div style="flex: 0 0 470px; display: flex; flex-direction: column;">
+<div style="font-size: 14px; color: #A79DB0;">Developers</div>
+<h2 style="margin: 6px 0 0; font-size: 52px; line-height: 1.02; letter-spacing: -1.8px; font-weight: 700;">One line between your agent and every payment.</h2>
+<p style="margin: 16px 0 34px; font-size: 17px; line-height: 1.55; color: #C3BACB;">Pick what you're building. You'll get only the code that matters, ready to paste.</p>
+<sc-for list="{{uses}}" as="u" hint-placeholder-count="3">
+<button type="button" class="pick" onClick="{{u.pick}}" aria-pressed="{{u.pressed}}" style="{{u.style}}">
+<span style="{{u.markStyle}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{u.icon}}"></path></svg></span>
+<span><span style="display: block; font-size: 17px; font-weight: 600;">{{u.title}}</span><span style="display: block; font-size: 14px; color: #A79DB0; margin-top: 3px;">{{u.line}}</span></span>
+<span style="{{u.dotStyle}}"></span>
+</button>
+</sc-for>
+<div style="border-top: 1px solid #241A2B;"></div>
+<p style="margin: 22px 0 0; font-size: 14px; color: #A79DB0; line-height: 1.55;">For AI agents reading this page: everything here is also in <a href="#">llms.txt</a>.</p>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 22px;">
+<div style="background: #0B0710; border: 1px solid #241A2B; border-radius: 18px; overflow: hidden;">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid #241A2B; background: #120B17;">
+<div style="display: flex; gap: 20px;">
+<sc-for list="{{langs}}" as="l" hint-placeholder-count="3">
+<button type="button" class="lang" onClick="{{l.pick}}" aria-pressed="{{l.pressed}}" style="{{l.style}}">{{l.label}}</button>
+</sc-for>
+</div>
+<button type="button" class="copy" onClick="{{copy}}">{{copyLabel}}</button>
+</div>
+<div style="padding: 22px 0 26px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 14px; line-height: 1.75; min-height: 330px;">
+<sc-for list="{{code}}" as="ln" hint-placeholder-count="12">
+<div style="{{ln.style}}"><span style="display: inline-block; width: 44px; text-align: right; padding-right: 18px; color: #3A2E45; user-select: none;">{{ln.n}}</span><sc-for list="{{ln.toks}}" as="tk" hint-placeholder-count="3"><span style="{{tk.style}}">{{tk.t}}</span></sc-for><span style="{{ln.tagStyle}}">{{ln.tag}}</span></div>
+</sc-for>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px;">
+<div>
+<div style="font-size: 13px; color: #A79DB0;">What you get back</div>
+<div style="font-size: 16px; line-height: 1.55; color: #C3BACB; margin-top: 8px;">{{result}}</div>
+</div>
+<div>
+<div style="font-size: 13px; color: #A79DB0; margin-bottom: 4px;">Also for this</div>
+<sc-for list="{{also}}" as="a" hint-placeholder-count="2">
+<a href="#" class="also"><span>{{a}}</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></a>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { use: 0, lang: 0, copied: false };
+    const API = 'https://your-wardline-api.example';
+    this.data = [
+      { title: 'An agent that calls AI models', line: 'Every answer proven, or the money comes back.', icon: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6',
+        result: 'The same answer you would get anyway, plus an x-wardline-proof header: verified, or refunded with the reason. Nothing else in your code changes.',
+        also: ['Spending limits per member', 'Read the proof for any call'],
+        langs: {
+          JavaScript: [
+            [['k', 'import'], ['p', ' OpenAI '], ['k', 'from'], ['s', ' "openai"'], ['p', ';']], [],
+            [['k', 'const'], ['p', ' client = '], ['k', 'new'], ['p', ' OpenAI({']],
+            [['p', '  baseURL: '], ['s', '"' + API + '/v1/ai"'], ['p', ',']], '@one',
+            [['p', '  apiKey: process.env.WARDLINE_METER_KEY,']],
+            [['p', '});']], [],
+            [['k', 'const'], ['p', ' res = '], ['k', 'await'], ['p', ' client.chat.completions.create({']],
+            [['p', '  model: '], ['s', '"deepseek-ai/DeepSeek-V4.1-Flash-1017"'], ['p', ',']],
+            [['p', '  messages: [{ role: '], ['s', '"user"'], ['p', ', content: '], ['s', '"Summarize this invoice."'], ['p', ' }],']],
+            [['p', '});']]
+          ],
+          Python: [
+            [['k', 'import'], ['p', ' os']], [['k', 'from'], ['p', ' openai '], ['k', 'import'], ['p', ' OpenAI']], [],
+            [['p', 'client = OpenAI(']],
+            [['p', '    base_url='], ['s', '"' + API + '/v1/ai"'], ['p', ',']], '@one',
+            [['p', '    api_key=os.environ['], ['s', '"WARDLINE_METER_KEY"'], ['p', '],']],
+            [['p', ')']], [],
+            [['p', 'res = client.chat.completions.create(']],
+            [['p', '    model='], ['s', '"deepseek-ai/DeepSeek-V4.1-Flash-1017"'], ['p', ',']],
+            [['p', '    messages=[{'], ['s', '"role"'], ['p', ': '], ['s', '"user"'], ['p', ', '], ['s', '"content"'], ['p', ': '], ['s', '"Summarize this invoice."'], ['p', '}],']],
+            [['p', ')']]
+          ],
+          curl: [
+            [['p', 'curl -i '], ['s', API + '/v1/ai/chat/completions'], ['p', ' \\']], '@one',
+            [['p', '  -H '], ['s', '"Authorization: Bearer $WARDLINE_METER_KEY"'], ['p', ' \\']],
+            [['p', '  -H '], ['s', '"content-type: application/json"'], ['p', ' \\']],
+            [['p', '  -d '], ['s', "'{\"model\":\"deepseek-ai/DeepSeek-V4.1-Flash-1017\","]],
+            [['s', "       \"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}'"]], [],
+            [['c', '# look for: x-wardline-proof: verified']]
+          ]
+        } },
+      { title: 'An agent that pays vendors', line: 'Block look-alike accounts before money moves.', icon: 'M4 7h16v10H4zM4 11h16M8 15h3',
+        result: 'A verdict for the account you are about to pay: verified for this company, unknown, or a look-alike, with the reason. Hold anything that is not verified.',
+        also: ['Use it as an MCP tool', 'Guard pay-per-request APIs (x402)'],
+        langs: {
+          MCP: [
+            [['c', '// Add Wardline to any MCP client (Claude, Cursor, your own agent)']],
+            [['p', '{']], [['p', '  '], ['s', '"mcpServers"'], ['p', ': {']],
+            [['p', '    '], ['s', '"wardline"'], ['p', ': { '], ['s', '"url"'], ['p', ': '], ['s', '"' + API + '/mcp"'], ['p', ' }']], '@one',
+            [['p', '  }']], [['p', '}']], [],
+            [['c', '// Your agent now has a tool that answers:']],
+            [['c', '// "Is northw1nd.testnet really Northwind? No: look-alike."']]
+          ],
+          curl: [
+            [['p', 'curl '], ['s', API + '/v1/check'], ['p', ' \\']],
+            [['p', '  -H '], ['s', '"content-type: application/json"'], ['p', ' \\']],
+            [['p', '  -d '], ['s', "'{\"domain\":\"northwind.io\",\"account\":\"northw1nd.testnet\"}'"]], '@one', [],
+            [['c', '# { "verdict": "LOOKALIKE_ACCOUNT", "hold": true }']]
+          ]
+        } },
+      { title: 'My own app', line: 'The same checks from TypeScript, hosted or straight from the chain.', icon: 'M8 6l-5 6 5 6M16 6l5 6-5 6',
+        result: 'Typed results for payee checks and proofs. Use the hosted API, or read the payee registry on NEAR directly with no server in between.',
+        also: ['Read the registry directly on chain', 'Every integration in llms.txt'],
+        langs: {
+          TypeScript: [
+            [['k', 'import'], ['p', ' { Wardline } '], ['k', 'from'], ['s', ' "@wardline/sdk"'], ['p', ';']], [],
+            [['k', 'const'], ['p', ' wardline = '], ['k', 'new'], ['p', ' Wardline({ apiUrl: '], ['s', '"' + API + '"'], ['p', ' });']], '@one', [],
+            [['k', 'const'], ['p', ' check = '], ['k', 'await'], ['p', ' wardline.checkPayee({']],
+            [['p', '  domain: '], ['s', '"northwind.io"'], ['p', ',']],
+            [['p', '  account: '], ['s', '"northwind.testnet"'], ['p', ',']],
+            [['p', '});']], [],
+            [['k', 'if'], ['p', ' (check.verdict !== '], ['s', '"VERIFIED"'], ['p', ') holdPayment(check.reason);']]
+          ]
+        } }
+    ];
+  }
+  renderVals() {
+    const s = this.state, u = this.data[s.use], names = Object.keys(u.langs), lang = names[Math.min(s.lang, names.length - 1)];
+    const col = { k: '#A59BFF', s: '#F5F3F7', p: '#C3BACB', c: '#7E7388' };
+    const raw = u.langs[lang], lines = [];
+    raw.forEach((ln) => { if (ln === '@one') { if (lines.length) lines[lines.length - 1].one = true; } else lines.push({ toks: ln }); });
+    const code = lines.map((l, i) => ({
+      n: i + 1,
+      toks: l.toks.map(([k, t]) => ({ t, style: 'color: ' + col[k] + ';' + (k === 'c' ? ' font-style: italic;' : '') + ' white-space: pre;' })),
+      style: 'display: flex; align-items: center; padding-right: 20px; white-space: pre; ' + (l.one ? 'background: rgba(123,108,255,0.12); box-shadow: inset 2px 0 0 #7B6CFF;' : ''),
+      tag: l.one ? 'the one line' : '', tagStyle: l.one ? 'margin-left: auto; font-family: Geist, system-ui, sans-serif; font-size: 12px; color: #A59BFF;' : 'display: none;'
+    }));
+    return {
+      uses: this.data.map((d, i) => ({
+        title: d.title, line: d.line, icon: d.icon, pressed: s.use === i ? 'true' : 'false',
+        pick: () => this.setState({ use: i, lang: 0, copied: false }),
+        style: s.use === i ? 'background: #130C19;' : '',
+        markStyle: 'width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; ' + (s.use === i ? 'color: #F5F3F7; background: linear-gradient(170deg,#1C1323 0 52%,#4B3BD9 52% 100%);' : 'color: #A79DB0; background: #150D1B;'),
+        dotStyle: 'width: 8px; height: 8px; border-radius: 50%; ' + (s.use === i ? 'background: #7B6CFF;' : 'background: transparent;')
+      })),
+      langs: names.map((label, i) => ({ label, pressed: lang === label ? 'true' : 'false', style: lang === label ? 'color: #F5F3F7; border-bottom-color: #7B6CFF;' : '', pick: () => this.setState({ lang: i, copied: false }) })),
+      code, result: u.result, also: u.also,
+      copyLabel: s.copied ? 'Copied' : 'Copy',
+      copy: () => {
+        const text = lines.map((l) => l.toks.map((x) => x[1]).join('')).join('\n');
+        try { navigator.clipboard && navigator.clipboard.writeText(text); } catch (e) {}
+        this.setState({ copied: true });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

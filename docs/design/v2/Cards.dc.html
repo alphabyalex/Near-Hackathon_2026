@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card treatments, round 2</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+.why{font:inherit;font-size:15px;font-weight:500;color:#A59BFF;background:transparent;border:0;padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.why:hover{color:#F5F3F7}
+.why svg{transition:transform .25s}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1500px; box-sizing: border-box; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif; padding: 56px; display: flex; flex-direction: column; gap: 28px;">
+<div style="display: flex; align-items: baseline; justify-content: space-between;">
+<h2 style="margin: 0; font-size: 40px; letter-spacing: -1.2px; font-weight: 700;">Cards, round 2: room to breathe</h2>
+<div style="font-size: 14px; color: #A79DB0;">Same tally content. Fewer things on screen at once.</div>
+</div>
+
+<div style="font-size: 13px; color: #A79DB0; margin-top: 18px;">Option 4 · Open</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 48px 0 56px; border-top: 1px solid #241A2B; border-bottom: 1px solid #241A2B;">
+<div style="padding-right: 64px;">
+<div style="font-size: 16px; color: #A79DB0;">Above the line</div>
+<div style="font-size: 120px; font-weight: 700; letter-spacing: -5px; line-height: 1; margin-top: 10px; font-variant-numeric: tabular-nums;">159</div>
+<p style="margin: 22px 0 0; font-size: 18px; line-height: 1.6; color: #C3BACB; max-width: 440px;">Paid, because the model was proven, the company was real, and it fit the budget.</p>
+</div>
+<div style="padding-left: 64px; border-left: 1px solid #241A2B;">
+<div style="font-size: 16px; color: #A79DB0;">Below the line</div>
+<div style="font-size: 120px; font-weight: 700; letter-spacing: -5px; line-height: 1; margin-top: 10px; color: #FF7A8C; font-variant-numeric: tabular-nums;">29</div>
+<p style="margin: 22px 0 0; font-size: 18px; line-height: 1.6; color: #C3BACB; max-width: 440px;">Never paid: 10 swapped models and 19 leaked keys, stopped at their limit.</p>
+</div>
+</div>
+
+<div style="font-size: 13px; color: #A79DB0; margin-top: 18px;">Option 5 · Statement</div>
+<div style="padding: 44px 0 48px; border-top: 1px solid #241A2B; border-bottom: 1px solid #241A2B;">
+<div style="font-size: 72px; font-weight: 700; letter-spacing: -2.6px; line-height: 1.08; max-width: 1100px;"><span style="font-variant-numeric: tabular-nums;">159</span> payments crossed the line. <span style="color: #FF7A8C; font-variant-numeric: tabular-nums;">29</span> <span style="color: #A79DB0;">didn't.</span></div>
+<button type="button" class="why" onClick="{{toggle}}" aria-expanded="{{openAttr}}" style="margin-top: 26px;">What decides it<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{chev}}"><path d="M6 9l6 6 6-6"></path></svg></button>
+<sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 56px; margin-top: 28px;">
+<div><div style="font-size: 17px; font-weight: 600;">The model is proven</div><div style="font-size: 15px; color: #A79DB0; margin-top: 6px; line-height: 1.55;">The signed receipt names the model you paid for.</div></div>
+<div><div style="font-size: 17px; font-weight: 600;">The company is real</div><div style="font-size: 15px; color: #A79DB0; margin-top: 6px; line-height: 1.55;">Its account is linked from its own website.</div></div>
+<div><div style="font-size: 17px; font-weight: 600;">It fits the budget</div><div style="font-size: 15px; color: #A79DB0; margin-top: 6px; line-height: 1.55;">The group and the member both have room.</div></div>
+</div>
+</sc-if>
+</div>
+
+<div style="font-size: 13px; color: #A79DB0; margin-top: 18px;">Option 6 · The line is the layout</div>
+<div style="position: relative; height: 380px; border-top: 1px solid #241A2B; border-bottom: 1px solid #241A2B; overflow: hidden;">
+<svg width="1328" height="380" viewBox="0 0 1328 380" aria-hidden="true" style="position: absolute; inset: 0;"><line x1="0" y1="307" x2="1328" y2="73" stroke="#A79DB0" stroke-opacity="0.55" stroke-width="1.5"></line></svg>
+<div style="position: absolute; left: 0; top: 40px;">
+<div style="font-size: 16px; color: #A79DB0;">Above the line</div>
+<div style="font-size: 104px; font-weight: 700; letter-spacing: -4px; line-height: 1; margin-top: 8px; font-variant-numeric: tabular-nums;">159</div>
+<div style="font-size: 16px; color: #C3BACB; margin-top: 10px;">proven and paid</div>
+</div>
+<div style="position: absolute; right: 0; bottom: 36px; text-align: right;">
+<div style="font-size: 104px; font-weight: 700; letter-spacing: -4px; line-height: 1; color: #FF7A8C; font-variant-numeric: tabular-nums;">29</div>
+<div style="font-size: 16px; color: #C3BACB; margin-top: 10px;">refused or capped</div>
+<div style="font-size: 14px; color: #A79DB0; margin-top: 6px;">10 swapped models · 19 leaked keys</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: false }; }
+  renderVals() {
+    const o = this.state.open;
+    return { open: o, openAttr: o ? 'true' : 'false', chev: o ? 'transform: rotate(180deg);' : '', toggle: () => this.setState({ open: !o }) };
+  }
+}
+</script>
+</body>
+</html>

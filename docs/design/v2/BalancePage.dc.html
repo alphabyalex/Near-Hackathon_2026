@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Balance tab and wallet menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0E0912}
+a{color:#A59BFF;text-decoration:none}a:hover{color:#F5F3F7}
+.nav{font:inherit;font-size:15px;color:#C3BACB;background:transparent;border:0;cursor:pointer;padding:6px 0;border-bottom:2px solid transparent}
+.nav:hover{color:#F5F3F7}
+.bal{font:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#DCD7FF;background:rgba(123,108,255,.14);border:1px solid rgba(123,108,255,.5);border-radius:10px;padding:9px 14px;cursor:pointer;transition:background .2s,border-color .2s}
+.bal:hover{background:rgba(123,108,255,.22);border-color:#7B6CFF}
+.bal[aria-current="page"]{background:rgba(123,108,255,.26);border-color:#A59BFF;color:#FFFFFF}
+.seg{display:inline-flex;align-items:stretch;background:#150D1B;border:1px solid #2A2030;border-radius:12px;overflow:hidden}
+.seg button{font:inherit;color:#F5F3F7;background:transparent;border:0;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;font-size:14px;font-weight:600;transition:background .2s}
+.seg button:hover{background:#1C1323}
+.seg button:focus-visible{outline:2px solid #A59BFF;outline-offset:-2px}
+.seg button[aria-current="page"]{background:#221735;box-shadow:inset 0 -2px 0 #7B6CFF}
+.seg i{width:1px;background:#2A2030}
+.acct{font:inherit;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#F5F3F7;background:#150D1B;border:1px solid #2A2030;border-radius:10px;padding:8px 12px 8px 9px;cursor:pointer}
+.acct:hover{border-color:#3A2E45}
+.menuitem{font:inherit;width:100%;text-align:left;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;color:#F5F3F7;background:transparent;border:0;border-radius:10px;padding:11px 12px;cursor:pointer}
+.menuitem:hover{background:#1C1323}
+.sheen{position:relative;overflow:hidden;font:inherit;font-weight:600;color:#F5F3F7;border:1px solid transparent;cursor:pointer;background:linear-gradient(#150D1B,#150D1B) padding-box,linear-gradient(120deg,#F5F3F7 0%,#7B6CFF 45%,#4B3BD9 100%) border-box}
+.sheen::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(245,243,247,.18),transparent);transform:skewX(-10deg);transition:left .6s cubic-bezier(.22,1,.36,1)}
+.sheen:hover::after{left:120%}
+.ghost{font:inherit;font-weight:600;color:#F5F3F7;background:transparent;border:1px solid #3A2E45;cursor:pointer}
+.ghost:hover{border-color:#A79DB0}
+.tile{font:inherit;color:#F5F3F7;background:#1C1323;border:1px solid #2A2030;border-radius:14px;padding:16px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px}
+.tile:hover{border-color:#7B6CFF}
+@media (prefers-reduced-motion: reduce){.sheen::after{transition:none}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; position: relative; overflow: hidden; background: #0E0912; color: #F5F3F7; font-family: Geist, system-ui, sans-serif;">
+
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 18px 56px; border-bottom: 1px solid #241A2B; position: relative; z-index: 3;">
+<div style="display: flex; align-items: center; gap: 44px;">
+<button type="button" class="nav" onClick="{{goHome}}" style="font-size: 20px; font-weight: 700; color: #F5F3F7; display: inline-flex; align-items: center; gap: 10px;"><canvas ref="{{setLogo}}" aria-hidden="true" style="width: 24px; height: 24px;"></canvas>Wardline</button>
+<nav aria-label="Main" style="display: flex; gap: 30px;">
+<button type="button" class="nav" onClick="{{goHome}}" style="{{homeTab}}">Mutual</button>
+<button type="button" class="nav">Groups</button>
+<button type="button" class="nav">Proof engine</button>
+<button type="button" class="nav">About</button>
+</nav>
+</div>
+<div style="display: flex; align-items: center; gap: 10px;">
+<sc-if value="{{connected}}" hint-placeholder-val="{{true}}">
+<div class="seg">
+<button type="button" onClick="{{goBalance}}" aria-current="{{balCurrent}}"><span style="color: #A79DB0; font-weight: 500;">Balance</span><span style="font-variant-numeric: tabular-nums;">20.00 USDC</span></button>
+<i aria-hidden="true"></i>
+<button type="button" onClick="{{toggleMenu}}" aria-haspopup="menu" aria-expanded="{{menuAttr}}"><canvas ref="{{setMini}}" aria-hidden="true" style="width: 20px; height: 20px;"></canvas>hyperios.testnet<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A79DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+</sc-if>
+<sc-if value="{{disconnected}}" hint-placeholder-val="{{false}}">
+<button type="button" class="sheen" onClick="{{openPicker}}" style="font-size: 14px; border-radius: 10px; padding: 10px 16px;">Connect wallet</button>
+</sc-if>
+</div>
+</header>
+
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" aria-label="Wallet" style="position: absolute; right: 56px; top: 70px; width: 300px; background: #150D1B; border: 1px solid #2A2030; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.55); padding: 8px; z-index: 5;">
+<div style="padding: 12px 12px 14px; border-bottom: 1px solid #241A2B; margin-bottom: 6px;">
+<div style="font-size: 12px; color: #A79DB0;">Connected with Meteor</div>
+<div style="font-size: 15px; font-weight: 600; margin-top: 3px;">hyperios.testnet</div>
+</div>
+<button type="button" role="menuitem" class="menuitem" onClick="{{goBalanceFromMenu}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A59BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path></svg>Open your balance</button>
+<button type="button" role="menuitem" class="menuitem" onClick="{{copyAcct}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A79DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>{{copyLabel}}</button>
+<button type="button" role="menuitem" class="menuitem" onClick="{{switchWallet}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A79DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4"></path><path d="M3 7h18"></path><path d="M7 21l-4-4 4-4"></path><path d="M21 17H3"></path></svg>Connect a different wallet</button>
+<div style="border-top: 1px solid #241A2B; margin: 6px 0;"></div>
+<button type="button" role="menuitem" class="menuitem" onClick="{{disconnect}}" style="color: #C3BACB;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A79DB0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>Disconnect</button>
+</div>
+</sc-if>
+
+<sc-if value="{{pickerOpen}}" hint-placeholder-val="{{false}}">
+<div role="dialog" aria-label="Connect a wallet" style="position: absolute; right: 56px; top: 70px; width: 340px; background: #150D1B; border: 1px solid #2A2030; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.55); padding: 20px; z-index: 5;">
+<div style="font-size: 18px; font-weight: 700;">Connect a wallet</div>
+<div style="font-size: 13px; color: #A79DB0; margin-top: 4px;">Wardline never moves money without your wallet's signature.</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px;">
+<button type="button" class="tile" onClick="{{connect}}"><span style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg,#7B6CFF,#3A2B9C);" aria-hidden="true"></span>Meteor</button>
+<button type="button" class="tile" onClick="{{connect}}"><span style="width: 36px; height: 36px; border-radius: 10px; background: #1E2A44;" aria-hidden="true"></span>Intear</button>
+<button type="button" class="tile" onClick="{{connect}}"><span style="width: 36px; height: 36px; border-radius: 10px; background: #5B3FD8;" aria-hidden="true"></span>Nightly</button>
+</div>
+<div style="font-size: 12px; color: #A79DB0; margin-top: 14px;">Logos here are placeholders. The real picker uses each wallet's official logo.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{onHome}}" hint-placeholder-val="{{false}}">
+<div style="padding: 120px 56px;">
+<div style="font-size: 84px; font-weight: 700; letter-spacing: -3px; line-height: 0.98; max-width: 640px;">A credit union for the AI economy.</div>
+<p style="font-size: 18px; color: #A79DB0; margin-top: 24px; max-width: 520px;">This is a stand-in for the home page. Try the violet Balance tab and the account menu up top.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{onBalance}}" hint-placeholder-val="{{true}}">
+<div style="padding: 48px 56px; display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 64px;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+<canvas ref="{{setBig}}" aria-hidden="true" style="width: 320px; height: 320px;"></canvas>
+<div style="font-size: 16px; font-weight: 600;">hyperios.testnet</div></div>
+<div>
+<div style="font-size: 14px; color: #A79DB0;">Balance</div>
+<div style="display: flex; align-items: baseline; gap: 12px; margin-top: 6px;">
+<span style="font-size: 96px; font-weight: 700; letter-spacing: -3.5px; line-height: 1; font-variant-numeric: tabular-nums;">160.00</span>
+<span style="font-size: 24px; color: #C3BACB; font-weight: 500;">USDC total</span>
+</div>
+<div style="font-size: 15px; color: #A79DB0; margin-top: 8px;">140.00 in your wallet, plus your share of the Mutual worth 20.00</div>
+<div style="margin-top: 32px; border-top: 1px solid #241A2B;">
+<div style="display: grid; grid-template-columns: 30px minmax(0, 1fr) 160px 160px; align-items: center; gap: 14px; padding: 18px 0; border-bottom: 1px solid #241A2B;">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #2775CA; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;" aria-hidden="true">$</span>
+<span><span style="display: block; font-size: 16px; font-weight: 600;">USDC</span><span style="display: block; font-size: 13px; color: #A79DB0;">Ready to deposit</span></span>
+<span style="font-size: 20px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums;">140.00</span>
+<span style="text-align: right;"><button type="button" class="sheen" style="font-size: 14px; border-radius: 10px; padding: 9px 16px;">Deposit</button></span>
+</div>
+<div style="display: grid; grid-template-columns: 30px minmax(0, 1fr) 160px 160px; align-items: center; gap: 14px; padding: 18px 0; border-bottom: 1px solid #241A2B;">
+<canvas ref="{{setTok}}" aria-hidden="true" style="width: 26px; height: 26px;"></canvas>
+<span><span style="display: block; font-size: 16px; font-weight: 600;">WARD</span><span style="display: block; font-size: 13px; color: #A79DB0;">Your share of the Mutual, 1.0004 USDC each</span></span>
+<span style="text-align: right; font-variant-numeric: tabular-nums;"><span style="display: block; font-size: 20px; font-weight: 600;">19.99</span><span style="display: block; font-size: 13px; color: #A79DB0;">worth 20.00 USDC</span></span>
+<span style="text-align: right;"><button type="button" class="ghost" style="font-size: 14px; border-radius: 10px; padding: 9px 16px;">Request to sell</button></span>
+</div>
+<div style="display: grid; grid-template-columns: 30px minmax(0, 1fr) 160px 160px; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #241A2B;">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #1C1323; border: 1px solid #3A2E45; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #C3BACB;" aria-hidden="true">N</span>
+<span><span style="display: block; font-size: 15px; font-weight: 500; color: #C3BACB;">NEAR</span><span style="display: block; font-size: 13px; color: #A79DB0;">Covers your network fees</span></span>
+<span style="font-size: 16px; text-align: right; color: #C3BACB; font-variant-numeric: tabular-nums;">0.394</span>
+<span></span>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 36px;">
+<div style="font-size: 18px; font-weight: 700;">Recent</div>
+<a href="#" style="font-size: 14px;">All transactions</a>
+</div>
+<div style="margin-top: 8px;">
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #241A2B; font-size: 15px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7B6CFF;"></span><span style="flex: 1 1 auto;">Bought 9.99 WARD for 10.00 USDC</span><span style="color: #A79DB0;">Nov 10, 8:45 PM</span><a href="#" style="font-size: 14px;">View</a></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #241A2B; font-size: 15px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #7B6CFF;"></span><span style="flex: 1 1 auto;">Bought 9.99 WARD for 10.00 USDC</span><span style="color: #A79DB0;">Nov 10, 12:42 PM</span><a href="#" style="font-size: 14px;">View</a></div>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { page: 'balance', menu: false, connected: true, picker: false, copied: false }; }
+  componentDidMount() { this.drawAll(); }
+  componentDidUpdate() { this.drawAll(); }
+  seed(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; }
+  prep(cv, w, h) { const d = Math.min(2, window.devicePixelRatio || 1); if (cv.width !== Math.round(w * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); } const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, w, h); return c; }
+  sphere(ctx, cx, cy, R, step, lx, ly, floor) {
+    const a = -10 * Math.PI / 180, nx = -Math.sin(a), ny = Math.cos(a);
+    const l2 = lx * lx + ly * ly, lz = l2 < 1 ? Math.sqrt(1 - l2) : 0, ln = Math.hypot(lx, ly, lz) || 1; lx /= ln; ly /= ln;
+    const lzn = lz / ln;
+    for (let gy = -R; gy <= R + 0.001; gy += step) for (let gx = -R; gx <= R + 0.001; gx += step) {
+      const d2 = gx * gx + gy * gy; if (d2 > R * R) continue;
+      const sd = gx * nx + gy * ny; if (Math.abs(sd) < Math.max(1.6, step * 0.7) / 2) continue;
+      const z = Math.sqrt(Math.max(0, 1 - d2 / (R * R)));
+      const sh = floor + (1 - floor) * Math.max(0, gx / R * lx + gy / R * ly + z * lzn);
+      const r = step * 0.48 * sh; if (r < 0.3) continue;
+      ctx.fillStyle = sd < 0 ? '#F5F3F7' : '#7B6CFF'; ctx.beginPath(); ctx.arc(cx + gx, cy + gy, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  personal(ctx, c, R, step) { const r1 = this.seed('hyperios.testnet'), r2 = this.seed('testnet.hyperios'); this.sphere(ctx, c, c, R, step, -0.75 + 0.45 * r1, -0.7 + 0.3 * r2, 0.22); }
+  drawAll() {
+    if (this.logo) this.sphere(this.prep(this.logo, 24, 24), 12, 12, 11.5, 3.2, -0.55, -0.6, 0.25);
+    if (this.mini && this.state.connected) this.personal(this.prep(this.mini, 20, 20), 10, 9.5, 2.6);
+    if (this.big && this.state.page === 'balance') this.personal(this.prep(this.big, 320, 320), 160, 150, 12);
+    if (this.tok && this.state.page === 'balance') this.sphere(this.prep(this.tok, 26, 26), 13, 13, 12, 3.2, -0.55, -0.6, 0.25);
+  }
+  renderVals() {
+    const s = this.state;
+    return {
+      setLogo: (el) => { this.logo = el; }, setMini: (el) => { this.mini = el; }, setBig: (el) => { this.big = el; }, setTok: (el) => { this.tok = el; },
+      connected: s.connected, disconnected: !s.connected,
+      onHome: s.page === 'home' || !s.connected, onBalance: s.page === 'balance' && s.connected,
+      menuOpen: s.menu && s.connected, pickerOpen: s.picker, menuAttr: s.menu ? 'true' : 'false',
+      balCurrent: s.page === 'balance' ? 'page' : 'false',
+      homeTab: s.page === 'home' ? 'color: #F5F3F7; border-bottom-color: #7B6CFF;' : '',
+      copyLabel: s.copied ? 'Copied' : 'Copy account name',
+      goHome: () => this.setState({ page: 'home', menu: false, picker: false }),
+      goBalance: () => this.setState({ page: 'balance', menu: false, picker: false }),
+      goBalanceFromMenu: () => this.setState({ page: 'balance', menu: false }),
+      toggleMenu: () => this.setState({ menu: !s.menu, picker: false, copied: false }),
+      copyAcct: () => { try { navigator.clipboard && navigator.clipboard.writeText('hyperios.testnet'); } catch (e) {} this.setState({ copied: true }); },
+      switchWallet: () => this.setState({ menu: false, picker: true }),
+      disconnect: () => this.setState({ connected: false, menu: false, page: 'home' }),
+      openPicker: () => this.setState({ picker: !s.picker }),
+      connect: () => this.setState({ connected: true, picker: false, page: 'balance' })
+    };
+  }
+}
+</script>
+</body>
+</html>
