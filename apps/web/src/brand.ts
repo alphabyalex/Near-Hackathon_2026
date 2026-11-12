@@ -1065,8 +1065,6 @@ export const BALANCE = {
   title: "Your balance",
   label: "Balance",
   totalUnit: "USDC total",
-  split: (wallet: string, share: string) => `${wallet} in your wallet, plus your share of the Mutual worth ${share}`,
-  shareOnly: "Your share of the Mutual",
   connectTitle: "Connect a wallet to see your balance.",
   connect: "Connect wallet",
   rows: "What you hold",

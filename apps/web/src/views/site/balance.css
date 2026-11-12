@@ -8,8 +8,7 @@
 .bal-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:6px 0 0}
 .bal-total .num{font-size:96px;font-weight:700;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums}
 .bal-unit{font-size:24px;font-weight:500;color:var(--text-2)}
-.bal-split{margin:8px 0 0;font-size:15px;color:var(--muted)}
-.bal-earned{margin:6px 0 0;font-size:15px;color:var(--muted)}
+.bal-earned{margin:10px 0 0;font-size:15px;color:var(--muted)}
 .bal-earned .num{color:var(--text);font-weight:600}
 
 .bal-rows{margin-top:32px;border-top:1px solid var(--rule)}

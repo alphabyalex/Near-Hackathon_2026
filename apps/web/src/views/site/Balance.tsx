@@ -274,7 +274,6 @@ export function Balance() {
                   </span>
                   <span className="bal-unit">{BALANCE.totalUnit}</span>
                 </p>
-                <p className="bal-split num">{wallet ? BALANCE.split(formatUsdc(wallet.usdc.toString()), formatUsdc(share.toString())) : BALANCE.shareOnly}</p>
                 {gain !== null && (
                   <p className="bal-earned">
                     {BALANCE.earned}{" "}
