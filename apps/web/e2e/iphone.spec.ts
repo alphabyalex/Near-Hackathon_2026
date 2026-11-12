@@ -2,7 +2,8 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
 // Runs in the "iphone" project: WebKit, iPhone SE (375 x 667, touch, mobile viewport).
-const ROUTES = ["#/", "#/me", "#/groups", "#/proof", "#/try", "#/demo", "#/developers", "#/verify", "#/about", "#/vault"];
+// #/me is now #/wallet (the Balance page); #/demo is now the steps on #/about.
+const ROUTES = ["#/", "#/wallet", "#/groups", "#/proof", "#/try", "#/developers", "#/verify", "#/about", "#/vault"];
 
 /** What sticks out past the right edge, for a readable failure message. */
 async function offenders(page: Page): Promise<string[]> {

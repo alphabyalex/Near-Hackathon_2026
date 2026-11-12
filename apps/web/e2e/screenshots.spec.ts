@@ -34,8 +34,9 @@ const SHOTS: Shot[] = [
     },
   },
   {
+    // The Balance page (#/me redirects to #/wallet).
     name: "me-member",
-    path: "#/me",
+    path: "#/wallet",
     prepare: async (page, wallets) => {
       wallets.setNearAccount(APPROVER_ACCOUNT);
       await page.getByTestId("me-connect").getByRole("button", { name: "Connect wallet" }).click();
@@ -47,8 +48,9 @@ const SHOTS: Shot[] = [
     },
   },
   {
-    name: "me-empty",
-    path: "#/me",
+    // A wallet with no WARD: the Balance page with nothing to sell (the old "me-empty" line is gone).
+    name: "me-no-ward",
+    path: "#/wallet",
     prepare: async (page, wallets) => {
       wallets.setNearAccount(VENDOR_NEAR_ACCOUNT);
       await page.getByTestId("me-connect").getByRole("button", { name: "Connect wallet" }).click();
@@ -56,7 +58,24 @@ const SHOTS: Shot[] = [
       await dlg.getByLabel("NEAR account").fill(VENDOR_NEAR_ACCOUNT);
       await dlg.locator('[data-wallet="test-wallet"]').click();
       await dlg.getByRole("button", { name: "Use this wallet" }).click();
-      await expect(page.getByTestId("me-empty")).toBeVisible();
+      await expect(page.getByTestId("me-position")).toBeVisible();
+      await expect(page.getByTestId("bal-ward").getByRole("button", { name: "Request to sell" })).toBeDisabled();
+    },
+  },
+  {
+    name: "account-menu",
+    path: "#/",
+    viewport: true,
+    prepare: async (page, wallets) => {
+      wallets.setNearAccount(APPROVER_ACCOUNT);
+      await page.getByTestId("connect-wallet").click();
+      const dlg = page.getByTestId("connect-dialog");
+      await dlg.getByLabel("NEAR account").fill(APPROVER_ACCOUNT);
+      await dlg.locator('[data-wallet="test-wallet"]').click();
+      await dlg.getByRole("button", { name: "Use this wallet" }).click();
+      await expect(page.getByTestId("account-control")).toBeVisible();
+      await page.getByRole("button", { name: `${APPROVER_ACCOUNT}, account menu` }).click();
+      await expect(page.getByRole("menu")).toBeVisible();
     },
   },
   {
@@ -97,7 +116,7 @@ const SHOTS: Shot[] = [
   },
   {
     name: "demo",
-    path: "#/demo",
+    path: "#/about/steps",
     prepare: async (page) => {
       await page.locator('[data-scene="swap"]').click();
       await page.locator('[data-run="swap"]').click();
@@ -106,7 +125,7 @@ const SHOTS: Shot[] = [
   },
   {
     name: "demo-group",
-    path: "#/demo",
+    path: "#/about/steps",
     prepare: async (page) => {
       await page.locator('[data-scene="group"]').click();
       await page.locator('[data-run="group"]').click();
@@ -115,7 +134,7 @@ const SHOTS: Shot[] = [
   },
   {
     name: "demo-payout",
-    path: "#/demo",
+    path: "#/about/steps",
     prepare: async (page) => {
       await page.locator('[data-scene="payout"]').click();
       await page.locator('[data-run="payout"]').click();
@@ -124,7 +143,7 @@ const SHOTS: Shot[] = [
   },
   {
     name: "demo-tier",
-    path: "#/demo",
+    path: "#/about/steps",
     prepare: async (page) => {
       await page.locator('[data-scene="tier"]').click();
       await page.locator('[data-run="tier"]').click();
@@ -135,7 +154,8 @@ const SHOTS: Shot[] = [
     name: "groups",
     path: "#/groups",
     prepare: async (page) => {
-      await expect(page.locator(".orb").first()).toBeVisible();
+      await expect(page.locator(".ob-canvas")).toBeVisible();
+      await expect(page.getByTestId("group-detail")).toBeVisible();
     },
   },
   {
@@ -255,11 +275,11 @@ const A9: Shot[] = [
   { name: "home", path: "#/", prepare: async (page) => void (await expect(page.getByTestId("governance")).toBeVisible()) },
   { name: "about", path: "#/about" },
   { name: "developers", path: "#/developers" },
-  { name: "groups", path: "#/groups", prepare: async (page) => void (await expect(page.locator(".orb").first()).toBeVisible()) },
+  { name: "groups", path: "#/groups", prepare: async (page) => void (await expect(page.getByTestId("group-detail")).toBeVisible()) },
   { name: "proof", path: "#/proof", prepare: async (page) => void (await expect(page.getByTestId("proofs")).toBeVisible()) },
   {
     name: "demo-payout",
-    path: "#/demo",
+    path: "#/about/steps",
     viewport: true,
     prepare: async (page) => {
       await page.locator('[data-scene="payout"]').click();

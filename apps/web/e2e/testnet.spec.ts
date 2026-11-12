@@ -55,8 +55,19 @@ async function connectAs(page: Page, account: string): Promise<void> {
   await expect(dialog.locator('button[data-wallet="local-signer"]')).toHaveAttribute("aria-pressed", "true");
   await dialog.getByRole("combobox").or(dialog.getByRole("textbox")).first().fill(account);
   await dialog.getByRole("button", { name: "Use this wallet" }).click();
+  // The picker closes once the wallet connects; the header's account button names the account.
+  await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId("connect-wallet")).toContainText(account);
   await expect(page.getByTestId("connect-wallet")).toContainText("Local test signer");
+}
+
+/** Requests to sell WARD from the Balance page's WARD row (#/wallet). */
+async function requestSell(page: Page, ward: string): Promise<void> {
+  await page.getByTestId("bal-ward").getByRole("button", { name: "Request to sell" }).click();
+  const sell = page.getByTestId("sell-form");
+  await sell.getByLabel("WARD to sell").fill(ward);
+  await sell.getByRole("button", { name: "Request to sell this WARD" }).click();
+  await expect(sell).toContainText(/WARD locked\. Redeemable from/, { timeout: 120_000 });
 }
 
 test.afterAll(() => {
@@ -68,21 +79,24 @@ test.afterAll(() => {
 test("home: testnet numbers, and the footer says so", async ({ page }) => {
   await page.goto("/#/");
   await expect(page.locator(".live-label")).toHaveText("Live");
-  await expect(page.locator(".stats")).toBeVisible();
-  await expect(page.locator(".stats dd").first()).toContainText(/\d/);
-  await expect(page.locator(".stats")).not.toContainText("141.24");
+  const stats = page.getByTestId("home-stats");
+  await expect(stats).toBeVisible();
+  await expect(stats.locator(".live-value").first()).toContainText(/\d/);
+  await expect(stats).not.toContainText("141.24");
   await page.waitForLoadState("networkidle");
   await shot(page, "home");
 });
 
 test("1 to 3: latest proofs show the plug-in call, the swapped model and the capped key, each linked", async ({ page }) => {
   await page.goto("/#/proof");
-  const table = page.locator("table").first();
-  await expect(table).toBeVisible();
-  const links = table.locator('a.tx-link[href*="testnet.nearblocks.io/txns/"]');
-  await expect(links.first()).toBeVisible();
+  const feed = page.getByTestId("proofs");
+  await expect(feed).toBeVisible();
+  // Each row's transaction link sits in its expandable detail; open the first row to show it.
+  const links = feed.locator('a.tx-link[href*="testnet.nearblocks.io/txns/"]');
   expect(await links.count()).toBeGreaterThan(3);
-  const below = table.locator("td.side-below");
+  await feed.locator("button.pf-row").first().click();
+  await expect(links.first()).toBeVisible();
+  const below = feed.locator('li.pf-item[data-side="below"]');
   await expect(below.first()).toBeVisible();
   const first = await hashOf(links.first());
   await onChain(first, "meter.wardline-labs.testnet");
@@ -138,46 +152,47 @@ test("6: vote with WARD on the open proposal, then execute it once it passes", a
   await shot(page, "execute");
 });
 
-test("7: a redemption request, with its countdown on #/me", async ({ page }) => {
+test("7: a sell request on the Balance page, with its countdown", async ({ page }) => {
   await connectAs(page, MEMBER);
-  const redeem = page.locator("details.mc-redeem");
-  await redeem.scrollIntoViewIfNeeded();
-  await redeem.locator("summary").click();
-  const amount = redeem.getByLabel("WARD to redeem");
-  await amount.fill("0.1");
-  await page.getByRole("button", { name: "Lock for redemption" }).click();
-  await expect(page.locator("main")).toContainText(/WARD locked\. Redeemable from/, { timeout: 120_000 });
-  await page.goto("/#/me");
+  // Selling moved off the home member card to #/wallet.
+  await page.goto("/#/wallet");
+  await requestSell(page, "0.1");
   await expect(page.getByTestId("redemption").first()).toContainText(/Unlocks in|Redeem/);
   await shot(page, "redeem");
 });
 
-test("8: groups show real tiers, proven calls and fees, and a transaction link that opens a real one", async ({ page }) => {
+test("8: groups show real tiers, proven calls and fees, and an explorer link for the group at the front", async ({ page }) => {
   await page.goto("/#/groups");
-  const mission = page.locator('.orb[data-budget="bgt_mission"]');
-  await expect(mission).toBeVisible();
-  await expect(mission).toContainText(/Gold|Silver|Bronze/i);
-  await mission.click();
-  const link = page.getByTestId("group-detail").locator('a.orb-tx[href*="/txns/"]');
-  await expect(link).toBeVisible();
-  txs.groups = await hashOf(link);
+  await expect(page.locator(".ob-canvas")).toBeVisible();
+  const detail = page.getByTestId("group-detail");
+  await expect(detail).toBeVisible();
+  await expect(detail).toHaveAttribute("data-tier", /^(gold|silver|bronze)$/);
+  await expect(detail.locator(".ob-stats")).toContainText(/Gold|Silver|Bronze/);
+  await expect(detail.locator(".ob-stats dd").first()).toHaveText(/^\d[\d,]*$/);
+  // The orbit's panel links the group's account on the explorer (it no longer links one transaction).
+  await expect(page.locator(".ob-open")).toHaveAttribute("href", /testnet\.nearblocks\.io\/address\//);
+  await page.getByRole("button", { name: "Next group" }).click();
+  await expect(page.locator(".ob-counter")).toHaveText(/^2 of \d+$/);
   await shot(page, "groups");
 });
 
-test("9: #/me for a community member and for an LP", async ({ page }) => {
+test("9: the Balance page (#/wallet) for a community member and for an LP", async ({ page }) => {
   await connectAs(page, MEMBER);
-  await page.goto("/#/me");
-  await expect(page.locator("#me-history-title")).toBeVisible();
+  await page.goto("/#/wallet");
+  await expect(page.getByTestId("me-position")).toBeVisible();
+  await expect(page.getByTestId("bal-near")).toContainText("NEAR");
+  await expect(page.getByTestId("me-transactions")).toBeVisible();
   await shot(page, "me-member");
   await connectAs(page, LP);
-  await page.goto("/#/me");
-  await expect(page.locator("#me-history-title")).toBeVisible();
-  await expect(page.locator(".me-history a.tx-link").first()).toBeVisible();
+  await page.goto("/#/wallet");
+  const recent = page.getByTestId("me-transactions");
+  await expect(recent).toBeVisible();
+  await expect(recent.locator('a[href*="/txns/"]').first()).toBeVisible();
   await shot(page, "me-lp");
 });
 
-test("10: the demo's seven offline scenes still run, and link to the live proofs", async ({ page }) => {
-  await page.goto("/#/demo");
+test("10: the seven offline steps on About still run, and link to the live proofs", async ({ page }) => {
+  await page.goto("/#/about/steps");
   await expect(page.locator(".scenes li")).toHaveCount(7);
   await expect(page.locator(".scenes-live a[href='#/proof']")).toBeVisible();
   await page.getByRole("button", { name: "See what happens" }).click();

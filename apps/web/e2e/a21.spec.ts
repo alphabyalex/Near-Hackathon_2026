@@ -60,7 +60,7 @@ test.describe("the account menu", () => {
     await page.goto("/#/");
     const control = page.getByTestId("account-control");
     await expect(control).toContainText("Balance");
-    await expect(page.getByTestId("balance-button")).toContainText("USDC");
+    await expect(page.getByTestId("balance-button")).toContainText("$");
     const trigger = page.getByRole("button", { name: `${APPROVER_ACCOUNT}, account menu` });
     await trigger.click();
     const menu = page.getByRole("menu");

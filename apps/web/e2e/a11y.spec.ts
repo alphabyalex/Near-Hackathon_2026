@@ -42,17 +42,17 @@ test.describe("keyboard only", () => {
     await expect(dlg.getByTestId("join-done")).toContainText("You received");
     await tabTo(page, (el) => el.tag === "button" && el.name === "Go to my share");
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/#\/me$/);
+    await expect(page).toHaveURL(/#\/wallet$/);
 
-    // Cast a vote on #/me.
+    // Cast a vote on the Balance page.
     const vote = page.getByTestId("me-open-vote").filter({ hasText: "Lower the Gold fee to 0.75%" });
     await expect(vote.getByRole("button", { name: "Vote for" })).toBeEnabled();
     await tabTo(page, (el) => el.tag === "button" && el.name === "Vote for");
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("me-past-votes")).toContainText("Lower the Gold fee to 0.75%");
 
-    // Run a step on How it works.
-    await page.goto("/#/how-it-works");
+    // Run a step on How it works, now the seven steps on About.
+    await page.goto("/#/about/steps");
     await expect(page.locator(".scenes")).toBeVisible();
     await tabTo(page, (el) => el.tag === "button" && el.name.includes("Swapped model"));
     await page.keyboard.press("Enter");

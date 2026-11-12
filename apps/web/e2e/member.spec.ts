@@ -2,69 +2,94 @@ import type { Page } from "@playwright/test";
 import { APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
 import { expect, expectAccessible, expectNoHorizontalScroll, test } from "./fixtures";
 
+/** Fills the wallet picker's developer section with the test wallet; the picker closes once it connects. */
 async function connectIn(page: Page, account: string) {
   const dlg = page.getByTestId("connect-dialog");
   await dlg.getByLabel("NEAR account").fill(account);
   await dlg.locator('[data-wallet="test-wallet"]').click();
   await dlg.getByRole("button", { name: "Use this wallet" }).click();
+  await expect(dlg).toHaveCount(0);
 }
 
-test.describe("#/me, the member view", () => {
-  test("no wallet: one line and Connect wallet; a wallet with no WARD: one line and Join the Mutual", async ({ page, wallets }) => {
+/** Requests to sell WARD from the Balance page's WARD row. */
+async function requestSell(page: Page, ward: string) {
+  await page.getByTestId("bal-ward").getByRole("button", { name: "Request to sell" }).click();
+  const sell = page.getByTestId("sell-form");
+  await sell.getByLabel("WARD to sell").fill(ward);
+  await sell.getByRole("button", { name: "Request to sell this WARD" }).click();
+  await expect(sell.getByRole("status")).toContainText("WARD locked");
+}
+
+test.describe("#/wallet, the Balance page", () => {
+  test("no wallet: one line and Connect wallet; a wallet with no WARD: nothing to sell, and Deposit opens Join the Mutual", async ({ page, wallets }) => {
     wallets.setNearAccount(VENDOR_NEAR_ACCOUNT);
-    await page.goto("/#/me");
+    await page.goto("/#/wallet");
     const connect = page.getByTestId("me-connect");
-    await expect(connect).toContainText("Connect a wallet to see your share.");
+    await expect(connect).toContainText("Connect a wallet to see your balance.");
     await connect.getByRole("button", { name: "Connect wallet" }).click();
     await connectIn(page, VENDOR_NEAR_ACCOUNT);
-    const empty = page.getByTestId("me-empty");
-    await expect(empty).toHaveText(/This wallet holds no WARD yet\.\s*Join the Mutual/);
+    const me = page.getByTestId("me-position");
+    await expect(me).toContainText(VENDOR_NEAR_ACCOUNT);
+    await expect(me.getByTestId("share-value")).toHaveText("$0.00");
+    await expect(me.getByTestId("share-total-label")).toHaveText("Balance: $0.00");
+    await expect(me.getByTestId("bal-ward")).toContainText("0.00 WARD");
+    // No WARD held: no earned line and no bar.
+    await expect(page.getByTestId("me-earned")).toHaveCount(0);
+    await expect(page.getByTestId("bal-split")).toHaveCount(0);
+    await expect(me.getByTestId("bal-ward").getByRole("button", { name: "Request to sell" })).toBeDisabled();
+    // Sim mode has no wallet balances, so no NEAR line and no transactions list.
+    await expect(page.getByTestId("bal-near")).toHaveCount(0);
+    await expect(page.getByTestId("me-transactions")).toHaveCount(0);
     await expectAccessible(page);
-    await empty.getByRole("button", { name: "Join the Mutual" }).click();
+    await me.getByTestId("bal-usdc").getByRole("button", { name: "Deposit" }).click();
     await expect(page.getByTestId("join-dialog")).toBeVisible();
   });
 
-  test("a member: position, earned since joining, the price chart, a vote with snapshot weight, past votes, a redemption countdown and where the share came from", async ({ page, wallets }) => {
+  test("a member: the total, USDC and WARD rows, the price chart, a vote with snapshot weight, past votes and a redemption countdown", async ({ page, wallets }) => {
     wallets.setNearAccount(APPROVER_ACCOUNT);
-    await page.goto("/#/me");
-    await page.getByTestId("me-connect").getByRole("button", { name: "Connect wallet" }).click();
+    await page.goto("/#/wallet");
+    // Connects from the header; the test above covers the page's own Connect wallet button.
+    await page.getByTestId("connect-wallet").click();
     await connectIn(page, APPROVER_ACCOUNT);
     const me = page.getByTestId("me-position");
-    await expect(me.locator(".vc-value")).toContainText("USDC");
-    await expect(me).toContainText("WARD held");
-    await expect(page.getByTestId("me-earned")).toHaveText("0.00 USDC");
+    // The total in dollars: a $, the whole dollars, the cents.
+    await expect(me.getByTestId("share-value")).toHaveText(/^\$\d[\d,]*\.\d\d$/);
+    await expect(me.getByTestId("share-value")).not.toHaveText("$0.00");
+    await expect(me.locator(".bal-earned")).toHaveText(/^Your share has earned \+\$0\.00 since you joined$/);
+    await expect(page.getByTestId("me-earned")).toHaveText("+$0.00");
+    // Sim mode has no wallet USDC, so the bar shows only the share, at full width.
+    await expect(page.getByTestId("bal-split")).toContainText("Earning in the Mutual");
+    await expect(page.getByTestId("bal-split")).not.toContainText("Ready to deposit");
+    await expect(page.getByTestId("balance-button")).toContainText(/Balance\s*\$\d/);
+    await expect(me.getByTestId("bal-usdc")).toContainText("Digital dollars. 1 USDC is always $1");
+    await expect(me.getByTestId("bal-usdc").getByRole("button", { name: "Deposit" })).toBeEnabled();
+    await expect(me.getByTestId("bal-ward")).toContainText(/\$[\d,]+\.\d\d[\d,]+\.\d\d WARD/);
+    await expect(me.getByTestId("bal-ward")).toContainText(/Each one is worth \$\d\.\d{4} today/);
+    await expect(me.getByTestId("bal-ward").getByRole("button", { name: "Request to sell" })).toBeEnabled();
     await expect(me).toContainText(APPROVER_ACCOUNT);
-    await expect(me.getByTestId("price-chart").locator(".pc-launch")).toHaveCount(1);
-    await expect(me.locator('.sources li[data-event="joined"]')).toContainText("You deposited 12.00 USDC");
-    // Deposits never move the price, so the list says so rather than repeating them.
-    await expect(me.locator('.sources li[data-event="deposit"]')).toHaveCount(0);
-    await expect(me.locator('.sources li[data-event="none"]')).toHaveText("WARD's price hasn't changed since you joined.");
-    // The header account button opens this page.
-    await expect(page.getByTestId("connect-wallet")).toHaveAttribute("href", "#/me");
+    await expect(page.getByTestId("price-chart").locator(".pc-launch")).toHaveCount(1);
+    // The header's Balance half shows this is the current page.
+    await expect(page.getByTestId("balance-button")).toHaveAttribute("aria-current", "page");
 
     const vote = me.getByTestId("me-open-vote").filter({ hasText: "Lower the Gold fee to 0.75%" });
     await expect(vote.locator(".me-weight")).toContainText(/Your weight: [0-9.]+ WARD, counted at the snapshot/);
+    await expect(vote.getByTestId("prop-change")).toHaveText(/^Gold groups would pay 0\.75% instead of \d\.\d\d%$/);
     await expect(me.getByTestId("me-open-vote").filter({ hasText: "Lower the Silver fee to 1.25%" }).locator(".me-weight")).toContainText("You held no WARD when this opened");
-    await expect(me.getByText("You haven't voted yet.")).toBeVisible();
+    // No past votes yet: the list only appears once there are some.
+    await expect(me.getByTestId("me-past-votes")).toHaveCount(0);
     await vote.getByRole("button", { name: "Vote for" }).click();
     await expect(me.getByTestId("me-past-votes")).toContainText("Lower the Gold fee to 0.75%");
     await expect(me.getByTestId("me-past-votes")).toContainText("For");
     await expectAccessible(page);
 
-    // Lock some WARD on the home page's member card, then the countdown shows here.
-    await page.goto("/#/");
-    const card = page.getByTestId("member-card");
-    await card.getByText("Redeem WARD").click();
-    await card.getByLabel("WARD to redeem").fill("2");
-    await card.getByRole("button", { name: "Lock for redemption" }).click();
-    await expect(card.getByTestId("pool-done")).toContainText("WARD locked");
-    await page.goto("/#/me");
+    // Request to sell some WARD here, then the countdown shows.
+    await requestSell(page, "2");
     await expect(page.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoHorizontalScroll(page);
   });
 
-  test("Join the Mutual's Go to my share opens #/me", async ({ page, wallets }) => {
+  test("Join the Mutual's Go to my share opens #/wallet", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
     await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
@@ -73,7 +98,7 @@ test.describe("#/me, the member view", () => {
     await dlg.locator('[data-wallet="test-wallet"]').click();
     await dlg.getByRole("button", { name: "Deposit 25.00 USDC" }).click();
     await dlg.getByRole("button", { name: "Go to my share" }).click();
-    await expect(page).toHaveURL(/#\/me$/);
+    await expect(page).toHaveURL(/#\/wallet$/);
     await expect(page.getByTestId("me-position")).toBeVisible();
   });
 });
@@ -150,11 +175,9 @@ test.describe("states: what happened and what to do next", () => {
     await page.goto("/#/");
     await page.getByTestId("connect-wallet").click();
     await connectIn(page, APPROVER_ACCOUNT);
-    const card = page.getByTestId("member-card");
-    await card.getByText("Redeem WARD").click();
-    await card.getByLabel("WARD to redeem").fill("2");
-    await card.getByRole("button", { name: "Lock for redemption" }).click();
-    await expect(card.getByTestId("pool-done")).toContainText("WARD locked");
+    await page.getByTestId("member-card").getByRole("link", { name: "Sell or redeem on your balance page" }).click();
+    await expect(page).toHaveURL(/#\/wallet$/);
+    await requestSell(page, "2");
     // A stale page that thinks the wait is over: the API still refuses, and the page says why.
     await page.route("**/api/v1/pool/positions/**", async (r) => {
       const res = await r.fetch();
@@ -162,7 +185,7 @@ test.describe("states: what happened and what to do next", () => {
       for (const w of body.pending_withdrawals) w.available_at = new Date(Date.now() - 60_000).toISOString();
       await r.fulfill({ response: res, json: body });
     });
-    await page.goto("/#/me");
+    await page.reload();
     await page.getByTestId("redemption").getByRole("button", { name: "Ready to redeem" }).click();
     const problem = page.locator('[data-problem="cooldown"]');
     await expect(problem).toContainText("This WARD is still in its 7-day wait.");

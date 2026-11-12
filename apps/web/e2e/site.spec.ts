@@ -3,7 +3,8 @@ import { API_PORT, APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "
 import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } from "./fixtures";
 import repo from "../../../repo.config.json" with { type: "json" };
 
-const PAGES = ["#/", "#/me", "#/groups", "#/proof", "#/try", "#/demo", "#/developers", "#/verify", "#/about"];
+// #/me and #/demo now redirect to #/wallet and #/about/steps (the redirects are covered in a21.spec.ts).
+const PAGES = ["#/", "#/wallet", "#/groups", "#/proof", "#/try", "#/developers", "#/verify", "#/about"];
 
 /** Connects the test wallet for an account through the header's Connect wallet dialog. */
 async function connectWallet(page: Page, account: string) {
@@ -36,7 +37,7 @@ test.describe("brand assets", () => {
 });
 
 test.describe("public site", () => {
-  test("home: the hero, both sides of the line with real counts, the safest groups and the nav", async ({ page }) => {
+  test("home: the hero, both sides of the line with real counts, the comparison, the safest groups and the nav", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("A credit union for the AI economy.");
@@ -49,21 +50,39 @@ test.describe("public site", () => {
     await expect(page.locator(".live-label")).toHaveCount(0);
     // No network badge outside the wallet panel.
     await expect(page.locator("footer")).not.toContainText("testnet");
+    // Every payment, counted: the two sides laid out on the line, each with its real count.
+    await expect(page.getByRole("heading", { level: 2, name: "Every payment, counted." })).toBeVisible();
     const sides = page.getByTestId("sides");
-    await expect(sides.locator(".above h3")).toHaveText("Above the line");
-    await expect(sides.locator(".above li b")).toHaveText(["The model is proven", "The payee is real", "It fits the budget"]);
-    const below = page.getByTestId("below-panel");
-    await expect(below.locator("h3")).toHaveText("Below the line");
-    await expect(below.locator('[data-kind="swapped"]')).toContainText("Swapped models");
-    await expect(below.locator('[data-kind="lookalike"]')).toContainText("Look-alike payees");
-    await expect(below.locator('[data-kind="capped"]')).toContainText("Leaked keys");
+    await expect(sides.locator(".ls-good .ls-label")).toHaveText("Above the line");
+    await expect(sides.locator(".ls-good .ls-num")).toHaveText(/^\d[\d,]*$/);
+    await expect(sides.locator(".ls-good .ls-note")).toHaveText("proven and paid");
+    await expect(sides.locator(".ls-bad .ls-label")).toHaveText("Below the line");
+    await expect(sides.locator(".ls-bad .ls-num")).toHaveText(/^\d[\d,]*$/);
+    await expect(sides.locator(".ls-bad .ls-sub")).toHaveText(/^\d+ swapped models, \d+ look-alike payees, \d+ leaked keys$/);
+    // The agent alone against the agent with Wardline, on the same 20 scams.
+    await expect(page.getByRole("heading", { level: 2, name: "Without Wardline, the agent paid 5 of 20 scams. With it, none." })).toBeVisible();
+    const cmp = page.getByTestId("comparison");
+    await expect(cmp.locator(".ls-good .ls-num")).toHaveText("0");
+    await expect(cmp.locator(".ls-bad .ls-num")).toHaveText("5");
+    await expect(cmp.locator(".ls-good .cmp-dots i.stopped")).toHaveCount(20);
+    await expect(cmp.locator(".ls-bad .cmp-dots i.paid")).toHaveCount(5);
+    await expect(page.locator("ul.share-lines li")).toHaveCount(3);
     const board = page.getByTestId("leaderboard");
     await expect(board.locator("tbody tr").first()).toContainText("Mission Street hacker house");
     await expect(board.locator("tbody tr").first().locator(".tier-name")).toHaveText("Gold");
     await expect(board.locator('tr[data-budget="bgt_kelp"] .tier-name')).toHaveText("Bronze");
     const nav = page.getByRole("navigation", { name: "Main" }).getByRole("link");
-    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "How it works", "Developers", "About"]);
+    // Docs sits apart, top right; its copy inside the nav only shows in the phone menu.
+    await expect(nav).toHaveText(["Mutual", "Groups", "Proof engine", "About"]);
     await expect(nav.first()).toHaveAttribute("aria-current", "page");
+    const docs = page.locator("header .docs-link");
+    await expect(docs).toHaveText("Docs");
+    await expect(docs).toHaveAttribute("href", "#/developers");
+    await expect(docs).not.toHaveAttribute("aria-current", "page");
+    const footer = page.getByRole("navigation", { name: "Footer" });
+    await expect(footer.getByRole("link", { name: "Docs" })).toHaveAttribute("href", "#/developers");
+    await expect(footer.getByRole("link", { name: "Your balance" })).toHaveAttribute("href", "#/wallet");
+    await expect(footer.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "#/about/steps");
     await page.locator(".hero").getByRole("button", { name: "Watch a payment cross the line" }).click();
     await expect(page.locator("#watch")).toBeInViewport();
     await expect(page.locator("#watch")).toBeFocused();
@@ -99,12 +118,15 @@ test.describe("public site", () => {
     await expect(stage).toHaveAttribute("data-motion", "done", { timeout: 20_000 });
     await expect(page.locator("#watch").getByRole("button")).toHaveCount(0);
     await expect(stage).toHaveAttribute("aria-label", /refused, drops below the line and is refunded/);
+    // How it works moved onto About as the seven steps; the explainer is on Home only.
     await page.goto("/#/how-it-works");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("How it works");
-    await expect(page.getByTestId("explainer-stage")).toHaveCount(1);
+    await expect(page).toHaveURL(/#\/about\/steps$/);
+    await expect(page.locator("#steps-title")).toHaveText("How it works");
+    await expect(page.getByTestId("explainer-stage")).toHaveCount(0);
     // The old address still opens the same page.
     await page.goto("/#/demo");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("How it works");
+    await expect(page).toHaveURL(/#\/about\/steps$/);
+    await expect(page.locator("#steps-title")).toHaveText("How it works");
   });
 
   test("hero: nothing listens to the mouse", async ({ page }) => {
@@ -148,8 +170,8 @@ test.describe("public site", () => {
     await expect(card.locator(".tier")).toContainText("Not verified");
   });
 
-  test("how it works: seven steps run the real endpoints, each lands above or below the line, then the outcome in one sentence", async ({ page }) => {
-    await page.goto("/#/how-it-works");
+  test("how it works: seven steps on About run the real endpoints, each lands above or below the line", async ({ page }) => {
+    await page.goto("/#/about/steps");
     await expect(page.getByTestId("stage").locator(".stage-n")).toHaveText("Step 1 of 7");
     await expect(page.locator("[data-scene]")).toHaveCount(7);
     const stage = page.getByTestId("stage");
@@ -210,14 +232,10 @@ test.describe("public site", () => {
     await page.locator('[data-scene="swap"]').click();
     await stage.getByRole("button", { name: "Next step" }).click();
     await expect(stage.locator("h2")).toHaveText("Leaked key");
-
-    const rows = page.locator(".cmp-row");
-    await expect(rows.nth(0)).toContainText("5 of 20");
-    await expect(rows.nth(1)).toContainText("0 of 20");
-    await expect(page.locator(".engine-note")).toHaveText("Without Wardline the agent paid 5 of 20 scams. With it, none.");
+    // The 5-of-20 comparison moved to Home; the home test checks it.
   });
 
-  test("join the Mutual: a dialog with quick picks, our stake in front, a wallet approval, then the member card and a 7-day redemption", async ({ page, wallets }) => {
+  test("join the Mutual: a dialog with quick picks, our stake in front, a wallet approval, then the member card and a 7-day sell request on the balance page", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
     const opener = page.locator(".hero").getByRole("button", { name: "Become a member" });
@@ -243,7 +261,7 @@ test.describe("public site", () => {
     await expect(dlg.getByTestId("join-done")).toContainText("WARD");
     await dlg.getByRole("button", { name: "Go to my share" }).click();
     await expect(dlg).toHaveCount(0);
-    await expect(page).toHaveURL(/#\/me$/);
+    await expect(page).toHaveURL(/#\/wallet$/);
     await expect(page.getByTestId("connect-wallet")).toContainText(OWNER_ACCOUNT);
     await page.goto("/#/");
 
@@ -251,13 +269,19 @@ test.describe("public site", () => {
     const position = card.getByTestId("pool-position");
     await expect(position).toContainText("WARD held");
     await expect(position).toContainText(OWNER_ACCOUNT);
-    await card.getByText("Redeem WARD").click();
-    await expect(card).toContainText("locks your WARD for 7 days");
-    await card.getByLabel("WARD to redeem").fill("5");
-    await card.getByRole("button", { name: "Lock for redemption" }).click();
-    await expect(card.getByTestId("pool-done")).toContainText("WARD locked. Redeemable from");
-    await expect(card.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
+    // Selling moved to the Balance page: the card links there instead of opening a Redeem disclosure.
+    await expect(card.getByText("Redeem WARD")).toHaveCount(0);
+    await card.getByRole("link", { name: "Sell or redeem on your balance page" }).click();
+    await expect(page).toHaveURL(/#\/wallet$/);
+    await page.getByTestId("bal-ward").getByRole("button", { name: "Request to sell" }).click();
+    const sell = page.getByTestId("sell-form");
+    await sell.getByLabel("WARD to sell").fill("5");
+    await sell.getByRole("button", { name: "Request to sell this WARD" }).click();
+    await expect(sell.getByRole("status")).toContainText("WARD locked. Redeemable from");
+    await expect(page.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
+    await page.goto("/#/");
     await expect(position).toContainText("Locked for redemption");
+    await expect(card.getByTestId("redemption")).toContainText(/Unlocks in (7d 0h|6d 23h)/);
   });
 
   test("governance: WARD holders vote with their wallet, anyone executes a passed proposal, once", async ({ page, wallets }) => {
@@ -265,21 +289,40 @@ test.describe("public site", () => {
     await page.goto("/#/");
     const gov = page.getByTestId("governance");
     await expect(gov.getByRole("heading", { level: 2 })).toHaveText("WARD holders decide the risks.");
-    await expect(gov.locator('.prop[data-status="executed"]')).toContainText("Set the Gold fee to 1.00%");
+    // Each change in plain English, old value to new.
+    const executed = gov.locator('.prop[data-status="executed"]', { hasText: "Set the Gold fee to 1.00%" });
+    await expect(executed.getByTestId("prop-change")).toHaveText(/^Gold fee is now 1\.00%, was \d\.\d\d%$/);
+    await expect(executed.getByRole("progressbar")).toHaveCount(0);
     await expect(gov.locator('.prop[data-status="rejected"]')).toContainText("Raise the Bronze fee to 2.50%");
 
     const mine = gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" });
     await expect(mine).toHaveAttribute("data-status", "open");
+    await expect(mine.getByTestId("prop-change")).toHaveText(/^Gold groups would pay 0\.75% instead of \d\.\d\d%$/);
+    await expect(mine.locator(".prop-progress")).toContainText(/Needs \d+(\.\d)?% of WARD to vote\. \d+(\.\d)?% so far/);
+    await expect(mine.getByRole("progressbar")).toBeVisible();
+    await expect(mine.locator(".prop-when")).toHaveText(/^(\d+ days? \d+ hours? left|\d+ hours? \d+ min left|\d+ min left)$/);
     await expect(mine.getByRole("button", { name: "Vote for" })).toBeDisabled();
     await connectWallet(page, OWNER_ACCOUNT);
+    // The picker closes once the wallet connects.
+    await expect(page.getByTestId("connect-dialog")).toHaveCount(0);
     await expect(gov.locator(".voter")).toContainText(OWNER_ACCOUNT);
     await expect(mine).toContainText(/Your vote: [0-9.]+ WARD/);
-    const weight = (/Your vote: ([0-9.]+) WARD/.exec((await mine.textContent()) ?? "") ?? [])[1] ?? "";
+    const split = (await mine.locator(".prop-split").textContent()) ?? "";
     await mine.getByRole("button", { name: "Vote for" }).click();
     await expect(mine.getByRole("status")).toContainText("Vote counted: for.");
-    await expect(gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" }).locator(".prop-facts")).toContainText(`For${weight} WARD`);
+    // The share of WARD voting for moves with the vote.
+    await expect(gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" }).locator(".prop-split")).not.toHaveText(split);
 
-    await expect(gov.locator(".prop", { hasText: "Lower the Silver fee to 1.25%" })).toContainText("You held no WARD when this opened.");
+    const silver = gov.locator(".prop", { hasText: "Lower the Silver fee to 1.25%" });
+    await expect(silver).toContainText("You held no WARD when this opened.");
+    await expect(silver.getByTestId("prop-change")).toHaveText("Silver groups would pay 1.25% instead of 1.50%");
+
+    // Propose a change: a disclosure button; fee or coverage only.
+    const propose = gov.getByRole("button", { name: "Propose a change" });
+    await expect(propose).toHaveAttribute("aria-expanded", "false");
+    await propose.click();
+    await expect(propose).toHaveAttribute("aria-expanded", "true");
+    await expect(gov.locator(".propose select").first().locator("option")).toHaveText(["Fee for a tier", "Coverage for every tier"]);
 
     const passed = gov.locator('.prop[data-status="passed"]', { hasText: "Raise coverage to 1.25x" });
     await passed.getByRole("button", { name: "Execute" }).click();
@@ -288,32 +331,56 @@ test.describe("public site", () => {
     await expectAccessible(page);
   });
 
-  test("groups: three tier cards, every group with its own horizon, tier and history, and four steps to start one", async ({ page }) => {
+  test("groups: the orbit with filters and a detail panel, three tiers, and four steps to start one", async ({ page }) => {
     await page.goto("/#/groups");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Groups that prove every payment.");
-    const tiers = page.getByTestId("tier-table").locator(".tier-card");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("The orbit.");
+    const tiers = page.getByTestId("tier-table").locator(".ob-tier");
     await expect(tiers).toHaveCount(3);
     await expect(tiers.locator(".tier-name")).toHaveText(["Bronze", "Silver", "Gold"]);
-    await expect(tiers.locator(".tc-fee")).toHaveText(["2.00%", "1.50%", "1.00%"]);
+    await expect(tiers.locator(".ob-tier-fee")).toHaveText(["2.00%", "1.50%", "1.00%"]);
     await expect(tiers.nth(1)).toContainText("10 clean proven calls in a row at Bronze");
-    const mission = page.locator('.orb[data-budget="bgt_mission"]');
-    await expect(mission).toHaveAttribute("data-tier", "gold");
-    await mission.click();
-    await expect(mission).toHaveAttribute("aria-pressed", "true");
+
+    const canvas = page.locator(".ob-canvas");
+    await expect(canvas).toBeVisible();
     const detail = page.getByTestId("group-detail");
+    const filters = page.getByRole("group", { name: "Show" }).getByRole("button");
+    await expect(filters).toHaveText(["All", "Groups", "Solo builders"]);
+    await expect(filters.first()).toHaveAttribute("aria-pressed", "true");
+    // Turns the orbit with Next group until this group is at the front.
+    const bringToFront = async (id: string) => {
+      const n = Number(await canvas.getAttribute("data-count"));
+      for (let i = 0; i < n && (await detail.getAttribute("data-budget")) !== id; i++) {
+        const before = (await detail.getAttribute("data-budget")) ?? "";
+        await page.getByRole("button", { name: "Next group" }).click();
+        await expect(detail).not.toHaveAttribute("data-budget", before);
+      }
+      await expect(detail).toHaveAttribute("data-budget", id);
+      await expect(canvas).toHaveAttribute("data-selected", id);
+    };
+    const proven = async () => Number(((await detail.locator(".ob-stats div", { hasText: "Proven" }).locator("dd").textContent()) ?? "").replace(/,/g, ""));
+    // The top-ranked group starts at the front.
+    await expect(detail).toHaveAttribute("data-budget", "bgt_mission");
+    await expect(page.locator(".ob-counter")).toHaveText(/^1 of \d+$/);
+    await expect(detail).toHaveAttribute("data-tier", "gold");
     await expect(detail).toContainText("Mission Street hacker house");
     await expect(detail).toContainText("Top tier reached");
-    const kelp = page.locator('.orb[data-budget="bgt_kelp"]');
-    await expect(kelp).toHaveAttribute("data-tier", "bronze");
-    await kelp.click();
-    await expect(mission).toHaveAttribute("aria-pressed", "false");
-    await expect(detail).toContainText("1 claim");
-    await page.locator('.orb[data-budget="bgt_nightshade"]').click();
+    await expect(page.locator(".ob-open")).toHaveAttribute("href", /nearblocks\.io\/address\//);
+    const missionCalls = await proven();
+    await bringToFront("bgt_kelp");
+    await expect(detail).toHaveAttribute("data-tier", "bronze");
+    await expect(detail.locator(".ob-next")).toContainText("clean payments to Silver");
+    // A bigger record ranks higher.
+    expect(missionCalls).toBeGreaterThan(await proven());
+    await bringToFront("bgt_nightshade");
     await expect(detail).toContainText("clean payments to Gold");
-    // A bigger record draws a bigger sphere.
-    const w = async (id: string) => (await page.locator(`.orb[data-budget="${id}"] canvas`).boundingBox())!.width;
-    expect(await w("bgt_mission")).toBeGreaterThan(await w("bgt_kelp"));
-    await expect(page.locator(".steps-row li b")).toHaveText(["Connect your DAO", "Vote in a budget", "Members get keys", "Change one line"]);
+    await page.getByRole("button", { name: "Previous group" }).click();
+    await expect(detail).not.toHaveAttribute("data-budget", "bgt_nightshade");
+    await filters.nth(2).click();
+    await expect(filters.nth(2)).toHaveAttribute("aria-pressed", "true");
+    await expect(filters.first()).toHaveAttribute("aria-pressed", "false");
+    await filters.first().click();
+    await expect(filters.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".ob-steps li b")).toHaveText(["Connect your DAO", "Vote in a budget", "Members get keys", "Change one line"]);
     await expectAccessible(page);
   });
 
@@ -323,11 +390,16 @@ test.describe("public site", () => {
     await expect(page.locator(".snippet")).toContainText("/v1/ai");
     await expect(page.locator(".steps-row li b")).toHaveText(["Reserve", "Forward", "Prove", "Settle"]);
     const proofs = page.getByTestId("proofs");
-    await expect(proofs.locator('tr[data-side="above"]').first()).toContainText("Above, paid");
-    await expect(proofs.locator('tr[data-side="below"]').first()).toContainText("Below, refunded");
-    await expect(proofs.locator('tr[data-side="below"] svg.fp-below')).toHaveCount(await proofs.locator('tr[data-side="below"]').count());
-    await expect(page.locator(".stat-row.results")).toContainText("100%");
+    await expect(proofs.locator('li.pf-item[data-side="above"]').first().locator(".pf-verdict")).toHaveText("Paid");
+    await expect(proofs.locator('li.pf-item[data-side="below"]').first().locator(".pf-verdict")).toHaveText(/^(Refunded|Capped|Blocked)$/);
+    await expect(proofs.locator('li.pf-item[data-side="below"] svg.fp-below')).toHaveCount(await proofs.locator('li.pf-item[data-side="below"]').count());
+    await expect(proofs.locator("button.pf-row").first()).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("proof-stats")).toContainText("100%");
     await expect(page.locator("main")).not.toContainText("stub rules engine");
+    const verify = page.getByTestId("verify-business");
+    await expect(verify.getByRole("heading", { level: 2 })).toHaveText("Verify your business. Get paid without a hold.");
+    await verify.getByRole("link", { name: "Verify your business" }).click();
+    await expect(page).toHaveURL(/#\/verify$/);
   });
 
   test("developers: with no API URL set, snippets show the hosted URL, never a variable or localhost; copy works", async ({ page, context, browserName }) => {
@@ -336,7 +408,8 @@ test.describe("public site", () => {
     // The old route still works: it lands here and the address bar shows the new one.
     await page.goto("/#/connect");
     await expect(page).toHaveURL(/#\/developers$/);
-    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Developers" })).toHaveAttribute("aria-current", "page");
+    // Developers is the quiet Docs link top right.
+    await expect(page.locator("header .docs-link")).toHaveAttribute("aria-current", "page");
     await expect(page.locator('[data-unset]')).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("VITE_WARDLINE");
     await expect(page.locator("main")).not.toContainText("process.env.WARDLINE_API_URL");
@@ -345,25 +418,44 @@ test.describe("public site", () => {
     const mcp = repo.hosted.mcp || "https://your-wardline-api.example/mcp";
     await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
-    await expect(page.locator("main")).toContainText(`curl -s ${api}/v1/resolve`);
-    const openai = page.locator(".conn").first();
-    await expect(openai).toContainText("OpenAI client, one line");
-    await expect(openai).toContainText(`baseURL: "${api}/v1/ai"`);
-    await expect(openai).toContainText(`base_url="${api}/v1/ai"`);
-    await expect(page.locator("main")).toContainText(mcp);
-    await page.getByRole("button", { name: "Copy curl resolve example" }).click();
-    await expect(page.getByRole("button", { name: "Copy curl resolve example" })).toHaveText("Copied");
+    // One code panel for the picked path; AI models is picked first.
+    const picks = page.getByRole("group", { name: "What are you building?" }).getByRole("button");
+    await expect(picks).toHaveCount(3);
+    await expect(picks.first()).toHaveAttribute("aria-pressed", "true");
+    const panel = page.locator(".codetabs [role=tabpanel]:visible");
+    await expect(page.getByRole("tab", { name: "JavaScript" })).toHaveAttribute("aria-selected", "true");
+    await expect(panel).toContainText(`baseURL: "${api}/v1/ai"`);
+    await page.getByRole("tab", { name: "Python" }).click();
+    await expect(panel).toContainText(`base_url="${api}/v1/ai"`);
+    await picks.filter({ hasText: "An agent that pays vendors" }).click();
+    await expect(picks.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("tab", { name: "MCP URL" }).click();
+    await expect(panel).toContainText(mcp);
+    await page.getByRole("tab", { name: "curl resolve" }).click();
+    await expect(panel).toContainText(`curl -s ${api}/v1/resolve`);
+    await page.getByRole("button", { name: "Copy curl resolve" }).click();
+    await expect(page.getByRole("button", { name: "Copy curl resolve" })).toHaveText("Copied");
     if (browserName === "chromium") expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");
-    await expect(page.getByRole("link", { name: "/llms.txt" })).toHaveAttribute("href", "/llms.txt");
+    await expect(page.getByRole("link", { name: "llms.txt", exact: true })).toHaveAttribute("href", "/llms.txt");
+    // #/developers/<path> opens that path.
+    await page.goto("/#/developers/app");
+    await expect(picks.filter({ hasText: "My own app" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("tab", { name: "SDK, hosted" })).toHaveAttribute("aria-selected", "true");
   });
 
   test("developers: with VITE_ URLs set, snippets use them", async ({ page }) => {
     await page.goto(`http://127.0.0.1:5198/#/developers`);
     await expect(page.locator('[data-unset="api"]')).toHaveCount(0);
-    await expect(page.locator("main")).toContainText("https://mcp.wardline.example/mcp");
-    await expect(page.locator("main")).toContainText("https://api.wardline.example/v1/check");
-    await expect(page.locator("main")).toContainText('baseURL: "https://api.wardline.example/v1/ai"');
-    await expect(page.locator("main")).toContainText('base_url="https://api.wardline.example/v1/ai"');
+    // One path and one tab at a time: click through to each snippet.
+    const panel = page.locator(".codetabs [role=tabpanel]:visible");
+    await expect(panel).toContainText('baseURL: "https://api.wardline.example/v1/ai"');
+    await page.getByRole("tab", { name: "Python" }).click();
+    await expect(panel).toContainText('base_url="https://api.wardline.example/v1/ai"');
+    await page.getByRole("group", { name: "What are you building?" }).getByRole("button", { name: /An agent that pays vendors/ }).click();
+    await page.getByRole("tab", { name: "MCP URL" }).click();
+    await expect(panel).toContainText("https://mcp.wardline.example/mcp");
+    await page.getByRole("tab", { name: "curl check" }).click();
+    await expect(panel).toContainText("https://api.wardline.example/v1/check");
   });
 
   test("verify: sign with NEAR, EVM and Solana wallets, host the file, reach domain linked", async ({ page, wallets, request }) => {
@@ -439,6 +531,9 @@ test.describe("public site", () => {
 
   test("about: trust levels say what each does not establish", async ({ page }) => {
     await page.goto("/#/about");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wardline is a credit union for the AI economy.");
+    await expect(page.locator("#steps-title")).toHaveText("How it works");
+    await expect(page.locator("[data-scene]")).toHaveCount(7);
     await expect(page.locator(".tbl.trust tbody tr")).toHaveCount(5);
     await expect(page.locator(".tbl.trust")).toContainText("Legal ownership");
   });
@@ -460,6 +555,8 @@ test.describe("public site", () => {
     await page.goto("/#/");
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden();
     await page.getByRole("button", { name: "Menu" }).click();
+    // The phone menu carries Docs too.
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Docs" })).toBeVisible();
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Groups" }).click();
     await expect(page).toHaveURL(/#\/groups$/);
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden();
