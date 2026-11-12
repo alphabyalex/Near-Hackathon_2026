@@ -25,15 +25,16 @@ export const BRAND = {
   repoUrl,
 } as const;
 
-/** Main navigation. The Mutual is the home page. */
+/** Main navigation. The Mutual is the home page. Developers sits apart, as the quiet Docs link. */
 export const NAV = [
   { page: "home", href: "#/", label: "Mutual" },
   { page: "groups", href: "#/groups", label: "Groups" },
   { page: "proof", href: "#/proof", label: "Proof engine" },
-  { page: "demo", href: "#/how-it-works", label: "How it works" },
-  { page: "developers", href: "#/developers", label: "Developers" },
   { page: "about", href: "#/about", label: "About" },
 ] as const;
+
+/** The quiet text link top right, before the wallet controls. */
+export const DOCS = { label: "Docs", href: "#/developers", page: "developers" } as const;
 
 export const FOOTER = {
   owner: "Owner sign-in",
@@ -43,9 +44,9 @@ export const FOOTER = {
   verify: "Verify your business",
   /** Footer columns: [title, [label, href][]]. */
   columns: [
-    ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["How it works", "#/how-it-works"]]],
-    ["Build", [["Developers", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"]]],
-    ["Wardline", [["About", "#/about"], ["The vault", "#/vault"], ["Owner sign-in", "#/app/overview"]]],
+    ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["Your balance", "#/wallet"]]],
+    ["Build", [["Docs", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"]]],
+    ["Wardline", [["About", "#/about"], ["How it works", "#/about/steps"], ["The vault", "#/vault"], ["Owner sign-in", "#/app/overview"]]],
   ],
 } as const;
 
@@ -82,7 +83,23 @@ export const HOME = {
     below: "Kept below it",
     belowNote: "Refused, blocked or capped",
   },
-  sidesTitle: "Every payment lands on one side of the line.",
+  sidesTitle: "Every payment, counted.",
+  /** The tally, laid out on the line (Cards.dc.html option 6). */
+  tally: {
+    label: "Payments above and below the line",
+    above: "Above the line",
+    aboveNote: "proven and paid",
+    below: "Below the line",
+    belowNote: "refused, blocked or capped",
+    kinds: (swapped: number, lookalike: number, capped: number) => `${swapped} swapped models, ${lookalike} look-alike payees, ${capped} leaked keys`,
+  },
+  /** For builders, near the bottom of Home. */
+  builders: {
+    title: "For builders",
+    line: "Change one line in your OpenAI client. Every call is then paid only on proof.",
+    label: "The one-line plug-in",
+    all: "See every integration",
+  },
   above: "Above the line",
   aboveLede: "Paid, because all three hold:",
   aboveChecks: [
@@ -99,9 +116,9 @@ export const HOME = {
   },
   shareTitle: "Hold a share of everything above the line",
   shareBody: [
-    "Deposit USDC and you get WARD, your share of the Mutual. Every payment that proves itself pays 2% to WARD holders, so WARD's price rises with use.",
-    "If Wardline approves something it shouldn't have, our own stake pays first. WARD holders cover only what is left after it, and WARD dips. That makes WARD yield-bearing and loss-sharing.",
-    "WARD holders vote on fees, coverage, which models are covered and large payouts.",
+    "Deposit USDC, get WARD, your share of the Mutual.",
+    "Earn from every proven payment. WARD's price rises as the pool is used.",
+    "Losses hit our stake first. You vote on fees, coverage and the sell wait.",
   ],
   boardTitle: "Safest groups",
   boardLede: "A clean record moves a group up a tier: a lower fee and more coverage.",
@@ -123,6 +140,8 @@ export const MEMBER = {
   account: "Account",
   locked: "Locked for redemption",
   redeem: "Redeem WARD",
+  /** The quiet link that replaced the Redeem disclosure. */
+  manage: "Sell or redeem on your balance page",
   redeemAmount: "WARD to redeem",
   redeemNote: (days: number) => `Redeeming locks your WARD for ${days} days, so coverage cannot vanish during a claim. It pays out at the price on the day.`,
   redeemButton: "Lock for redemption",
@@ -195,6 +214,15 @@ export const WALLET = {
   save: "Use this wallet",
   cancel: "Cancel",
   disconnect: "Disconnect",
+  /** The header pill and the account menu (BalancePage.dc.html). */
+  balance: "Balance",
+  accountMenu: (account: string) => `${account}, account menu`,
+  menuLabel: "Account",
+  openBalance: "Open your balance",
+  copyAccount: "Copy account name",
+  copied: "Copied",
+  copiedStatus: (account: string) => `${account} copied`,
+  connectDifferent: "Connect a different wallet",
   connectedAs: (account: string) => `Connected as ${account}`,
   yourShare: (account: string) => `Your share, connected as ${account}`,
   localSigner: "Local test signer: this machine's API signs real NEAR testnet transactions with the cast account's key. It exists only in the local dev server.",
@@ -233,28 +261,57 @@ export const PROOF = {
     ["Settle", "Pay what it cost, refund the rest. A failed proof refunds everything."],
   ],
   latestTitle: "Latest proofs",
+  latestLede: "Every AI payment, newest first, on its side of the line. Open one to see why it landed there.",
   latestEmpty: "No calls yet. Point an OpenAI client at /v1/ai with a meter key, and its first proof appears here.",
   repeat: (n: number) => `×${n}`,
   repeatLabel: (n: number) => `${n} times in a row`,
   under: "<0.01",
-  col: { fingerprint: "Call", group: "Group", what: "What happened", amount: "Amount", side: "Side of the line" },
-  above: "Above, paid",
-  below: (how: string) => `Below, ${how}`,
-  how: { refunded: "refunded", blocked: "blocked", capped: "capped" },
+  col: { fingerprint: "Call", group: "Group", what: "What happened", amount: "Amount", side: "Verdict" },
+  verdict: { paid: "Paid", refunded: "Refunded", capped: "Capped", blocked: "Blocked" },
+  /** The plain-English story under an opened row, built from the row's own data. */
+  explain: {
+    paid: (group: string, model: string, usdc: string, fee: string | null) =>
+      `${group}'s agent paid for a ${model} answer. NEAR's AI service signed it, the signature matched, so ${usdc} USDC went to the provider${fee ? ` and ${fee} to the pool` : ""}.`,
+    swapped: (group: string, asked: string, proven: string | null) =>
+      `${group}'s agent was charged for ${asked} but the receipt shows ${proven ? `${proven} wrote it` : "a different model wrote it"}. Refused, and the money stayed in the budget.`,
+    failed: (group: string, asked: string, why: string) => `${group}'s agent asked for ${asked}, but the proof failed.${why ? ` ${why}` : ""} Refused, and the money stayed in the budget.`,
+    capped: (group: string) => `A ${group} member hit their spending limit, so the call was stopped before it reached the AI. Nothing was sent.`,
+    budget: (group: string) => `${group}'s shared budget ran out, so the call was stopped before it reached the AI. Nothing was sent.`,
+    blocked: (group: string) => `The key isn't a member of ${group}, so the call was blocked before it reached the AI. Nothing was sent.`,
+    repeat: (n: number, usdc: string | null) => `The same thing happened ${n} times in a row${usdc ? `, ${usdc} USDC in all` : ""}.`,
+    receipt: "This pattern is drawn from the call's signed receipt, so every answer gets its own.",
+  },
   primary: "Watch it refuse a swapped model",
   secondary: "Check a payee",
-  verifyLink: "Verify your business",
-  resultsLabel: "Red-team results",
-  resultsTitle: "Scam payees, stopped before they're paid.",
-  results: {
-    caught: "Scams caught",
-    caughtNote: "of scam payees held before any money moved",
+  statsTitle: "Fast enough to check every payment.",
+  statsLabel: "Time to check and red-team results",
+  stats: {
+    time: "Time to check",
+    timeNote: "is what the check adds to a payment",
+    timeSub: "median, in our test",
+    caughtNote: "of scam payees kept below the line",
+    attacks: (n: string) => `in our test of ${n} attacks`,
     unsafe: "Scams paid",
-    unsafeNote: "payments that reached a scam payee",
     falsePositive: "Real invoices held",
-    falsePositiveNote: "of genuine invoices wrongly held",
-    latency: "Time to check",
-    latencyNote: "added to a payment, typically",
+    rowNote: (attacks: string, legit: number) => `In our test of ${attacks} attacks, with ${legit} real invoices mixed in.`,
+  },
+  verify: {
+    label: "For businesses",
+    title: "Verify your business. Get paid without a hold.",
+    whyTitle: "Why bother",
+    why: [
+      ["No hold", "Agents pay verified payees straight away, without a hold."],
+      ["Verified everywhere", "Your account shows as verified to every agent that checks it."],
+      ["No look-alikes", "Look-alike accounts can't intercept payments meant for you."],
+      ["Free", "Verifying costs nothing."],
+    ],
+    stepsTitle: "Three steps",
+    steps: [
+      ["Prove your domain", "Host one small file on your website."],
+      ["Link your payout account", "Add the account agents should pay, on NEAR, an EVM chain or Solana."],
+      ["Sign with your wallet", "Each account signs for itself, so only its owner can link it."],
+    ],
+    cta: "Verify your business",
   },
 } as const;
 
@@ -441,12 +498,16 @@ export const DEMO = {
     feeOnCall: (n: number) => `Fee on call ${n}`,
     coverage: "Coverage",
   },
-  comparisonLabel: "First payment to a vendor",
-  comparisonTitle: `No record of the vendor yet. The agent alone, then with ${BRAND.name}.`,
+  /** The comparison block on Home (M), laid out on the line. */
+  comparisonTitle: (alone: number, withUs: number, scams: number) => `Without ${BRAND.name}, the agent paid ${alone} of ${scams} scams. With it, ${withUs === 0 ? "none" : withUs}.`,
+  comparisonSetup: (scams: number) => `The same ${scams} scam invoices, all from vendors it had never seen before.`,
+  comparisonLabel: (scams: number) => `${scams} scam invoices, paid by the agent alone and with ${BRAND.name}`,
   agentAlone: "AI agent alone",
   withWardline: `AI agent with ${BRAND.name}`,
   scamsThrough: "scams paid",
-  outcome: (alone: number, withUs: number, scams: number) => `Without ${BRAND.name} the agent paid ${alone} of ${scams} scams. With it, ${withUs === 0 ? "none" : withUs}.`,
+  scamsStopped: (n: number) => `${n} stopped`,
+  dotsAlone: (paid: number, of: number) => `${paid} of ${of} scams paid`,
+  dotsWith: (paid: number, of: number) => `${of - paid} of ${of} scams stopped, ${paid} paid`,
 } as const;
 
 export const CONNECT = {
@@ -470,6 +531,89 @@ export const CONNECT = {
   llmsLine: "Everything above, as plain text.",
   copy: "Copy",
   copied: "Copied",
+} as const;
+
+/** The Developers page (#/developers): pick what you are building, get one code panel. */
+export const DEVELOPERS = {
+  eyebrow: "Developers",
+  title: "One line between your agent and every payment.",
+  lede: "Pick what you're building. You get only the code that matters, ready to paste.",
+  ask: "What are you building?",
+  oneLine: "the one line",
+  codeLabel: (path: string) => `Code for ${path.toLowerCase()}`,
+  getBack: "What you get back",
+  also: "Also for this",
+  llmsLead: "For AI agents reading this page: everything here is also in",
+  llmsLink: "llms.txt",
+  tabs: {
+    js: "JavaScript",
+    py: "Python",
+    curl: "curl",
+    mcp: "MCP",
+    mcpUrl: "MCP URL",
+    check: "curl check",
+    resolve: "curl resolve",
+    x402: "x402 guard",
+    hosted: "SDK, hosted",
+    direct: "SDK, direct",
+  },
+  notes: {
+    openai: "Any OpenAI-compatible client works. Use a meter key, one per budget member.",
+    mcp: "Streamable HTTP. Tools: resolve_payee, check_payee, get_vendor, how_to_verify, get_ai_spend.",
+    mcpUrl: "Paste this address into any MCP client that takes a server URL.",
+    check: "You have a raw address, from an invoice, an email or an x402 offer. Check it before paying.",
+    resolve: "You know the vendor's website. Resolve it to the account linked to that domain, so you never handle a raw address.",
+    x402: "Every 402 payment request goes through the guard before your agent pays it.",
+    hosted: "Calls the hosted API. Give agents a check-only key.",
+    direct: "Runs every check in your process. Nothing is sent to us.",
+    curl: "Plain HTTP, from any language.",
+  },
+  paths: {
+    ai: {
+      title: "An agent that calls AI models",
+      line: "Every answer proven, or the money comes back.",
+      back: [
+        "The same answer you would get anyway. Nothing else in your code changes.",
+        "An x-wardline-proof header on every response: verified, or refused with the reason.",
+        "No charge for an answer that is not proven. The reservation is released in full.",
+        "A 402 before anything is sent once a member's allowance or the budget is used up.",
+      ],
+      also: [
+        { label: "Get a meter key", href: "#/app/keys" },
+        { label: "How the proof works", href: "#/proof" },
+        { label: "Every route in llms.txt", href: "/llms.txt" },
+      ],
+    },
+    vendors: {
+      title: "An agent that pays vendors",
+      line: "Block look-alike accounts before money moves.",
+      back: [
+        "A verdict for the account you are about to pay: PAY, HOLD or BLOCK.",
+        "The reason behind it, such as a look-alike account or one not linked to the vendor's domain.",
+        "The account linked to a vendor's website, so your agent never copies a raw address.",
+        "No verdict when a call fails. Then do not pay.",
+      ],
+      also: [
+        { label: "Try a check", href: "#/try" },
+        { label: "Verify your own business", href: "#/verify" },
+        { label: "Verdicts and reasons in llms.txt", href: "/llms.txt" },
+      ],
+    },
+    app: {
+      title: "My own app",
+      line: "The same checks from TypeScript, hosted or straight from the chain.",
+      back: [
+        "Typed results for resolve and check, and assertPayable to stop a payment on HOLD or BLOCK.",
+        "Hosted: the Wardline API answers, with a check-only key.",
+        "Direct: your process reads the payee registry on NEAR, with no server in between.",
+      ],
+      also: [
+        { label: "Create API keys", href: "#/app/keys" },
+        { label: "Verify your own business", href: "#/verify" },
+        { label: "Every integration in llms.txt", href: "/llms.txt" },
+      ],
+    },
+  },
 } as const;
 
 export const VERIFY = {
@@ -500,25 +644,22 @@ export const VERIFY = {
 
 export const ABOUT = {
   title: `${BRAND.name} is a credit union for the AI economy.`,
-  lede: "Members pool USDC on NEAR and get WARD, their share. The pool backs AI agents' payments, earns a fee on every payment that proves itself, and members vote on the risks it takes.",
-  flowTitle: "How the money moves",
-  flow: [
-    ["Members", "Deposit USDC and get WARD at today's price."],
-    ["Groups", "Fund a shared AI budget from their DAO and give members allowances."],
-    ["Agents", "Change one line: the OpenAI client's base URL."],
-    ["Proof engine", "Pays only the right party, for the model proven, up to a hard cap."],
-    ["WARD holders", "Earn the fee, vote on payouts and fees, and share losses after our stake."],
+  /** Why it exists, short (V). Each later idea appears once: the seven steps explain the rest. */
+  why: [
+    "AI agents now pay for models, data and vendors on their own. Nothing checks that what they paid for is what they got, or that the payee is who it claims to be.",
+    "Members pool USDC on NEAR. The pool backs agents' payments, pays only on proof, and earns a fee on every payment that proves itself.",
   ],
-  exampleTitle: "A payout the proof engine stopped",
+  watch: "Watch a payment cross the line",
+  exampleTitle: "A real decision: a payout the proof engine stopped",
   exampleLede: "An invoice arrives with a note telling the agent to pay a different account. The payee check compares that account with the one the vendor's domain links to.",
   trustTitle: "What each trust level verifies, and what it does not.",
   trustNote: "PAY needs at least domain linked. An email from the same domain is never extra evidence.",
-  piecesTitle: "Three layers",
-  pieces: [
-    ["The Mutual", "Pooled USDC behind WARD. Our own stake pays a wrong approval first, then WARD holders."],
-    ["Groups", "Shared AI budgets with allowances. A clean record moves a group up a tier and lowers its fee."],
-    ["Proof engine", "NEAR AI TEE signatures, payee checks and hard caps on every call. Why the yield is safe."],
+  teamTitle: "Who's behind it",
+  team: [
+    "A team of four engineers builds and runs Wardline: the contracts, the proof engine, the agent and this site.",
+    "Most of the code is written with Claude Code, directed and reviewed by the team. All of it is open source.",
   ],
+  source: "Read the source",
 } as const;
 
 export const OWNER = {
@@ -630,7 +771,6 @@ export const POOL = {
   loseFirst: [
     "Every claim is paid from Wardline's own stake, the first-loss tranche, before any WARD holder is touched.",
     "WARD holders cover only what is left after that stake is gone.",
-    "Claims above a group's coverage cap, or above a set size, wait for a WARD-holder vote. Smaller ones pay at once.",
   ],
   ward: {
     title: "WARD",
@@ -677,7 +817,21 @@ export const POOL = {
 export const GOV = {
   label: "Governance",
   title: "WARD holders decide the risks.",
-  lede: "One WARD, one vote, counted at each proposal's snapshot, so WARD bought or moved later cannot vote twice. A proposal passes with quorum and more votes for than against when its window closes, or early once more than half of all WARD votes for it. Anyone can execute a passed proposal.",
+  /** Two short lines (Q). WARD holders vote on tier fees, coverage and the sell wait, nothing else (P). */
+  lede: ["You vote on tier fees, coverage and the sell wait. One WARD is one vote.", "A change passes with enough votes and more for than against. Then anyone can put it into effect."],
+  /** O: plain English, never raw numbers like "0.3059 of 1.52". */
+  progress: (need: string, sofar: string) => `Needs ${need}% of WARD to vote. ${sofar}% so far`,
+  split: (yes: string, no: string) => `${yes}% for, ${no}% against`,
+  progressLabel: (sofar: string, need: string) => `${sofar}% of WARD has voted; ${need}% is needed`,
+  wouldFee: (tier: string, next: string, now: string) => `${tier} groups would pay ${next} instead of ${now}`,
+  wouldCoverage: (next: string, now: string) => `Coverage would be ${next} each tier's base instead of ${now}`,
+  nowFee: (tier: string, next: string, was: string) => `${tier} fee is now ${next}, was ${was}`,
+  nowCoverage: (next: string, was: string) => `Coverage is now ${next} each tier's base, was ${was}`,
+  keptFee: (tier: string, now: string) => `Voted down. ${tier} groups still pay ${now}`,
+  keptCoverage: (now: string) => `Voted down. Coverage stays ${now} each tier's base`,
+  left: (days: number, hours: number, minutes: number) =>
+    days > 0 ? `${days} ${days === 1 ? "day" : "days"} ${hours} ${hours === 1 ? "hour" : "hours"} left` : hours > 0 ? `${hours} ${hours === 1 ? "hour" : "hours"} ${minutes} min left` : `${Math.max(minutes, 1)} min left`,
+  decidedOn: (date: string) => `Decided ${date}`,
   open: "Open proposals",
   decided: "Decided",
   none: "No open proposals.",
@@ -707,7 +861,7 @@ export const GOV = {
   proposeTitle: "Propose a change",
   proposeLede: "WARD holders can propose. Your WARD at this moment is the snapshot for every vote on it.",
   kind: "Change",
-  kinds: { fee: "Fee for a tier", coverage: "Coverage for every tier", uncover: "Stop covering a model" },
+  kinds: { fee: "Fee for a tier", coverage: "Coverage for every tier" },
   tier: "Tier",
   feePct: "New fee (%)",
   multiplier: "Coverage multiplier (x)",
@@ -827,7 +981,6 @@ export const ME = {
   noWeight: "You held no WARD when this opened, so it has no vote from you.",
   pastVotes: "Your votes",
   pastNone: "You haven't voted yet.",
-  pastOnChain: "Your votes are listed under Your transactions, each with its transaction.",
   votedFor: "For",
   votedAgainst: "Against",
   redemption: "Redemption in progress",
@@ -876,10 +1029,40 @@ export const SPHERES = {
   latest: "View latest transaction",
 } as const;
 
+/** The Groups page, #/groups: every group and solo builder on one tilted orbit (GroupsOrbit.dc.html). */
+export const ORBIT = {
+  kicker: "Groups",
+  title: "The orbit.",
+  lede: "Every group circles the pool. Bring one to the front to see how big its record is.",
+  orbitLabel: "Groups on a tilted orbit. The one at the front is drawn at its true size, by its proven payments. Use the left and right arrow keys to turn the orbit.",
+  filtersLabel: "Show",
+  filters: { all: "All", groups: "Groups", solo: "Solo builders" },
+  rankTop: (n: number) => `No. ${n} on the network`,
+  /** Under the front body when it is in the top 3. */
+  mark: (n: number) => `No. ${n}`,
+  rank: (n: number) => `Rank ${n}`,
+  groupOf: (n: number) => `Group of ${n}`,
+  solo: "Solo builder",
+  proven: "Proven",
+  tier: "Tier",
+  fee: "Fee",
+  refused: "Refused",
+  top: "Top tier reached. Lowest fee.",
+  next: (clean: number, need: number, tier: string) => `${clean} of ${need} clean payments to ${tier}`,
+  counter: (at: number, of: number) => `${at} of ${of}`,
+  prev: "Previous group",
+  nextLabel: "Next group",
+  open: "Open group",
+  openRest: (name: string) => `${name}, on the NEAR explorer`,
+  loading: "Loading groups",
+  empty: { all: "No groups yet.", groups: "No groups yet.", solo: "No solo builders yet." },
+  /** Read out when a new group reaches the front. */
+  announce: (name: string, rank: string, counter: string) => `${name}. ${rank}. ${counter}.`,
+} as const;
+
 /** Your share (Horizon v2), #/me. */
 export const MINE = {
   markLabel: "Your personal Wardline mark, a halftone sphere made from your account name",
-  markNote: "Your mark, drawn from your account name",
   worth: "Your share is worth",
   held: "WARD held",
   earned: "Earned since joining",
@@ -891,6 +1074,39 @@ export const MINE = {
   sellButton: "Request to sell this WARD",
   sellCancel: "Cancel",
   explorer: "See your account on the explorer",
+} as const;
+
+/** The Balance page, #/wallet (BalancePage.dc.html): Your share and the wallet, merged. #/me redirects here. */
+export const BALANCE = {
+  title: "Your balance",
+  label: "Balance",
+  totalUnit: "USDC total",
+  split: (wallet: string, share: string) => `${wallet} in your wallet, plus your share of the Mutual worth ${share}`,
+  shareOnly: "Your share of the Mutual",
+  connectTitle: "Connect a wallet to see your balance.",
+  connect: "Connect wallet",
+  rows: "What you hold",
+  usdc: "USDC",
+  usdcNote: "Ready to deposit",
+  deposit: "Deposit",
+  ward: "WARD",
+  wardNote: (price: string) => `Your share of the Mutual, ${price} USDC each`,
+  worth: (usdc: string) => `worth ${usdc} USDC`,
+  sell: "Request to sell",
+  fees: (near: string) => `${near} NEAR for network fees`,
+  lowFees: (near: string) => `${near} NEAR left for network fees. Add about 0.05 NEAR to this account so your wallet can sign.`,
+  recent: "Recent transactions",
+  all: "All transactions",
+  hideAll: "Show fewer",
+  none: "No transactions from this account yet.",
+  view: "View",
+  /** One plain line per recent transaction. */
+  bought: (ward: string, usdc: string) => `Bought ${ward} WARD for ${usdc} USDC`,
+  sold: (ward: string, usdc: string) => `Sold ${ward} WARD for ${usdc} USDC`,
+  sellRequested: (ward: string) => `Asked to sell ${ward} WARD`,
+  viewLabel: (hash: string) => `View transaction ${hash.slice(0, 8)} on NearBlocks`,
+  earned: "Earned since joining",
+  pastVotes: "Your votes",
 } as const;
 
 /** The vault page: a stolen agent key against the vault's own limits. */

@@ -107,7 +107,9 @@ describe("routing", () => {
     stubApi();
     render(<App />);
     const main = within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link");
-    expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "How it works", "Developers", "About"]);
+    // Docs sits apart, top right; in the phone menu it is the last link (hidden on wide screens).
+    expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "About", "Docs"]);
+    expect(screen.getAllByRole("link", { name: "Docs" }).every((a) => a.getAttribute("href") === "#/developers")).toBe(true);
     const footer = within(screen.getByRole("navigation", { name: "Footer" })).getAllByRole("link");
     expect(footer.at(-1)?.getAttribute("href")).toBe("#/app/overview");
     expect(footer.at(-1)?.textContent).toBe("Owner sign-in");
@@ -251,13 +253,15 @@ describe("source rules", () => {
     expect(hits).toEqual([]);
   });
 
-  it("sets everything in Geist, self-hosted, with no monospace face", () => {
+  it("sets everything in Geist, self-hosted; code alone uses Azeret Mono, whose zero is plain", () => {
     const tokens = Object.entries(SOURCES).find(([path]) => path.endsWith("theme/tokens.css"))?.[1] ?? "";
     expect(tokens).toContain('font-family: "Geist";');
     expect(tokens).toContain('src: url("/fonts/geist-variable.woff2")');
     expect(tokens).toContain('--font: "Geist"');
     const css = Object.entries(SOURCES).filter(([path]) => path.endsWith(".css"));
     expect(css.filter(([, text]) => /font-family:[^;}]*monospace|var\(--mono\)/.test(text)).map(([path]) => path)).toEqual([]);
+    expect(tokens).toContain('--code: "Azeret Mono"');
+    expect(tokens).toContain('src: url("/fonts/azeret-mono-variable.woff2")');
   });
 
   it("turns motion off under prefers-reduced-motion", () => {

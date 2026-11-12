@@ -2,16 +2,15 @@ import { lazy, Suspense } from "react";
 import { Loading } from "./components/Loading";
 import { Home } from "./views/site/Home";
 import { SiteFooter, SiteHeader } from "./views/site/SiteChrome";
-import { useLinkRouting, useRoute, type SitePage } from "./router";
+import { useLinkRouting, useRoute, useSectionScroll, type SitePage } from "./router";
 
 // Home is in the main bundle. Every other page, and the owner app, loads on first visit, so the
 // first paint never waits for wallet, EVM or Solana code it does not use.
 const page = <M,>(load: () => Promise<M>, name: keyof M) => lazy(async () => ({ default: (await load())[name] as React.ComponentType }));
 const About = page(() => import("./views/site/About"), "About");
 const Connect = page(() => import("./views/site/Connect"), "Connect");
-const HowItWorks = page(() => import("./views/site/HowItWorks"), "HowItWorks");
 const Groups = page(() => import("./views/site/Groups"), "Groups");
-const Me = page(() => import("./views/site/Me"), "Me");
+const Balance = page(() => import("./views/site/Balance"), "Balance");
 const Proof = page(() => import("./views/site/Proof"), "Proof");
 const Scoring = page(() => import("./views/site/Scoring"), "Scoring");
 const TryIt = page(() => import("./views/site/TryIt"), "TryIt");
@@ -34,11 +33,12 @@ function PageFallback() {
 // The owner app loads on first visit to #/app, so public pages never download it.
 const OwnerApp = lazy(() => import("./views/Dashboard").then((m) => ({ default: m.OwnerApp })));
 
-const PAGES: Record<SitePage, React.ComponentType> = { home: Home, me: Me, groups: Groups, proof: Proof, try: TryIt, demo: HowItWorks, developers: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
+const PAGES: Record<SitePage, React.ComponentType> = { home: Home, wallet: Balance, groups: Groups, proof: Proof, try: TryIt, developers: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
 
 export function App() {
   useLinkRouting();
   const route = useRoute();
+  useSectionScroll(route);
   if (route.kind === "app") {
     return (
       <div key={`app-${route.tab}`} className="page-view">

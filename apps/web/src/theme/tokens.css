@@ -8,6 +8,15 @@
   src: url("/fonts/geist-variable.woff2") format("woff2");
 }
 
+/* Code only. Azeret Mono: its zero is a plain oval, never dotted or slashed (DM Mono and Geist's own mono cut slash theirs). */
+@font-face {
+  font-family: "Azeret Mono";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/azeret-mono-variable.woff2") format("woff2");
+}
+
 :root {
   color-scheme: dark;
 
@@ -45,6 +54,7 @@
   --ink-2: #4a4052;
 
   --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --code: "Azeret Mono", ui-monospace, monospace;
   --r-btn: 12px;
   --r-card: 18px;
   --r-card-lg: 20px;

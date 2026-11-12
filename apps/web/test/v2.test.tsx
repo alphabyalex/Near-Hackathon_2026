@@ -225,10 +225,13 @@ describe("staying connected", () => {
 });
 
 describe("product polish", () => {
-  it("#/how-it-works and #/demo open the same page", async () => {
-    const { parseRoute } = await import("../src/router");
-    expect(parseRoute("#/how-it-works")).toEqual({ kind: "site", page: "demo" });
-    expect(parseRoute("#/demo")).toEqual({ kind: "site", page: "demo" });
+  it("#/how-it-works and #/demo land on About's steps, and #/me on the Balance page", async () => {
+    const { parseRoute, redirected } = await import("../src/router");
+    expect(redirected("#/how-it-works")).toBe("#/about/steps");
+    expect(redirected("#/demo")).toBe("#/about/steps");
+    expect(parseRoute(redirected("#/demo"))).toEqual({ kind: "site", page: "about", section: "steps" });
+    expect(redirected("#/me")).toBe("#/wallet");
+    expect(parseRoute(redirected("#/me"))).toEqual({ kind: "site", page: "wallet" });
   });
 
   it("proof amounts: two decimals, <0.01 for a fraction of a cent, 0.00 when nothing moved", async () => {

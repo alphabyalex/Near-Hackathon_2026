@@ -3,7 +3,7 @@
 > Wardline is a credit union for the AI economy. Communities pool USDC on NEAR, earn yield by backing AI agents' payments, and vote together on the risks they take. For an agent, Wardline is a payment layer that only pays on proof: a model call is paid only when a NEAR AI TEE signature shows the model you asked for signed that exact response, spending comes from a group's deposit that caps every member, and every payee is checked before money moves. Agents integrate with one line (the OpenAI client's base URL), MCP or the SDK.
 
 Three layers:
-1. The Mutual: anyone deposits USDC and gets WARD, a share of the pool. WARD holders earn 2% of every proven AI payment, vote on payouts, fees and covered models, and cover a wrong approval after Wardline's own first-loss stake.
+1. The Mutual: anyone deposits USDC and gets WARD, a share of the pool. WARD holders earn 2% of every proven AI payment, vote on tier fees, coverage and the sell wait, and cover a wrong approval after Wardline's own first-loss stake.
 2. Groups: a team, hacker house or DAO funds a shared AI budget from its Sputnik DAO or Trezu treasury. Reputation tiers: Bronze 2%, Silver 1.5%, Gold 1% fee; clean proven calls move a group up, a paid claim moves it down.
 3. The proof engine: the right party, the model you actually got, a hard cap.
 

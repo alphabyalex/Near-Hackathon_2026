@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
-import { FOOTER, NAV } from "../../brand";
+import { DOCS, FOOTER, NAV } from "../../brand";
 import { Logo } from "../../components/Logo";
 import type { SitePage } from "../../router";
-import { ConnectWallet } from "./Member";
+import { AccountControl } from "../../wallets/AccountControl";
 
 function PageLinks({ page }: { page: SitePage }) {
-  return NAV.map((link) => (
-    <a key={link.page} href={link.href} {...(link.page === page ? { "aria-current": "page" as const } : {})}>
-      {link.label}
-    </a>
-  ));
+  return (
+    <>
+      {NAV.map((link) => (
+        <a key={link.page} href={link.href} {...(link.page === page ? { "aria-current": "page" as const } : {})}>
+          {link.label}
+        </a>
+      ))}
+      {/* In the phone menu only; wider screens show Docs beside the wallet. */}
+      <a className="nav-docs" href={DOCS.href} {...(page === DOCS.page ? { "aria-current": "page" as const } : {})}>
+        {DOCS.label}
+      </a>
+    </>
+  );
 }
 
 /** Sticky header: lockup left, pages in the middle, the wallet on the right. */
@@ -25,7 +33,10 @@ export function SiteHeader({ page }: { page: SitePage }) {
           <PageLinks page={page} />
         </nav>
         <div className="head-end">
-          <ConnectWallet />
+          <a className="docs-link" href={DOCS.href} {...(page === DOCS.page ? { "aria-current": "page" as const } : {})}>
+            {DOCS.label}
+          </a>
+          <AccountControl onBalance={page === "wallet"} />
           <button type="button" className="menu-btn" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((o) => !o)}>
             {open ? "Close" : "Menu"}
           </button>

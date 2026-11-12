@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
-export type SitePage = "home" | "me" | "groups" | "proof" | "try" | "demo" | "developers" | "verify" | "about" | "vault" | "scoring";
+export type SitePage = "home" | "wallet" | "groups" | "proof" | "try" | "developers" | "verify" | "about" | "vault" | "scoring";
 export type DashboardTab = "overview" | "share" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
-export type Route = { kind: "site"; page: SitePage } | { kind: "app"; tab: DashboardTab; invoice: string | null };
+export type Route = { kind: "site"; page: SitePage; /** A section to scroll to, from #/<page>/<section>. */ section?: string } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
-const SITE_PAGES: readonly string[] = ["me", "groups", "proof", "try", "demo", "developers", "verify", "about", "vault", "scoring"];
-/** Other names for a page: #/how-it-works is the How it works page, which #/demo still opens too. */
-const ALIASES: Record<string, SitePage> = { "how-it-works": "demo" };
-/** Old routes that moved. Links to them land on the new page, and the address bar shows the new route. */
-const MOVED: Record<string, string> = { connect: "developers" };
+const SITE_PAGES: readonly string[] = ["wallet", "groups", "proof", "try", "developers", "verify", "about", "vault", "scoring"];
+/**
+ * Old routes that moved. Links to them land on the new page, and the address bar shows the new route.
+ * Your share (#/me) became the Balance page; How it works (and #/demo before it) became the steps on About.
+ */
+const MOVED: Record<string, string> = { connect: "developers", me: "wallet", "how-it-works": "about/steps", demo: "about/steps" };
 
-/** "#/connect" becomes "#/developers"; anything else is unchanged. */
+/** "#/connect" becomes "#/developers", "#/me" becomes "#/wallet"; anything else is unchanged. */
 export function redirected(hash: string): string {
   const [first, ...rest] = hash.replace(/^#\/?/, "").split("/");
   const to = first ? MOVED[first] : undefined;
@@ -34,8 +35,9 @@ export function parseRoute(hash: string): Route {
     const tab = second && TABS.includes(second) ? (second as DashboardTab) : "overview";
     return { kind: "app", tab, invoice: tab === "invoices" ? decode(third) : null };
   }
-  if (first && ALIASES[first]) return { kind: "site", page: ALIASES[first] };
-  return { kind: "site", page: first && SITE_PAGES.includes(first) ? (first as SitePage) : "home" };
+  const page: SitePage = first && SITE_PAGES.includes(first) ? (first as SitePage) : "home";
+  // #/<page>/<section> scrolls to a section; for home that is #/mutual/<section>, since #/ has no name.
+  return second && (page !== "home" || first === "mutual") ? { kind: "site", page, section: second } : { kind: "site", page };
 }
 
 /** Swaps a moved route for its new one in the address bar, without adding a history entry. */
@@ -97,6 +99,31 @@ export function useRoute(): Route {
 }
 
 /** Routes in-app link clicks in JS. New-tab style clicks keep their browser behavior. */
+/**
+ * Scrolls to the route's section (#/about/steps) once the page has drawn it. Pages load lazily, so it waits a
+ * few frames for the element; the page's own scroll-to-top has already run by then.
+ */
+export function useSectionScroll(route: Route): void {
+  const section = route.kind === "site" ? route.section : undefined;
+  const page = route.kind === "site" ? route.page : null;
+  useEffect(() => {
+    if (!section) return;
+    let frames = 0;
+    let raf = 0;
+    const find = () => {
+      const el = document.getElementById(section);
+      if (el) {
+        el.scrollIntoView({ block: "start" });
+        el.focus?.({ preventScroll: true });
+        return;
+      }
+      if (++frames < 240) raf = requestAnimationFrame(find);
+    };
+    raf = requestAnimationFrame(find);
+    return () => cancelAnimationFrame(raf);
+  }, [page, section]);
+}
+
 export function useLinkRouting(): void {
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
