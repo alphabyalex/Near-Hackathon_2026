@@ -258,7 +258,6 @@ export function Balance() {
   const [connecting, setConnecting] = useState(false);
   const [joining, setJoining] = useState(false);
   const [selling, setSelling] = useState(false);
-  const connectButton = useRef<HTMLButtonElement>(null);
   const refresh = useCallback(() => {
     setTick((t) => t + 1);
     shareChanged();
@@ -303,7 +302,7 @@ export function Balance() {
           <div className="wrap bal-empty" data-testid="me-connect">
             <HorizonMark size={160} step={16} />
             <p className="bal-empty-title">{BALANCE.connectTitle}</p>
-            <button ref={connectButton} type="button" className="btn" onClick={() => setConnecting(true)}>
+            <button type="button" className="btn" onClick={() => setConnecting(true)}>
               {BALANCE.connect}
             </button>
           </div>
@@ -322,15 +321,15 @@ export function Balance() {
                 <p className="bal-k" id="bal-total-label">
                   {BALANCE.label}
                 </p>
-                <p className="bal-total num" data-testid="share-value" aria-label={BALANCE.totalLabel(dollars(total))}>
-                  <span className="bal-cur" aria-hidden="true">
-                    $
+                <p className="bal-total num">
+                  {/* Read as one figure; drawn as a small $, the whole dollars and smaller cents. */}
+                  <span className="sr-only" data-testid="share-total-label">
+                    {BALANCE.totalLabel(person ? dollars(total) : "0.00")}
                   </span>
-                  <span className="bal-whole" aria-hidden="true">
-                    {person ? whole : "0"}
-                  </span>
-                  <span className="bal-cents" aria-hidden="true">
-                    .{person ? cents : "00"}
+                  <span className="bal-figure" aria-hidden="true" data-testid="share-value">
+                    <span className="bal-cur">$</span>
+                    <span className="bal-whole">{person ? whole : "0"}</span>
+                    <span className="bal-cents">.{person ? cents : "00"}</span>
                   </span>
                 </p>
                 {gain !== null && (
@@ -418,7 +417,8 @@ export function Balance() {
           </div>
         </section>
       )}
-      {connecting && <WalletPanel onClose={() => setConnecting(false)} anchor={connectButton.current} />}
+      {/* Centred, not anchored: anchored to this mid-page button the panel opened below the screen. */}
+      {connecting && <WalletPanel onClose={() => setConnecting(false)} />}
       {joining && person && <JoinDialog pool={person.mutual.pool} onClose={() => setJoining(false)} onJoined={refresh} />}
     </main>
   );
