@@ -1,6 +1,6 @@
-/** WARD-holder voting on the Mutual: fees, coverage, which models are covered and large payouts. */
-import { useEffect, useState } from "react";
-import type { MutualAction, MutualProposalView, Tier } from "../../api/ai";
+/** WARD-holder voting on the Mutual: tier fees and coverage, in plain English (old value to new). */
+import { useEffect, useId, useState } from "react";
+import type { MutualAction, MutualProposalView, Tier, TierRules } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
 import { addPending } from "../../data/transactions";
@@ -10,8 +10,8 @@ import { feeText } from "../../components/TierBadge";
 import { formatUsdc } from "../../format";
 import { useConnected } from "../../wallets/connected";
 import type { NearWalletId } from "../../wallets/near";
-import { ConnectDialog } from "./Member";
-import { countdown, signMutual, useNow } from "./Mutual";
+import { WalletPanel } from "../../wallets/WalletPanel";
+import { signMutual, useNow } from "./Mutual";
 
 /** Whole WARD to two decimals; a fraction of one to four, so small testnet holdings fit their column. */
 const ward = (atomic: string): string => {
@@ -19,11 +19,56 @@ const ward = (atomic: string): string => {
   return n === 0 || n >= 1 ? formatUsdc(atomic) : n.toFixed(4);
 };
 const pctOf = (part: string, whole: string): number => (BigInt(whole) === 0n ? 0 : Number((BigInt(part) * 10_000n) / BigInt(whole)) / 100);
+/** A share of WARD as people say it: whole percents, one decimal under 10%. */
+const pct = (n: number): string => (n === 0 ? "0" : n < 10 ? n.toFixed(1).replace(/\.0$/, "") : Math.round(n).toString());
+const times = (bps: number): string => `${Number((bps / 10_000).toFixed(2))}x`;
 
-/** True when the action line only restates the title: every number in it is already in the title. */
-function repeats(title: string, action: string): boolean {
-  const numbers = action.match(/\d+(\.\d+)?/g) ?? [];
-  return numbers.length > 0 && numbers.every((n) => title.includes(n));
+/** The cover pool contract's starting values (contracts/cover-pool new()), for a change with no earlier one. */
+const START = { fee: { bronze: 200, silver: 150, gold: 100 } as Record<Tier, number>, coverage: 10_000 };
+
+/** The value a fee or coverage proposal changes, before it: the last executed change of the same kind, else the start. */
+function before(p: MutualProposalView, all: MutualProposalView[]): number | null {
+  const a = p.action;
+  if (a.type !== "set_fee_bps" && a.type !== "set_coverage_multiplier") return null;
+  const earlier = all
+    .filter((q) => q.status === "executed" && q.id < p.id && q.action.type === a.type && (a.type !== "set_fee_bps" || (q.action.type === "set_fee_bps" && q.action.tier === a.tier)))
+    .sort((x, y) => y.id - x.id)[0];
+  if (earlier) return earlier.action.type === "set_fee_bps" ? earlier.action.fee_bps : earlier.action.type === "set_coverage_multiplier" ? earlier.action.multiplier_bps : null;
+  return a.type === "set_fee_bps" ? START.fee[a.tier] : START.coverage;
+}
+
+/** Today's value, from the live tier rules when we have them. */
+function current(a: MutualAction, tiers: TierRules | undefined, fallback: number | null): number | null {
+  if (a.type === "set_fee_bps") return tiers?.rules.find((r) => r.tier === a.tier)?.fee_bps ?? fallback;
+  if (a.type === "set_coverage_multiplier") return tiers?.coverage_multiplier_bps ?? fallback;
+  return null;
+}
+
+/** "Silver groups would pay 1.25% instead of 1.5%", or once decided "Silver fee is now 1.25%, was 1.5%". */
+export function changeLine(p: MutualProposalView, all: MutualProposalView[], tiers?: TierRules): string {
+  const a = p.action;
+  const was = before(p, all);
+  if (a.type === "set_fee_bps") {
+    const tier = REP.names[a.tier];
+    const now = current(a, tiers, was);
+    if (p.status === "executed") return GOV.nowFee(tier, feeText(a.fee_bps), feeText(was ?? a.fee_bps));
+    if (p.status === "rejected") return GOV.keptFee(tier, feeText(now ?? was ?? a.fee_bps));
+    return GOV.wouldFee(tier, feeText(a.fee_bps), feeText(now ?? a.fee_bps));
+  }
+  if (a.type === "set_coverage_multiplier") {
+    const now = current(a, tiers, was);
+    if (p.status === "executed") return GOV.nowCoverage(times(a.multiplier_bps), times(was ?? a.multiplier_bps));
+    if (p.status === "rejected") return GOV.keptCoverage(times(now ?? was ?? a.multiplier_bps));
+    return GOV.wouldCoverage(times(a.multiplier_bps), times(now ?? a.multiplier_bps));
+  }
+  return describeAction(a);
+}
+
+/** "1 day 3 hours left", or null once voting has closed. */
+export function timeLeft(closesAt: string, now: number): string | null {
+  const ms = Date.parse(closesAt) - now;
+  if (!(ms > 0)) return null;
+  return GOV.left(Math.floor(ms / 86_400_000), Math.floor((ms % 86_400_000) / 3_600_000), Math.floor((ms % 3_600_000) / 60_000));
 }
 
 export function describeAction(a: MutualAction): string {
@@ -41,17 +86,18 @@ export function describeAction(a: MutualAction): string {
   }
 }
 
-/** For and against as shares of all WARD at the snapshot, with ticks at quorum and at a majority. */
-function VoteBar({ p }: { p: MutualProposalView }) {
-  const yes = pctOf(p.votes_for, p.snapshot_supply);
-  const no = pctOf(p.votes_against, p.snapshot_supply);
-  const quorum = pctOf(p.quorum, p.snapshot_supply);
+/** "Needs 20% of WARD to vote. 15% so far", over a thin line that fills toward quorum. */
+function Progress({ p }: { p: MutualProposalView }) {
+  const cast = pctOf((BigInt(p.votes_for) + BigInt(p.votes_against)).toString(), p.snapshot_supply);
+  const need = pctOf(p.quorum, p.snapshot_supply);
+  const fill = need > 0 ? Math.min(cast / need, 1) : 1;
   return (
-    <div className="votebar" role="img" aria-label={`${GOV.votesFor} ${yes.toFixed(1)}%, ${GOV.votesAgainst} ${no.toFixed(1)}% of WARD at the snapshot. ${GOV.quorum} ${quorum.toFixed(0)}%.`}>
-      <div className="vb-for" style={{ width: `${yes}%` }} />
-      <div className="vb-against" style={{ width: `${no}%` }} />
-      <i className="vb-tick quorum" style={{ left: `${quorum}%` }} />
-      <i className="vb-tick half" style={{ left: "50%" }} />
+    <div className="prop-progress">
+      <p className="num">{GOV.progress(pct(need), pct(cast))}</p>
+      <div className="prop-line" role="progressbar" aria-label={GOV.progressLabel(pct(cast), pct(need))} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fill * 100)}>
+        <i style={{ width: `${fill * 100}%` }} />
+      </div>
+      <p className="prop-split num">{GOV.split(pct(pctOf(p.votes_for, p.snapshot_supply)), pct(pctOf(p.votes_against, p.snapshot_supply)))}</p>
     </div>
   );
 }
@@ -61,7 +107,7 @@ export interface Voter {
   wallet: NearWalletId | null;
 }
 
-export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; voter: Voter; now: number; onChange: () => void }) {
+export function Proposal({ p, voter, now, onChange, all = [p], tiers }: { p: MutualProposalView; voter: Voter; now: number; onChange: () => void; all?: MutualProposalView[]; tiers?: TierRules }) {
   const [weight, setWeight] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -118,7 +164,8 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
     }
   };
 
-  const left = countdown(p.closes_at, now);
+  const left = timeLeft(p.closes_at, now);
+  const decided = p.status === "executed" || p.status === "rejected";
   const canVote = p.status === "open" && account !== "" && voter.wallet !== null && weight !== null && weight !== "0";
   return (
     <article className="prop" data-status={p.status} data-proposal={p.id}>
@@ -126,28 +173,11 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
         <h3>{p.description}</h3>
         <span className={`pstat s-${p.status}`}>{GOV.status[p.status]}</span>
       </div>
-      {!repeats(p.description, describeAction(p.action)) && <p className="prop-what">{describeAction(p.action)}</p>}
-      <VoteBar p={p} />
-      <dl className="prop-facts">
-        <div>
-          <dt>{GOV.votesFor}</dt>
-          <dd className="num">{ward(p.votes_for)} WARD</dd>
-        </div>
-        <div>
-          <dt>{GOV.votesAgainst}</dt>
-          <dd className="num">{ward(p.votes_against)} WARD</dd>
-        </div>
-        <div>
-          <dt>{GOV.quorum}</dt>
-          <dd className="num">
-            {ward(p.quorum)} of {ward(p.snapshot_supply)}
-          </dd>
-        </div>
-        <div>
-          <dt>{p.status === "open" ? GOV.timeLeft : GOV.snapshot}</dt>
-          <dd className="num">{p.status === "open" ? (left ?? GOV.closed) : p.snapshot_at.slice(0, 10)}</dd>
-        </div>
-      </dl>
+      <p className="prop-what num" data-testid="prop-change">
+        {changeLine(p, all, tiers)}
+      </p>
+      {!decided && <Progress p={p} />}
+      <p className="prop-when num">{p.status === "open" ? (left ?? GOV.closed) : decided ? GOV.decidedOn(new Date(p.executed_at ?? p.closes_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })) : GOV.closed}</p>
       {p.status === "open" && (
         <div className="prop-act">
           <button type="button" className="sbtn" disabled={!canVote || busy} onClick={() => void vote("for")}>
@@ -184,27 +214,28 @@ export function Proposal({ p, voter, now, onChange }: { p: MutualProposalView; v
   );
 }
 
-type Kind = "fee" | "coverage" | "uncover";
+type Kind = "fee" | "coverage";
 
+/** "Propose a change": a Horizon disclosure (a chevron that turns, aria-expanded, smooth height). */
 function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }) {
+  const [open, setOpen] = useState(false);
+  const panel = useId();
   const [kind, setKind] = useState<Kind>("fee");
   const [tier, setTier] = useState<Tier>("silver");
   const [value, setValue] = useState("1.25");
-  const [model, setModel] = useState("z-ai/glm-5.3-flash");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
 
   const action = (): MutualAction | null => {
     const n = Number(value);
-    if (kind === "uncover") return model.trim().length >= 3 ? { type: "uncover_model", model_id: model.trim() } : null;
     if (!Number.isFinite(n) || n <= 0) return null;
     return kind === "fee" ? { type: "set_fee_bps", tier, fee_bps: Math.round(n * 100) } : { type: "set_coverage_multiplier", multiplier_bps: Math.round(n * 10_000) };
   };
 
   const submit = async () => {
     const a = action();
-    if (!a || !voter.wallet) return setError(new Error(kind === "uncover" ? "Name the model to stop covering." : "Enter a number."));
+    if (!a || !voter.wallet) return setError(new Error("Enter a number."));
     setError(null);
     setDone(null);
     setBusy(true);
@@ -220,57 +251,58 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
   };
 
   return (
-    <details className="propose">
-      <summary>{GOV.proposeTitle}</summary>
-      <p className="muted">{GOV.proposeLede}</p>
-      <div className="propose-row">
-        <label className="field compact">
-          <span>{GOV.kind}</span>
-          <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
-            <option value="fee">{GOV.kinds.fee}</option>
-            <option value="coverage">{GOV.kinds.coverage}</option>
-            <option value="uncover">{GOV.kinds.uncover}</option>
-          </select>
-        </label>
-        {kind === "fee" && (
-          <label className="field compact">
-            <span>{GOV.tier}</span>
-            <select value={tier} onChange={(e) => setTier(e.target.value as Tier)}>
-              {(["bronze", "silver", "gold"] as const).map((t) => (
-                <option key={t} value={t}>
-                  {REP.names[t]}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {kind === "uncover" ? (
-          <label className="field compact">
-            <span>{GOV.model}</span>
-            <input value={model} onChange={(e) => setModel(e.target.value)} spellCheck={false} />
-          </label>
-        ) : (
-          <label className="field compact">
-            <span>{kind === "fee" ? GOV.feePct : GOV.multiplier}</span>
-            <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" />
-          </label>
-        )}
-        <button type="button" className="btn sm" disabled={busy || !voter.account.trim() || !voter.wallet} onClick={() => void submit()}>
-          {GOV.propose}
-        </button>
+    <div className="propose" data-open={open || undefined}>
+      <button type="button" className="disclose" aria-expanded={open} aria-controls={panel} onClick={() => setOpen((o) => !o)}>
+        {GOV.proposeTitle}
+        <svg className="disclose-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div className="disclose-body" id={panel} {...(open ? {} : { inert: true })}>
+        <div className="disclose-inner">
+          <p className="muted">{GOV.proposeLede}</p>
+          <div className="propose-row">
+            <label className="field compact">
+              <span>{GOV.kind}</span>
+              <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
+                <option value="fee">{GOV.kinds.fee}</option>
+                <option value="coverage">{GOV.kinds.coverage}</option>
+              </select>
+            </label>
+            {kind === "fee" && (
+              <label className="field compact">
+                <span>{GOV.tier}</span>
+                <select value={tier} onChange={(e) => setTier(e.target.value as Tier)}>
+                  {(["bronze", "silver", "gold"] as const).map((t) => (
+                    <option key={t} value={t}>
+                      {REP.names[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className="field compact">
+              <span>{kind === "fee" ? GOV.feePct : GOV.multiplier}</span>
+              <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" />
+            </label>
+            <button type="button" className="btn sm" disabled={busy || !voter.account.trim() || !voter.wallet} onClick={() => void submit()}>
+              {GOV.propose}
+            </button>
+          </div>
+          {error !== null && <Problem error={error} compact />}
+          {done && (
+            <p className="ok-line" role="status">
+              {done}
+            </p>
+          )}
+        </div>
       </div>
-      {error !== null && <Problem error={error} compact />}
-      {done && (
-        <p className="ok-line" role="status">
-          {done}
-        </p>
-      )}
-    </details>
+    </div>
   );
 }
 
 /** WARD-holder governance. embedded: inside another page (My share), without its own section. */
-export function Governance({ proposals, onChange, embedded = false }: { proposals: MutualProposalView[]; onChange: () => void; embedded?: boolean }) {
+export function Governance({ proposals, onChange, embedded = false, tiers }: { proposals: MutualProposalView[]; onChange: () => void; embedded?: boolean; tiers?: TierRules }) {
   const connected = useConnected();
   const [connecting, setConnecting] = useState(false);
   const now = useNow();
@@ -293,14 +325,14 @@ export function Governance({ proposals, onChange, embedded = false }: { proposal
         </button>
         <small className="muted">{GOV.voterNote}</small>
       </div>
-      {connecting && <ConnectDialog onClose={() => setConnecting(false)} />}
+      {connecting && <WalletPanel onClose={() => setConnecting(false)} />}
       <h3 className="gov-h">{GOV.open}</h3>
       {open.length === 0 ? (
         <p className="empty">{GOV.none}</p>
       ) : (
         <div className="props">
           {open.map((p) => (
-            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} />
+            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} />
           ))}
         </div>
       )}
@@ -311,7 +343,7 @@ export function Governance({ proposals, onChange, embedded = false }: { proposal
       ) : (
         <div className="props">
           {decided.map((p) => (
-            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} />
+            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} />
           ))}
         </div>
       )}
@@ -324,7 +356,11 @@ export function Governance({ proposals, onChange, embedded = false }: { proposal
         <h2 className="h2" id="gov-title">
           {GOV.title}
         </h2>
-        <p className="lede gov-lede">{GOV.lede}</p>
+        <div className="lede gov-lede">
+          {GOV.lede.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
         {body}
       </div>
     </section>

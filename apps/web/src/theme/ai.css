@@ -31,8 +31,6 @@
 .light{background:var(--paper);color:var(--ink);border-bottom:0}
 .light .h2{color:var(--ink)}
 .light p{color:var(--ink-2)}
-.light .btn{background:var(--ink);color:var(--paper)}
-.light .btn:hover{background:#2e2238}
 .light .link{color:var(--violet-ink)}
 .light :focus-visible{outline-color:var(--violet-ink)}
 .share-grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:64px;align-items:center}
@@ -43,7 +41,10 @@
 /* The member card: dark, with a faint horizon in its corner */
 .member-card{position:relative;overflow:hidden;background:var(--bg);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 28px 60px -30px rgba(26,15,33,.55);transition:box-shadow .24s ease,border-color .24s ease}
 .member-card>*{position:relative;z-index:1}
-.member-card .member-horizon{position:absolute;right:-80px;bottom:-90px;opacity:.16;z-index:0;pointer-events:none}
+.member-card .member-horizon{position:absolute;right:24px;top:24px;z-index:0;pointer-events:none}
+.mc-manage{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--rule);width:100%;font-size:15px}
+.member-card .link{color:var(--violet-text)}
+.h1,.h2{text-wrap:balance}
 .member-card p{color:var(--text-2)}
 .mc-label{font-size:14px;color:var(--muted)}
 .mc-value{font-size:40px;font-weight:700;letter-spacing:-0.045em;line-height:1.05}
@@ -52,7 +53,7 @@
 .mc-quote>div{display:flex;justify-content:space-between;gap:16px;font-size:15px}
 .mc-quote dt{color:var(--muted)}
 .mc-quote dd{margin:0;font-weight:600}
-.member-card .btn{background:var(--violet-btn);color:#fff}
+
 .member-card .btn.ghost{background:transparent;border-color:var(--rule-strong);color:var(--text)}
 .member-card [data-testid="pool-position"]{width:100%}
 .mc-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px;margin:20px 0 8px;width:100%}
@@ -198,7 +199,9 @@
 .stage{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card-lg);padding:32px;display:flex;flex-direction:column;align-items:flex-start;gap:20px;min-width:0}
 .stage>div{width:100%}
 /* Wide screens: the stage stays put while the scene list scrolls, at one height for every scene. */
-@media (min-width:981px){.stage{position:sticky;top:96px;height:min(780px,calc(100vh - 120px));overflow:auto;overscroll-behavior:contain}}
+/* Wide screens: the stage stays in view while the step list scrolls past. It sizes to its content and is never
+   its own scroll box: a fixed height with overflow:auto and overscroll-behavior:contain trapped the mouse wheel. */
+@media (min-width:981px){.stage{position:sticky;top:96px}}
 .stage-n{font-size:14px;color:var(--muted)}
 .stage-head h2{margin:6px 0 6px;font-size:32px;font-weight:700;letter-spacing:-0.04em;line-height:1.05}
 .stage-head p{margin:0;color:var(--text-2)}
@@ -222,6 +225,12 @@
 .cmp-dots{display:flex;flex-wrap:wrap;gap:7px}
 .cmp-dots i{width:12px;height:12px;border-radius:50%;background:var(--rule-strong)}
 .cmp-dots i.paid{background:var(--red)}
+.cmp-dots i.stopped{background:transparent;box-shadow:inset 0 0 0 2px var(--violet)}
+.cmp-sec .linestats{margin-top:8px;min-height:420px}
+.cmp-sec .ls-sub{margin-top:14px}
+.cmp-sec .cmp-dots{max-width:400px}
+.cmp-sec .ls-bad .cmp-dots{justify-content:flex-end;margin-left:auto}
+.steps-sec .lede{margin-bottom:40px}
 .cmp-value{text-align:right;font-size:20px;font-weight:700}
 .cmp-value small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
 
@@ -397,3 +406,39 @@ td.mismatch{color:var(--red-text);font-weight:600}
 @media (max-width:980px){.me-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.me-empty{padding:24px 20px}}
 .dlg-stop{margin-top:12px}
+
+/* Governance in plain English (A21 big pass): open rows, a thin line toward quorum, a Horizon disclosure. */
+.gov-lede p{margin:0}
+.gov-lede p + p{margin-top:4px}
+.prop{grid-template-columns:minmax(0,5fr) minmax(0,4fr) 230px;grid-template-areas:"top prog act" "what prog act" "when prog act" "msg msg msg"}
+.prop-what{color:var(--text-2);font-size:16px}
+.prop-when{grid-area:when;margin:0;font-size:14px;color:var(--muted)}
+.prop-progress{grid-area:prog;align-self:center;min-width:0}
+.prop-progress p{margin:0;font-size:14px;color:var(--text-2)}
+.prop-progress .prop-split{margin-top:8px;font-size:13px;color:var(--muted)}
+.prop-line{position:relative;height:2px;margin-top:10px;background:var(--rule-2);border-radius:1px;overflow:hidden}
+.prop-line i{position:absolute;inset:0 auto 0 0;background:var(--violet);border-radius:1px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+.prop[data-status="executed"],.prop[data-status="rejected"]{grid-template-areas:"top top act" "what what act" "when when act" "msg msg msg"}
+.propose{padding:0}
+.disclose{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0;font:600 16px/1 var(--font);color:var(--violet-text);background:none;border:0;cursor:pointer}
+.disclose:hover{color:var(--text)}
+.disclose-chev{transition:transform .25s cubic-bezier(.22,1,.36,1)}
+.disclose[aria-expanded="true"] .disclose-chev{transform:rotate(180deg)}
+.disclose-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.22,1,.36,1)}
+.propose[data-open] .disclose-body{grid-template-rows:1fr}
+.disclose-inner{overflow:hidden;min-height:0}
+.propose[data-open] .disclose-inner{padding-bottom:16px}
+.mine-votes .prop{grid-template-areas:"top" "what" "prog" "when" "act" "msg"}
+@media (max-width:980px){.prop,.prop[data-status="executed"],.prop[data-status="rejected"]{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg"}.prop-act,.prop-tx{justify-content:flex-start;text-align:left}.prop-act small{text-align:left}}
+@media (prefers-reduced-motion:reduce){.disclose-body,.disclose-chev,.prop-line i{transition:none}}
+/* Home: the tally on the line, Hold a share's three lines, For builders (A21 big pass). */
+.tally .h2{margin-bottom:40px}
+.share-lines{list-style:none;margin:0;padding:0;border-top:1px solid rgba(26,15,33,.14)}
+.share-lines li{padding:14px 0;border-bottom:1px solid rgba(26,15,33,.14);font-size:19px;line-height:1.45;color:var(--ink);max-width:46ch}
+.builders-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:start}
+.builders-grid .lede{margin-bottom:20px}
+@media (max-width:980px){.builders-grid{grid-template-columns:minmax(0,1fr);gap:28px}}
+.about-why .lede p{margin:0}
+.about-why .lede p + p{margin-top:12px}
+.about-team .lede p{margin:0}
+.about-team .lede p + p{margin-top:8px}

@@ -288,7 +288,15 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
   ctx.restore();
 }
 
-function Stage() {
+/** The closing line starts at the title's left edge, wherever the column sits (J). Stage units, or null. */
+function closingX(cv: HTMLCanvasElement, titleId: string, ox: number, scale: number): number | null {
+  const title = document.getElementById(titleId);
+  if (!title) return null;
+  const left = title.getBoundingClientRect().left - cv.getBoundingClientRect().left;
+  return Number.isFinite(left) && left >= 0 ? (left - ox) / scale : null;
+}
+
+function Stage({ titleId }: { titleId: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const freezeAt = frozenFrame("explainer");
   const draw = useCallback((t: number) => {
@@ -301,8 +309,10 @@ function Stage() {
     if (cv.style.height !== `${h}px`) cv.style.height = `${h}px`;
     const ctx = fitCanvas(cv, w, h);
     if (!ctx) return;
-    drawExplainer(ctx, t, layout, scale, Math.max(0, (w - layout.w * scale) / 2));
-  }, []);
+    const ox = Math.max(0, (w - layout.w * scale) / 2);
+    const x = closingX(cv, titleId, ox, scale);
+    drawExplainer(ctx, t, x === null ? layout : { ...layout, closing: { ...layout.closing, x } }, scale, ox);
+  }, [titleId]);
   useCanvasAnimation(ref, draw, { duration: TIMELINE.end, finalAt: TIMELINE.final, startOnView: true, freezeAt });
   return <canvas ref={ref} className="explainer-stage" role="img" aria-label={EXPLAINER.label} data-testid="explainer-stage" />;
 }
@@ -321,7 +331,7 @@ export function Explainer({ id = "watch", headingLevel = 2 }: { id?: string; hea
         </div>
       </div>
       <div className="explainer-frame">
-        <Stage />
+        <Stage titleId={`${id}-title`} />
       </div>
       {/* The canvas, as text: the same story in order. */}
       <ol className="sr-only">

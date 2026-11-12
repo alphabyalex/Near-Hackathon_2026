@@ -9,57 +9,52 @@ import { Hero } from "../../v2/Hero";
 import { prefersReducedMotion } from "../../v2/motion";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { Governance } from "./Governance";
+import { LineStats } from "../../components/LineStats";
+import { CodeTabs } from "../../components/CodeTabs";
+import { pluginTabs } from "../../data/snippets";
 import { JoinDialog, MemberCard } from "./Member";
+import { Comparison } from "./Comparison";
 
 const count = (n: number) => n.toLocaleString("en-US");
 
+/** The tally (K): every payment counted, laid out on the line (Cards.dc.html option 6). */
 function Sides({ m }: { m: MutualSummary }) {
   const b = m.stats.below;
-  const kinds = [
-    ["swapped", b.swapped],
-    ["lookalike", b.lookalike],
-    ["capped", b.capped],
-  ] as const;
+  const T = HOME.tally;
   return (
-    <section className="sec" aria-labelledby="sides-title">
+    <section className="sec tally" aria-labelledby="sides-title">
       <div className="wrap">
         <h2 className="h2" id="sides-title">
           {HOME.sidesTitle}
         </h2>
-        <div className="sides" data-testid="sides">
-          <div className="side-panel above">
-            <div className="side-head">
-              <h3>{HOME.above}</h3>
-              <span className="side-count num">{count(m.stats.proven_payments)}</span>
-            </div>
-            <p className="side-lede">{HOME.aboveLede}</p>
-            <ul className="side-list">
-              {HOME.aboveChecks.map(([name, line]) => (
-                <li key={name}>
-                  <b>{name}</b>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="side-panel below" data-testid="below-panel">
-            <div className="side-head">
-              <h3>{HOME.below}</h3>
-              <span className="side-count num">{count(b.total)}</span>
-            </div>
-            <p className="side-lede">{HOME.belowLede}</p>
-            <ul className="side-list">
-              {kinds.map(([k, n]) => (
-                <li key={k} data-kind={k}>
-                  <b>
-                    {HOME.belowKinds[k][0]} <span className="num">{count(n)}</span>
-                  </b>
-                  <span>{HOME.belowKinds[k][1]}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <LineStats
+          label={T.label}
+          testId="sides"
+          good={{ label: T.above, value: count(m.stats.proven_payments), note: T.aboveNote }}
+          bad={{ label: T.below, value: count(b.total), note: T.belowNote, sub: T.kinds(b.swapped, b.lookalike, b.capped) }}
+        />
+      </div>
+    </section>
+  );
+}
+
+/** For builders (N): the one-line plug-in, with its JavaScript, Python and curl versions. */
+function Builders() {
+  return (
+    <section className="sec builders" aria-labelledby="builders-title">
+      <div className="wrap builders-grid">
+        <div>
+          <h2 className="h2" id="builders-title">
+            {HOME.builders.title}
+          </h2>
+          <p className="lede">{HOME.builders.line}</p>
+          <p>
+            <a className="link" href="#/developers">
+              {HOME.builders.all}
+            </a>
+          </p>
         </div>
+        <CodeTabs tabs={pluginTabs()} label={HOME.builders.label} />
       </div>
     </section>
   );
@@ -158,6 +153,7 @@ export function Home() {
       )}
       {!m && error === null && <HomeSkeleton />}
       {m && <Sides m={m} />}
+      {m && <Comparison />}
 
       {m && (
         <section className="sec light" id="member" aria-labelledby="share-title">
@@ -166,16 +162,18 @@ export function Home() {
               <h2 className="h2" id="share-title">
                 {HOME.shareTitle}
               </h2>
-              {HOME.shareBody.map((p) => (
-                <p key={p}>{p}</p>
-              ))}
+              <ul className="share-lines">
+                {HOME.shareBody.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
             </div>
             <MemberCard pool={m.pool} version={tick} onJoin={join} onChanged={refresh} />
           </div>
         </section>
       )}
 
-      {m && <Governance proposals={m.governance.proposals} onChange={refresh} />}
+      {m && <Governance proposals={m.governance.proposals} onChange={refresh} tiers={m.tiers} />}
 
       {m && (
         <section className="sec" aria-labelledby="board-title">
@@ -194,6 +192,8 @@ export function Home() {
           </div>
         </section>
       )}
+
+      <Builders />
 
       <section className="sec cta" aria-labelledby="cta-title">
         <div className="wrap cta-row">
