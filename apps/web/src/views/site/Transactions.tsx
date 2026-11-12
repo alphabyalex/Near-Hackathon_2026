@@ -12,7 +12,7 @@ import "./transactions.css";
 const PAGE = 10;
 const t = ME.tx;
 
-function label(r: WalletTx): string {
+export function label(r: WalletTx): string {
   switch (r.type) {
     case "buy":
       return t.buy;
@@ -36,7 +36,7 @@ function label(r: WalletTx): string {
 /** buy and receive bring WARD in; sell and send take it out; the rest are governance. */
 const flow = (r: WalletTx): "in" | "out" | "gov" => (r.type === "buy" || r.type === "receive" ? "in" : r.type === "sell" || r.type === "sell_request" || r.type === "send" ? "out" : "gov");
 
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+export const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const full = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" });
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 const price = (p: string | null) => (p ? (Number(p) / 1_000_000).toFixed(4) : null);

@@ -1,9 +1,9 @@
 /**
- * Your share (docs/design/v2/Share.dc.html): a personal sphere seeded from the connected account's name
- * (the same name always draws the same mark), the value counting up once, the numbers, Deposit more and
- * Request to sell, and the open vote card.
+ * Pieces of Your share (docs/design/v2/Share.dc.html) used by the Balance page: the personal sphere seeded
+ * from the connected account's name (the same name always draws the same mark) with its value counting up
+ * once, and Request to sell.
  */
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState } from "react";
 import { MINE, MEMBER } from "../brand";
 import { Problem } from "../components/Problem";
 import { TxLink } from "../components/TxLink";
@@ -27,7 +27,7 @@ export const SHARE_MOTION = {
 
 const count = (atomic: string, u: number): string => ((Number(atomic) / 1e6) * u).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function PersonalMark({ account, value, valueRef }: { account: string; value: string; valueRef: React.RefObject<HTMLSpanElement | null> }) {
+export function PersonalMark({ account, value, valueRef }: { account: string; value: string; valueRef: React.RefObject<HTMLSpanElement | null> }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const seed = personalSphere(account);
   const draw = useCallback(
@@ -55,7 +55,7 @@ function PersonalMark({ account, value, valueRef }: { account: string; value: st
 }
 
 /** Request to sell: WARD to lock for the 7-day wait, signed by the connected wallet. */
-function SellForm({ connected, onDone, onClose }: { connected: Connected; onDone: () => void; onClose: () => void }) {
+export function SellForm({ connected, onDone, onClose }: { connected: Connected; onDone: () => void; onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -97,80 +97,6 @@ function SellForm({ connected, onDone, onClose }: { connected: Connected; onDone
           {done.text} {done.tx && <TxLink hash={done.tx} />}
         </p>
       )}
-    </div>
-  );
-}
-
-export function ShareHero({
-  connected,
-  value,
-  held,
-  earned,
-  earnedBelow,
-  price,
-  onDeposit,
-  onChanged,
-  children,
-}: {
-  connected: Connected;
-  value: string;
-  held: string;
-  earned: string | null;
-  earnedBelow: boolean;
-  price: string;
-  onDeposit: () => void;
-  onChanged: () => void;
-  children?: ReactNode;
-}) {
-  const valueRef = useRef<HTMLSpanElement>(null);
-  const [selling, setSelling] = useState(false);
-  return (
-    <div className="mine">
-      <div className="mine-left">
-        <PersonalMark account={connected.account} value={value} valueRef={valueRef} />
-        <p className="mine-acct acct">{connected.account}</p>
-        <p className="mine-note">{MINE.markNote}</p>
-      </div>
-      <div className="mine-right">
-        <div>
-          <p className="mine-k">{MINE.worth}</p>
-          <p className="vc-value mine-value">
-            <span ref={valueRef} className="num" data-testid="share-value">
-              {formatUsdc(value)}
-            </span>
-            <span className="mine-unit">USDC</span>
-          </p>
-        </div>
-        <dl className="mine-facts">
-          <div>
-            <dt>{MINE.held}</dt>
-            <dd className="num">{held}</dd>
-          </div>
-          {earned !== null && (
-            <div>
-              <dt>{MINE.earned}</dt>
-              <dd className={earnedBelow ? "num below-text" : "num"} data-testid="me-earned">
-                {earned} USDC
-              </dd>
-            </div>
-          )}
-          <div>
-            <dt>{MINE.price}</dt>
-            <dd className="num">{price}</dd>
-          </div>
-        </dl>
-        <div className="mine-actions">
-          <button type="button" className="btn" onClick={onDeposit}>
-            {MINE.deposit}
-          </button>
-          <button type="button" className="btn ghost" aria-expanded={selling} onClick={() => setSelling((s) => !s)}>
-            {MINE.sell}
-          </button>
-          <span className="mine-wait">{MINE.sellNote}</span>
-        </div>
-        {selling && <SellForm connected={connected} onDone={onChanged} onClose={() => setSelling(false)} />}
-        {children}
-      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { HorizonMark } from "../../components/HorizonMark";
 import { NEAR_NETWORK } from "../../config";
 import { formatUsdc } from "../../format";
 import { setConnected, useConnected, type Connected } from "../../wallets/connected";
+import { personalSphere } from "../../v2/sphere";
 import { nearWallets, typesAccount, type NearWalletId } from "../../wallets/near";
 import { WalletPanel } from "../../wallets/WalletPanel";
 import { countdown, price, signMutual, useNow } from "./Mutual";
@@ -289,7 +290,7 @@ export function JoinDialog({ pool, onClose, onJoined, minDeposit = "1000000" }: 
             className="btn wide"
             onClick={() => {
               onClose();
-              navigate("#/me");
+              navigate("#/wallet");
             }}
           >
             {JOIN.goToShare}
@@ -305,7 +306,6 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
   const connected = useConnected();
   const now = useNow();
   const [position, setPosition] = useState<PoolPosition | null>(null);
-  const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -334,7 +334,6 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
       setDoneTx(res.tx ?? null);
       if (res.tx) addPending(connected.account, body.action === "withdraw" ? { hash: res.tx, type: "sell_request", ward: body.amount, unlock_at: res.available_at ?? null } : { hash: res.tx, type: "sell", usdc: res.usdc ?? null });
       setDone(body.action === "withdraw" ? MEMBER.locked7(res.available_at?.slice(0, 10) ?? "") : MEMBER.redeemed(formatUsdc(res.usdc ?? "0")));
-      setAmount("");
       onChanged();
     } catch (e) {
       setError(e);
@@ -346,7 +345,8 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
   const held = position ? BigInt(position.ward) + BigInt(position.ward_locked) : 0n;
   return (
     <div className="member-card" data-testid="member-card">
-      <HorizonMark size={260} className="member-horizon" />
+      {/* The member's own sphere when connected (the same seed as the Balance page), the Horizon mark otherwise. */}
+      <HorizonMark size={120} className="member-horizon" {...(connected ? { light: personalSphere(connected.account).light, step: 18 } : { step: 18 })} />
       <span className="mc-label">{MEMBER.title}</span>
       {!connected || !position || held === 0n ? (
         <>
@@ -409,19 +409,11 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
               </p>
             );
           })}
-          <details className="mc-redeem">
-            <summary>{MEMBER.redeem}</summary>
-            <p className="mc-note">{MEMBER.redeemNote(pool.withdraw_delay_days)}</p>
-            <div className="mc-row">
-              <label className="field">
-                <span>{MEMBER.redeemAmount}</span>
-                <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="num" />
-              </label>
-              <button type="button" className="btn ghost" disabled={busy || !toAtomic(amount)} onClick={() => void act({ action: "withdraw", amount: toAtomic(amount)! })}>
-                {MEMBER.redeemButton}
-              </button>
-            </div>
-          </details>
+          <p className="mc-manage">
+            <a className="link" href="#/wallet">
+              {MEMBER.manage}
+            </a>
+          </p>
         </div>
       )}
       {error !== null && <Problem error={error} compact />}

@@ -1,32 +1,24 @@
 /**
  * Connect wallet: one Horizon panel. A click on a wallet's logo connects that wallet directly through
- * NEAR Connect (no NEAR Connect selection modal). Once connected, the same panel shows the member's
- * own halftone sphere, the account, its USDC and NEAR, and the way to their share.
+ * NEAR Connect (no NEAR Connect selection modal). Once a wallet connects, the panel closes.
  *
  * Anchored under the header on wide screens, a bottom sheet with a grab handle on phones (Dialog).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { WALLET } from "../brand";
-import { seededLight } from "../brand/horizon";
 import { Dialog } from "../components/Dialog";
 import { HorizonMark } from "../components/HorizonMark";
-import { DATA_SOURCE } from "../data/source";
 import { explain } from "../data/errors";
-import { ftBalance, spendableNear } from "../data/chain";
-import { MIN_NEAR_FOR_FEES, poolContracts } from "../data/wallet-pool";
 import { localSignerAccounts } from "../data/mutual";
-import { formatUsdc } from "../format";
-import { navigate } from "../router";
 import { NEAR_NETWORK, TEST_WALLET } from "../config";
-import { installedIds, isMobile, orderWallets, SIGN_UP, WALLETS, walletName, type WalletInfo } from "./catalog";
-import { setConnected, useConnected, type Connected } from "./connected";
-import { connectNear, disconnectNear, loadConnector, nearWallets, typesAccount, type NearWalletId } from "./near";
+import { installedIds, isMobile, orderWallets, SIGN_UP, WALLETS, type WalletInfo } from "./catalog";
+import { setConnected, useConnected } from "./connected";
+import { connectNear, loadConnector, nearWallets, typesAccount, type NearWalletId } from "./near";
 import "./wallet-panel.css";
 
 /** After this long, the panel says it is still waiting. The connect itself never times out. */
 export const STILL_WAITING_MS = 90_000;
 
-const nearText = (yocto: bigint): string => (Number(yocto / 1_000_000_000_000_000_000n) / 1_000_000).toFixed(3);
 
 /** Whether NEAR Connect is showing a wallet's own window (its iframe popup) on top of the page. */
 function useCoveredByWallet(active: boolean): boolean {
@@ -170,77 +162,6 @@ function Picker({ onConnected, onCancel }: { onConnected: () => void; onCancel: 
   );
 }
 
-/** Connected: the member's own sphere, the account, balances, and where to go next. */
-function ConnectedView({ connected, onClose, onSwitch }: { connected: Connected; onClose: () => void; onSwitch: () => void }) {
-  const [balances, setBalances] = useState<{ usdc: bigint; near: bigint } | null>(null);
-  const light = useMemo(() => seededLight(connected.account), [connected.account]);
-  useEffect(() => {
-    if (DATA_SOURCE !== "testnet") return;
-    let live = true;
-    (async () => {
-      const { token } = await poolContracts();
-      const [usdc, near] = await Promise.all([ftBalance(token, connected.account), spendableNear(connected.account)]);
-      if (live) setBalances({ usdc, near });
-    })().catch(() => live && setBalances(null));
-    return () => {
-      live = false;
-    };
-  }, [connected.account]);
-  const via = walletName(connected.via);
-
-  const disconnect = () => {
-    if (connected.wallet === "near-connect") void disconnectNear();
-    setConnected(null);
-    onClose();
-  };
-  return (
-    <div className="wp wp-connected" data-testid="wallet-connected">
-      <div className="wp-who">
-        <HorizonMark size={64} light={light} step={14} className="wp-sphere" label={`${connected.account}'s mark`} />
-        <div>
-          <b className="wp-account">{connected.account}</b>
-          {via && <span className="wp-via">{WALLET.via(via)}</span>}
-          <span className="wp-net">
-            <span className="wp-net-dot" aria-hidden="true" />
-            {WALLET.network(NEAR_NETWORK)}
-          </span>
-        </div>
-      </div>
-      {balances && (
-        <dl className="wp-balances" aria-label={WALLET.balances}>
-          <div>
-            <dt>USDC</dt>
-            <dd>{formatUsdc(balances.usdc.toString())}</dd>
-          </div>
-          <div>
-            <dt>NEAR</dt>
-            <dd>{nearText(balances.near)}</dd>
-          </div>
-        </dl>
-      )}
-      {balances && balances.near < MIN_NEAR_FOR_FEES && <p className="wp-low">{WALLET.lowNear}</p>}
-      <div className="wp-actions">
-        <button
-          type="button"
-          className="btn"
-          onClick={() => {
-            onClose();
-            navigate("#/me");
-          }}
-        >
-          {WALLET.goToShare}
-        </button>
-        <button type="button" className="btn ghost" onClick={onSwitch}>
-          {WALLET.switchWallet}
-        </button>
-      </div>
-      <button type="button" className="wp-quiet" onClick={disconnect}>
-        {WALLET.disconnect}
-      </button>
-    </div>
-  );
-}
-
 /** Local development only: the e2e test wallet and the local test signer, which take a typed account. */
 function Developer({ onDone }: { onDone: () => void }) {
   const wallets = useMemo(() => nearWallets().filter((w) => typesAccount(w.id)), []);
@@ -300,36 +221,22 @@ function Developer({ onDone }: { onDone: () => void }) {
   );
 }
 
-/** The connect panel: the picker, or the connected account. */
+/**
+ * The connect panel: the wallet picker. It closes as soon as a wallet connects; the header then shows the
+ * Joined control, and the account menu and the Balance page carry everything the old connected view did.
+ */
 export function WalletPanel({ onClose, anchor }: { onClose: () => void; anchor?: HTMLElement | null }) {
   const connected = useConnected();
-  const [switching, setSwitching] = useState(false);
-  const showConnected = connected !== null && !switching;
+  const was = useRef(connected);
+  useEffect(() => {
+    if (connected && connected !== was.current) onClose();
+    was.current = connected;
+  }, [connected, onClose]);
   return (
-    <Dialog title={showConnected ? WALLET.connectedTitle : WALLET.title} onClose={onClose} testId="connect-dialog" anchor={anchor} className="wp-panel" mark={<HorizonMark size={20} step={20} className="wp-mark" />}>
-      {showConnected ? (
-        <ConnectedView
-          connected={connected}
-          onClose={onClose}
-          onSwitch={() => {
-            if (connected.wallet === "near-connect") void disconnectNear();
-            setConnected(null);
-            setSwitching(true);
-          }}
-        />
-      ) : (
-        <>
-          <p className="dlg-lede wp-lede">{WALLET.lede}</p>
-          <Picker
-            onConnected={() => {
-              setSwitching(false);
-            }}
-            onCancel={onClose}
-          />
-          <Developer onDone={onClose} />
-        </>
-      )}
+    <Dialog title={WALLET.title} onClose={onClose} testId="connect-dialog" anchor={anchor} className="wp-panel" mark={<HorizonMark size={20} step={20} className="wp-mark" />}>
+      <p className="dlg-lede wp-lede">{WALLET.lede}</p>
+      <Picker onConnected={onClose} onCancel={onClose} />
+      <Developer onDone={onClose} />
     </Dialog>
   );
 }
-

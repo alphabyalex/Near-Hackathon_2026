@@ -1,0 +1,79 @@
+/* The Balance page (docs/design/v2/BalancePage.dc.html). Open rows on hairlines, no boxes. */
+.bal-sec{padding-top:56px}
+.bal-grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:64px;align-items:start}
+.bal-left{display:flex;flex-direction:column;align-items:center;gap:12px;position:sticky;top:104px}
+.bal-left .mine-mark{width:min(320px,100%);aspect-ratio:1;height:auto;display:block}
+.bal-acct{margin:0;font-size:16px;font-weight:600;text-align:center}
+.bal-k{margin:0;font-size:14px;color:var(--muted)}
+.bal-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:6px 0 0}
+.bal-total .num{font-size:96px;font-weight:700;letter-spacing:-0.04em;line-height:1;font-variant-numeric:tabular-nums}
+.bal-unit{font-size:24px;font-weight:500;color:var(--text-2)}
+.bal-split{margin:8px 0 0;font-size:15px;color:var(--muted)}
+.bal-earned{margin:6px 0 0;font-size:15px;color:var(--muted)}
+.bal-earned .num{color:var(--text);font-weight:600}
+
+.bal-rows{margin-top:32px;border-top:1px solid var(--rule)}
+.bal-row{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,160px) minmax(0,170px);align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.bal-ico{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:13px;font-weight:700;flex:none}
+.bal-ico-usdc{background:#2775ca;color:#fff}
+.bal-ico-near{width:22px;height:22px;font-size:11px;background:var(--surface-2);border:1px solid var(--rule-strong);color:var(--text-2)}
+.bal-name{min-width:0}
+.bal-name b{display:block;font-size:16px;font-weight:600}
+.bal-name small{display:block;font-size:13px;color:var(--muted)}
+.bal-amt{text-align:right;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.bal-amt small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
+.bal-act{text-align:right}
+.bal-act .btn{min-height:40px;border-radius:10px}
+.bal-rows .mine-sell{padding:16px 0;border-bottom:1px solid var(--rule)}
+.bal-sub{padding:14px 0;border-bottom:1px solid var(--rule)}
+.bal-sub-title{margin:0 0 6px;font-size:14px;color:var(--muted)}
+.bal-redeem{list-style:none;margin:0;padding:0}
+.bal-redeem li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0;font-size:15px}
+/* The NEAR line stays quiet; under 0.05 NEAR it becomes a plain warning (not red: it is not below the line). */
+.bal-fees{display:flex;align-items:center;gap:14px;margin:0;padding:14px 0 14px 2px;font-size:15px;color:var(--muted);border-bottom:1px solid var(--rule)}
+.bal-fees-low{color:var(--text);background:var(--surface-2);padding-left:12px;padding-right:12px;border-radius:10px;border:1px solid var(--rule-strong);margin-top:12px}
+
+.bal-h2,.bal-head h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em}
+.bal-votes,.bal-recent,.bal-past{margin-top:48px}
+.bal-votes .bal-h2{margin-bottom:12px}
+.bal-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.bal-head .link{font-size:14px}
+.bal-lines{list-style:none;margin:0;padding:0}
+.bal-lines li{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.bal-lines a{font-size:14px;color:var(--violet-text);text-decoration:none}
+.bal-lines a:hover{color:var(--text);text-decoration:underline}
+.bal-dot{width:8px;height:8px;border-radius:50%;background:var(--violet);flex:none}
+.bal-what{flex:1 1 auto;min-width:0}
+.bal-past .bal-h2{margin-bottom:8px}
+#bal-all .tx-panel{background:transparent;border:0;padding:0}
+#bal-all .tx-head{display:none}
+.bal-later{margin-top:72px;padding-top:40px;border-top:1px solid var(--rule)}
+.bal-later .bal-h2{margin-bottom:16px}
+
+.bal-empty{display:flex;flex-direction:column;align-items:flex-start;gap:20px;min-height:50vh}
+.bal-empty-title{margin:0;font-size:clamp(28px,3vw,40px);font-weight:700;letter-spacing:-0.03em;max-width:20ch}
+
+@media (max-width:900px){
+  .bal-grid{grid-template-columns:minmax(0,1fr);gap:24px}
+  .bal-left{position:static}
+  .bal-left .mine-mark{width:220px}
+}
+@media (max-width:600px){
+  .bal-sec{padding-top:28px}
+  .bal-total .num{font-size:60px}
+  .bal-unit{font-size:18px}
+  .bal-row{grid-template-columns:26px minmax(0,1fr) auto;grid-template-areas:"ico name amt" "act act act";row-gap:12px}
+  .bal-row > :nth-child(1){grid-area:ico}
+  .bal-row > :nth-child(2){grid-area:name}
+  .bal-row > :nth-child(3){grid-area:amt}
+  .bal-act{grid-area:act;text-align:left}
+  .bal-act .btn{width:100%}
+  .bal-lines li{flex-wrap:wrap;gap:4px 12px}
+  .bal-lines .bal-what{flex:1 1 calc(100% - 24px)}
+  .bal-lines time{margin-left:22px}
+}
+@media (min-width:1600px){
+  .bal-total .num{font-size:calc(96px + var(--wide) * .04)}
+  .bal-grid{grid-template-columns:minmax(0,calc(360px + var(--wide) * .15)) minmax(0,1fr)}
+  .bal-left .mine-mark{width:min(calc(320px + var(--wide) * .15),100%)}
+}

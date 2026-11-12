@@ -14,6 +14,8 @@ import { installedIds, NEVER_SHOWN, orderWallets, WALLETS } from "../src/wallets
 import { setConnected, useConnected } from "../src/wallets/connected";
 import { setConnectorFactory, type ConnectorLike } from "../src/wallets/near";
 import { WalletPanel } from "../src/wallets/WalletPanel";
+import { AccountControl } from "../src/wallets/AccountControl";
+import { nearFees } from "../src/views/site/Balance";
 
 const ACCOUNT = "hyperios.testnet";
 type SignIn = (p: { wallet?: { manifest: { id: string } }; accounts?: Array<{ accountId: string }> }) => void;
@@ -114,9 +116,10 @@ describe("one click connects", () => {
       seen = useConnected()?.account ?? null;
       return null;
     }
+    const closed = vi.fn();
     const { unmount } = render(
       <>
-        <WalletPanel onClose={() => undefined} />
+        <WalletPanel onClose={closed} />
         <Probe />
       </>,
     );
@@ -124,7 +127,8 @@ describe("one click connects", () => {
     await waitFor(() => expect(onSignIn).not.toBeNull());
     act(() => onSignIn!({ wallet: { manifest: { id: "meteor-wallet" } }, accounts: [{ accountId: ACCOUNT }] }));
     expect(seen).toBe(ACCOUNT);
-    expect(await screen.findByTestId("wallet-connected")).toBeTruthy();
+    // The panel closes once a wallet connects; the header's Joined control takes over.
+    await waitFor(() => expect(closed).toHaveBeenCalled());
     unmount();
   });
 
@@ -174,41 +178,54 @@ describe("errors", () => {
   });
 });
 
-describe("connected, in the same panel", () => {
-  it("shows the member's sphere, the account, USDC and NEAR, and the next steps; Disconnect is a quiet link", async () => {
+describe("the header's Joined control and account menu", () => {
+  it("shows Balance and the account; the menu says which wallet, moves with the arrow keys and closes on Escape", async () => {
     mockConnector(async () => wallet("meteor-wallet"));
     setConnected({ account: ACCOUNT, wallet: "near-connect", via: "meteor-wallet" });
-    render(<WalletPanel onClose={() => undefined} />);
-    const done = await screen.findByTestId("wallet-connected");
-    expect(done.textContent).toContain(ACCOUNT);
-    expect(done.textContent).toContain("Connected with Meteor");
-    expect(done.querySelector("svg[role=img]")?.getAttribute("aria-label")).toContain(ACCOUNT);
-    await waitFor(() => expect(done.textContent).toContain("10.00"));
-    expect(done.textContent).toContain("0.496");
-    expect(done.textContent).not.toContain("network fees");
-    expect(screen.getByRole("button", { name: "Go to my share" }).className).toBe("btn");
-    expect(screen.getByRole("button", { name: "Switch wallet" }).className).toContain("ghost");
-    expect(screen.getByRole("button", { name: "Disconnect" }).className).toBe("wp-quiet");
-    await axeClean(screen.getByTestId("connect-dialog"));
+    render(<AccountControl onBalance={false} />);
+    expect(screen.getByTestId("balance-button").textContent).toContain("Balance");
+    const trigger = screen.getByRole("button", { name: `${ACCOUNT}, account menu` });
+    expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
+    fireEvent.click(trigger);
+    const menu = screen.getByRole("menu");
+    expect(screen.getByTestId("account-menu").textContent).toContain("Connected with Meteor");
+    const items = screen.getAllByRole("menuitem").map((i) => i.textContent);
+    expect(items).toEqual(["Open your balance", "Copy account name", "Connect a different wallet", "Disconnect"]);
+    await waitFor(() => expect(document.activeElement?.textContent).toBe("Open your balance"));
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+    expect(document.activeElement?.textContent).toBe("Copy account name");
+    fireEvent.keyDown(menu, { key: "ArrowUp" });
+    fireEvent.keyDown(menu, { key: "ArrowUp" });
+    expect(document.activeElement?.textContent).toBe("Disconnect");
+    await axeClean(document.body);
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 
-  it("says when the account needs a little NEAR for fees", async () => {
-    near = "10000000000000000000000"; // 0.01 NEAR
-    setConnected({ account: ACCOUNT, wallet: "near-connect" });
-    render(<WalletPanel onClose={() => undefined} />);
-    expect(await screen.findByText(/a little NEAR/)).toBeTruthy();
-  });
-
-  it("Switch wallet goes back to the grid; Disconnect clears the account", async () => {
-    mockConnector(async () => wallet("meteor-wallet"));
-    setConnected({ account: ACCOUNT, wallet: "near-connect" });
-    const { unmount } = render(<WalletPanel onClose={() => undefined} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Switch wallet" }));
-    expect(screen.getByRole("button", { name: /Meteor/ })).toBeTruthy();
-    unmount();
-    setConnected({ account: ACCOUNT, wallet: "near-connect" });
-    render(<WalletPanel onClose={() => undefined} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Disconnect" }));
+  it("Copy account name copies and says Copied; Disconnect is quiet and brings back Connect wallet", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    setConnected({ account: ACCOUNT, wallet: "near-connect", via: "meteor-wallet" });
+    render(<AccountControl onBalance />);
+    expect(screen.getByTestId("balance-button").getAttribute("aria-current")).toBe("page");
+    fireEvent.click(screen.getByRole("button", { name: `${ACCOUNT}, account menu` }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy account name" }));
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Copied" })).toBeTruthy());
+    expect(writeText).toHaveBeenCalledWith(ACCOUNT);
+    const out = screen.getByRole("menuitem", { name: "Disconnect" });
+    expect(out.className).toContain("acct-quiet");
+    expect(readFileSync("src/wallets/account.css", "utf8")).not.toMatch(/acct-quiet\{[^}]*--red/);
+    fireEvent.click(out);
     expect(localStorage.getItem("wardline.connected")).toBeNull();
+    const connectBtn = await screen.findByRole("button", { name: "Connect wallet" });
+    await waitFor(() => expect(document.activeElement).toBe(connectBtn));
+  });
+
+  it("the Balance page's NEAR line is quiet, and a warning only under 0.05 NEAR", () => {
+    expect(nearFees(394_000_000_000_000_000_000_000n)).toEqual({ text: "0.394 NEAR for network fees", low: false });
+    const low = nearFees(10_000_000_000_000_000_000_000n);
+    expect(low.low).toBe(true);
+    expect(low.text).toContain("0.010 NEAR left for network fees");
   });
 });
