@@ -1,5 +1,158 @@
 # Status: alexander
 
+## A22: Balance in dollars, the earned fix, shipped to main (2026-11-12)
+
+**Cause of the wrong "Earned since joining"**
+- The configured RPCs answered hyperios.testnet's first deposit (`7UAt5yhw…`, 10 USDC to 9,996,121 WARD) with `TIMEOUT_ERROR` (NOT_OBSERVED); only an archival RPC still has it.
+- `confirmTx` treated that failure as "not ours", so the row was dropped while the list still said `complete: true`.
+- With 10 of the 20 USDC deposited missing, the page showed +10.00.
+
+**The fix** (`70ac6ea`, `services/api/src/activity/transactions.ts`, `routes.ts`)
+- The API falls back to the archival RPC (`WARDLINE_NEAR_ARCHIVAL_RPC_URL`, default fastnear then near.org archival).
+- A transaction no RPC can read now marks the list `complete: false` instead of disappearing. A hash no RPC has ever seen is still "not ours".
+- NearBlocks is read page by page (up to 10 × 50); more than that marks the list incomplete.
+- The endpoint now returns both deposits for hyperios.testnet, and Your transactions lists both.
+
+**Real earned value for hyperios.testnet**
+- 20.00 USDC in; 19.992232 WARD worth 20.000048 today; nothing sold.
+- That is +0.000048, which displays as **"+$0.00"**. The brief's "+$0.01" was an estimate.
+
+**Parts 1 to 3**
+- **Part 1:**
+  - The API fix above.
+  - The page shows the earned line only when the history is `complete` and WARD is held (`earned()` in `Balance.tsx`), so it never guesses.
+  - Tests: unit tests for the earned math (`test/balance.test.tsx`) and API tests with a fixture shaped like the missing deposit, a timeout with no archival, and paging (`services/api/test/transactions.test.ts`).
+- **Part 2** (`a4b03c9`, `52f54d0`): the top of #/wallet follows `BalanceDollars.dc.html`.
+  - Total: small muted $, 132px whole dollars and smaller cents (76px on phones).
+  - "Your share has earned +$0.00 since you joined", in violet, or red when negative.
+  - A two-part bar (white is wallet USDC, violet is the share) that grows in once and is still under reduced motion. One part fills the bar when the other is zero.
+  - Dollar-led rows with the token amount under them.
+  - "0.394 NEAR set aside for network fees, not counted in your balance".
+  - The header reads "Balance $20.00".
+  - WARD in dollars is WARD held, including locked, times the live price.
+- **Part 3:** typecheck, unit tests and the A21/A22 e2e specs pass. Screenshots in `docs/screenshots/a22/`. The merge of main is in the summary.
+- **Fixed along the way:**
+  - The total's `aria-label` on a `<p>` failed axe; the total now has screen-reader text.
+  - The Balance page's own "Connect wallet" opened the picker anchored to a mid-page button, below the viewport. It now opens centred.
+- **Skipped:** lint, because no package has a lint script.
+
+**A21 leftovers**
+- The e2e spec updates from the A21 agent (stopped mid-run) were reviewed: e2e only, nothing skipped or disabled.
+- I ran them once with the A21 screenshots, updated `member.spec.ts` for the dollars copy, and committed them in `dcc2015`.
+- `apps/web/playwright.a21.config.ts` (the temp doubled-timeouts config) is left uncommitted on purpose.
+
+**Tests**
+- Web unit 170/170. API unit 257/257. Typecheck clean in web and API.
+- e2e Chromium: 55 passed in the full A21/A22 run, then the 3 Balance failures passed after the fixes.
+- iPhone 11/11.
+
+**Commits**
+- `9037726` design ref, `70ac6ea` API fix, `a4b03c9` Balance in dollars, `52f54d0` Balance fixes.
+- `dcc2015` A21 e2e and screenshots, `a3b4af6` A22 screenshots, plus this report.
+
+## A21 big UI pass: Alexander's full review (2026-11-12)
+
+On `alexander` only (origin/main merged in first; main untouched). Built on A20's Horizon animations. Nothing in `data/testnet` committed. No API routes changed, no transactions sent, no new real model calls (new tests stub the API).
+
+**Done, A to Y**
+- **A. Sheen.** `.btn` / `.sbtn` (non-ghost) are now the Sheen primary site-wide (`theme/base.css`): dark fill, 1px edge `#F5F3F7` to `#7B6CFF` to `#4B3BD9`, one -10° beam on hover or focus, no beam under reduced motion. The `.light .btn` ink override is gone, so Hold a share uses it too.
+- **B. Line is the layout.** New `components/LineStats.tsx` (+ `.linestats` CSS) for the Home tally, the comparison and the proof stats. Other card blocks became open layouts: vote rows, Balance rows, orbit tiers and steps, proofs feed, Verify section.
+- **C. Big monitors.** Nothing changes below 1600px. From 1600px, `--wide` grows the column (up to +595px at 2560) and scales `.h1`/`.h2`/`.h3`/`.lede`, body text, section padding, nav and the line stats.
+- **D. Nav.** Main nav: Mutual, Groups, Proof engine, About. A quiet "Docs" link sits top right before the wallet (inside the phone menu on small screens). Footer gains Your balance, Docs and How it works.
+- **E. Joined control** (`wallets/AccountControl.tsx`, `account.css`).
+  - Left half: "Balance" plus the live share value, which opens `#/wallet` and gets `aria-current` there.
+  - A 1px divider, then the right half: mini personal sphere, name and chevron, which opens the menu.
+  - Phones drop the name and the "Balance" word. Not connected shows a Sheen "Connect wallet".
+- **F. Account menu.**
+  - Shows "Connected with <wallet>", then Open your balance, Copy account name (with a Copied state), Connect a different wallet, and Disconnect (quiet, not red).
+  - Uses `role=menu`/`menuitem`; arrows, Home/End, Escape and Tab close it; focus goes back to the trigger.
+  - The wallet picker now closes as soon as a wallet connects.
+- **G. Balance page** `#/wallet` (`views/site/Balance.tsx`); `#/me` redirects there.
+  - Personal sphere, then the total (wallet + share) and the earned line. The wallet-plus-share line was later removed on request; A22 redid this top in dollars.
+  - USDC row with Sheen Deposit, and WARD row with worth and Request to sell.
+  - A quiet "0.394 NEAR for network fees" line that becomes a warning under 0.05 NEAR.
+  - Then open votes, recent transactions with All transactions, and the price chart.
+- **H.** "Your mark, drawn from your account name" deleted.
+- **I.** The "Your votes are listed under Your transactions…" line is deleted, and the Your votes heading only shows when there are votes.
+- **J.** The explainer's closing line is drawn at the title's measured left edge, at every width. Motion and copy are unchanged.
+- **K.** The tally header is now "Every payment, counted.", laid out on the line.
+- **L. Hold a share.**
+  - Balanced headline and the three short lines.
+  - The member card shows the member's own sphere (Horizon mark when not connected) instead of the grey smudge.
+  - "Redeem WARD" is replaced by a quiet "Sell or redeem on your balance page" link.
+- **M. Comparison** (`views/site/Comparison.tsx`, on Home).
+  - New headline, built from the red-team data: "Without Wardline, the agent paid 5 of 20 scams. With it, none."
+  - Setup line under it; old headline and subtext removed.
+  - Laid out on the line: with Wardline, 20 violet hollow rings; alone, 5 red and 15 grey.
+- **N. For builders** on Home: headline, one line, the real plug-in snippet with JavaScript / Python / curl tabs and Copy (shared `components/CodeTabs.tsx`), and "See every integration".
+- **O. Governance in plain English.**
+  - Progress reads "Needs 20% of WARD to vote. 28% so far", with a thin line and a for/against split.
+  - Open changes read "Silver groups would pay 1.25% instead of 1.5%"; decided ones read "Silver fee is now 1.25%, was 1.50%".
+  - Time left reads "1 day 3 hours left".
+- **P.** Copy promising votes on models or large payouts is cut from the share lines, governance lede, POOL and llms.txt. "Stop covering a model" is removed from Propose a change.
+- **Q.** The intro under "WARD holders decide the risks." is two short lines.
+- **R.** Propose a change is a Horizon disclosure: a chevron that rotates, `aria-expanded`, and a smooth grid-row height change (instant under reduced motion).
+- **S. The orbit** (`v2/GroupsOrbit.tsx`, `orbit.css`).
+  - A -10° dotted orbit with depth scale and fade; click, arrows, keys or swipe turn it with easing.
+  - The front body grows to its true size and density and assembles.
+  - Info panel, filters, counter and Open group. Top 3 are ranked.
+  - It only moves when the user acts; reduced motion jumps to the end.
+  - Live from `/v1/communities`, which already includes the 5 solo builders.
+- **T. Proof stats.**
+  - "0.027 ms, is what the check adds to a payment" sits above the line.
+  - Below it in red: 100% of scam payees kept below the line, "in our test of 207 attacks". The small row underneath holds scams paid and real invoices held.
+  - New Verify your business section: 4 reasons, 3 steps, and a Sheen button to `#/verify`.
+- **U. Latest proofs.**
+  - Each row is a button with `aria-expanded`, one open at a time.
+  - Opening a row shows a plain-English story from the row's data, the receipt line, the time and View transaction.
+  - The verdict column reads Paid in violet, or Refunded, Capped or Blocked in red. "<0.01 USDC" and ×n are kept.
+- **V. About** reads: why (two lines and a link to the explainer on Home), the seven steps, trust levels, the real decision, and who's behind it. The "How the money moves" and "Three layers" prose is cut. `#/how-it-works` and `#/demo` redirect to `#/about/steps` and scroll to the steps.
+- **W. Scroll trap fixed.** The cause is below. The sweep found only one other `overscroll-behavior` rule, horizontal-only, on the old GroupSpheres row; that row is no longer used, so it was removed. The orbit canvas uses `touch-action: pan-y` with no wheel handler. An e2e test wheels over the steps, stage, orbit, feed and code panel.
+- **X.** "See what happens" is Sheen. The stage sizes to its content, so the empty area is gone. It is still its own component (`Steps` in `HowItWorks.tsx`).
+- **Y. Developers picker.**
+  - "What are you building?" with three paths, one code panel with tabs, Copy and the highlighted one line, "What you get back" and "Also for this".
+  - All 8 real integrations are mapped to the three paths.
+  - `#/developers/ai|vendors|app` deep links; `#/connect` still redirects.
+
+**Skipped or changed from the spec**
+- **T, attack count:** the evidence has 207 attacks, not 250+ (159 written + 48 adversarial; the other 40 of 247 cases are real invoices). The page says "207 attacks" so the number is true.
+- **P vs the contract:** the cover-pool `MutualAction` enum has no withdraw-delay action (it is fixed at 7 days at deploy). It does still allow cover/uncover model and approve payout. The copy says "fees, coverage and the sell wait" as decided, but Propose a change can only offer tier fee and coverage. Someone should confirm the sell-wait claim, or add the action to the contract.
+- **O, "was" values:** these come from the previous executed proposal of the same kind, else the contract's starting values (2% / 1.5% / 1%, coverage 1x). A value changed outside governance, by a migration, would show the wrong "was".
+- **G, extras:** "Where your share came from" is not on the Balance page; the spec's list didn't include it. The price chart is kept below the rest.
+- **V, team section:** says "a team of four engineers… written with Claude Code… open source" with a link to the repo. I didn't put names on the site; tell me if you want them.
+- **E, phones:** the Balance half drops the word "Balance" under 600px (only the value shows), so the pill fits next to the logo and Menu at 390.
+- **S, gaps:**
+  - There is no public single-group page, so "Open group" opens the group's treasury on NearBlocks.
+  - Some far-side labels can touch a nearer sphere at certain angles.
+  - Swipe was not tested on a real phone.
+- **Proposed BRAND.md edit (not made):** in Typography, replace "code stays in Geist" with "code uses Azeret Mono (plain zero), via `--code`". In Motion, list the Home hero drift, the explainer, the orbit and the Sheen beam.
+
+**The scroll trap's cause**
+- `theme/ai.css` gave the steps stage, at 981px and up, `height:min(780px,calc(100vh - 120px)); overflow:auto; overscroll-behavior:contain`.
+- That made the stage its own scroll box even when its content didn't fill it.
+- `contain` then stopped every wheel event from chaining to the page, so the page wouldn't move with the pointer over the stage.
+- The fixed height was also the empty area under the content (X).
+- The stage is now just `position:sticky; top:96px`, sizing to its content.
+
+**Code font**
+- Azeret Mono (OFL, self-hosted `public/fonts/azeret-mono-variable.woff2`, `--code`), used only in code panels.
+- I rendered it next to the alternatives: DM Mono, Red Hat Mono, Geist Mono and Sometype slash their zero, Overpass Mono dots it, and Azeret's zero is a plain oval.
+- Numbers everywhere else stay Geist with `tabular-nums`, which has a plain zero.
+
+**Tests**
+- Web unit 164/164 at the time, typecheck clean, brand guard 7/7, production build OK.
+- e2e, Chromium (one worker, doubled timeouts), run during A22:
+  - A21's new and updated specs: a21, proofs, site, a11y, member. 55 passed and 3 Balance-page failures; all 3 fixed in `52f54d0`.
+  - iPhone spec: 11/11.
+- `testnet.spec.ts` and `screenshots.spec.ts` have updated selectors but were not run. The first needs the live chain; the second only makes screenshots.
+
+**Screenshots** `docs/screenshots/a21/`
+- 1440, 1920 and 390 (full page, reduced motion, live testnet data) for home, groups, proof, about, balance (connected as hyperios.testnet with the local test signer, read-only) and developers.
+- Plus `account-menu-1440.png`.
+
+**Commits**
+- `0684524` design refs, `da410a8` merge of main, `3142e3e`, `474b89f`, `4d55470`, `8edc243`, `b97db92`, `9d38c00`, `46bac73`, `9adf992`, `8ae8a3b`, `2d071c1`, `dcc2015` (e2e updates and screenshots).
+
 ## A21: real-product polish pass on apps/web (2026-11-11)
 
 On `alexander` only; main is untouched. Only `apps/web` changed: no route changes, no transactions, and nothing loops forever.
