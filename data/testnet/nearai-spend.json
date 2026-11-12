@@ -1,12 +1,12 @@
 {
-  "total_calls": 134,
+  "total_calls": 148,
   "hard_cap": 450,
   "current_key": "key_1",
   "key_1_spend": {
-    "calls": 134,
-    "prompt_tokens": 5968,
-    "completion_tokens": 18631,
-    "cost_usd": 0.024148
+    "calls": 148,
+    "prompt_tokens": 6601,
+    "completion_tokens": 20635,
+    "cost_usd": 0.026742
   },
   "key_2_spend": {
     "calls": 0,
@@ -14,7 +14,7 @@
     "completion_tokens": 0,
     "cost_usd": 0
   },
-  "last_call_at": "2026-11-10T21:04:30.678Z",
+  "last_call_at": "2026-11-11T15:05:05.730Z",
   "manual_checks": [
     {
       "at": "2026-11-10T10:53:00Z",
