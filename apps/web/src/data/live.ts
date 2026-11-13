@@ -73,6 +73,9 @@ export async function getLatestProof(): Promise<LiveProof | null> {
 
 export const LIVE_REFRESH_MS = 12_000;
 
+/** How long the hero waits before reading again after a failed read. */
+const RETRY_MS = 2_500;
+
 /** Polls both, every 12 seconds, while the page is open. A failed refresh keeps the last good values. */
 export function useLiveHero(intervalMs = LIVE_REFRESH_MS): { numbers: LiveNumbers | null; proof: LiveProof | null; error: unknown } {
   const [numbers, setNumbers] = useState<LiveNumbers | null>(null);
@@ -80,6 +83,7 @@ export function useLiveHero(intervalMs = LIVE_REFRESH_MS): { numbers: LiveNumber
   const [error, setError] = useState<unknown>(null);
   useEffect(() => {
     let live = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     const load = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       getLiveNumbers().then(
@@ -88,7 +92,13 @@ export function useLiveHero(intervalMs = LIVE_REFRESH_MS): { numbers: LiveNumber
           setNumbers((old) => (old && JSON.stringify(old) === JSON.stringify(n) ? old : n));
           setError(null);
         },
-        (e: unknown) => live && setError(e),
+        (e: unknown) => {
+          if (!live) return;
+          setError(e);
+          // A failed read is tried again soon, not a whole refresh interval later: the strip is the first thing on the page.
+          clearTimeout(retry);
+          retry = setTimeout(load, RETRY_MS);
+        },
       );
       getLatestProof().then(
         (p) => live && setProof((old) => (old?.key === p?.key ? old : p)),
@@ -100,6 +110,7 @@ export function useLiveHero(intervalMs = LIVE_REFRESH_MS): { numbers: LiveNumber
     return () => {
       live = false;
       clearInterval(timer);
+      clearTimeout(retry);
     };
   }, [intervalMs]);
   return { numbers, proof, error };
