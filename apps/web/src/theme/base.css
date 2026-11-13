@@ -24,6 +24,10 @@ h1,h2,h3{font-family:var(--font)}
 /* Page and tab transitions: seamless fade and gentle lift */
 .page-view{animation:pageFade .26s cubic-bezier(.16,1,.3,1) both;will-change:opacity,transform}
 @keyframes pageFade{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+::view-transition-old(root){animation:pageViewOld .22s cubic-bezier(.16,1,.3,1) both}
+::view-transition-new(root){animation:pageViewNew .22s cubic-bezier(.16,1,.3,1) both}
+@keyframes pageViewOld{0%{opacity:1}100%{opacity:0}}
+@keyframes pageViewNew{0%{opacity:0}100%{opacity:1}}
 .wrap{max-width:1280px;margin:0 auto;padding:0 40px}
 .nowrap{white-space:nowrap}
 .r{text-align:right}

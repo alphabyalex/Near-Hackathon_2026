@@ -59,7 +59,8 @@ export type MutualAction =
   | { type: "set_coverage_multiplier"; multiplier_bps: number }
   | { type: "cover_model"; model_id: string; signing_address: string }
   | { type: "uncover_model"; model_id: string }
-  | { type: "approve_payout"; claim_id: string };
+  | { type: "approve_payout"; claim_id: string }
+  | { type: "set_withdraw_delay_days"; days: number };
 
 export type MutualProposalStatus = "open" | "passed" | "rejected" | "executed";
 

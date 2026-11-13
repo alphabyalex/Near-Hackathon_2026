@@ -24,17 +24,23 @@ const pct = (n: number): string => (n === 0 ? "0" : n < 10 ? n.toFixed(1).replac
 const times = (bps: number): string => `${Number((bps / 10_000).toFixed(2))}x`;
 
 /** The cover pool contract's starting values (contracts/cover-pool new()), for a change with no earlier one. */
-const START = { fee: { bronze: 200, silver: 150, gold: 100 } as Record<Tier, number>, coverage: 10_000 };
+const START = { fee: { bronze: 200, silver: 150, gold: 100 } as Record<Tier, number>, coverage: 10_000, delay: 7 };
 
-/** The value a fee or coverage proposal changes, before it: the last executed change of the same kind, else the start. */
+/** The value a fee, coverage or delay proposal changes, before it: the last executed change of the same kind, else the start. */
 function before(p: MutualProposalView, all: MutualProposalView[]): number | null {
   const a = p.action;
-  if (a.type !== "set_fee_bps" && a.type !== "set_coverage_multiplier") return null;
+  if (a.type !== "set_fee_bps" && a.type !== "set_coverage_multiplier" && a.type !== "set_withdraw_delay_days") return null;
   const earlier = all
     .filter((q) => q.status === "executed" && q.id < p.id && q.action.type === a.type && (a.type !== "set_fee_bps" || (q.action.type === "set_fee_bps" && q.action.tier === a.tier)))
     .sort((x, y) => y.id - x.id)[0];
-  if (earlier) return earlier.action.type === "set_fee_bps" ? earlier.action.fee_bps : earlier.action.type === "set_coverage_multiplier" ? earlier.action.multiplier_bps : null;
-  return a.type === "set_fee_bps" ? START.fee[a.tier] : START.coverage;
+  if (earlier) {
+    if (earlier.action.type === "set_fee_bps") return earlier.action.fee_bps;
+    if (earlier.action.type === "set_coverage_multiplier") return earlier.action.multiplier_bps;
+    if (earlier.action.type === "set_withdraw_delay_days") return earlier.action.days;
+  }
+  if (a.type === "set_fee_bps") return START.fee[a.tier];
+  if (a.type === "set_coverage_multiplier") return START.coverage;
+  return START.delay;
 }
 
 /** Today's value, from the live tier rules when we have them. */
@@ -61,6 +67,12 @@ export function changeLine(p: MutualProposalView, all: MutualProposalView[], tie
     if (p.status === "rejected") return GOV.keptCoverage(times(now ?? was ?? a.multiplier_bps));
     return GOV.wouldCoverage(times(a.multiplier_bps), times(now ?? a.multiplier_bps));
   }
+  if (a.type === "set_withdraw_delay_days") {
+    const prev = was ?? 7;
+    if (p.status === "executed") return `Sell wait is now ${a.days} day${a.days === 1 ? "" : "s"}, was ${prev} day${prev === 1 ? "" : "s"}`;
+    if (p.status === "rejected") return `Sell wait was kept at ${prev} day${prev === 1 ? "" : "s"}`;
+    return `Sell wait would be ${a.days} day${a.days === 1 ? "" : "s"} instead of ${prev} day${prev === 1 ? "" : "s"}`;
+  }
   return describeAction(a);
 }
 
@@ -83,6 +95,8 @@ export function describeAction(a: MutualAction): string {
       return `Stop covering ${a.model_id}`;
     case "approve_payout":
       return `Pay claim ${a.claim_id}`;
+    case "set_withdraw_delay_days":
+      return `Set the sell wait to ${a.days} day${a.days === 1 ? "" : "s"}`;
   }
 }
 
@@ -214,7 +228,7 @@ export function Proposal({ p, voter, now, onChange, all = [p], tiers }: { p: Mut
   );
 }
 
-type Kind = "fee" | "coverage";
+type Kind = "fee" | "coverage" | "delay";
 
 /** "Propose a change": a Horizon disclosure (a chevron that turns, aria-expanded, smooth height). */
 function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }) {
@@ -229,8 +243,10 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
 
   const action = (): MutualAction | null => {
     const n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return kind === "fee" ? { type: "set_fee_bps", tier, fee_bps: Math.round(n * 100) } : { type: "set_coverage_multiplier", multiplier_bps: Math.round(n * 10_000) };
+    if (!Number.isFinite(n) || n < 0) return null;
+    if (kind === "fee") return { type: "set_fee_bps", tier, fee_bps: Math.round(n * 100) };
+    if (kind === "coverage") return { type: "set_coverage_multiplier", multiplier_bps: Math.round(n * 10_000) };
+    return { type: "set_withdraw_delay_days", days: Math.round(n) };
   };
 
   const submit = async () => {
@@ -264,9 +280,19 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
           <div className="propose-row">
             <label className="field compact">
               <span>{GOV.kind}</span>
-              <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
+              <select
+                value={kind}
+                onChange={(e) => {
+                  const k = e.target.value as Kind;
+                  setKind(k);
+                  if (k === "delay") setValue("14");
+                  else if (k === "coverage") setValue("1.0");
+                  else setValue("1.25");
+                }}
+              >
                 <option value="fee">{GOV.kinds.fee}</option>
                 <option value="coverage">{GOV.kinds.coverage}</option>
+                <option value="delay">Sell wait (days)</option>
               </select>
             </label>
             {kind === "fee" && (
@@ -282,8 +308,8 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
               </label>
             )}
             <label className="field compact">
-              <span>{kind === "fee" ? GOV.feePct : GOV.multiplier}</span>
-              <input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" />
+              <span>{kind === "delay" ? "Sell wait (days)" : kind === "fee" ? GOV.feePct : GOV.multiplier}</span>
+              <input value={value} onChange={(e) => setValue(e.target.value)} inputMode={kind === "delay" ? "numeric" : "decimal"} />
             </label>
             <button type="button" className="btn sm" disabled={busy || !voter.account.trim() || !voter.wallet} onClick={() => void submit()}>
               {GOV.propose}

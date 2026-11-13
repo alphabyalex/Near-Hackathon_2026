@@ -60,7 +60,9 @@ export function makeRpc(urls: readonly string[], timeoutMs = 15_000): Rpc {
           if (body.error) {
             const name = body.error.cause?.name ?? body.error.name ?? "RPC_ERROR";
             // A definite answer (unknown account, unknown transaction) is not retried.
-            throw Object.assign(new Error(`${method}: ${name}${body.error.data ? ` (${JSON.stringify(body.error.data).slice(0, 160)})` : ""}`), { rpcName: name, definite: true });
+            // TIMEOUT_ERROR and UNKNOWN_BLOCK mean this node does not observe historical blocks/txs, but an archival node does.
+            const definite = name !== "TIMEOUT_ERROR" && name !== "UNKNOWN_BLOCK";
+            throw Object.assign(new Error(`${method}: ${name}${body.error.data ? ` (${JSON.stringify(body.error.data).slice(0, 160)})` : ""}`), { rpcName: name, definite });
           }
           return body.result;
         } catch (error) {

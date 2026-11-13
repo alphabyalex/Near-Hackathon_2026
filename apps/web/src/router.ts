@@ -61,8 +61,20 @@ const toTop = (): void => window.scrollTo({ top: 0, behavior: "instant" });
 function publish(raw: string): void {
   const hash = redirect(raw);
   if (hash === current) return;
-  current = hash;
-  subscribers.forEach((notify) => notify());
+  const update = () => {
+    current = hash;
+    toTop();
+    subscribers.forEach((notify) => notify());
+  };
+  if (
+    typeof document !== "undefined" &&
+    typeof (document as unknown as { startViewTransition?: (cb: () => void) => void }).startViewTransition === "function" &&
+    !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  ) {
+    (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(update);
+  } else {
+    update();
+  }
 }
 
 /** Sets the route directly, so links still work where hashchange is blocked, such as an embedded preview. */
@@ -73,13 +85,10 @@ export function navigate(hash: string): void {
     // A sandboxed frame can refuse history writes. The route below still changes.
   }
   publish(hash);
-  toTop();
 }
 
 function fromLocation(): void {
-  const before = current;
   publish(window.location.hash);
-  if (current !== before) toTop();
 }
 
 function subscribe(notify: () => void): () => void {

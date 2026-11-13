@@ -12,9 +12,14 @@ export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const DATA_DIR = join(REPO_ROOT, "data/testnet");
 // .env first, so the RPC choice below sees it (the scheduled task starts with a bare environment).
 loadDotEnv();
-export const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
-/** RPC_URL may list several endpoints, comma-separated; requests fail over between them. */
-export const RPC_URLS = [...RPC_URL.split(",").map((u) => u.trim()).filter(Boolean), "https://rpc.testnet.near.org"];
+export const RPC_URL = process.env.WARDLINE_NEAR_RPC_URL ?? process.env.NEAR_RPC_URL ?? "https://archival-rpc.testnet.fastnear.com,https://test.rpc.fastnear.com";
+export const ARCHIVAL_URL = process.env.WARDLINE_NEAR_ARCHIVAL_RPC_URL ?? "https://archival-rpc.testnet.fastnear.com,https://archival-rpc.testnet.near.org";
+/** Fast archival endpoint first (knows both historical and recent blocks without timeouts), then fallbacks. */
+export const RPC_URLS = [
+  ...ARCHIVAL_URL.split(",").map((u) => u.trim()).filter(Boolean),
+  ...RPC_URL.split(",").map((u) => u.trim()).filter(Boolean),
+  "https://rpc.testnet.near.org",
+];
 export const DRY_RUN = process.argv.includes("--dry-run");
 
 /**

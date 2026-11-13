@@ -189,6 +189,8 @@ pub enum MutualAction {
     UncoverModel { model_id: String },
     #[serde(rename = "approve_payout")]
     ApprovePayout { claim_id: String },
+    #[serde(rename = "set_withdraw_delay_days")]
+    SetWithdrawDelay { days: u32 },
 }
 
 #[near(serializers = [json, borsh])]
@@ -1316,6 +1318,14 @@ impl CoverPoolContract {
             MutualAction::UncoverModel { model_id } => {
                 events::param_set(&format!("uncover_model_{}", model_id), "uncovered");
             }
+            MutualAction::SetWithdrawDelay { days } => {
+                require!(
+                    *days <= 90,
+                    "Withdraw delay out of bounds (0-90 days)"
+                );
+                self.withdraw_delay_days = *days;
+                events::param_set("withdraw_delay_days", &days.to_string());
+            }
         }
 
         self.proposals.insert(id, p.clone());
@@ -2252,6 +2262,99 @@ mod tests {
         let prop_id = pool.propose(
             "Crazy multiplier".to_string(),
             MutualAction::SetCoverageMultiplier { multiplier_bps: 50000 },
+        );
+        pool.vote(prop_id, "for".to_string());
+        pool.execute(prop_id);
+    }
+
+    #[test]
+    fn test_execute_set_withdraw_delay_proposal() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        let _ = pool.ft_on_transfer(alice.clone(), U128(10_000_000), "".to_string());
+
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Change withdraw delay to 14 days".to_string(),
+            MutualAction::SetWithdrawDelay { days: 14 },
+        );
+        pool.vote(prop_id, "for".to_string());
+        let view = pool.execute(prop_id);
+        assert_eq!(view.status, "executed");
+        assert_eq!(pool.get_pool().withdraw_delay_days, 14);
+    }
+
+    #[test]
+    #[should_panic(expected = "Withdraw delay out of bounds")]
+    fn test_execute_set_withdraw_delay_out_of_bounds() {
+        let owner: AccountId = "dao.testnet".parse().unwrap();
+        let token: AccountId = "usdc.testnet".parse().unwrap();
+        let alice: AccountId = "alice.testnet".parse().unwrap();
+
+        let context = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(owner.clone())
+            .build();
+        testing_env!(context);
+
+        let mut pool = CoverPoolContract::new(
+            owner.clone(),
+            token.clone(),
+            "wardline.testnet".parse().unwrap(),
+            U128(20_000_000),
+            Some(7),
+            None,
+            None,
+            None,
+            None,
+        );
+
+        let dep_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(token)
+            .build();
+        testing_env!(dep_ctx);
+        let _ = pool.ft_on_transfer(alice.clone(), U128(10_000_000), "".to_string());
+
+        let alice_ctx = VMContextBuilder::new()
+            .current_account_id("pool.testnet".parse().unwrap())
+            .predecessor_account_id(alice.clone())
+            .build();
+        testing_env!(alice_ctx);
+
+        let prop_id = pool.propose(
+            "Set delay to 100 days".to_string(),
+            MutualAction::SetWithdrawDelay { days: 100 },
         );
         pool.vote(prop_id, "for".to_string());
         pool.execute(prop_id);

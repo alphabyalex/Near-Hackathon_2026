@@ -4,6 +4,11 @@ Maintained by Tharun. All deliverables merged and reconciled into main.
 
 ## Milestones & Checklist
 
+- [x] **T5.0 Smooth page transitions, sell wait governance, and archival RPC audit resolution**:
+  - Integrated native View Transition API (`document.startViewTransition`) in router with smooth cross-fade styling in `base.css` and skeleton fallback fading in `App.tsx`.
+  - Implemented `SetWithdrawDelay { days: u32 }` governance action across Rust contract (`cover-pool`), vault client, API types, simulation engine, and web governance UI.
+  - Resolved historical transaction retrieval on pruned testnet RPC nodes by routing to archival RPC in `log.ts` and `chain-log.ts`.
+  - Verified full testnet audit: 225 of 225 rows and 26 of 26 accounts on chain with 0 misses.
 - [x] **T4.7b Make the testnet communities real**:
   - Found why: dry-run and simulate scripts previously wrote estimated numbers with `tx_` hex hashes (`tx_` plus 40 hex characters) when dry-run was active.
   - Purged fake rows and enforced that `data/testnet/activity.jsonl` only accepts rows verified from RPC via `ActivityWriter.record` and `rowFromChain`.
@@ -30,6 +35,36 @@ Maintained by Tharun. All deliverables merged and reconciled into main.
   - Executed full test suite re-run on clean macOS host: 100% of workspace tests passed (including all 252 API tests and previously timed-out demo simulations).
   - Executed full Playwright test suite: 53 of 53 desktop Chromium E2E tests and 12 of 12 mobile iPhone WebKit tests passed.
   - Enhanced WARD transaction parser (`services/api/src/activity/transactions.ts`): added standard `nep141` event logging extraction alongside `wardline`, and added `ft_transfer_call` to allowed pool methods for full receive and send confirmation coverage.
+
+## T5.0: Smooth Page Transitions, Sell Wait Governance, and Archival RPC Audit Resolution (2026-11-12)
+
+Rebased `tharun` cleanly on `origin/main` (`8acf28b`), fully incorporating Alexander's A18 to A22 deliverables. Resolved Alexander's governance note on cover pool withdraw delay, implemented page view cross-fade transitions, and fixed archival testnet audit verification.
+
+### 1. UI Page Transitions & Cross-Fades
+- Native View Transition API integration in [router.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/apps/web/src/router.ts): `publish` uses `document.startViewTransition` when available and when `prefers-reduced-motion` is not active, scrolling instantly to top inside the transition callback.
+- Clean root cross-fade animations in [base.css](file:///Users/tharunekambaram/Near-Hackathon_2026/apps/web/src/theme/base.css): added `::view-transition-old(root)` and `::view-transition-new(root)` keyframes with 0.22s cubic-bezier easing to work seamlessly with `.page-view` (0.26s opacity and subtle vertical translation).
+- Skeleton loading smoothness in [App.tsx](file:///Users/tharunekambaram/Near-Hackathon_2026/apps/web/src/App.tsx): attached `.page-view` class to `PageFallback` so asynchronous component loading avoids jarring layout snaps.
+
+### 2. On-Chain and Full-Stack Governance: Sell Wait (`SetWithdrawDelay`)
+- Addressed Alexander's note (A21 item P: "cover-pool MutualAction enum has no withdraw-delay action"):
+  - Added `SetWithdrawDelay { days: u32 }` variant to `MutualAction` in [lib.rs](file:///Users/tharunekambaram/Near-Hackathon_2026/contracts/cover-pool/src/lib.rs).
+  - Enforced safe bounds checking (`days <= 90`) and emitted `param_set("withdraw_delay_days", ...)` on execution.
+  - Added dedicated unit tests: `test_execute_set_withdraw_delay_proposal` and `test_execute_set_withdraw_delay_out_of_bounds` (27/27 contract unit tests passing).
+  - Updated vault client type definitions in [cover-pool.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/packages/vault-client/src/cover-pool.ts).
+  - Updated simulation engine and API route validation in [sim.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/services/api/src/chain/sim.ts), [types.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/services/api/src/chain/types.ts), and [ai-routes.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/services/api/src/ai-routes.ts).
+  - Extended web UI in [ai.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/apps/web/src/api/ai.ts) and [Governance.tsx](file:///Users/tharunekambaram/Near-Hackathon_2026/apps/web/src/views/site/Governance.tsx): `ProposeForm` dropdown now includes "Sell wait (days)", calculating dynamic "before" values, previous state baselines, and human-readable proposal line text.
+
+### 3. Testnet Audit Archival RPC Resolution
+- Fixed `definite: true` error handling in [log.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/services/api/src/activity/log.ts): regular testnet RPC nodes purge older blocks/receipts after approximately 5 epochs, returning `TIMEOUT_ERROR` or `UNKNOWN_BLOCK`. These errors are now recognized as non-definite and fail over to archival endpoints.
+- Prioritized FastNEAR archival endpoint (`https://archival-rpc.testnet.fastnear.com`) at top of RPC list in [chain-log.ts](file:///Users/tharunekambaram/Near-Hackathon_2026/scripts/testnet/chain-log.ts).
+- Verified `pnpm testnet:audit`: all 225 of 225 rows verified on chain, all 26 of 26 cast accounts verified on chain, with exactly 0 misses.
+
+### 4. Verification & Testing
+- Brand guard: 7 of 7 passed.
+- Rust contract tests: 92 of 92 tests passed across workspace.
+- Web unit tests: 170 of 170 tests passed.
+- API unit tests: 257 of 257 tests passed.
+- Zero em dashes across all code, tests, and documentation.
 
 ## Overnight Contract Hole Fixes and In-Place Testnet Upgrade (Nov 10, 2026)
 

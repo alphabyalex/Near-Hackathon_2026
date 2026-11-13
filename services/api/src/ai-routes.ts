@@ -87,6 +87,7 @@ export const MutualActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("cover_model"), model_id: z.string().min(3).max(120), signing_address: z.string().regex(/^0x[0-9a-fA-F]{40}$/) }),
   z.object({ type: z.literal("uncover_model"), model_id: z.string().min(3).max(120) }),
   z.object({ type: z.literal("approve_payout"), claim_id: z.string().regex(/^clm_[a-z0-9]{6,20}$/) }),
+  z.object({ type: z.literal("set_withdraw_delay_days"), days: z.number().int().min(0).max(90) }),
 ]);
 /** NEAR account ids: 2 to 64 characters of lowercase letters, digits, - _ and dots. */
 export const Account = z.string().min(2).max(64).regex(/^[a-z0-9._-]+$/, "Not a NEAR account id.");

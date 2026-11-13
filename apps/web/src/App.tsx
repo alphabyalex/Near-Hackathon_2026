@@ -20,7 +20,7 @@ const Verify = page(() => import("./views/site/Verify"), "Verify");
 /** While a page loads: its top section at the real size, so nothing jumps. */
 function PageFallback() {
   return (
-    <main aria-busy="true">
+    <main aria-busy="true" className="page-view">
       <section className="sec pagetop page-intro">
         <div className="wrap">
           <span className="skel skel-title" />

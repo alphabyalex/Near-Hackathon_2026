@@ -204,6 +204,7 @@ describe("the header's Joined control and account menu", () => {
   });
 
   it("Copy account name copies and says Copied; Disconnect is quiet and brings back Connect wallet", async () => {
+    mockConnector(async () => wallet("meteor-wallet"));
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     setConnected({ account: ACCOUNT, wallet: "near-connect", via: "meteor-wallet" });

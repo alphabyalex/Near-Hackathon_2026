@@ -291,6 +291,7 @@ export class SimPool implements CoverPoolClient {
   private readonly claimBudgets = new Map<string, string>();
   /** Per account: USDC put in, USDC taken out, and when it first joined. */
   private readonly ledger = new Map<string, { deposited: bigint; redeemed: bigint; joined: number }>();
+  private withdrawDelayDays: number;
   hooks: PoolHooks = {};
 
   constructor(
@@ -298,6 +299,7 @@ export class SimPool implements CoverPoolClient {
     private readonly now: Clock,
   ) {
     this.junior = big(seed.junior);
+    this.withdrawDelayDays = seed.withdraw_delay_days;
     this.mark("launch");
     for (const p of seed.positions) this.mint(p.account, big(p.amount));
   }
@@ -322,6 +324,10 @@ export class SimPool implements CoverPoolClient {
     return this.redemptions.filter((r) => r.account === account).reduce((n, r) => n + r.ward, 0n);
   }
 
+  setWithdrawDelayDays(days: number): void {
+    this.withdrawDelayDays = days;
+  }
+
   async getPool(): Promise<PoolView> {
     const tvl = this.junior + this.senior;
     return {
@@ -338,7 +344,7 @@ export class SimPool implements CoverPoolClient {
       fees_earned: this.fees.toString(),
       claims_paid: this.paid.toString(),
       coverage_capacity: ((tvl * BigInt(this.seed.max_claim_bps)) / 10_000n).toString(),
-      withdraw_delay_days: this.seed.withdraw_delay_days,
+      withdraw_delay_days: this.withdrawDelayDays,
       large_claim_threshold: this.seed.large_claim_threshold,
       trade_url: this.seed.trade_url ?? null,
     };
@@ -524,6 +530,9 @@ export function createSimMutual(args: { budgets: SimBudgetSeed[]; reputation?: S
         return args.registry.remove(action.model_id);
       case "approve_payout":
         await args.pool.payClaim(action.claim_id);
+        return;
+      case "set_withdraw_delay_days":
+        args.pool.setWithdrawDelayDays(action.days);
         return;
     }
   };
