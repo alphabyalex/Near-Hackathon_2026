@@ -1,5 +1,6 @@
 /** WARD-holder voting on the Mutual: tier fees and coverage, in plain English (old value to new). */
 import { useEffect, useId, useState } from "react";
+import { useInView } from "../../v2/motion";
 import type { MutualAction, MutualProposalView, Tier, TierRules } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { TxLink } from "../../components/TxLink";
@@ -105,11 +106,13 @@ function Progress({ p }: { p: MutualProposalView }) {
   const cast = pctOf((BigInt(p.votes_for) + BigInt(p.votes_against)).toString(), p.snapshot_supply);
   const need = pctOf(p.quorum, p.snapshot_supply);
   const fill = need > 0 ? Math.min(cast / need, 1) : 1;
+  // The bar fills in the first time it is on screen.
+  const [ref, seen] = useInView<HTMLDivElement>(0.5);
   return (
-    <div className="prop-progress">
+    <div className="prop-progress" ref={ref}>
       <p className="num">{GOV.progress(pct(need))}</p>
       <div className="prop-line" role="progressbar" aria-label={GOV.progressLabel(pct(cast), pct(need))} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fill * 100)}>
-        <i style={{ width: `${fill * 100}%` }} />
+        <i style={{ width: `${seen ? fill * 100 : 0}%` }} />
       </div>
       <p className="prop-split num">{GOV.split(pct(pctOf(p.votes_for, p.snapshot_supply)), pct(pctOf(p.votes_against, p.snapshot_supply)))}</p>
     </div>

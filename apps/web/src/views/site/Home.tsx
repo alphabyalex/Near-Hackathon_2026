@@ -1,13 +1,14 @@
 /** The Mutual, which is the home page: the hero, the line explained, the proof against scams, holding a share, voting and the safest groups. */
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import type { GroupSummary, MutualSummary } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { getMutual } from "../../data/mutual";
 import { HOME, REP } from "../../brand";
 import { Explainer, Outcomes } from "../../v2/Explainer";
 import { Hero } from "../../v2/Hero";
-import { prefersReducedMotion } from "../../v2/motion";
+import { prefersReducedMotion, useInView } from "../../v2/motion";
 import { useReveal } from "../../v2/reveal";
+import { sphereDots } from "../../v2/sphere";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { Governance } from "./Governance";
 import { CodeTabs } from "../../components/CodeTabs";
@@ -17,8 +18,9 @@ import { Comparison } from "./Comparison";
 
 const count = (n: number) => n.toLocaleString("en-US");
 
-/** For builders (N): the one-line plug-in, with its JavaScript, Python and curl versions. */
+/** For builders (N): the one-line plug-in, with its JavaScript, Python and curl versions. The code writes itself in line by line, then the one line lights up. */
 function Builders() {
+  const [ref, seen] = useInView<HTMLDivElement>(0.4);
   return (
     <section className="sec builders" aria-labelledby="builders-title">
       <div className="wrap builders-grid">
@@ -33,9 +35,23 @@ function Builders() {
             </a>
           </p>
         </div>
-        <CodeTabs tabs={pluginTabs()} label={HOME.builders.label} />
+        <div ref={ref} className="builders-code" data-inview={seen || undefined}>
+          <CodeTabs tabs={pluginTabs()} label={HOME.builders.label} />
+        </div>
       </div>
     </section>
+  );
+}
+
+/** The hero's sphere again, for the closing call: the same dot sizes, drawn as an SVG. */
+function CtaSphere() {
+  const dots = useMemo(() => sphereDots({ cx: 110, cy: 110, R: 92, step: 4.7, light: [-0.5, -0.58], floor: 0.2, gap: 4.1 }), []);
+  return (
+    <svg className="cta-sphere" viewBox="0 0 220 220" aria-hidden="true">
+      {dots.map((d) => (
+        <circle key={`${d.x}-${d.y}`} cx={d.x} cy={d.y} r={d.r} fill={d.fill} />
+      ))}
+    </svg>
   );
 }
 
@@ -61,8 +77,10 @@ export const SAFEST_MIN_CALLS = 10;
 
 export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?: number }) {
   const rows = limit ? groups.slice(0, limit) : groups;
+  const most = Math.max(1, ...rows.map((g) => g.proven_calls));
+  const [ref, seen] = useInView<HTMLDivElement>(0.35);
   return (
-    <div className="scrollx" role="region" aria-label={HOME.boardTitle} tabIndex={0}>
+    <div className="scrollx" role="region" aria-label={HOME.boardTitle} tabIndex={0} ref={ref} data-inview={seen || undefined}>
       <table className="tbl board" data-testid="leaderboard">
         <thead>
           <tr>
@@ -74,16 +92,25 @@ export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?:
           </tr>
         </thead>
         <tbody>
-          {rows.map((g) => (
-            <tr key={g.budget_id} data-budget={g.budget_id}>
+          {rows.map((g, i) => (
+            <tr key={g.budget_id} data-budget={g.budget_id} style={{ ["--i" as string]: i }}>
               <td>
+                <span className="rank" aria-hidden="true">
+                  {i + 1}
+                </span>
                 <b className="board-name">{g.name}</b>
-                <span className="ref acct">{g.owner}</span>
               </td>
               <td>
                 <TierBadge tier={g.tier} />
               </td>
-              <td className="num r">{count(g.proven_calls)}</td>
+              <td className="num r proven">
+                <span className="pwrap">
+                  <span className="pbar" aria-hidden="true">
+                    <i style={{ width: `${Math.max(3, Math.round((g.proven_calls / most) * 100))}%` }} />
+                  </span>
+                  <span className="pnum">{count(g.proven_calls)}</span>
+                </span>
+              </td>
               <td className="num r">{REP.claimCount(g.claims)}</td>
               <td className="num r">{feeText(g.fee_bps)}</td>
             </tr>
@@ -177,12 +204,15 @@ export function Home() {
       <Builders />
 
       <section className="sec cta" aria-labelledby="cta-title">
+        <div className="cta-art" aria-hidden="true">
+          <CtaSphere />
+          <span className="cta-line" />
+        </div>
         <div className="wrap cta-stack">
           <h2 className="h2" id="cta-title">
             {HOME.ctaTitle}
           </h2>
           <p className="lede">{HOME.ctaBody}</p>
-          <div className="cta-rule" aria-hidden="true" />
           <button type="button" className="btn" onClick={join} disabled={!m}>
             {HOME.primary}
           </button>

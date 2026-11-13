@@ -988,9 +988,12 @@ export const ME = {
 /** "Watch a payment cross the line" (Horizon v2), on the home page and the demo page. */
 export const EXPLAINER = {
   title: "Every payment lands on one side of the line",
-  sub: "Two payments, ten seconds apart",
+  sub: "Two payments, seven seconds apart",
   start: "Payment",
-  ring: "Proof check",
+  gates: ["Receipt", "Payee", "Budget"],
+  refundLabel: "Refunded to the budget",
+  poolLabel: "2% to the pool",
+  visual: { provider: "Provider 98%", pool: "Pool 2%", stays: "100% stays in the budget", stake: "Our stake first", holders: "Then WARD holders" },
   aboveLabel: "Above the line",
   belowLabel: "Below the line",
   outcomesTitle: "Where your money goes",

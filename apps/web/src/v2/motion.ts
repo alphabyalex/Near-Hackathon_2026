@@ -3,7 +3,7 @@
  * when the tab is hidden, and when finished. Under prefers-reduced-motion only the final frame is drawn.
  * Nothing here listens to the mouse.
  */
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 export const prefersReducedMotion = (): boolean => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
@@ -140,3 +140,29 @@ export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: 
 
 /** The element's CSS size, read where a draw needs it. */
 export const boxOf = (el: HTMLElement): { w: number; h: number } => ({ w: el.clientWidth || el.getBoundingClientRect().width, h: el.clientHeight || el.getBoundingClientRect().height });
+
+/**
+ * True once the element has been a third on screen, and stays true. Under prefers-reduced-motion, or without
+ * IntersectionObserver, it is true from the start, so a page that animates in on view is simply finished.
+ */
+export function useInView<T extends HTMLElement>(threshold = 0.3): [RefObject<T | null>, boolean] {
+  const ref = useRef<T>(null);
+  const [seen, setSeen] = useState(() => prefersReducedMotion() || typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    if (seen) return;
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setSeen(true);
+          io.disconnect();
+        }
+      },
+      { threshold },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [seen, threshold]);
+  return [ref, seen];
+}
