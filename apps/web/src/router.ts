@@ -68,10 +68,15 @@ function publish(raw: string): void {
   };
   if (
     typeof document !== "undefined" &&
-    typeof (document as unknown as { startViewTransition?: (cb: () => void) => void }).startViewTransition === "function" &&
+    typeof (document as unknown as { startViewTransition?: unknown }).startViewTransition === "function" &&
     !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   ) {
-    (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(update);
+    const transition = (document as unknown as { startViewTransition: (cb: () => void) => { ready: Promise<void>; finished: Promise<void>; updateCallbackDone: Promise<void> } }).startViewTransition(update);
+    // A newer navigation skips a transition still running; its promises then reject, which is not an error.
+    const quiet = () => undefined;
+    transition.ready.catch(quiet);
+    transition.finished.catch(quiet);
+    transition.updateCallbackDone.catch(quiet);
   } else {
     update();
   }

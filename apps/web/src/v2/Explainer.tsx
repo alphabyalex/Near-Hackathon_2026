@@ -86,10 +86,10 @@ interface Layout {
 }
 
 /** The diagram for a wide column. */
-export const WIDE: Layout = { w: 640, h: 500, cx: 320, cy: 260, ringR: 15, dotR: 7, startX: 44, gates: [150, 250, 350], label: 14, end1: [556, 100], pool: [556, 156], end2: [556, 420], bend: 80 };
+export const WIDE: Layout = { w: 640, h: 480, cx: 320, cy: 214, ringR: 15, dotR: 7, startX: 64, gates: [176, 268, 360], label: 14, end1: [568, 66], pool: [568, 122], end2: [568, 356], bend: 80 };
 
 /** The diagram for a phone. */
-export const NARROW: Layout = { w: 390, h: 340, cx: 195, cy: 170, ringR: 12, dotR: 6, startX: 26, gates: [96, 156, 216], label: 12, end1: [330, 56], pool: [330, 100], end2: [330, 284], bend: 46 };
+export const NARROW: Layout = { w: 390, h: 320, cx: 195, cy: 150, ringR: 12, dotR: 6, startX: 36, gates: [104, 164, 224], label: 12, end1: [336, 50], pool: [336, 92], end2: [336, 252], bend: 46 };
 
 /** Below this canvas width the phone diagram is used, scaled up to at most 1.4x. */
 export const NARROW_BELOW = 560;
@@ -135,7 +135,7 @@ function geometry(L: Layout) {
     gates,
     rise: { p0: gates[2], c1: r1, c2: r2, p3: L.end1 },
     drop: { p0: gates[0], c1: d1, c2: d2, p3: L.end2 },
-    refund: { p0: L.end2, c1: [L.end2[0] - 150, L.end2[1] + 64] as Pt, c2: [start[0] + 130, start[1] + 150] as Pt, p3: refundEnd },
+    refund: { p0: L.end2, c1: [L.end2[0] - 150 * (L.w / 640), L.end2[1] + L.h * 0.13] as Pt, c2: [start[0] + 130 * (L.w / 640), start[1] + L.h * 0.3] as Pt, p3: refundEnd },
   };
 }
 
@@ -173,7 +173,12 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
 
   // The line, drawn across in the first second.
   const p = easeInOut(t / T.line);
-  ctx.strokeStyle = "rgba(167,157,176,0.7)";
+  const grad = ctx.createLinearGradient(0, 0, L.w, 0);
+  grad.addColorStop(0, "rgba(167,157,176,0)");
+  grad.addColorStop(0.12, "rgba(167,157,176,0.7)");
+  grad.addColorStop(0.88, "rgba(167,157,176,0.7)");
+  grad.addColorStop(1, "rgba(167,157,176,0)");
+  ctx.strokeStyle = grad;
   ctx.lineWidth = 1.5;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -400,15 +405,13 @@ export function Explainer({ id = "watch", headingLevel = 2 }: { id?: string; hea
   return (
     <section className="sec explainer" id={id} aria-labelledby={`${id}-title`} tabIndex={-1}>
       <div className="wrap">
-        <div className="explainer-head">
-          <H className="h2" id={`${id}-title`}>
-            {EXPLAINER.title}
-          </H>
-          <p className="lede">{EXPLAINER.sub}</p>
-        </div>
-      </div>
-      <div className="wrap">
         <div className="watch" ref={host}>
+          <div className="explainer-head">
+            <H className="h2" id={`${id}-title`}>
+              {EXPLAINER.title}
+            </H>
+            <p className="lede">{EXPLAINER.sub}</p>
+          </div>
           <ol className="watch-steps">
             <li className="wstep one">
               <h3>{EXPLAINER.caption1}</h3>
@@ -470,7 +473,7 @@ function OutcomeVisual({ kind }: { kind: "paid" | "refunded" | "covered" }) {
   if (kind === "refunded")
     return (
       <div className="ovis">
-        <div className="obar back">
+        <div className="obar">
           <span className="oseg red" style={{ flexBasis: "100%" }} />
         </div>
         <p className="ocap">

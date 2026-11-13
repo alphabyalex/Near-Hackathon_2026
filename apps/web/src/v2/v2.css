@@ -58,12 +58,12 @@
 
 /* ---------- Watch a payment cross the line: the words on the left, the diagram on the right ---------- */
 .explainer:focus{outline:none}
-.explainer-head{max-width:720px;margin-bottom:56px}
+.explainer-head{grid-area:head;max-width:560px}
 .explainer-head .h2{margin-bottom:16px;max-width:none}
 .explainer-head .lede{margin:0}
-.watch{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);grid-template-areas:"steps visual" "close visual";align-items:center;column-gap:80px;row-gap:40px}
+.watch{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);grid-template-rows:auto auto auto;grid-template-areas:"head visual" "steps visual" "close visual";column-gap:80px;row-gap:48px}
 .watch-steps{grid-area:steps;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:56px}
-.watch-visual{grid-area:visual;min-width:0}
+.watch-visual{grid-area:visual;align-self:center;min-width:0}
 .explainer-stage{display:block;width:100%;height:500px}
 /* Each line is page text that switches on as the diagram reaches it (src/v2/Explainer.tsx syncSteps). */
 .wstep,.wchecks li,.wresult,.watch-close{opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease),transform .7s var(--ease)}
@@ -80,12 +80,13 @@
 .watch-close{grid-area:close;margin:0;font-size:24px;font-weight:700;letter-spacing:-0.03em}
 
 /* ---------- Where your money goes: a section of its own ---------- */
-.outcome-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:64px;margin-top:56px}
-.outcome h3{margin:0 0 14px;font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-0.03em}
+.outcome-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:56px}
+.outcome{display:flex;flex-direction:column;padding:36px 32px 40px;background:var(--surface-2);border:1px solid var(--rule);border-radius:24px}
+.outcome h3{margin:0 0 14px;font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-0.03em}
 .outcome.below h3{color:var(--red-text)}
-.outcome p{margin:0;max-width:36ch;font-size:18px;line-height:1.55;color:var(--text-2)}
+.outcome p{margin:0;max-width:34ch;font-size:17px;line-height:1.55;color:var(--text-2)}
 /* A small diagram of where the money goes, drawn in when the section scrolls into view. */
-.ovis{margin-bottom:32px}
+.ovis{height:88px;margin-bottom:28px}
 .obar{display:flex;gap:4px;height:44px}
 .oseg{display:block;min-width:6px;border-radius:8px;transform:scaleX(0);transform-origin:left;transition:transform 1.1s var(--ease) calc(var(--i, 0) * 160ms + 200ms)}
 [data-inview] .oseg{transform:none}
@@ -93,12 +94,12 @@
 .oseg.pool,.oseg.stake{background:var(--violet)}
 .oseg.ward{background:rgba(123,108,255,.34)}
 .oseg.red{background:var(--red-wash);box-shadow:inset 0 0 0 2px var(--red)}
-.outcome .ocap{display:flex;justify-content:space-between;gap:12px;max-width:none;margin:12px 0 0;font-size:14px;line-height:1.4;color:var(--muted)}
+.outcome .ocap{display:flex;justify-content:space-between;gap:12px;max-width:none;margin:14px 0 0;font-size:14px;line-height:1.4;color:var(--muted)}
 
 @media (max-width:900px){
-  .watch{grid-template-columns:minmax(0,1fr);grid-template-areas:"visual" "steps" "close";row-gap:40px}
-  .explainer-head{margin-bottom:36px}
-  .outcome-cols{grid-template-columns:minmax(0,1fr);gap:36px;margin-top:40px}
+  .watch{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"head" "visual" "steps" "close";row-gap:40px}
+  .outcome-cols{grid-template-columns:minmax(0,1fr);gap:16px;margin-top:40px}
+  .ovis{height:auto}
   .wstep h3{max-width:none}
 }
 
@@ -204,25 +205,25 @@
 [data-rv="out"]{opacity:0;transform:translate3d(0,28px,0)}
 [data-rv="in"]{opacity:1;transform:none;transition:opacity .9s var(--ease) var(--rv-d,0ms),transform 1s var(--ease) var(--rv-d,0ms)}
 
-/* The closing call: the brand sphere and its line again, so the page ends where it began. */
-.home .cta{position:relative;overflow:hidden;min-height:600px;padding:0;display:flex;align-items:center}
-.cta-art{position:absolute;inset:0;pointer-events:none}
-.cta-sphere{position:absolute;right:-110px;top:50%;width:680px;height:680px;transform:translateY(-50%)}
-.cta-line{position:absolute;top:50%;left:calc(100% - 230px - 620px);width:1240px;height:1.5px;background:linear-gradient(90deg,transparent,rgba(167,157,176,.75) 34%);transform:rotate(-10deg)}
-.home .cta .cta-stack{width:100%;position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding-top:120px;padding-bottom:120px}
-.cta-stack .h2{max-width:11ch;margin-bottom:24px}
-.cta-stack .lede{margin:0 0 40px;max-width:30ch}
-.cta-stack .btn{min-height:52px;padding:0 28px;font-size:16px}
+/* The closing call: the hero's sphere and line once more, centred with the copy as one composition. */
+.home .cta{position:relative;overflow:hidden;padding:0}
+.cta-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:48px;padding-top:128px;padding-bottom:128px}
+.cta-copy{position:relative;z-index:1}
+.cta-copy .h2{max-width:11ch;margin-bottom:24px}
+.cta-copy .lede{margin:0 0 40px;max-width:30ch}
+.cta-copy .btn{min-height:52px;padding:0 28px;font-size:16px}
+.cta-visual{position:relative;justify-self:center;width:min(460px,100%);aspect-ratio:1}
+.cta-sphere{display:block;width:100%;height:100%}
+/* The line starts left of the sphere and runs off to the right, as in the hero. */
+.cta-visual::before{content:"";position:absolute;top:50%;left:-16%;width:2000px;height:1.5px;background:linear-gradient(90deg,transparent,rgba(167,157,176,.75) 7%);transform:rotate(-10deg);transform-origin:16% 50%;pointer-events:none}
 
 /* The member card's mark crowds its title on a phone. */
 @media (max-width:560px){
   .home .sec.light{width:calc(100% - 20px);padding:72px 0;border-radius:28px}
   .home .sec.light + .sec{padding-top:80px}
   .home .sec{padding:80px 0}
-  .home .cta{min-height:0;display:block}
-  .cta-sphere{width:260px;height:260px;right:-50px;top:28px;transform:none}
-  .cta-line{top:158px;left:-20%;width:140%}
-  .home .cta .cta-stack{padding-top:340px;padding-bottom:88px}
+  .cta-grid{grid-template-columns:minmax(0,1fr);gap:24px;padding-top:72px;padding-bottom:88px}
+  .cta-visual{order:-1;width:min(300px,78%)}
 }
 
 /* ---------- Header: nav centred on the page, the active page sits on the rule ---------- */
@@ -262,33 +263,52 @@
 }
 
 /* ---------- Slides: alternating bands so each section reads as its own screen ---------- */
-.home .outcomes,.home .board-sec,.home .cta{--feather:220px;background:linear-gradient(180deg,var(--bg) 0,var(--surface) var(--feather),var(--surface) calc(100% - var(--feather)),var(--bg) 100%)}
+.home .outcomes,.home .community,.home .cta{--feather:220px;background:linear-gradient(180deg,var(--bg) 0,var(--surface) var(--feather),var(--surface) calc(100% - var(--feather)),var(--bg) 100%)}
 .home .outcomes{padding:160px 0}
-.home .board-sec{padding:160px 0}
+.home .community{padding:160px 0}
 .foot-id{display:flex;flex-direction:column;gap:14px}
 .foot-tag{margin:0;max-width:26ch;font-size:15px;line-height:1.5;color:var(--muted)}
 
-/* ---------- Governance on the home page: one bar, one line, one action per proposal ---------- */
-.home .gov .pstat.s-open,.home .gov .quiet{display:none}
-.home .gov .gov-h{margin-top:48px}
-.home .gov .prop{padding:30px 0;column-gap:72px;row-gap:6px;border-bottom-color:var(--rule)}
-.home .gov .prop-top{justify-content:flex-start;gap:16px}
-.home .gov .prop-top h3{font-size:20px;letter-spacing:-0.02em}
-.home .gov .prop-progress{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:baseline}
-.home .gov .prop-progress .prop-line{grid-column:1/-1;grid-row:1;margin:0;height:3px}
-.home .gov .prop-progress p{margin:0;font-size:14px;color:var(--muted)}
-.home .gov .prop-progress .prop-split{grid-column:1;grid-row:2;color:var(--text-2)}
-.home .gov .prop-progress > p:first-child{grid-column:2;grid-row:2}
-.home .gov .propose,.home .gov .decided-fold{margin-top:0;border-bottom-color:var(--rule)}
-
-.home .gov .prop-progress .prop-line i{transition:width 1.2s var(--ease) .15s}
-.home .gov .prop{transition:background-color .25s ease}
-.home .gov .props .prop:hover{background:linear-gradient(90deg,transparent,rgba(123,108,255,.05) 20%,rgba(123,108,255,.05) 80%,transparent)}
+/* ---------- Run by the people who hold it: the votes and the groups, side by side ---------- */
+.community .lede{margin-bottom:0}
+.community-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:72px;margin-top:72px;align-items:start}
+.col-h{margin:0 0 20px;font-size:22px;font-weight:700;letter-spacing:-0.02em}
+.voter-quiet{margin:-8px 0 12px;font-size:14px;color:var(--muted)}
+.community .gov .pstat.s-open,.community .gov .quiet{display:none}
+.community .gov .prop{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"top act" "what act" "prog prog" "when when" "msg msg";column-gap:28px;row-gap:6px;padding:28px 0;border-bottom:1px solid var(--rule);transition:background-color .25s ease}
+.community .gov .props .prop:first-child{padding-top:8px}
+.community .gov .prop-top{justify-content:flex-start;gap:14px}
+.community .gov .prop-top h3{font-size:19px;letter-spacing:-0.02em}
+.community .gov .prop-what{font-size:15px;color:var(--text-2)}
+.community .gov .prop-act{align-self:start;justify-content:flex-end}
+.community .gov .prop-progress{margin-top:12px}
+.community .gov .prop-progress > p:first-child{display:none}
+.community .gov .prop-progress .prop-line{margin:0 0 10px;height:3px}
+.community .gov .prop-progress .prop-line i{transition:width 1.2s var(--ease) .15s}
+.community .gov .prop-progress .prop-split{margin:0;font-size:13px;color:var(--text-2)}
+.community .gov .propose,.community .gov .decided-fold{margin-top:0;border-bottom-color:var(--rule)}
+.community .gov .propose:first-of-type{border-top:0}
 /* An open vote shows a live dot beside its clock. */
-.home .gov .prop[data-status="open"] .prop-when{display:flex;align-items:center;gap:8px;color:var(--violet-text)}
-.home .gov .prop[data-status="open"] .prop-when::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--violet);animation:livepulse 2s ease-in-out infinite}
+.community .gov .prop[data-status="open"] .prop-when{display:flex;align-items:center;gap:8px;color:var(--violet-text)}
+.community .gov .prop[data-status="open"] .prop-when::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--violet);animation:livepulse 2s ease-in-out infinite}
 @keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(123,108,255,.55)}60%{box-shadow:0 0 0 7px rgba(123,108,255,0)}}
-@media (prefers-reduced-motion:reduce){.home .gov .prop[data-status="open"] .prop-when::before{animation:none}}
+@media (prefers-reduced-motion:reduce){.community .gov .prop[data-status="open"] .prop-when::before{animation:none}}
+.community .board.compact th{padding-right:12px}
+.community .board.compact td{padding:20px 12px 20px 0}
+.community .board.compact td:first-child{white-space:nowrap}
+.community .pbar{width:44px}
+.community .pwrap{gap:14px}
+.community .more{margin-top:24px}
+@media (max-width:980px){
+  .community-grid{grid-template-columns:minmax(0,1fr);gap:72px;margin-top:56px}
+}
+@media (max-width:640px){
+  .community .board.compact td,.community .board.compact td:first-child{padding:0;white-space:normal}
+}
+@media (max-width:600px){
+  .community .gov .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg"}
+  .community .gov .prop-act{justify-content:flex-start;margin-top:8px}
+}
 
 /* ---------- Safest groups: a ranked list whose bars grow in ---------- */
 .board .rank{display:inline-block;width:28px;font-variant-numeric:tabular-nums;color:var(--muted);font-size:15px}
@@ -316,3 +336,13 @@
 @keyframes oneline{from{background:transparent;box-shadow:inset 2px 0 0 transparent}to{background:rgba(123,108,255,.14);box-shadow:inset 2px 0 0 var(--violet)}}
 .builders-code .ct-tag{opacity:0;transition:opacity .5s ease 1.6s}
 .builders-code[data-inview] .ct-tag{opacity:1}
+
+/* ---------- Blocks fade and lift away as they leave the top of the screen ----------
+   Scroll-driven, so only where the browser supports it; the effect uses `filter` and `translate`, which the
+   entrance (opacity and transform) never touches. Nothing is hidden for browsers without support or with reduced motion. */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()){
+    .home .sec > .wrap > *:not(.watch),.home .watch > *,.home .hero-copy,.home .hero-live{animation:exitfade linear both;animation-timeline:view();animation-range:exit 0% exit 85%}
+    @keyframes exitfade{from{filter:opacity(1);translate:0 0}to{filter:opacity(0);translate:0 -28px}}
+  }
+}

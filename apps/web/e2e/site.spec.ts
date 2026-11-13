@@ -304,7 +304,11 @@ test.describe("public site", () => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
     const gov = page.getByTestId("governance");
-    await expect(gov.getByRole("heading", { level: 2 })).toHaveText("WARD holders decide the risks");
+    // Votes and groups share one section; the votes sit in its left column.
+    await expect(page.getByRole("heading", { level: 2, name: "Run by the people who hold it" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 3, name: "Safest groups" })).toBeVisible();
+    // No connect row in the middle of the page.
+    await expect(gov.locator(".voter")).toHaveCount(0);
     // The record sits behind one click; the open votes are the news.
     await gov.getByRole("button", { name: /^Decided \(\d+\)/ }).click();
     // Each change in plain English, old value to new.
@@ -319,7 +323,11 @@ test.describe("public site", () => {
     await expect(mine.locator(".prop-progress")).toContainText(/Needs \d+(\.\d)?% of WARD to vote/);
     await expect(mine.getByRole("progressbar")).toBeVisible();
     await expect(mine.locator(".prop-when")).toHaveText(/^(\d+ days? \d+ hours? left|\d+ hours? \d+ min left|\d+ min left)$/);
-    await expect(mine.getByRole("button", { name: "Vote for" })).toBeDisabled();
+    // Without a wallet the vote button is the way in: it opens the wallet picker.
+    await mine.getByRole("button", { name: "Vote for" }).click();
+    await expect(page.getByTestId("connect-dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("connect-dialog")).toHaveCount(0);
     await connectWallet(page, OWNER_ACCOUNT);
     // The picker closes once the wallet connects.
     await expect(page.getByTestId("connect-dialog")).toHaveCount(0);

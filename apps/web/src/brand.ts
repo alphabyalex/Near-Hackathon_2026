@@ -110,8 +110,10 @@ export const HOME = {
     "Earn from every proven payment. WARD's price rises as the pool is used.",
     "Losses hit our stake first. You vote on fees, coverage and the sell wait.",
   ],
+  communityTitle: "Run by the people who hold it",
+  communityLede: "WARD holders vote on fees and coverage. Groups with a clean record pay less.",
+  votesTitle: "Open votes",
   boardTitle: "Safest groups",
-  boardLede: "A clean record moves a group up a tier: a lower fee and more coverage.",
   boardAll: "Every group and how tiers work",
   ctaTitle: "Back the AI economy and earn from it",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
@@ -1010,7 +1012,7 @@ export const EXPLAINER = {
   columns: [
     ["Proven, then paid", "NEAR's AI service signs every answer. If the signature matches the model you paid for, the money goes through and 2% goes to the pool.", "above"],
     ["Refused, then refunded", "A cheaper model, a look-alike company or a leaked key never gets paid. The money stays in the budget.", "below"],
-    ["Covered if we're ever wrong", "If Wardline approves something it shouldn't have, the pool pays it back, and our own stake pays first.", "above"],
+    ["Covered if we're wrong", "If Wardline approves something it shouldn't have, the pool pays it back, and our own stake pays first.", "above"],
   ],
 } as const;
 

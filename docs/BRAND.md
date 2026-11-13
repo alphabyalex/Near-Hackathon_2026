@@ -87,7 +87,11 @@ The first screen is the hero alone: it is at least as tall as the window (minus 
 
 Where an animation is a count or a bar, it plays once when it scrolls into view (`useInView` in `v2/motion.ts`) and is simply finished under reduced motion: the comparison's dots pop in one by one while the number counts up as each red dot lands, vote bars and the groups' proven-call bars fill, the money diagrams grow, and the builders' code writes itself in line by line before the one line lights up.
 
-The last section repeats the hero's sphere and line, so the page ends where it began.
+The last section repeats the hero's sphere and line, inside the same container as the copy and centred with it (the line starts left of the sphere and runs off to the right, as in the hero), so the page ends where it began.
+
+Votes and groups are one section, "Run by the people who hold it": the open votes on the left, the safest groups on the right, no connect-wallet row (a Vote button with no wallet opens the wallet picker itself). Keep it high level: a bar and one line per vote, a rank, a tier, a bar and a fee per group.
+
+Blocks also fade and lift away as they leave the top of the screen. It is scroll-driven (`animation-timeline: view()`), gated with `@supports` and `prefers-reduced-motion: no-preference`, and uses `filter` and `translate` so it never fights the entrance, which uses `opacity` and `transform`. Tall blocks are split into their parts so nothing still being read is dimmed.
 
 Motion that answers a person's action is also allowed: a dialog opening, a spinner while a wallet signs, demo results appearing row by row after "Run scene". Nothing follows the mouse.
 

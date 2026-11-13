@@ -124,7 +124,7 @@ export interface Voter {
   wallet: NearWalletId | null;
 }
 
-export function Proposal({ p, voter, now, onChange, all = [p], tiers }: { p: MutualProposalView; voter: Voter; now: number; onChange: () => void; all?: MutualProposalView[]; tiers?: TierRules }) {
+export function Proposal({ p, voter, now, onChange, all = [p], tiers, onConnect }: { p: MutualProposalView; voter: Voter; now: number; onChange: () => void; all?: MutualProposalView[]; tiers?: TierRules; onConnect?: () => void }) {
   const [weight, setWeight] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -184,6 +184,8 @@ export function Proposal({ p, voter, now, onChange, all = [p], tiers }: { p: Mut
   const left = timeLeft(p.closes_at, now);
   const decided = p.status === "executed" || p.status === "rejected";
   const canVote = p.status === "open" && account !== "" && voter.wallet !== null && weight !== null && weight !== "0";
+  // Where the page has no connect row of its own, the vote buttons are the way in: a click opens the wallet picker.
+  const asksWallet = onConnect !== undefined && (account === "" || voter.wallet === null);
   return (
     <article className="prop" data-status={p.status} data-proposal={p.id}>
       <div className="prop-top">
@@ -197,10 +199,10 @@ export function Proposal({ p, voter, now, onChange, all = [p], tiers }: { p: Mut
       <p className="prop-when num">{p.status === "open" ? (left ?? GOV.closed) : decided ? GOV.decidedOn(new Date(p.executed_at ?? p.closes_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })) : GOV.closed}</p>
       {p.status === "open" && (
         <div className="prop-act">
-          <button type="button" className="sbtn" disabled={!canVote || busy} onClick={() => void vote("for")}>
+          <button type="button" className="sbtn" disabled={asksWallet ? busy : !canVote || busy} onClick={() => (asksWallet ? onConnect?.() : void vote("for"))}>
             {GOV.voteFor}
           </button>
-          <button type="button" className="sbtn" disabled={!canVote || busy} onClick={() => void vote("against")}>
+          <button type="button" className="sbtn" disabled={asksWallet ? busy : !canVote || busy} onClick={() => (asksWallet ? onConnect?.() : void vote("against"))}>
             {GOV.voteAgainst}
           </button>
           {/* Why the buttons are off, right beside them. */}
@@ -341,29 +343,38 @@ export function Governance({ proposals, onChange, embedded = false, tiers, summa
   const decided = proposals.filter((p) => p.status === "rejected" || p.status === "executed");
   const voter = { account: connected?.account ?? "", wallet: connected?.wallet ?? null };
 
+  const connect = summary ? { onConnect: () => setConnecting(true) } : {};
   const body = (
     <>
-      <div className="voter">
-        {connected ? (
-          <span className="voter-as">
+      {summary ? (
+        connected && (
+          <p className="voter voter-quiet">
             {GOV.voteAs} <span className="acct">{connected.account}</span>
-          </span>
-        ) : (
-          <span className="voter-as muted">{summary ? GOV.voterNote : GOV.connectToVote}</span>
-        )}
-        <button type="button" className="btn ghost sm" onClick={() => setConnecting(true)}>
-          {connected ? GOV.changeWallet : GOV.connect}
-        </button>
-        {!(summary && !connected) && <small className="muted">{GOV.voterNote}</small>}
-      </div>
+          </p>
+        )
+      ) : (
+        <div className="voter">
+          {connected ? (
+            <span className="voter-as">
+              {GOV.voteAs} <span className="acct">{connected.account}</span>
+            </span>
+          ) : (
+            <span className="voter-as muted">{GOV.connectToVote}</span>
+          )}
+          <button type="button" className="btn ghost sm" onClick={() => setConnecting(true)}>
+            {connected ? GOV.changeWallet : GOV.connect}
+          </button>
+          <small className="muted">{GOV.voterNote}</small>
+        </div>
+      )}
       {connecting && <WalletPanel onClose={() => setConnecting(false)} />}
-      <h3 className="gov-h">{GOV.open}</h3>
+      {!summary && <h3 className="gov-h">{GOV.open}</h3>}
       {open.length === 0 ? (
         <p className="empty">{GOV.none}</p>
       ) : (
         <div className="props">
           {open.map((p) => (
-            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} />
+            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} {...connect} />
           ))}
         </div>
       )}
@@ -403,7 +414,7 @@ export function Governance({ proposals, onChange, embedded = false, tiers, summa
       )}
     </>
   );
-  if (embedded) return <div className="gov embedded" data-testid="governance">{body}</div>;
+  if (embedded) return <div className={summary ? "gov embedded summary" : "gov embedded"} data-testid="governance">{body}</div>;
   return (
     <section className={summary ? "sec gov summary" : "sec gov"} aria-labelledby="gov-title" data-testid="governance">
       <div className="wrap">

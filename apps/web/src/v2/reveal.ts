@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { prefersReducedMotion } from "./motion";
 
 /** What reveals: the direct children of every section's wrap. */
-const TARGETS = ".sec > .wrap > *, .sec > .cta-art";
+const TARGETS = ".sec > .wrap > *";
 const STAGGER_MS = 90;
 
 /** Reveal blocks in `root` as they scroll in. `watch` changes when new sections mount (data arriving). */

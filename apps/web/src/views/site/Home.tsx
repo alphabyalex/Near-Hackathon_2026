@@ -75,19 +75,19 @@ function HomeSkeleton() {
 /** Groups with fewer proven calls than this are left off Safest groups: too little record to rank. */
 export const SAFEST_MIN_CALLS = 10;
 
-export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?: number }) {
+export function Leaderboard({ groups, limit, compact = false }: { groups: GroupSummary[]; limit?: number; compact?: boolean }) {
   const rows = limit ? groups.slice(0, limit) : groups;
   const most = Math.max(1, ...rows.map((g) => g.proven_calls));
   const [ref, seen] = useInView<HTMLDivElement>(0.35);
   return (
     <div className="scrollx" role="region" aria-label={HOME.boardTitle} tabIndex={0} ref={ref} data-inview={seen || undefined}>
-      <table className="tbl board" data-testid="leaderboard">
+      <table className={compact ? "tbl board compact" : "tbl board"} data-testid="leaderboard">
         <thead>
           <tr>
             <th>{REP.col.group}</th>
             <th>{REP.col.tier}</th>
             <th className="r">{REP.col.proven}</th>
-            <th className="r">{REP.col.claims}</th>
+            {!compact && <th className="r">{REP.col.claims}</th>}
             <th className="r">{REP.col.fee}</th>
           </tr>
         </thead>
@@ -111,7 +111,7 @@ export function Leaderboard({ groups, limit }: { groups: GroupSummary[]; limit?:
                   <span className="pnum">{count(g.proven_calls)}</span>
                 </span>
               </td>
-              <td className="num r">{REP.claimCount(g.claims)}</td>
+              {!compact && <td className="num r">{REP.claimCount(g.claims)}</td>}
               <td className="num r">{feeText(g.fee_bps)}</td>
             </tr>
           ))}
@@ -181,22 +181,29 @@ export function Home() {
         </section>
       )}
 
-      {m && <Governance proposals={m.governance.proposals} onChange={refresh} tiers={m.tiers} summary />}
-
       {m && (
-        <section className="sec board-sec" aria-labelledby="board-title">
+        <section className="sec community" aria-labelledby="community-title">
           <div className="wrap">
-            <h2 className="h2" id="board-title">
-              {HOME.boardTitle}
+            <h2 className="h2" id="community-title">
+              {HOME.communityTitle}
             </h2>
-            <p className="lede">{HOME.boardLede}</p>
-            {/* A record needs at least 10 proven calls before it can rank as safe. */}
-            <Leaderboard groups={m.groups.filter((g) => g.proven_calls >= SAFEST_MIN_CALLS)} limit={5} />
-            <p className="more">
-              <a className="link" href="#/groups">
-                {HOME.boardAll}
-              </a>
-            </p>
+            <p className="lede">{HOME.communityLede}</p>
+          </div>
+          <div className="wrap community-grid">
+            <div className="votes">
+              <h3 className="col-h">{HOME.votesTitle}</h3>
+              <Governance proposals={m.governance.proposals} onChange={refresh} tiers={m.tiers} embedded summary />
+            </div>
+            <div className="groups">
+              <h3 className="col-h">{HOME.boardTitle}</h3>
+              {/* A record needs at least 10 proven calls before it can rank as safe. */}
+              <Leaderboard groups={m.groups.filter((g) => g.proven_calls >= SAFEST_MIN_CALLS)} limit={5} compact />
+              <p className="more">
+                <a className="link" href="#/groups">
+                  {HOME.boardAll}
+                </a>
+              </p>
+            </div>
           </div>
         </section>
       )}
@@ -204,18 +211,19 @@ export function Home() {
       <Builders />
 
       <section className="sec cta" aria-labelledby="cta-title">
-        <div className="cta-art" aria-hidden="true">
-          <CtaSphere />
-          <span className="cta-line" />
-        </div>
-        <div className="wrap cta-stack">
-          <h2 className="h2" id="cta-title">
-            {HOME.ctaTitle}
-          </h2>
-          <p className="lede">{HOME.ctaBody}</p>
-          <button type="button" className="btn" onClick={join} disabled={!m}>
-            {HOME.primary}
-          </button>
+        <div className="wrap cta-grid">
+          <div className="cta-copy">
+            <h2 className="h2" id="cta-title">
+              {HOME.ctaTitle}
+            </h2>
+            <p className="lede">{HOME.ctaBody}</p>
+            <button type="button" className="btn" onClick={join} disabled={!m}>
+              {HOME.primary}
+            </button>
+          </div>
+          <div className="cta-visual" aria-hidden="true">
+            <CtaSphere />
+          </div>
         </div>
       </section>
 
