@@ -57,12 +57,14 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
     if (query.outcome) items = items.filter((i) => eq(i.outcome, query.outcome!));
     if (query.side) items = items.filter((i) => eq(i.side, query.side!));
 
+    c.header("Cache-Control", "public, max-age=2, stale-while-revalidate=5");
     return c.json({ activity: items.slice(offset, offset + limit), total: items.length, limit, offset });
   });
 
   /** GET /v1/activity/stats: totals from chain views (pool, claims, reputations). */
   app.get("/v1/activity/stats", async (c) => {
     try {
+      c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
       return c.json(await store.getStats());
     } catch (err) {
       return failed(c, "compute activity stats", err);
@@ -72,6 +74,7 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
   /** GET /v1/communities: every budget's reputation and treasury, from the meter. */
   app.get("/v1/communities", async (c) => {
     try {
+      c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
       return c.json({ communities: await store.getCommunities() });
     } catch (err) {
       return failed(c, "list communities", err);
@@ -84,6 +87,7 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
     try {
       const res = await store.getCommunity(id);
       if (!res.community) return c.json({ error: "Community not found", id }, 404);
+      c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
       return c.json(res);
     } catch (err) {
       return failed(c, "get community", err);
@@ -102,6 +106,7 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
     try {
       const pending = (c.req.query("pending") ?? "").split(",").filter((h) => /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(h)).slice(0, 10);
       const view = await accountTxs.get(parsed.data, pending);
+      c.header("Cache-Control", "public, max-age=3, stale-while-revalidate=5");
       return c.json({ ...view, totals: totals(view.transactions) });
     } catch (err) {
       return failed(c, "list transactions", err);
@@ -113,6 +118,7 @@ export function registerActivityRoutes(app: Hono, deps: Deps, env: Record<string
     const parsed = AccountSchema.safeParse(c.req.param("account"));
     if (!parsed.success) return c.json({ error: "Invalid NEAR account id", detail: parsed.error.issues[0]?.message }, 400);
     try {
+      c.header("Cache-Control", "public, max-age=3, stale-while-revalidate=5");
       return c.json(await store.getPerson(parsed.data));
     } catch (err) {
       return failed(c, "get person profile", err);

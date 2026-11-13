@@ -340,18 +340,23 @@ export class AccountTransactions {
       const all = await this.o.indexer.list(account);
       if (all.truncated) complete = false;
       const listed = all.filter((t) => touchesWardline(t, this.o.contracts));
+      const unconfirmed = listed.filter((t) => !this.confirmed.has(t.hash) || this.confirmed.get(t.hash) === null);
+      const concurrency = 6;
+      for (let i = 0; i < unconfirmed.length; i += concurrency) {
+        const batch = unconfirmed.slice(i, i + concurrency);
+        await Promise.all(
+          batch.map(async (t) => {
+            const read = await confirmTx(this.o.rpc, t, account, this.o.contracts, this.o.archival);
+            if (read === UNREADABLE) {
+              complete = false;
+            } else {
+              this.confirmed.set(t.hash, read);
+            }
+          }),
+        );
+      }
       chain = [];
       for (const t of listed) {
-        // A confirmed transaction never changes, so each hash is read from the RPC once.
-        if (!this.confirmed.has(t.hash) || this.confirmed.get(t.hash) === null) {
-          const read = await confirmTx(this.o.rpc, t, account, this.o.contracts, this.o.archival);
-          // One we couldn't read at all is tried again next time, and the list says it may be missing rows.
-          if (read === UNREADABLE) {
-            complete = false;
-            continue;
-          }
-          this.confirmed.set(t.hash, read);
-        }
         const row = this.confirmed.get(t.hash);
         if (row) chain.push(row);
       }

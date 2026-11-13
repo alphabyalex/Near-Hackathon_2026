@@ -129,20 +129,41 @@ export function isChainOutage(error: unknown): boolean {
 export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   const nowMs = () => Number(deps.now() / 1_000_000n);
   const pool = deps.ai.chain.pool;
+  const chain = deps.ai.chain;
+
+  const aiCache = new Map<string, { at: number; value: Promise<unknown> }>();
+  const cachedAi = <T>(key: string, ttlMs: number, load: () => Promise<T>): Promise<T> => {
+    if (chain.mode !== "near") return load();
+    const hit = aiCache.get(key);
+    if (hit && Date.now() - hit.at < ttlMs) return hit.value as Promise<T>;
+    const value = load();
+    aiCache.set(key, { at: Date.now(), value });
+    value.catch(() => aiCache.delete(key));
+    return value;
+  };
 
   // Which TEE signer is attested for which model. In near mode this mirrors the model registry contract.
-  app.get("/v1/ai-registry", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.registry, models: await deps.ai.chain.registry.listModels() }));
+  app.get("/v1/ai-registry", async (c) => {
+    c.header("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    const data = await cachedAi("registry", 30_000, async () => ({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.registry, models: await deps.ai.chain.registry.listModels() }));
+    return c.json(data);
+  });
 
   // token: the USDC contract a wallet sends ft_transfer_call to, with the pool as receiver.
-  app.get("/v1/pool", async (c) => c.json({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, token: deps.ai.contracts.token, pool: await pool.getPool(), claims: await pool.listClaims() }));
+  app.get("/v1/pool", async (c) => {
+    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    const data = await cachedAi("pool", 5_000, async () => ({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, token: deps.ai.contracts.token, pool: await pool.getPool(), claims: await pool.listClaims() }));
+    return c.json(data);
+  });
 
   app.get("/v1/pool/positions/:account", async (c) => {
     const account = Account.safeParse(c.req.param("account"));
     if (!account.success) return c.json(badParam("NEAR account id"), 400);
-    return c.json(await pool.getPosition(account.data));
+    c.header("Cache-Control", "public, max-age=3, stale-while-revalidate=5");
+    const pos = await cachedAi(`pos:${account.data}`, 4_000, () => pool.getPosition(account.data));
+    return c.json(pos);
   });
 
-  const chain = deps.ai.chain;
   const groups = async () => {
     const reps = await chain.reputation.listReputations();
     return Promise.all(
@@ -187,45 +208,68 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
         proofs.push({ ...row, tx: null, group: names.get(row.budget_id) ?? row.budget_id, side: row.status === "verified" ? "above" : "below", created_at: new Date(nowMs() - minutes_ago * 60_000).toISOString() });
       }
     }
+    c.header("Cache-Control", "public, max-age=2, stale-while-revalidate=5");
     return c.json({ mode: chain.mode, proofs });
   });
 
   // Everything the Mutual home page shows, in one call.
   app.get("/v1/mutual", async (c) => {
-    const [poolView, claims, list, proposals, tiers, params] = await Promise.all([pool.getPool(), pool.listClaims(), groups(), chain.governance.listProposals(), chain.reputation.tierRules(), chain.governance.params()]);
-    return c.json({
-      mode: chain.mode,
-      // sim, or near: reputation and voting read from the meter and pool contracts (T4.6).
-      mutual_mode: chain.governance.mode,
-      contract: deps.ai.contracts.pool,
-      min_deposit: MIN_DEPOSIT_ATOMIC.toString(),
-      pool: poolView,
-      claims,
-      stats: await mutualStats(chain, await flaggedNow()),
-      groups: list,
-      tiers,
-      governance: { ...params, proposals },
+    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    const data = await cachedAi("mutual", 5_000, async () => {
+      const [poolView, claims, list, proposals, tiers, params] = await Promise.all([
+        pool.getPool(),
+        pool.listClaims(),
+        groups(),
+        chain.governance.listProposals(),
+        chain.reputation.tierRules(),
+        chain.governance.params(),
+      ]);
+      return {
+        mode: chain.mode,
+        // sim, or near: reputation and voting read from the meter and pool contracts (T4.6).
+        mutual_mode: chain.governance.mode,
+        contract: deps.ai.contracts.pool,
+        min_deposit: MIN_DEPOSIT_ATOMIC.toString(),
+        pool: poolView,
+        claims,
+        stats: await mutualStats(chain, await flaggedNow()),
+        groups: list,
+        tiers,
+        governance: { ...params, proposals },
+      };
     });
+    return c.json(data);
   });
 
-  app.get("/v1/groups", async (c) => c.json({ mode: chain.reputation.mode, groups: await groups(), tiers: await chain.reputation.tierRules() }));
+  app.get("/v1/groups", async (c) => {
+    c.header("Cache-Control", "public, max-age=10, stale-while-revalidate=15");
+    const data = await cachedAi("groups", 10_000, async () => ({ mode: chain.reputation.mode, groups: await groups(), tiers: await chain.reputation.tierRules() }));
+    return c.json(data);
+  });
 
   // get_reputation(budget_id)
   app.get("/v1/reputation/:budget", async (c) => {
     const budget = BudgetId.safeParse(c.req.param("budget"));
     if (!budget.success) return c.json(badParam("budget id"), 400);
-    const r = await chain.reputation.getReputation(budget.data);
+    c.header("Cache-Control", "public, max-age=10, stale-while-revalidate=15");
+    const r = await cachedAi(`rep:${budget.data}`, 10_000, () => chain.reputation.getReputation(budget.data));
     return r ? c.json(r) : c.json({ error: "NOT_FOUND", message: "No group with that budget." }, 404);
   });
 
-  app.get("/v1/mutual/proposals", async (c) => c.json({ mode: chain.governance.mode, ...(await chain.governance.params()), proposals: await chain.governance.listProposals() }));
+  app.get("/v1/mutual/proposals", async (c) => {
+    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    const data = await cachedAi("proposals", 5_000, async () => ({ mode: chain.governance.mode, ...(await chain.governance.params()), proposals: await chain.governance.listProposals() }));
+    return c.json(data);
+  });
 
   app.get("/v1/mutual/proposals/:id/weight/:account", async (c) => {
     const id = ProposalId.safeParse(c.req.param("id"));
     const account = Account.safeParse(c.req.param("account"));
     if (!id.success || !account.success) return c.json(badParam("proposal id or account"), 400);
     if (!(await chain.governance.getProposal(id.data))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
-    return c.json({ id: id.data, account: account.data, weight: await chain.governance.weightOf(id.data, account.data) });
+    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    const weight = await cachedAi(`weight:${id.data}:${account.data}`, 10_000, () => chain.governance.weightOf(id.data, account.data));
+    return c.json({ id: id.data, account: account.data, weight });
   });
 
   // Anyone can execute a passed proposal. It runs once.
@@ -235,7 +279,9 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     const id = parsed.data;
     if (!(await chain.governance.getProposal(id))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
     try {
-      return c.json({ proposal: await chain.governance.execute(id) });
+      const res = await chain.governance.execute(id);
+      aiCache.clear();
+      return c.json({ proposal: res });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Execution refused.";
       return c.json({ error: refusalCode(message), message }, 409);
@@ -279,6 +325,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     if (reason) return c.json({ error: "REFUSED", message: reason }, 401);
     const req = JSON.parse(challenge.message.slice("wardline-mutual:v1:".length)) as PoolRequest;
     try {
+      aiCache.clear();
       if (req.action === "deposit") return c.json({ action: "deposit", ...(await pool.deposit(req.account, req.amount)), position: await pool.getPosition(req.account) });
       if (req.action === "redeem") return c.json({ action: "redeem", ...(await pool.redeem(req.account, req.id)), position: await pool.getPosition(req.account) });
       if (req.action === "vote") return c.json({ action: "vote", proposal: await chain.governance.vote({ id: req.id, voter: req.account, support: req.support }) });

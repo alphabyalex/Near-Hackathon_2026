@@ -1,3 +1,4 @@
+import { existsSync, statSync } from "node:fs";
 import type { Deps } from "../service.js";
 import { activityPaths, auditedRows, readIfExists, type ActivityRow } from "./log.js";
 import type { ActivityItem, ActivityStats, CommunitySummary, MemberVote, PersonView } from "./types.js";
@@ -40,6 +41,7 @@ const CACHE_MS = 10_000;
 
 export class ActivityStore {
   private readonly cache = new Map<string, { at: number; value: Promise<unknown> }>();
+  private logCache: { mtimeLog: number; sizeLog: number; mtimeAudit: number; rows: ActivityItem[] } | null = null;
 
   constructor(
     private readonly deps: Deps,
@@ -59,9 +61,36 @@ export class ActivityStore {
   /** Audited rows, newest first. In near mode an unaudited log throws ActivityNotAudited. */
   readLog(): ActivityItem[] {
     const paths = activityPaths(this.env);
+    let mtimeLog = 0;
+    let sizeLog = 0;
+    let mtimeAudit = 0;
+    try {
+      if (existsSync(paths.log)) {
+        const s = statSync(paths.log);
+        mtimeLog = s.mtimeMs;
+        sizeLog = s.size;
+      }
+      if (existsSync(paths.audit)) {
+        mtimeAudit = statSync(paths.audit).mtimeMs;
+      }
+    } catch {
+      // stat failed, proceed to read directly
+    }
+
+    if (
+      this.logCache &&
+      this.logCache.mtimeLog === mtimeLog &&
+      this.logCache.sizeLog === sizeLog &&
+      this.logCache.mtimeAudit === mtimeAudit
+    ) {
+      return this.logCache.rows;
+    }
+
     const read = auditedRows(readIfExists(paths.log), readIfExists(paths.audit));
     if (!read.audited && this.deps.ai.chain.mode === "near") throw new ActivityNotAudited(read.reason ?? "The activity log has not passed an audit.");
-    return read.rows.map(toItem).sort((a, b) => b.at.localeCompare(a.at) || b.block_height - a.block_height);
+    const rows = read.rows.map(toItem).sort((a, b) => b.at.localeCompare(a.at) || b.block_height - a.block_height);
+    this.logCache = { mtimeLog, sizeLog, mtimeAudit, rows };
+    return rows;
   }
 
   async getStats(): Promise<ActivityStats> {
@@ -102,9 +131,7 @@ export class ActivityStore {
   async getCommunities(): Promise<CommunitySummary[]> {
     return this.cached("communities", async () => {
       const reputations = await this.deps.ai.chain.reputation.listReputations();
-      const summaries: CommunitySummary[] = [];
-      for (const r of reputations) summaries.push(await this.summary(r));
-      return summaries;
+      return Promise.all(reputations.map((r) => this.summary(r)));
     });
   }
 
@@ -148,40 +175,46 @@ export class ActivityStore {
   }
 
   async getPerson(account: string): Promise<PersonView> {
-    const chain = this.deps.ai.chain;
-    const [pool, position, claims, governance, params] = await Promise.all([
-      chain.pool.getPool(),
-      chain.pool.getPosition(account),
-      chain.pool.listClaims(),
-      chain.governance.listProposals(),
-      chain.governance.params(),
-    ]);
+    return this.cached(`person:${account}`, async () => {
+      const chain = this.deps.ai.chain;
+      const [pool, position, claims, governance, params] = await Promise.all([
+        chain.pool.getPool(),
+        chain.pool.getPosition(account),
+        chain.pool.listClaims(),
+        chain.governance.listProposals(),
+        chain.governance.params(),
+      ]);
 
-    const openProposals = governance.filter((p) => p.status === "open");
-    const weights: Record<number, string> = {};
-    for (const p of openProposals) weights[p.id] = await chain.governance.weightOf(p.id, account);
+      const openProposals = governance.filter((p) => p.status === "open");
+      const weights: Record<number, string> = {};
+      const weightPairs = await Promise.all(openProposals.map(async (p) => [p.id, await chain.governance.weightOf(p.id, account)] as const));
+      for (const [id, w] of weightPairs) weights[id] = w;
 
-    const memberVotes: MemberVote[] = [];
-    if (chain.governance.voteOf) {
-      for (const p of governance) {
-        const v = await chain.governance.voteOf(p.id, account);
-        if (v) memberVotes.push({ id: p.id, support: v.support, weight: v.weight });
+      const memberVotes: MemberVote[] = [];
+      if (chain.governance.voteOf) {
+        const votes = await Promise.all(
+          governance.map(async (p) => {
+            const v = await chain.governance.voteOf!(p.id, account);
+            return v ? { id: p.id, support: v.support, weight: v.weight } : null;
+          }),
+        );
+        for (const v of votes) if (v) memberVotes.push(v);
       }
-    }
 
-    return {
-      account,
-      // The position is the pool's own record. Logged deposits are history, not a second source.
-      position,
-      mutual: {
-        pool,
-        claims,
-        governance: { proposals: governance, voting_period_days: params.voting_days, vote_threshold_bps: params.quorum_bps, quorum_bps: params.quorum_bps, timelock_days: 0 },
-      },
-      votes: memberVotes,
-      weights,
-      open: openProposals,
-      history: this.readLog().filter((i) => i.actor === account).slice(0, 50),
-    };
+      return {
+        account,
+        // The position is the pool's own record. Logged deposits are history, not a second source.
+        position,
+        mutual: {
+          pool,
+          claims,
+          governance: { proposals: governance, voting_period_days: params.voting_days, vote_threshold_bps: params.quorum_bps, quorum_bps: params.quorum_bps, timelock_days: 0 },
+        },
+        votes: memberVotes,
+        weights,
+        open: openProposals,
+        history: this.readLog().filter((i) => i.actor === account).slice(0, 50),
+      };
+    });
   }
 }
