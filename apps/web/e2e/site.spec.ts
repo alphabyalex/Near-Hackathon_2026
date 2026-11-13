@@ -50,17 +50,10 @@ test.describe("public site", () => {
     await expect(page.locator(".live-label")).toHaveCount(0);
     // No network badge outside the wallet panel.
     await expect(page.locator("footer")).not.toContainText("testnet");
-    // Every payment, counted: the two sides laid out on the line, each with its real count.
-    await expect(page.getByRole("heading", { level: 2, name: "Every payment, counted." })).toBeVisible();
-    const sides = page.getByTestId("sides");
-    await expect(sides.locator(".ls-good .ls-label")).toHaveText("Above the line");
-    await expect(sides.locator(".ls-good .ls-num")).toHaveText(/^\d[\d,]*$/);
-    await expect(sides.locator(".ls-good .ls-note")).toHaveText("proven and paid");
-    await expect(sides.locator(".ls-bad .ls-label")).toHaveText("Below the line");
-    await expect(sides.locator(".ls-bad .ls-num")).toHaveText(/^\d[\d,]*$/);
-    await expect(sides.locator(".ls-bad .ls-sub")).toHaveText(/^\d+ swapped models, \d+ look-alike payees, \d+ leaked keys$/);
+    // The hero strip already counts both sides, so the page does not count them a second time.
+    await expect(page.getByRole("heading", { level: 2, name: "Every payment, counted." })).toHaveCount(0);
     // The agent alone against the agent with Wardline, on the same 20 scams.
-    await expect(page.getByRole("heading", { level: 2, name: "Without Wardline, the agent paid 5 of 20 scams. With it, none." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Without Wardline, the agent paid 5 of 20 scams. With it, none" })).toBeVisible();
     const cmp = page.getByTestId("comparison");
     await expect(cmp.locator(".ls-good .ls-num")).toHaveText("0");
     await expect(cmp.locator(".ls-bad .ls-num")).toHaveText("5");
@@ -88,6 +81,29 @@ test.describe("public site", () => {
     await expect(page.locator("#watch")).toBeFocused();
     await page.getByLabel("Wardline home").first().click();
     await expect(page).toHaveURL(/#\/$/);
+  });
+
+  test("home: blocks fade in as they scroll into view, and nothing is hidden under reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#/");
+    await expect(page.getByTestId("leaderboard")).toBeVisible();
+    await expect(page.locator("[data-rv]")).toHaveCount(0);
+
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.reload();
+    await expect(page.getByTestId("leaderboard")).toHaveCount(1);
+    // Below the fold at load: waiting, not yet shown.
+    await expect(page.locator('.cta .wrap > *[data-rv="out"]').first()).toBeAttached();
+    await page.locator(".cta").scrollIntoViewIfNeeded();
+    // Scroll down the way a person does; each block settles as it arrives.
+    for (let y = 0; y < 8000; y += 350) {
+      await page.evaluate((to) => window.scrollTo(0, to), y);
+      await page.waitForTimeout(60);
+    }
+    // Once in view every block settles back to its own styles: no leftover hidden state.
+    await expect(page.locator("[data-rv]")).toHaveCount(0, { timeout: 8_000 });
+    await expect(page.getByRole("heading", { level: 2, name: "Back the AI economy and earn from it" })).toBeVisible();
+    await expect(page.locator(".cta").getByRole("button", { name: "Become a member" })).toBeVisible();
   });
 
   test("hero: the final frame under reduced motion; otherwise the entrance, then a slow drift that stops off screen", async ({ page }) => {
@@ -288,7 +304,9 @@ test.describe("public site", () => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
     const gov = page.getByTestId("governance");
-    await expect(gov.getByRole("heading", { level: 2 })).toHaveText("WARD holders decide the risks.");
+    await expect(gov.getByRole("heading", { level: 2 })).toHaveText("WARD holders decide the risks");
+    // The record sits behind one click; the open votes are the news.
+    await gov.getByRole("button", { name: /^Decided \(\d+\)/ }).click();
     // Each change in plain English, old value to new.
     const executed = gov.locator('.prop[data-status="executed"]', { hasText: "Set the Gold fee to 1.00%" });
     await expect(executed.getByTestId("prop-change")).toHaveText(/^Gold fee is now 1\.00%, was \d\.\d\d%$/);
@@ -322,7 +340,7 @@ test.describe("public site", () => {
     await expect(propose).toHaveAttribute("aria-expanded", "false");
     await propose.click();
     await expect(propose).toHaveAttribute("aria-expanded", "true");
-    await expect(gov.locator(".propose select").first().locator("option")).toHaveText(["Fee for a tier", "Coverage for every tier"]);
+    await expect(gov.locator(".propose select").first().locator("option")).toHaveText(["Fee for a tier", "Coverage for every tier", "Sell wait (days)"]);
 
     const passed = gov.locator('.prop[data-status="passed"]', { hasText: "Raise coverage to 1.25x" });
     await passed.getByRole("button", { name: "Execute" }).click();

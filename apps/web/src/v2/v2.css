@@ -60,7 +60,7 @@
 .explainer{padding:64px 0 88px;border-bottom:1px solid var(--rule)}
 .explainer:focus{outline:none}
 .explainer-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
-.explainer .h2{margin:0;font-size:clamp(36px,3.7vw,52px);line-height:1.05;letter-spacing:-0.035em;max-width:none}
+.explainer .h2{margin:0;max-width:none}
 .explainer-sub{margin:14px 0 0;font-size:19px;color:var(--text-2)}
 .explainer-frame{max-width:1440px;margin:8px auto 0}
 .explainer-stage{display:block;width:100%;height:520px}
@@ -154,3 +154,47 @@
 
 /* Latest proofs: a run of the same outcome shows once, with its count. */
 .proof-repeat{color:var(--muted);font-weight:600;margin-left:4px}
+
+/* ---------- Home: one rhythm, blended sections, reveals on scroll ---------- */
+.home{--ease:cubic-bezier(.16,1,.3,1);--blend:168px}
+/* Sections meet through space, not rules: one even rhythm, no hairlines between them. */
+.home .hero,.home .explainer{border-bottom:0}
+.home .sec{padding:112px 0}
+.home .explainer{padding:48px 0 112px}
+.home .sec .h2{margin-bottom:24px}
+
+/* The light section dissolves out of the dark page and back into it. The stops are a smoothstep between
+   --bg and --paper, so there is no grey band in the middle. */
+.home .sec.light{padding:var(--blend) 0;background:linear-gradient(180deg,
+  #0e0912 0,#110c15 calc(var(--blend) * .08),#1b1620 calc(var(--blend) * .22),#3a363f calc(var(--blend) * .4),#7d7a82 calc(var(--blend) * .56),#c0bec4 calc(var(--blend) * .74),#e9e7eb calc(var(--blend) * .9),#f5f3f7 var(--blend),
+  #f5f3f7 calc(100% - var(--blend)),
+  #e9e7eb calc(100% - var(--blend) * .9),#c0bec4 calc(100% - var(--blend) * .74),#7d7a82 calc(100% - var(--blend) * .56),#3a363f calc(100% - var(--blend) * .4),#1b1620 calc(100% - var(--blend) * .22),#110c15 calc(100% - var(--blend) * .08),#0e0912 100%)}
+
+.home .sec.light + .sec{padding-top:64px}
+/* The comparison keeps its top rule only: the diagonal is its structure, and a closing rule would be a seam. */
+.home .cmp-sec .linestats{border-bottom:0}
+/* The member card's mark bleeds off its lower corner, behind the button row, so it reads as part of the card. */
+.home .member-card .member-horizon{top:auto;right:-64px;bottom:-72px;width:200px;height:200px}
+
+/* A block comes in once: it fades up as it reaches the lower part of the screen (src/v2/reveal.ts). */
+[data-rv="out"]{opacity:0;transform:translate3d(0,28px,0)}
+[data-rv="in"]{opacity:1;transform:none;transition:opacity .9s var(--ease) var(--rv-d,0ms),transform 1s var(--ease) var(--rv-d,0ms)}
+
+/* The closing call: centred, with the line passing between the words and the button. */
+.home .cta{padding:136px 0 152px}
+.cta-stack{display:flex;flex-direction:column;align-items:center;text-align:center}
+.cta-stack .h2{max-width:16ch;margin-bottom:20px}
+.cta-stack .lede{margin:0;max-width:44ch}
+.cta-rule{position:relative;width:min(760px,100%);height:150px;margin:0 0 4px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.cta-rule::before{content:"";position:absolute;left:-6%;right:-6%;top:50%;height:1.5px;background:var(--rule-strong);transform:rotate(-10deg)}
+.cta-stack .btn{min-height:52px;padding:0 28px;font-size:16px}
+
+/* The member card's mark crowds its title on a phone. */
+@media (max-width:560px){
+  .member-card .member-horizon{display:none}
+  .home .sec{padding:80px 0}
+  .home .explainer{padding:32px 0 80px}
+  .home{--blend:112px}
+  .home .cta{padding:96px 0 112px}
+  .cta-rule{height:96px}
+}

@@ -1,5 +1,5 @@
-/** The Mutual, which is the home page: the hero, the two sides of the line, holding a share, voting and the safest groups. */
-import { startTransition, useEffect, useState } from "react";
+/** The Mutual, which is the home page: the hero, the line explained, the proof against scams, holding a share, voting and the safest groups. */
+import { startTransition, useEffect, useRef, useState } from "react";
 import type { GroupSummary, MutualSummary } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { getMutual } from "../../data/mutual";
@@ -7,36 +7,15 @@ import { HOME, REP } from "../../brand";
 import { Explainer } from "../../v2/Explainer";
 import { Hero } from "../../v2/Hero";
 import { prefersReducedMotion } from "../../v2/motion";
+import { useReveal } from "../../v2/reveal";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { Governance } from "./Governance";
-import { LineStats } from "../../components/LineStats";
 import { CodeTabs } from "../../components/CodeTabs";
 import { pluginTabs } from "../../data/snippets";
 import { JoinDialog, MemberCard } from "./Member";
 import { Comparison } from "./Comparison";
 
 const count = (n: number) => n.toLocaleString("en-US");
-
-/** The tally (K): every payment counted, laid out on the line (Cards.dc.html option 6). */
-function Sides({ m }: { m: MutualSummary }) {
-  const b = m.stats.below;
-  const T = HOME.tally;
-  return (
-    <section className="sec tally" aria-labelledby="sides-title">
-      <div className="wrap">
-        <h2 className="h2" id="sides-title">
-          {HOME.sidesTitle}
-        </h2>
-        <LineStats
-          label={T.label}
-          testId="sides"
-          good={{ label: T.above, value: count(m.stats.proven_payments), note: T.aboveNote }}
-          bad={{ label: T.below, value: count(b.total), note: T.belowNote, sub: T.kinds(b.swapped, b.lookalike, b.capped) }}
-        />
-      </div>
-    </section>
-  );
-}
 
 /** For builders (N): the one-line plug-in, with its JavaScript, Python and curl versions. */
 function Builders() {
@@ -70,7 +49,7 @@ function HomeSkeleton() {
       <section className="sec" aria-hidden="true">
         <div className="wrap">
           <span className="skel skel-title" />
-          <div className="skel-card sides-skel" />
+          <div className="skel-card home-skel" />
         </div>
       </section>
     </div>
@@ -121,6 +100,8 @@ export function Home() {
   const [tick, setTick] = useState(0);
   const [joining, setJoining] = useState(false);
   const refresh = () => setTick((t) => t + 1);
+  const page = useRef<HTMLElement>(null);
+  useReveal(page, m);
   useEffect(() => {
     getMutual().then(
       // A transition lets React render the page in small slices, so the main thread never blocks long.
@@ -143,7 +124,7 @@ export function Home() {
   };
 
   return (
-    <main>
+    <main ref={page} className="home">
       <Hero onJoin={join} onWatch={watch} />
       <Explainer />
       {error !== null && !m && (
@@ -152,7 +133,6 @@ export function Home() {
         </div>
       )}
       {!m && error === null && <HomeSkeleton />}
-      {m && <Sides m={m} />}
       {m && <Comparison />}
 
       {m && (
@@ -173,7 +153,7 @@ export function Home() {
         </section>
       )}
 
-      {m && <Governance proposals={m.governance.proposals} onChange={refresh} tiers={m.tiers} />}
+      {m && <Governance proposals={m.governance.proposals} onChange={refresh} tiers={m.tiers} summary />}
 
       {m && (
         <section className="sec" aria-labelledby="board-title">
@@ -196,13 +176,12 @@ export function Home() {
       <Builders />
 
       <section className="sec cta" aria-labelledby="cta-title">
-        <div className="wrap cta-row">
-          <div>
-            <h2 className="h2" id="cta-title">
-              {HOME.ctaTitle}
-            </h2>
-            <p className="lede">{HOME.ctaBody}</p>
-          </div>
+        <div className="wrap cta-stack">
+          <h2 className="h2" id="cta-title">
+            {HOME.ctaTitle}
+          </h2>
+          <p className="lede">{HOME.ctaBody}</p>
+          <div className="cta-rule" aria-hidden="true" />
           <button type="button" className="btn" onClick={join} disabled={!m}>
             {HOME.primary}
           </button>

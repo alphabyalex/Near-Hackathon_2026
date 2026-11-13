@@ -133,7 +133,7 @@
 .prop-act small{flex-basis:100%;text-align:right;font-size:15px}
 .prop-tx{grid-area:act;align-self:center;margin:0;font-size:13px;color:var(--muted);text-align:right;overflow-wrap:anywhere}
 .prop .notice,.prop .ok-line{grid-area:msg;margin:0}
-.propose{margin-top:24px;padding:16px 0;border-bottom:1px solid var(--rule-2)}
+.propose,.decided-fold{margin-top:24px;padding:16px 0;border-bottom:1px solid var(--rule-2)}
 .propose summary{cursor:pointer;font-weight:600;font-size:16px;color:var(--violet-text)}
 .propose>p{margin:10px 0 14px;font-size:14px}
 .propose-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-bottom:12px}
@@ -379,7 +379,7 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .skel-text{color:transparent!important;background:var(--surface-2);border-radius:8px;width:fit-content}
 .skel-title{width:min(560px,80%);height:56px;margin-bottom:28px}
 .skel-card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card-lg)}
-.sides-skel{height:420px}
+.home-skel{height:420px}
 .groups-skel{height:560px;margin-top:40px}
 .proofs-skel{height:360px}
 .skel-card.value-card{min-height:360px}
@@ -419,23 +419,22 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .prop-line{position:relative;height:2px;margin-top:10px;background:var(--rule-2);border-radius:1px;overflow:hidden}
 .prop-line i{position:absolute;inset:0 auto 0 0;background:var(--violet);border-radius:1px;transition:width .6s cubic-bezier(.22,1,.36,1)}
 .prop[data-status="executed"],.prop[data-status="rejected"]{grid-template-areas:"top top act" "what what act" "when when act" "msg msg msg"}
-.propose{padding:0}
+.propose,.decided-fold{padding:0}
 .disclose{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0;font:600 16px/1 var(--font);color:var(--violet-text);background:none;border:0;cursor:pointer}
 .disclose:hover{color:var(--text)}
 .disclose-chev{transition:transform .25s cubic-bezier(.22,1,.36,1)}
 .disclose[aria-expanded="true"] .disclose-chev{transform:rotate(180deg)}
 .disclose-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.22,1,.36,1)}
-.propose[data-open] .disclose-body{grid-template-rows:1fr}
+.propose[data-open] .disclose-body,.decided-fold[data-open] .disclose-body{grid-template-rows:1fr}
 .disclose-inner{overflow:hidden;min-height:0}
-.propose[data-open] .disclose-inner{padding-bottom:16px}
+.propose[data-open] .disclose-inner,.decided-fold[data-open] .disclose-inner{padding-bottom:16px}
 .mine-votes .prop,.mine-votes .prop[data-status]{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg";row-gap:10px}
 .mine-votes .prop-progress{max-width:520px}
 @media (max-width:980px){.prop,.prop[data-status="executed"],.prop[data-status="rejected"]{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg"}.prop-act,.prop-tx{justify-content:flex-start;text-align:left}.prop-act small{text-align:left}}
 @media (prefers-reduced-motion:reduce){.disclose-body,.disclose-chev,.prop-line i{transition:none}}
 /* Home: the tally on the line, Hold a share's three lines, For builders (A21 big pass). */
-.tally .h2{margin-bottom:40px}
-.share-lines{list-style:none;margin:0;padding:0;border-top:1px solid rgba(26,15,33,.14)}
-.share-lines li{padding:14px 0;border-bottom:1px solid rgba(26,15,33,.14);font-size:19px;line-height:1.45;color:var(--ink);max-width:46ch}
+.share-lines{list-style:none;margin:0;padding:0;max-width:46ch;border-top:1px solid rgba(26,15,33,.14)}
+.share-lines li{padding:14px 0;border-bottom:1px solid rgba(26,15,33,.14);font-size:19px;line-height:1.45;color:var(--ink)}
 .builders-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:start}
 .builders-grid .lede{margin-bottom:20px}
 @media (max-width:980px){.builders-grid{grid-template-columns:minmax(0,1fr);gap:28px}}

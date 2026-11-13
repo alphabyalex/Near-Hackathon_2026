@@ -77,7 +77,11 @@ One animated moment, the hero, specified exactly:
 With motion on, the dots are drawn on a `<canvas>` from the same generator and the cut line is an SVG hairline. The first build updated 915 SVG `r` attributes per frame, which made the browser lay out the whole sphere every frame: about 5 seconds of main-thread blocking on a mid-range phone in Lighthouse. The canvas draws the dots in about 20 batched fills per frame (one per colour and opacity step) and at about 20 frames a second during the assembly, which removes that cost. Under reduced motion the sphere is the static SVG.
 4. Under `prefers-reduced-motion`: no cut, no assembly, no drift; a static sphere with light `[-0.55, -0.6]`.
 
-The headline, sub and buttons fade up once (0.7s) at 0.3s, 0.5s and 0.7s. Nothing else enters with an animation. Motion that answers a person's action is allowed: a dialog opening, a spinner while a wallet signs, demo results appearing row by row after "Run scene". Nothing follows the mouse.
+The headline, sub and buttons fade up once (0.7s) at 0.3s, 0.5s and 0.7s.
+
+Below the hero, each block of the home page fades up once, the first time it reaches the lower part of the screen (`apps/web/src/v2/reveal.ts`): 28px of lift, opacity 0 to 1, 0.9s on `cubic-bezier(.16, 1, .3, 1)`, blocks that arrive together staggered by 90ms. Blocks already on screen at load are left alone, a block never hides again after it has shown, and under `prefers-reduced-motion` nothing is hidden at all. Sections meet through space and a gradient, never a rule: the light section dissolves out of the dark page and back into it (a smoothstep from `--bg` to `--paper`, about 170px each way), so there is no grey band and no hard edge.
+
+Motion that answers a person's action is also allowed: a dialog opening, a spinner while a wallet signs, demo results appearing row by row after "Run scene". Nothing follows the mouse.
 
 ## Never
 

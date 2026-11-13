@@ -113,7 +113,7 @@ describe("WARD copy", () => {
     const { POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF, JOIN, MEMBER, SHARE, WALLET } = await import("../src/brand");
     expect(POOL.ward.pitch).toEqual(["Earn a share of every fee by backing the proofs.", "If Wardline is wrong, WARD holders cover it after Wardline's own stake."]);
     expect(HOME.sub).toBe("Members pool USDC, back AI agents, and earn from every payment that proves itself. Anything that can't prove itself stays below the line.");
-    expect(HOME.ctaTitle).toBe("Back the AI economy and earn from it.");
+    expect(HOME.ctaTitle).toBe("Back the AI economy and earn from it");
     // Lead with communities earning, not with the token.
     expect(HOME.sub.toLowerCase()).not.toMatch(/buy|ward/);
     expect(POOL.loseFirstTitle).toBe("We lose first.");

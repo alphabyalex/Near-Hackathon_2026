@@ -328,9 +328,11 @@ function ProposeForm({ voter, onChange }: { voter: Voter; onChange: () => void }
 }
 
 /** WARD-holder governance. embedded: inside another page (My share), without its own section. */
-export function Governance({ proposals, onChange, embedded = false, tiers }: { proposals: MutualProposalView[]; onChange: () => void; embedded?: boolean; tiers?: TierRules }) {
+export function Governance({ proposals, onChange, embedded = false, tiers, summary = false }: { proposals: MutualProposalView[]; onChange: () => void; embedded?: boolean; tiers?: TierRules; summary?: boolean }) {
   const connected = useConnected();
   const [connecting, setConnecting] = useState(false);
+  const [showDecided, setShowDecided] = useState(false);
+  const decidedPanel = useId();
   const now = useNow();
   const open = proposals.filter((p) => p.status === "open" || p.status === "passed");
   const decided = proposals.filter((p) => p.status === "rejected" || p.status === "executed");
@@ -344,12 +346,12 @@ export function Governance({ proposals, onChange, embedded = false, tiers }: { p
             {GOV.voteAs} <span className="acct">{connected.account}</span>
           </span>
         ) : (
-          <span className="voter-as muted">{GOV.connectToVote}</span>
+          <span className="voter-as muted">{summary ? GOV.voterNote : GOV.connectToVote}</span>
         )}
         <button type="button" className="btn ghost sm" onClick={() => setConnecting(true)}>
           {connected ? GOV.changeWallet : GOV.connect}
         </button>
-        <small className="muted">{GOV.voterNote}</small>
+        {!(summary && !connected) && <small className="muted">{GOV.voterNote}</small>}
       </div>
       {connecting && <WalletPanel onClose={() => setConnecting(false)} />}
       <h3 className="gov-h">{GOV.open}</h3>
@@ -363,15 +365,38 @@ export function Governance({ proposals, onChange, embedded = false, tiers }: { p
         </div>
       )}
       <ProposeForm voter={voter} onChange={onChange} />
-      <h3 className="gov-h">{GOV.decided}</h3>
-      {decided.length === 0 ? (
-        <p className="empty">{GOV.noneDecided}</p>
-      ) : (
-        <div className="props">
-          {decided.map((p) => (
-            <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} />
-          ))}
+      {summary && decided.length > 0 ? (
+        // On the home page the record sits behind one click: the open votes are the news.
+        <div className="decided-fold" data-open={showDecided || undefined}>
+          <button type="button" className="disclose" aria-expanded={showDecided} aria-controls={decidedPanel} onClick={() => setShowDecided((o) => !o)}>
+            {GOV.decided} ({decided.length})
+            <svg className="disclose-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div className="disclose-body" id={decidedPanel} {...(showDecided ? {} : { inert: true })}>
+            <div className="disclose-inner">
+              <div className="props">
+                {decided.map((p) => (
+                  <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+      ) : (
+        <>
+          <h3 className="gov-h">{GOV.decided}</h3>
+          {decided.length === 0 ? (
+            <p className="empty">{GOV.noneDecided}</p>
+          ) : (
+            <div className="props">
+              {decided.map((p) => (
+                <Proposal key={p.id} p={p} voter={voter} now={now} onChange={onChange} all={proposals} {...(tiers ? { tiers } : {})} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </>
   );

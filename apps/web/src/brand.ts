@@ -83,16 +83,6 @@ export const HOME = {
     below: "Kept below it",
     belowNote: "Refused, blocked or capped",
   },
-  sidesTitle: "Every payment, counted.",
-  /** The tally, laid out on the line (Cards.dc.html option 6). */
-  tally: {
-    label: "Payments above and below the line",
-    above: "Above the line",
-    aboveNote: "proven and paid",
-    below: "Below the line",
-    belowNote: "refused, blocked or capped",
-    kinds: (swapped: number, lookalike: number, capped: number) => `${swapped} swapped models, ${lookalike} look-alike payees, ${capped} leaked keys`,
-  },
   /** For builders, near the bottom of Home. */
   builders: {
     title: "For builders",
@@ -123,7 +113,7 @@ export const HOME = {
   boardTitle: "Safest groups",
   boardLede: "A clean record moves a group up a tier: a lower fee and more coverage.",
   boardAll: "Every group and how tiers work",
-  ctaTitle: "Back the AI economy and earn from it.",
+  ctaTitle: "Back the AI economy and earn from it",
   ctaBody: "Anyone with a NEAR wallet can join. No group needed.",
 } as const;
 
@@ -499,7 +489,7 @@ export const DEMO = {
     coverage: "Coverage",
   },
   /** The comparison block on Home (M), laid out on the line. */
-  comparisonTitle: (alone: number, withUs: number, scams: number) => `Without ${BRAND.name}, the agent paid ${alone} of ${scams} scams. With it, ${withUs === 0 ? "none" : withUs}.`,
+  comparisonTitle: (alone: number, withUs: number, scams: number) => `Without ${BRAND.name}, the agent paid ${alone} of ${scams} scams. With it, ${withUs === 0 ? "none" : withUs}`,
   comparisonSetup: (scams: number) => `The same ${scams} scam invoices, all from vendors it had never seen before.`,
   comparisonLabel: (scams: number) => `${scams} scam invoices, paid by the agent alone and with ${BRAND.name}`,
   agentAlone: "AI agent alone",
@@ -816,7 +806,7 @@ export const POOL = {
 
 export const GOV = {
   label: "Governance",
-  title: "WARD holders decide the risks.",
+  title: "WARD holders decide the risks",
   /** Two short lines (Q). WARD holders vote on tier fees, coverage and the sell wait, nothing else (P). */
   lede: ["You vote on tier fees, coverage and the sell wait. One WARD is one vote.", "A change passes with enough votes and more for than against. Then anyone can put it into effect."],
   /** O: plain English, never raw numbers like "0.3059 of 1.52". */
@@ -993,7 +983,7 @@ export const ME = {
 
 /** "Watch a payment cross the line" (Horizon v2), on the home page and the demo page. */
 export const EXPLAINER = {
-  title: "Every payment lands on one side of the line.",
+  title: "Every payment lands on one side of the line",
   sub: "Two payments, ten seconds apart.",
   label: "Animation: a proven AI payment crosses above the line and is paid, then a payment from a swapped model is refused, drops below the line and is refunded.",
   caption1: "An AI agent pays for a DeepSeek V4.1 Flash answer",
