@@ -151,7 +151,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
 
   // token: the USDC contract a wallet sends ft_transfer_call to, with the pool as receiver.
   app.get("/v1/pool", async (c) => {
-    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    c.header("Cache-Control", "no-cache");
     const data = await cachedAi("pool", 5_000, async () => ({ mode: deps.ai.chain.mode, contract: deps.ai.contracts.pool, token: deps.ai.contracts.token, pool: await pool.getPool(), claims: await pool.listClaims() }));
     return c.json(data);
   });
@@ -159,7 +159,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   app.get("/v1/pool/positions/:account", async (c) => {
     const account = Account.safeParse(c.req.param("account"));
     if (!account.success) return c.json(badParam("NEAR account id"), 400);
-    c.header("Cache-Control", "public, max-age=3, stale-while-revalidate=5");
+    c.header("Cache-Control", "no-cache");
     const pos = await cachedAi(`pos:${account.data}`, 4_000, () => pool.getPosition(account.data));
     return c.json(pos);
   });
@@ -208,13 +208,13 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
         proofs.push({ ...row, tx: null, group: names.get(row.budget_id) ?? row.budget_id, side: row.status === "verified" ? "above" : "below", created_at: new Date(nowMs() - minutes_ago * 60_000).toISOString() });
       }
     }
-    c.header("Cache-Control", "public, max-age=2, stale-while-revalidate=5");
+    c.header("Cache-Control", "no-cache");
     return c.json({ mode: chain.mode, proofs });
   });
 
   // Everything the Mutual home page shows, in one call.
   app.get("/v1/mutual", async (c) => {
-    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    c.header("Cache-Control", "no-cache");
     const data = await cachedAi("mutual", 5_000, async () => {
       const [poolView, claims, list, proposals, tiers, params] = await Promise.all([
         pool.getPool(),
@@ -242,7 +242,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   });
 
   app.get("/v1/groups", async (c) => {
-    c.header("Cache-Control", "public, max-age=10, stale-while-revalidate=15");
+    c.header("Cache-Control", "no-cache");
     const data = await cachedAi("groups", 10_000, async () => ({ mode: chain.reputation.mode, groups: await groups(), tiers: await chain.reputation.tierRules() }));
     return c.json(data);
   });
@@ -251,13 +251,13 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
   app.get("/v1/reputation/:budget", async (c) => {
     const budget = BudgetId.safeParse(c.req.param("budget"));
     if (!budget.success) return c.json(badParam("budget id"), 400);
-    c.header("Cache-Control", "public, max-age=10, stale-while-revalidate=15");
+    c.header("Cache-Control", "no-cache");
     const r = await cachedAi(`rep:${budget.data}`, 10_000, () => chain.reputation.getReputation(budget.data));
     return r ? c.json(r) : c.json({ error: "NOT_FOUND", message: "No group with that budget." }, 404);
   });
 
   app.get("/v1/mutual/proposals", async (c) => {
-    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    c.header("Cache-Control", "no-cache");
     const data = await cachedAi("proposals", 5_000, async () => ({ mode: chain.governance.mode, ...(await chain.governance.params()), proposals: await chain.governance.listProposals() }));
     return c.json(data);
   });
@@ -267,7 +267,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     const account = Account.safeParse(c.req.param("account"));
     if (!id.success || !account.success) return c.json(badParam("proposal id or account"), 400);
     if (!(await chain.governance.getProposal(id.data))) return c.json({ error: "NOT_FOUND", message: "No such proposal." }, 404);
-    c.header("Cache-Control", "public, max-age=5, stale-while-revalidate=10");
+    c.header("Cache-Control", "no-cache");
     const weight = await cachedAi(`weight:${id.data}:${account.data}`, 10_000, () => chain.governance.weightOf(id.data, account.data));
     return c.json({ id: id.data, account: account.data, weight });
   });
