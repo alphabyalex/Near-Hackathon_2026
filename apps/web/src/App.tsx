@@ -8,7 +8,7 @@ import { useLinkRouting, useRoute, useSectionScroll, type SitePage } from "./rou
 // first paint never waits for wallet, EVM or Solana code it does not use.
 const page = <M,>(load: () => Promise<M>, name: keyof M) => lazy(async () => ({ default: (await load())[name] as React.ComponentType }));
 const About = page(() => import("./views/site/About"), "About");
-const Connect = page(() => import("./views/site/Connect"), "Connect");
+const Docs = page(() => import("./views/site/Docs"), "Docs");
 const Groups = page(() => import("./views/site/Groups"), "Groups");
 const Balance = page(() => import("./views/site/Balance"), "Balance");
 const Proof = page(() => import("./views/site/Proof"), "Proof");
@@ -33,7 +33,7 @@ function PageFallback() {
 // The owner app loads on first visit to #/app, so public pages never download it.
 const OwnerApp = lazy(() => import("./views/Dashboard").then((m) => ({ default: m.OwnerApp })));
 
-const PAGES: Record<SitePage, React.ComponentType> = { home: Home, wallet: Balance, groups: Groups, proof: Proof, try: TryIt, developers: Connect, verify: Verify, about: About, vault: Vault, scoring: Scoring };
+const PAGES: Record<SitePage, React.ComponentType> = { home: Home, wallet: Balance, groups: Groups, proof: Proof, try: TryIt, docs: Docs, verify: Verify, about: About, vault: Vault, scoring: Scoring };
 
 export function App() {
   useLinkRouting();

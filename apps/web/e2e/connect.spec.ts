@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { OWNER_ACCOUNT } from "./keys";
-import { expect, test } from "./fixtures";
+import { expect, test, openJoin } from "./fixtures";
 
 const box = (page: Page) => page.getByTestId("connect-dialog");
 
@@ -50,7 +50,7 @@ test.describe("Connect wallet", () => {
     await box(page).locator('[data-wallet="test-wallet"]').click();
     await box(page).getByRole("button", { name: "Use this wallet" }).click();
     await expect(page.getByTestId("home-stats")).toBeVisible();
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     const dlg = page.getByTestId("join-dialog");
     await expect(dlg.getByTestId("join-from")).toContainText(`From ${OWNER_ACCOUNT}`);
     await expect(dlg.getByLabel("Your NEAR account")).toHaveCount(0);
@@ -62,7 +62,7 @@ test.describe("Connect wallet", () => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
     await expect(page.getByTestId("home-stats")).toBeVisible();
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     const dlg = page.getByTestId("join-dialog");
     await dlg.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
     await dlg.locator('[data-wallet="test-wallet"]').click();

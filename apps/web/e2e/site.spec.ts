@@ -4,7 +4,7 @@ import { expect, expectAccessible, expectNoHorizontalScroll, signInAs, test } fr
 import repo from "../../../repo.config.json" with { type: "json" };
 
 // #/me and #/demo now redirect to #/wallet and #/about/steps (the redirects are covered in a21.spec.ts).
-const PAGES = ["#/", "#/wallet", "#/groups", "#/proof", "#/try", "#/developers", "#/verify", "#/about"];
+const PAGES = ["#/", "#/wallet", "#/groups", "#/proof", "#/try", "#/docs", "#/docs/quickstart", "#/verify", "#/about"];
 
 /** Connects the test wallet for an account through the header's Connect wallet dialog. */
 async function connectWallet(page: Page, account: string) {
@@ -70,10 +70,10 @@ test.describe("public site", () => {
     await expect(nav.first()).toHaveAttribute("aria-current", "page");
     const docs = page.locator("header .docs-link");
     await expect(docs).toHaveText("Docs");
-    await expect(docs).toHaveAttribute("href", "#/developers");
+    await expect(docs).toHaveAttribute("href", "#/docs");
     await expect(docs).not.toHaveAttribute("aria-current", "page");
     const footer = page.getByRole("navigation", { name: "Footer" });
-    await expect(footer.getByRole("link", { name: "Docs" })).toHaveAttribute("href", "#/developers");
+    await expect(footer.getByRole("link", { name: "Docs" })).toHaveAttribute("href", "#/docs");
     await expect(footer.getByRole("link", { name: "Your balance" })).toHaveAttribute("href", "#/wallet");
     await expect(footer.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "#/about/steps");
     await page.locator(".hero").getByRole("button", { name: "Watch a payment cross the line" }).click();
@@ -116,29 +116,29 @@ test.describe("public site", () => {
     await expect(page.locator(".cta").getByRole("button", { name: "Become a member" })).toBeVisible();
   });
 
-  test("home: the closing Become a member opens the app: the wallet picker first, then Your balance", async ({ page, wallets }) => {
+  test("home: every Become a member goes into the app first, and the app walks a new member through the rest", async ({ page, wallets }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     wallets.setNearAccount(OWNER_ACCOUNT);
-    await page.goto("/#/");
-    const cta = page.locator(".cta").getByRole("button", { name: "Become a member" });
-    await cta.scrollIntoViewIfNeeded();
-    // No wallet yet: the picker opens, and the join dialog does not.
-    await cta.click();
-    const dlg = page.getByTestId("connect-dialog");
-    await expect(dlg).toBeVisible();
-    await expect(page.getByRole("dialog", { name: "Join the Mutual" })).toHaveCount(0);
-    await dlg.getByLabel("NEAR account").fill(OWNER_ACCOUNT);
-    await dlg.locator('[data-wallet="test-wallet"]').click();
-    await dlg.getByRole("button", { name: "Use this wallet" }).click();
-    // Connected: on into the app.
-    await expect(page).toHaveURL(/#\/wallet$/);
-    // Already connected: straight in, no picker.
-    await page.goto("/#/");
-    const again = page.locator(".cta").getByRole("button", { name: "Become a member" });
-    await again.scrollIntoViewIfNeeded();
-    await again.click();
-    await expect(page).toHaveURL(/#\/wallet$/);
-    await expect(page.getByTestId("connect-dialog")).toHaveCount(0);
+    for (const where of [".hero", ".holding", ".cta"]) {
+      await page.goto("/#/");
+      const button = page.locator(where).getByRole("button", { name: "Become a member" });
+      await button.scrollIntoViewIfNeeded();
+      await button.click();
+      // No picker and no dialog first: straight into Your balance.
+      await expect(page).toHaveURL(/#\/wallet$/);
+      await expect(page.getByTestId("connect-dialog")).toHaveCount(0);
+      await expect(page.getByTestId("join-dialog")).toHaveCount(0);
+      const front = page.getByTestId("me-connect");
+      await expect(front).toContainText("Connect a wallet to see your balance.");
+      await expect(front.locator(".bal-steps li")).toHaveCount(3);
+    }
+    // From there: Become a member opens Join (which connects and deposits), Connect wallet opens the picker.
+    const front = page.getByTestId("me-connect");
+    await front.getByRole("button", { name: "Become a member" }).first().click();
+    await expect(page.getByTestId("join-dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await front.getByRole("button", { name: "Connect wallet" }).click();
+    await expect(page.getByTestId("connect-dialog")).toBeVisible();
   });
 
   test("hero: the final frame under reduced motion; otherwise the entrance, then a slow drift that stops off screen", async ({ page }) => {
@@ -289,7 +289,9 @@ test.describe("public site", () => {
   test("join the Mutual: a dialog with quick picks, our stake in front, a wallet approval, then the member card and a 7-day sell request on the balance page", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
-    const opener = page.locator(".hero").getByRole("button", { name: "Become a member" });
+    // Become a member goes into the app; the app's own Become a member opens Join.
+    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    const opener = page.getByTestId("me-connect").getByRole("button", { name: "Become a member" }).first();
     await opener.click();
     const dlg = page.getByTestId("join-dialog");
     await expect(dlg).toBeVisible();
@@ -463,13 +465,13 @@ test.describe("public site", () => {
     await expect(page).toHaveURL(/#\/verify$/);
   });
 
-  test("developers: with no API URL set, snippets show the hosted URL, never a variable or localhost; copy works", async ({ page, context, browserName }) => {
+  test("docs: with no API URL set, snippets show the hosted URL, never a variable or localhost; copy works", async ({ page, context, browserName }) => {
     // Only Chromium lets a test grant and read the clipboard; elsewhere the button label is the check.
     if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    // The old route still works: it lands here and the address bar shows the new one.
+    // The old route still works: it lands on the Quickstart and the address bar shows the new one.
     await page.goto("/#/connect");
-    await expect(page).toHaveURL(/#\/developers$/);
-    // Developers is the quiet Docs link top right.
+    await expect(page).toHaveURL(/#\/docs\/quickstart$/);
+    // Docs is the quiet link top right.
     await expect(page.locator("header .docs-link")).toHaveAttribute("aria-current", "page");
     await expect(page.locator('[data-unset]')).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("VITE_WARDLINE");
@@ -479,44 +481,82 @@ test.describe("public site", () => {
     const mcp = repo.hosted.mcp || "https://your-wardline-api.example/mcp";
     await expect(page.locator("main")).not.toContainText("127.0.0.1");
     await expect(page.locator("main")).not.toContainText("localhost");
-    // One code panel for the picked path; AI models is picked first.
-    const picks = page.getByRole("group", { name: "What are you building?" }).getByRole("button");
-    await expect(picks).toHaveCount(3);
-    await expect(picks.first()).toHaveAttribute("aria-pressed", "true");
-    const panel = page.locator(".codetabs [role=tabpanel]:visible");
-    await expect(page.getByRole("tab", { name: "JavaScript" })).toHaveAttribute("aria-selected", "true");
+    // The Quickstart's panel: JavaScript first, then Python.
+    const panel = page.locator(".codetabs [role=tabpanel]:visible").first();
+    await expect(page.getByRole("tab", { name: "JavaScript" }).first()).toHaveAttribute("aria-selected", "true");
     await expect(panel).toContainText(`baseURL: "${api}/v1/ai"`);
-    await page.getByRole("tab", { name: "Python" }).click();
+    await page.getByRole("tab", { name: "Python" }).first().click();
     await expect(panel).toContainText(`base_url="${api}/v1/ai"`);
-    await picks.filter({ hasText: "An agent that pays vendors" }).click();
-    await expect(picks.nth(1)).toHaveAttribute("aria-pressed", "true");
+    // The MCP page carries the MCP address and the curl calls.
+    await page.goto("/#/docs/mcp-server");
+    const mcpPanel = page.locator(".codetabs [role=tabpanel]:visible").first();
     await page.getByRole("tab", { name: "MCP URL" }).click();
-    await expect(panel).toContainText(mcp);
+    await expect(mcpPanel).toContainText(mcp);
     await page.getByRole("tab", { name: "curl resolve" }).click();
-    await expect(panel).toContainText(`curl -s ${api}/v1/resolve`);
+    await expect(mcpPanel).toContainText(`curl -s ${api}/v1/resolve`);
     await page.getByRole("button", { name: "Copy curl resolve" }).click();
     await expect(page.getByRole("button", { name: "Copy curl resolve" })).toHaveText("Copied");
     if (browserName === "chromium") expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("/v1/resolve");
-    await expect(page.getByRole("link", { name: "llms.txt", exact: true })).toHaveAttribute("href", "/llms.txt");
-    // #/developers/<path> opens that path.
-    await page.goto("/#/developers/app");
-    await expect(picks.filter({ hasText: "My own app" })).toHaveAttribute("aria-pressed", "true");
+    // The SDK page opens on the hosted SDK.
+    await page.goto("/#/docs/sdk-and-x402");
     await expect(page.getByRole("tab", { name: "SDK, hosted" })).toHaveAttribute("aria-selected", "true");
+    // For AI agents: llms.txt is linked from the introduction.
+    await page.goto("/#/docs/introduction");
+    await expect(page.getByRole("link", { name: "llms.txt", exact: true })).toHaveAttribute("href", "/llms.txt");
   });
 
-  test("developers: with VITE_ URLs set, snippets use them", async ({ page }) => {
-    await page.goto(`http://127.0.0.1:5198/#/developers`);
+  test("docs: with VITE_ URLs set, snippets use them", async ({ page }) => {
+    await page.goto(`http://127.0.0.1:5198/#/docs/quickstart`);
     await expect(page.locator('[data-unset="api"]')).toHaveCount(0);
-    // One path and one tab at a time: click through to each snippet.
-    const panel = page.locator(".codetabs [role=tabpanel]:visible");
+    const panel = page.locator(".codetabs [role=tabpanel]:visible").first();
     await expect(panel).toContainText('baseURL: "https://api.wardline.example/v1/ai"');
-    await page.getByRole("tab", { name: "Python" }).click();
+    await page.getByRole("tab", { name: "Python" }).first().click();
     await expect(panel).toContainText('base_url="https://api.wardline.example/v1/ai"');
-    await page.getByRole("group", { name: "What are you building?" }).getByRole("button", { name: /An agent that pays vendors/ }).click();
+    await page.goto(`http://127.0.0.1:5198/#/docs/mcp-server`);
+    const mcpPanel = page.locator(".codetabs [role=tabpanel]:visible").first();
     await page.getByRole("tab", { name: "MCP URL" }).click();
-    await expect(panel).toContainText("https://mcp.wardline.example/mcp");
+    await expect(mcpPanel).toContainText("https://mcp.wardline.example/mcp");
     await page.getByRole("tab", { name: "curl check" }).click();
-    await expect(panel).toContainText("https://api.wardline.example/v1/check");
+    await expect(mcpPanel).toContainText("https://api.wardline.example/v1/check");
+  });
+
+  test("docs: a structure like a protocol's docs: sidebar, on this page, previous and next, and search", async ({ page }) => {
+    await page.goto("/#/docs");
+    // The home: start-here cards and every page listed.
+    await expect(page.getByRole("heading", { level: 1, name: "Wardline documentation" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Start here" }).getByRole("link")).toHaveCount(4);
+    const side = page.getByRole("navigation", { name: "Docs" });
+    await expect(side.getByRole("heading", { level: 2 })).toHaveText(["Introduction", "The Mutual", "Groups", "Governance", "Build", "Security"]);
+    // A page: breadcrumb, headings in "On this page", the current page marked, and Previous and Next.
+    await side.getByRole("link", { name: "Fees and yield" }).click();
+    await expect(page).toHaveURL(/#\/docs\/fees-and-yield$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Fees and yield" })).toBeVisible();
+    await expect(side.getByRole("link", { name: "Fees and yield" })).toHaveAttribute("aria-current", "page");
+    const toc = page.getByRole("navigation", { name: "On this page" });
+    await expect(toc.getByRole("link", { name: "The cover fee" })).toBeVisible();
+    await toc.getByRole("link", { name: "What moves the price" }).click();
+    await expect(page).toHaveURL(/#\/docs\/fees-and-yield\/what-moves-the-price$/);
+    await expect(page.locator("#what-moves-the-price")).toBeInViewport();
+    const pager = page.getByRole("navigation", { name: "Previous and next" });
+    await expect(pager.getByRole("link", { name: /Deposit and WARD/ })).toBeVisible();
+    await pager.getByRole("link", { name: /Loss coverage/ }).click();
+    await expect(page).toHaveURL(/#\/docs\/loss-coverage$/);
+    // Search: / opens it, typing finds a page, Enter opens it.
+    await page.keyboard.press("/");
+    const search = page.getByTestId("docs-search");
+    await expect(search).toBeVisible();
+    await expect(search.getByRole("combobox")).toBeFocused();
+    await page.keyboard.type("sell wait");
+    await expect(search.getByRole("option").first()).toContainText("Redeem and the sell wait");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/#\/docs\/redeem-and-sell-wait/);
+    await expect(search).toHaveCount(0);
+    // Escape closes it too, and a page that does not exist says so.
+    await page.keyboard.press("/");
+    await page.keyboard.press("Escape");
+    await expect(search).toHaveCount(0);
+    await page.goto("/#/docs/not-a-page");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("isn't in the docs");
   });
 
   test("verify: sign with NEAR, EVM and Solana wallets, host the file, reach domain linked", async ({ page, wallets, request }) => {

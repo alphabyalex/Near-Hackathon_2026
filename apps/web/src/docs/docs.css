@@ -1,0 +1,144 @@
+/* The docs. Tokens from theme/tokens.css; nothing here adds a colour or a font. */
+
+/* Same container as the header, so the sidebar lines up under the logo and the page under the buttons. */
+.docs{--side:236px;--toc:204px;--head:73px}
+.dd-shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr) var(--toc);column-gap:56px;align-items:start}
+
+/* ---------- Sidebar ---------- */
+.dd-side{position:sticky;top:calc(var(--head) + 24px);align-self:start;max-height:calc(100vh - var(--head) - 48px);overflow:auto;padding:24px 0 48px;scrollbar-width:thin}
+.dd-search,.dd-search-wide,.dd-bar-btn{display:flex;align-items:center;gap:10px;font:500 15px/1 var(--font);color:var(--muted);background:var(--surface);border:1px solid var(--rule-2);border-radius:12px;cursor:pointer;transition:border-color .18s ease,color .18s ease}
+.dd-search{width:100%;min-height:44px;padding:0 14px;margin-bottom:28px}
+.dd-search:hover,.dd-search-wide:hover,.dd-bar-btn:hover{color:var(--text);border-color:var(--rule-strong)}
+.dd-search span,.dd-search-wide span{flex:1;text-align:left}
+kbd{font:500 12px/1 var(--font);color:var(--muted);border:1px solid var(--rule-2);border-radius:6px;padding:4px 7px;background:var(--bg)}
+.dd-group+.dd-group{margin-top:28px}
+.dd-group h2{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0}
+.dd-group ul{list-style:none;margin:0;padding:0}
+.dd-group a{position:relative;display:block;padding:7px 0 7px 14px;font-size:15px;line-height:1.35;color:var(--text-2);text-decoration:none;border-left:1px solid var(--rule-2);transition:color .15s ease,border-color .15s ease}
+.dd-group a:hover{color:var(--text)}
+.dd-group a[aria-current="page"]{color:var(--text);font-weight:600;border-left:2px solid var(--violet);padding-left:13px}
+
+/* ---------- Article ---------- */
+.dd-article{min-width:0;padding:56px 0 112px}
+.dd-crumb{margin:0 0 20px;font-size:14px;color:var(--muted)}
+.dd-crumb a{color:var(--muted);text-decoration:none}
+.dd-crumb a:hover{color:var(--text)}
+.dd-title{margin:0;font-weight:700;font-size:clamp(36px,4.4vw,52px);line-height:1.02;letter-spacing:-0.045em;text-wrap:balance}
+.dd-lede{margin:20px 0 0;font-size:20px;line-height:1.55;color:var(--text-2);max-width:60ch}
+.dd-body{margin-top:40px}
+.dd-body>*:first-child{margin-top:0}
+.dd-body h2,.dd-body h3{position:relative;scroll-margin-top:calc(var(--head) + 24px)}
+.dd-body h2{margin:64px 0 18px;font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-0.035em}
+.dd-body h3{margin:40px 0 12px;font-size:20px;line-height:1.25;font-weight:600;letter-spacing:-0.02em}
+.dd-anchor{position:absolute;left:-26px;top:0;padding:0 8px;color:var(--muted);text-decoration:none;font-weight:400;opacity:0;transition:opacity .15s ease}
+.dd-body h2:hover .dd-anchor,.dd-anchor:focus-visible{opacity:1}
+.dd-anchor:hover{color:var(--violet-text)}
+.dd-body p{margin:0 0 18px;font-size:17px;line-height:1.72;color:var(--text-2)}
+.dd-body a{color:var(--violet-text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.dd-body a:hover{color:var(--text)}
+.dd-body a.acct{text-decoration:none}
+.dd-body strong{color:var(--text);font-weight:600}
+.dd-body ul,.dd-body ol{margin:0 0 22px;padding-left:22px;font-size:17px;line-height:1.7;color:var(--text-2)}
+.dd-body li{margin:0 0 8px;padding-left:4px}
+.dd-body li::marker{color:var(--muted)}
+.dd-body li ul,.dd-body li ol{margin:8px 0 0}
+.dd-body :not(pre) > code{font:500 .86em/1.2 var(--code);color:var(--text);background:var(--surface-2);border:1px solid var(--rule);border-radius:6px;padding:2px 6px;overflow-wrap:anywhere}
+.dd-body hr{border:0;border-top:1px solid var(--rule);margin:48px 0}
+.dd-body .codetabs{margin:26px 0}
+.dd-body .fine{margin:-12px 0 24px}
+
+/* Tables: hairlines, a quiet header row, and a box that scrolls when it has to. */
+.dd-table{margin:26px 0 30px;border:1px solid var(--rule);border-radius:16px;background:var(--surface)}
+.dd-table .tbl{margin:0;font-size:15px}
+.dd-table th{padding:14px 18px;background:var(--surface-2);border-bottom:1px solid var(--rule)}
+.dd-table td{padding:14px 18px;vertical-align:top;line-height:1.55}
+.dd-table tbody tr:last-child td{border-bottom:0}
+.dd-table td:first-child{color:var(--text)}
+.dd-table td :not(pre) > code{font-size:.84em}
+
+/* Callouts: a bar on the left says how much weight a note carries. Red is never used: it means below the line. */
+.dd-callout{margin:28px 0;padding:18px 22px 4px;background:var(--surface);border:1px solid var(--rule-2);border-left:3px solid var(--violet);border-radius:14px}
+.dd-callout.important{border-left-color:var(--text)}
+.dd-callout.limitation{border-left-color:var(--muted)}
+.dd-callout-title{margin:0 0 6px!important;font-size:14px!important;font-weight:600;color:var(--violet-text)!important;letter-spacing:0}
+.dd-callout.important .dd-callout-title{color:var(--text)!important}
+.dd-callout.limitation .dd-callout-title{color:var(--text-2)!important}
+.dd-callout p:last-child{margin-bottom:14px}
+
+/* ---------- Previous and next ---------- */
+.dd-pager{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:72px;padding-top:32px;border-top:1px solid var(--rule)}
+.dd-pager a{display:flex;flex-direction:column;gap:4px;padding:18px 22px;border:1px solid var(--rule-2);border-radius:16px;text-decoration:none;color:var(--text);transition:border-color .18s ease,background-color .18s ease}
+.dd-pager a:hover{border-color:var(--violet);background:var(--surface)}
+.dd-pager a.next{grid-column:2;text-align:right}
+.dd-pager span{font-size:13px;color:var(--muted)}
+.dd-pager b{font-size:18px;font-weight:600;letter-spacing:-0.02em}
+
+/* ---------- On this page ---------- */
+.dd-toc{position:sticky;top:calc(var(--head) + 24px);align-self:start;padding:64px 0 48px;max-height:calc(100vh - var(--head) - 48px);overflow:auto}
+.dd-toc h2{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.dd-toc ul{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule-2)}
+.dd-toc a{display:block;margin-left:-1px;padding:6px 0 6px 14px;font-size:14px;line-height:1.4;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:color .15s ease,border-color .15s ease}
+.dd-toc li.sub a{padding-left:28px}
+.dd-toc a:hover{color:var(--text)}
+.dd-toc a[aria-current="location"]{color:var(--text);border-left-color:var(--violet)}
+
+/* ---------- Home ---------- */
+.dd-home .dd-lede{margin-bottom:32px}
+.dd-search-wide{width:min(520px,100%);min-height:52px;padding:0 18px}
+.dd-cards{list-style:none;margin:44px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.dd-cards a{display:flex;flex-direction:column;gap:8px;height:100%;padding:24px 26px;border:1px solid var(--rule-2);border-radius:20px;background:var(--surface);text-decoration:none;color:var(--text);transition:border-color .18s ease,transform .24s var(--ease,ease)}
+.dd-cards a:hover{border-color:var(--violet);transform:translateY(-2px)}
+.dd-cards b{font-size:20px;font-weight:700;letter-spacing:-0.025em}
+.dd-cards span{font-size:15px;line-height:1.55;color:var(--text-2)}
+.dd-all{margin-top:72px;display:grid;gap:44px}
+.dd-all h2{margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-0.03em}
+.dd-all ul{list-style:none;margin:0;padding:0}
+.dd-all a{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:4px 24px;padding:16px 0;border-bottom:1px solid var(--rule);text-decoration:none;color:var(--text)}
+.dd-all a:hover b{color:var(--violet-text)}
+.dd-all b{font-weight:600;font-size:16px;transition:color .15s ease}
+.dd-all span{font-size:15px;color:var(--muted)}
+
+/* ---------- Search ---------- */
+.dd-scrim{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:12vh 20px 20px;background:rgba(8,5,12,.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:ddfade .16s ease both}
+.dd-palette{width:min(640px,100%);max-height:70vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--rule-strong);border-radius:20px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.8);animation:ddrise .22s var(--ease,ease) both}
+.dd-palette-field{display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--rule);color:var(--muted)}
+.dd-palette-field input{flex:1;min-width:0;height:60px;font:500 18px/1 var(--font);color:var(--text);background:transparent;border:0;outline:none}
+.dd-palette-field input::placeholder{color:var(--muted)}
+.dd-hits{list-style:none;margin:0;padding:8px;overflow:auto}
+.dd-hits li{border-radius:12px}
+.dd-hits li[aria-selected="true"]{background:var(--surface-2)}
+.dd-hits a{display:grid;gap:2px;padding:12px 14px;text-decoration:none;color:var(--text)}
+.dd-hit-title{font-size:16px;font-weight:600;letter-spacing:-0.01em}
+.dd-hit-where{font-size:13px;color:var(--muted)}
+.dd-hit-snippet{font-size:14px;line-height:1.5;color:var(--text-2)}
+.dd-hit-none{padding:18px 14px;font-size:15px;color:var(--muted)}
+@keyframes ddfade{from{opacity:0}to{opacity:1}}
+@keyframes ddrise{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+
+/* The phone bar and menu stay out of the way of wide screens. */
+.dd-bar{display:none}
+
+@media (max-width:1180px){
+  .dd-shell{grid-template-columns:var(--side) minmax(0,1fr);column-gap:56px}
+  .dd-toc{display:none}
+}
+@media (max-width:900px){
+  .dd-shell{display:block}
+  .dd-bar{display:block;position:sticky;top:var(--head);z-index:20;background:var(--header);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule)}
+  .dd-bar-in{display:flex;gap:10px;padding-top:10px;padding-bottom:10px}
+  .dd-bar-btn{min-height:44px;padding:0 16px}
+  .dd-side{display:none;position:static;max-height:none;padding:16px 0 8px;border-bottom:1px solid var(--rule)}
+  .dd-side[data-open]{display:block}
+  .dd-side .dd-search{display:none}
+  .dd-article{padding:36px 0 80px}
+  .dd-body h2{font-size:26px;margin-top:52px}
+  .dd-anchor{display:none}
+  .dd-cards{grid-template-columns:minmax(0,1fr)}
+  .dd-all a{grid-template-columns:minmax(0,1fr)}
+  .dd-pager{grid-template-columns:minmax(0,1fr)}
+  .dd-pager a.next{grid-column:1;text-align:left}
+}
+@media (prefers-reduced-motion:reduce){
+  .dd-scrim,.dd-palette{animation:none}
+  .dd-cards a{transition:none}
+}

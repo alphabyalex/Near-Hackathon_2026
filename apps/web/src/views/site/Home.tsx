@@ -10,13 +10,11 @@ import { prefersReducedMotion, useInView } from "../../v2/motion";
 import { useReveal } from "../../v2/reveal";
 import { sphereDots } from "../../v2/sphere";
 import { navigate } from "../../router";
-import { currentConnected, useConnected } from "../../wallets/connected";
-import { WalletPanel } from "../../wallets/WalletPanel";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { Governance } from "./Governance";
 import { CodeTabs } from "../../components/CodeTabs";
 import { pluginTabs } from "../../data/snippets";
-import { JoinDialog, MemberCard } from "./Member";
+import { MemberCard } from "./Member";
 import { Comparison } from "./Comparison";
 
 const count = (n: number) => n.toLocaleString("en-US");
@@ -33,7 +31,7 @@ function Builders() {
           </h2>
           <p className="lede">{HOME.builders.line}</p>
           <p>
-            <a className="link" href="#/developers">
+            <a className="link" href="#/docs/quickstart">
               {HOME.builders.all}
             </a>
           </p>
@@ -128,19 +126,11 @@ export function Home() {
   const [m, setM] = useState<MutualSummary | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
-  const [joining, setJoining] = useState(false);
   const refresh = () => setTick((t) => t + 1);
   const page = useRef<HTMLElement>(null);
   useReveal(page, m);
-  // The closing call goes into the app: straight to Your balance when a wallet is connected, otherwise the wallet
-  // picker first, and on to Your balance the moment the wallet connects (the picker closes itself then).
-  const connected = useConnected();
-  const [picking, setPicking] = useState(false);
-  const openApp = () => (connected ? navigate("#/wallet") : setPicking(true));
-  const pickerClosed = () => {
-    setPicking(false);
-    if (currentConnected() !== null) navigate("#/wallet");
-  };
+  // Every Become a member goes into the app first: Your balance, which then walks a new member through the rest.
+  const enter = () => navigate("#/wallet");
   useEffect(() => {
     getMutual().then(
       // A transition lets React render the page in small slices, so the main thread never blocks long.
@@ -152,8 +142,6 @@ export function Home() {
       (e: unknown) => setError(e),
     );
   }, [tick]);
-  // A click before the numbers arrive still opens Join, as soon as they do.
-  const join = () => setJoining(true);
   // The hero's secondary button: down to Watch a payment cross the line, which plays once in view.
   const watch = () => {
     const el = document.getElementById("watch");
@@ -164,7 +152,7 @@ export function Home() {
 
   return (
     <main ref={page} className="home">
-      <Hero onJoin={join} onWatch={watch} />
+      <Hero onJoin={enter} onWatch={watch} />
       <Explainer />
       <Outcomes />
       {error !== null && !m && (
@@ -188,7 +176,7 @@ export function Home() {
                 ))}
               </ul>
             </div>
-            <MemberCard pool={m.pool} version={tick} onJoin={join} onChanged={refresh} />
+            <MemberCard pool={m.pool} version={tick} onJoin={enter} onChanged={refresh} />
           </div>
         </section>
       )}
@@ -229,7 +217,7 @@ export function Home() {
               {HOME.ctaTitle}
             </h2>
             <p className="lede">{HOME.ctaBody}</p>
-            <button type="button" className="btn" onClick={openApp}>
+            <button type="button" className="btn" onClick={enter}>
               {HOME.primary}
             </button>
           </div>
@@ -239,8 +227,6 @@ export function Home() {
         </div>
       </section>
 
-      {picking && <WalletPanel onClose={pickerClosed} />}
-      {joining && m && <JoinDialog pool={m.pool} minDeposit={m.min_deposit} onClose={() => setJoining(false)} onJoined={refresh} />}
     </main>
   );
 }

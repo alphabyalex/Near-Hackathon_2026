@@ -96,7 +96,7 @@ export function Groups() {
             ))}
           </ol>
           <div className="actions">
-            <a className="btn" href="#/developers">
+            <a className="btn" href="#/docs/quickstart">
               {GROUPS.connectCta}
             </a>
             <a className="btn ghost" href="#/app/group">

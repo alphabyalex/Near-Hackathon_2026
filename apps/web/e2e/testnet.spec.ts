@@ -6,6 +6,7 @@
  * WARDLINE_DATA=testnet and VITE_WARDLINE_LOCAL_SIGNER=1 on 127.0.0.1:5173, and an open WARD proposal.
  * Saves screenshots to screenshots/testnet-*.png and the transaction hashes to screenshots/testnet-txs.json.
  */
+import { openJoin } from "./fixtures";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -117,7 +118,7 @@ test("4: the payee check blocks northw1nd against the registry on testnet", asyn
 
 test("5: Join the Mutual with the local test signer: a real deposit that mints WARD", async ({ page }) => {
   await connectAs(page, MEMBER);
-  await page.getByRole("button", { name: "Become a member" }).first().click();
+  await openJoin(page);
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Amount in USDC").fill("1");
   await dialog.getByRole("button", { name: /^Deposit 1(\.00)? USDC$/ }).click();

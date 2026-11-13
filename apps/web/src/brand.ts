@@ -34,7 +34,7 @@ export const NAV = [
 ] as const;
 
 /** The quiet text link top right, before the wallet controls. */
-export const DOCS = { label: "Docs", href: "#/developers", page: "developers" } as const;
+export const DOCS = { label: "Docs", href: "#/docs", page: "docs" } as const;
 
 export const FOOTER = {
   owner: "Owner sign-in",
@@ -45,7 +45,7 @@ export const FOOTER = {
   /** Footer columns: [title, [label, href][]]. */
   columns: [
     ["The Mutual", [["Mutual", "#/"], ["Groups", "#/groups"], ["Proof engine", "#/proof"], ["Your balance", "#/wallet"]]],
-    ["Build", [["Docs", "#/developers"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"]]],
+    ["Build", [["Docs", "#/docs"], ["Check a payee", "#/try"], ["Verify your business", "#/verify"]]],
     ["Wardline", [["About", "#/about"], ["How it works", "#/about/steps"], ["The vault", "#/vault"], ["Owner sign-in", "#/app/overview"]]],
   ],
 } as const;
@@ -529,18 +529,9 @@ export const CONNECT = {
   copied: "Copied",
 } as const;
 
-/** The Developers page (#/developers): pick what you are building, get one code panel. */
+/** The code panels in the docs (Quickstart, MCP server, SDK): tab names, a note under each, and the label on the one changed line. */
 export const DEVELOPERS = {
-  eyebrow: "Developers",
-  title: "One line between your agent and every payment.",
-  lede: "Pick what you're building. You get only the code that matters, ready to paste.",
-  ask: "What are you building?",
   oneLine: "the one line",
-  codeLabel: (path: string) => `Code for ${path.toLowerCase()}`,
-  getBack: "What you get back",
-  also: "Also for this",
-  llmsLead: "For AI agents reading this page: everything here is also in",
-  llmsLink: "llms.txt",
   tabs: {
     js: "JavaScript",
     py: "Python",
@@ -563,52 +554,6 @@ export const DEVELOPERS = {
     hosted: "Calls the hosted API. Give agents a check-only key.",
     direct: "Runs every check in your process. Nothing is sent to us.",
     curl: "Plain HTTP, from any language.",
-  },
-  paths: {
-    ai: {
-      title: "An agent that calls AI models",
-      line: "Every answer proven, or the money comes back.",
-      back: [
-        "The same answer you would get anyway. Nothing else in your code changes.",
-        "An x-wardline-proof header on every response: verified, or refused with the reason.",
-        "No charge for an answer that is not proven. The reservation is released in full.",
-        "A 402 before anything is sent once a member's allowance or the budget is used up.",
-      ],
-      also: [
-        { label: "Get a meter key", href: "#/app/keys" },
-        { label: "How the proof works", href: "#/proof" },
-        { label: "Every route in llms.txt", href: "/llms.txt" },
-      ],
-    },
-    vendors: {
-      title: "An agent that pays vendors",
-      line: "Block look-alike accounts before money moves.",
-      back: [
-        "A verdict for the account you are about to pay: PAY, HOLD or BLOCK.",
-        "The reason behind it, such as a look-alike account or one not linked to the vendor's domain.",
-        "The account linked to a vendor's website, so your agent never copies a raw address.",
-        "No verdict when a call fails. Then do not pay.",
-      ],
-      also: [
-        { label: "Try a check", href: "#/try" },
-        { label: "Verify your own business", href: "#/verify" },
-        { label: "Verdicts and reasons in llms.txt", href: "/llms.txt" },
-      ],
-    },
-    app: {
-      title: "My own app",
-      line: "The same checks from TypeScript, hosted or straight from the chain.",
-      back: [
-        "Typed results for resolve and check, and assertPayable to stop a payment on HOLD or BLOCK.",
-        "Hosted: the Wardline API answers, with a check-only key.",
-        "Direct: your process reads the payee registry on NEAR, with no server in between.",
-      ],
-      also: [
-        { label: "Create API keys", href: "#/app/keys" },
-        { label: "Verify your own business", href: "#/verify" },
-        { label: "Every integration in llms.txt", href: "/llms.txt" },
-      ],
-    },
   },
 } as const;
 
@@ -1077,6 +1022,14 @@ export const BALANCE = {
   tokens: (amount: string, symbol: string) => `${amount} ${symbol}`,
   connectTitle: "Connect a wallet to see your balance.",
   connect: "Connect wallet",
+  /** The not-connected page: the app's front door. A new member is walked through the rest here. */
+  newHere: "New here? Become a member in a minute.",
+  becomeMember: "Become a member",
+  steps: [
+    ["Connect your NEAR wallet", "Any NEAR wallet works. You sign every transaction yourself."],
+    ["Deposit USDC", "You receive WARD at today's price. The smallest deposit is 1.00 USDC."],
+    ["Earn and vote", "WARD earns a share of every proven payment and votes on fees and coverage."],
+  ],
   rows: "What you hold",
   usdc: "USDC",
   usdcNote: "Digital dollars. 1 USDC is always $1",

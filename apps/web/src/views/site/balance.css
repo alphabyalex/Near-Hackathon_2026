@@ -71,10 +71,20 @@
 .bal-later{margin-top:72px;padding-top:40px;border-top:1px solid var(--rule)}
 .bal-later .bal-h2{margin-bottom:16px}
 
-.bal-empty{display:flex;flex-direction:column;align-items:flex-start;gap:20px;min-height:50vh}
-.bal-empty-title{margin:0;font-size:clamp(28px,3vw,40px);font-weight:700;letter-spacing:-0.03em;max-width:20ch}
+.bal-empty{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:96px;align-items:center;min-height:60vh}
+.bal-empty-copy{display:flex;flex-direction:column;align-items:flex-start;gap:20px;min-width:0}
+.bal-empty-title{margin:0;font-size:clamp(28px,3vw,40px);line-height:1.1;font-weight:700;letter-spacing:-0.03em;max-width:20ch}
+.bal-empty-lede{margin:-8px 0 0;font-size:19px;color:var(--text-2)}
+.bal-empty-actions{display:flex;flex-wrap:wrap;gap:12px}
+/* The three steps of becoming a member: plain numerals and hairlines, no badges. */
+.bal-steps{counter-reset:step;list-style:none;margin:20px 0 0;padding:0;width:min(560px,100%);border-top:1px solid var(--rule)}
+.bal-steps li{counter-increment:step;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;row-gap:2px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.bal-steps li::before{content:counter(step);grid-row:1 / span 2;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600}
+.bal-steps b{font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.bal-steps span{font-size:15px;color:var(--muted)}
 
 @media (max-width:900px){
+  .bal-empty{grid-template-columns:minmax(0,1fr);gap:40px;min-height:0}
   .bal-grid{grid-template-columns:minmax(0,1fr);gap:24px}
   .bal-left{position:static}
   .bal-left .mine-mark{width:220px}

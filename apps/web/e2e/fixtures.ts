@@ -87,3 +87,16 @@ export async function signInAs(page: Page, wallets: Wallets, account: string): P
   await page.getByRole("button", { name: /Test wallet/ }).click();
   await expect(page.locator(".whoami")).toContainText(account);
 }
+
+/**
+ * Become a member goes into the app first (Your balance), and the app's front door opens Join: its own Become a
+ * member for a visitor with no wallet, its Deposit for a connected one.
+ */
+export async function openJoin(page: Page): Promise<void> {
+  await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+  await expect(page).toHaveURL(/#\/wallet$/);
+  await page
+    .locator('[data-testid="me-connect"] button:has-text("Become a member"), [data-testid="bal-usdc"] button:has-text("Deposit")')
+    .first()
+    .click();
+}

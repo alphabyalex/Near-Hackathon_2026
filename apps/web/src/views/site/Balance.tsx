@@ -10,7 +10,8 @@ import { HorizonMark } from "../../components/HorizonMark";
 import { PriceChart } from "../../components/PriceChart";
 import { Problem } from "../../components/Problem";
 import { ftBalance, spendableNear } from "../../data/chain";
-import { signMutual } from "../../data/mutual";
+import { getMutual, signMutual } from "../../data/mutual";
+import type { MutualSummary } from "../../data/mutual";
 import { getPerson, type Person } from "../../data/people";
 import { DATA_SOURCE } from "../../data/source";
 import { confirmedTotals, useTransactions, type WalletTx } from "../../data/transactions";
@@ -21,7 +22,7 @@ import { MiniSphere, shareChanged } from "../../wallets/AccountControl";
 import { useConnected, type Connected } from "../../wallets/connected";
 import { WalletPanel } from "../../wallets/WalletPanel";
 import { Proposal } from "./Governance";
-import { JoinDialog } from "./Member";
+import { JoinDialog, MemberCard } from "./Member";
 import { countdown, price, useNow } from "./Mutual";
 import { label, Transactions, when } from "./Transactions";
 import "./balance.css";
@@ -258,6 +259,19 @@ export function Balance() {
   const [connecting, setConnecting] = useState(false);
   const [joining, setJoining] = useState(false);
   const [selling, setSelling] = useState(false);
+  // Not connected: the pool, so Become a member can quote the deposit before any wallet is involved.
+  const [pool, setPool] = useState<MutualSummary | null>(null);
+  useEffect(() => {
+    if (connected) return;
+    let live = true;
+    getMutual().then(
+      (m) => live && setPool(m),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [connected]);
   const refresh = useCallback(() => {
     setTick((t) => t + 1);
     shareChanged();
@@ -300,11 +314,28 @@ export function Balance() {
       {!connected && (
         <section className="sec pagetop">
           <div className="wrap bal-empty" data-testid="me-connect">
-            <HorizonMark size={160} step={16} />
-            <p className="bal-empty-title">{BALANCE.connectTitle}</p>
-            <button type="button" className="btn" onClick={() => setConnecting(true)}>
-              {BALANCE.connect}
-            </button>
+            <div className="bal-empty-copy">
+              <p className="bal-empty-title">{BALANCE.connectTitle}</p>
+              <p className="bal-empty-lede">{BALANCE.newHere}</p>
+              <div className="bal-empty-actions">
+                <button type="button" className="btn" onClick={() => setJoining(true)} disabled={!pool}>
+                  {BALANCE.becomeMember}
+                </button>
+                <button type="button" className="btn ghost" onClick={() => setConnecting(true)}>
+                  {BALANCE.connect}
+                </button>
+              </div>
+              <ol className="bal-steps">
+                {BALANCE.steps.map(([title, body]) => (
+                  <li key={title}>
+                    <b>{title}</b>
+                    <span>{body}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {/* What a deposit gets you, before any wallet is involved. */}
+            {pool && <MemberCard pool={pool.pool} version={tick} onJoin={() => setJoining(true)} onChanged={refresh} />}
           </div>
         </section>
       )}
@@ -419,7 +450,7 @@ export function Balance() {
       )}
       {/* Centred, not anchored: anchored to this mid-page button the panel opened below the screen. */}
       {connecting && <WalletPanel onClose={() => setConnecting(false)} />}
-      {joining && person && <JoinDialog pool={person.mutual.pool} onClose={() => setJoining(false)} onJoined={refresh} />}
+      {joining && (person ?? pool) && <JoinDialog pool={(person ?? { mutual: pool! }).mutual.pool} {...(pool ? { minDeposit: pool.min_deposit } : {})} onClose={() => setJoining(false)} onJoined={refresh} />}
     </main>
   );
 }

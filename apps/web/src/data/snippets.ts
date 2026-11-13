@@ -118,7 +118,7 @@ export function pluginTabs(apiUrl: string = SNIPPET_API_URL): CodeTab[] {
   ];
 }
 
-export type DeveloperPathId = keyof typeof DEVELOPERS.paths;
+export type DeveloperPathId = "ai" | "vendors" | "app";
 export const DEVELOPER_PATHS: readonly DeveloperPathId[] = ["ai", "vendors", "app"];
 
 /** All eight integrations, sorted into the three things people build. llms.txt is linked from every path. */

@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
-export type SitePage = "home" | "wallet" | "groups" | "proof" | "try" | "developers" | "verify" | "about" | "vault" | "scoring";
+export type SitePage = "home" | "wallet" | "groups" | "proof" | "try" | "docs" | "verify" | "about" | "vault" | "scoring";
 export type DashboardTab = "overview" | "share" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
-export type Route = { kind: "site"; page: SitePage; /** A section to scroll to, from #/<page>/<section>. */ section?: string } | { kind: "app"; tab: DashboardTab; invoice: string | null };
+export type Route = { kind: "site"; page: SitePage; /** A section to scroll to, from #/<page>/<section>. */ section?: string; /** A docs page, from #/docs/<doc>. */ doc?: string; /** A heading on that page, from #/docs/<doc>/<anchor>. */ anchor?: string } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
-const SITE_PAGES: readonly string[] = ["wallet", "groups", "proof", "try", "developers", "verify", "about", "vault", "scoring"];
+const SITE_PAGES: readonly string[] = ["wallet", "groups", "proof", "try", "docs", "verify", "about", "vault", "scoring"];
 /**
  * Old routes that moved. Links to them land on the new page, and the address bar shows the new route.
- * Your share (#/me) became the Balance page; How it works (and #/demo before it) became the steps on About.
+ * Your share (#/me) became the Balance page; How it works (and #/demo before it) became the steps on About; the
+ * Developers page (#/developers, #/connect) became the Quickstart in the docs.
  */
-const MOVED: Record<string, string> = { connect: "developers", me: "wallet", "how-it-works": "about/steps", demo: "about/steps" };
+const MOVED: Record<string, string> = { connect: "docs/quickstart", developers: "docs/quickstart", me: "wallet", "how-it-works": "about/steps", demo: "about/steps" };
 
-/** "#/connect" becomes "#/developers", "#/me" becomes "#/wallet"; anything else is unchanged. */
+/** "#/connect" becomes "#/docs/quickstart", "#/me" becomes "#/wallet"; anything else is unchanged. */
 export function redirected(hash: string): string {
   const [first, ...rest] = hash.replace(/^#\/?/, "").split("/");
   const to = first ? MOVED[first] : undefined;
@@ -37,6 +38,8 @@ export function parseRoute(hash: string): Route {
   }
   const page: SitePage = first && SITE_PAGES.includes(first) ? (first as SitePage) : "home";
   // #/<page>/<section> scrolls to a section; for home that is #/mutual/<section>, since #/ has no name.
+  // #/docs/<doc>/<heading> opens a docs page, at a heading when one is named.
+  if (page === "docs") return { kind: "site", page, ...(second ? { doc: second } : {}), ...(third ? { anchor: third } : {}) };
   return second && (page !== "home" || first === "mutual") ? { kind: "site", page, section: second } : { kind: "site", page };
 }
 
@@ -118,8 +121,9 @@ export function useRoute(): Route {
  * few frames for the element; the page's own scroll-to-top has already run by then.
  */
 export function useSectionScroll(route: Route): void {
-  const section = route.kind === "site" ? route.section : undefined;
-  const page = route.kind === "site" ? route.page : null;
+  // On a docs page the thing to scroll to is the named heading.
+  const section = route.kind === "site" ? (route.page === "docs" ? route.anchor : route.section) : undefined;
+  const page = route.kind === "site" ? (route.page === "docs" ? `docs/${route.doc ?? ""}` : route.page) : null;
   useEffect(() => {
     if (!section) return;
     let frames = 0;

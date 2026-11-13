@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { OWNER_ACCOUNT } from "./keys";
-import { expect, expectAccessible, expectNoHorizontalScroll, test } from "./fixtures";
+import { expect, expectAccessible, expectNoHorizontalScroll, test, openJoin } from "./fixtures";
 
 /** Presses Tab until the focused element matches, the way a keyboard user would get there. */
 async function tabTo(page: Page, matches: (el: { tag: string; name: string; testId: string | null }) => boolean, max = 80) {
@@ -25,7 +25,10 @@ test.describe("keyboard only", () => {
     await page.goto("/#/");
     await expect(page.getByTestId("home-stats")).toBeVisible();
 
-    // Join the Mutual.
+    // Join the Mutual: Become a member enters the app, whose own Become a member opens Join.
+    await tabTo(page, (el) => el.tag === "button" && el.name === "Become a member");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/#\/wallet$/);
     await tabTo(page, (el) => el.tag === "button" && el.name === "Become a member");
     await page.keyboard.press("Enter");
     const dlg = page.getByTestId("join-dialog");
@@ -64,6 +67,9 @@ test.describe("keyboard only", () => {
   test("the dialog traps focus, Escape closes it, and focus returns to the opener", async ({ page }) => {
     await page.goto("/#/");
     await expect(page.getByTestId("home-stats")).toBeVisible();
+    await tabTo(page, (el) => el.tag === "button" && el.name === "Become a member");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/#\/wallet$/);
     await tabTo(page, (el) => el.tag === "button" && el.name === "Become a member");
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("join-dialog")).toBeVisible();
@@ -123,7 +129,7 @@ test.describe("text alternatives and dialogs", () => {
       await page.setViewportSize({ width: size.width, height: size.height });
       await page.goto("/#/");
       await expect(page.getByTestId("home-stats")).toBeVisible();
-      await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+      await openJoin(page);
       await expect(page.getByTestId("join-dialog")).toBeVisible();
       await expectAccessible(page);
       await expectNoHorizontalScroll(page);

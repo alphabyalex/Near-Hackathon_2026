@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { APPROVER_ACCOUNT, OWNER_ACCOUNT, SHOTS_PORT, VENDOR_NEAR_ACCOUNT } from "./keys";
-import { expect, signInAs, test, type Wallets } from "./fixtures";
+import { expect, signInAs, test, type Wallets, openJoin } from "./fixtures";
 
 /** Desktop and 390px screenshots of every page, saved to apps/web/screenshots (gitignored). */
 
@@ -29,7 +29,7 @@ const SHOTS: Shot[] = [
     viewport: true,
     prepare: async (page) => {
       await expect(page.getByTestId("home-stats")).toBeVisible();
-      await page.getByRole("button", { name: "Become a member" }).first().click();
+      await openJoin(page);
       await expect(page.getByTestId("join-dialog")).toBeVisible();
     },
   },
@@ -93,7 +93,7 @@ const SHOTS: Shot[] = [
     viewport: true,
     prepare: async (page, wallets) => {
       wallets.setNearAccount(OWNER_ACCOUNT);
-      await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+      await openJoin(page);
       const dlg = page.getByTestId("join-dialog");
       await dlg.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
       await dlg.locator('[data-wallet="test-wallet"]').click();
@@ -165,8 +165,8 @@ const SHOTS: Shot[] = [
       await expect(page.getByTestId("proofs")).toBeVisible();
     },
   },
-  { name: "developers", path: "#/developers", base: `http://127.0.0.1:${SHOTS_PORT}/` },
-  { name: "developers-default", path: "#/developers" },
+  { name: "docs", path: "#/docs/quickstart", base: `http://127.0.0.1:${SHOTS_PORT}/` },
+  { name: "docs-default", path: "#/docs" },
   { name: "verify", path: "#/verify" },
   {
     name: "verify-wallets",
@@ -274,7 +274,7 @@ const A9_SIZES = [
 const A9: Shot[] = [
   { name: "home", path: "#/", prepare: async (page) => void (await expect(page.getByTestId("governance")).toBeVisible()) },
   { name: "about", path: "#/about" },
-  { name: "developers", path: "#/developers" },
+  { name: "docs", path: "#/docs/quickstart" },
   { name: "groups", path: "#/groups", prepare: async (page) => void (await expect(page.getByTestId("group-detail")).toBeVisible()) },
   { name: "proof", path: "#/proof", prepare: async (page) => void (await expect(page.getByTestId("proofs")).toBeVisible()) },
   {
@@ -309,7 +309,7 @@ const A9: Shot[] = [
       await box.locator('[data-wallet="test-wallet"]').click();
       await box.getByRole("button", { name: "Use this wallet" }).click();
       await expect(page.getByTestId("home-stats")).toBeVisible();
-      await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+      await openJoin(page);
       await expect(page.getByTestId("join-from")).toBeVisible();
     },
   },

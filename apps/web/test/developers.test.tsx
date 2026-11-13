@@ -1,11 +1,11 @@
-/** Developers: pick what you're building, get one code panel with tabs, Copy and the one line. */
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+/** The docs' code panels: tabs, Copy and the one line. */
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEVELOPERS } from "../src/brand";
 import { CodeTabs } from "../src/components/CodeTabs";
 import { SNIPPET_API_URL, SNIPPET_MCP_URL } from "../src/config";
 import { pluginSnippets, pluginTabs, snippets } from "../src/data/snippets";
-import { Connect } from "../src/views/site/Connect";
+import { Embed } from "../src/docs/Embeds";
 
 const writeText = vi.fn<(text: string) => Promise<void>>(async () => undefined);
 
@@ -22,25 +22,17 @@ const PATHS = {
   app: [T.hosted, T.direct, T.curl],
 } as const;
 
-const pick = (id: keyof typeof PATHS) => fireEvent.click(screen.getByRole("button", { name: new RegExp(DEVELOPERS.paths[id].title) }));
+const show = (id: keyof typeof PATHS) => {
+  cleanup();
+  render(<Embed name="developer-tabs" props={{ path: id }} />);
+};
 const tabNames = () => screen.getAllByRole("tab").map((tab) => tab.textContent);
 const visibleCode = () => screen.getByRole("tabpanel").querySelector("pre")?.textContent ?? "";
 
-describe("developers page", () => {
-  it("offers three choices as pressed buttons, the AI path first", () => {
-    render(<Connect />);
-    const group = screen.getByRole("group", { name: DEVELOPERS.ask });
-    const choices = within(group).getAllByRole("button");
-    expect(choices).toHaveLength(3);
-    expect(choices.map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"]);
-    pick("vendors");
-    expect(within(group).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "true", "false"]);
-  });
-
+describe("the docs' code panels", () => {
   it("each path shows its own tabs", () => {
-    render(<Connect />);
     for (const id of ["ai", "vendors", "app"] as const) {
-      pick(id);
+      show(id);
       expect(tabNames()).toEqual([...PATHS[id]]);
       expect(screen.getAllByRole("tabpanel")).toHaveLength(1); // the others are hidden
       expect(screen.getByRole("tab", { selected: true })?.textContent).toContain(PATHS[id][0]);
@@ -48,11 +40,10 @@ describe("developers page", () => {
   });
 
   it("reaches all eight integrations", () => {
-    render(<Connect />);
     const s = snippets(SNIPPET_API_URL, SNIPPET_MCP_URL);
     const seen: string[] = [];
     for (const id of ["ai", "vendors", "app"] as const) {
-      pick(id);
+      show(id);
       for (const name of PATHS[id]) {
         fireEvent.click(screen.getByRole("tab", { name }));
         seen.push(visibleCode());
@@ -69,11 +60,10 @@ describe("developers page", () => {
     expect(all).toContain('mode: "hosted"');
     expect(all).toContain('mode: "direct"');
     expect(all).toContain("withWardline(fetch, { wardline })"); // x402 guard
-    expect(screen.getAllByRole("link", { name: /llms\.txt/ })[0]?.getAttribute("href")).toBe("/llms.txt");
   });
 
   it("highlights the one line", () => {
-    render(<Connect />);
+    show("ai");
     const line = screen.getByRole("tabpanel").querySelector("[data-one]");
     expect(line?.textContent).toContain(`baseURL: "${SNIPPET_API_URL}/v1/ai"`);
     expect(line?.textContent).toContain(DEVELOPERS.oneLine);
@@ -81,7 +71,7 @@ describe("developers page", () => {
   });
 
   it("Copy copies the visible snippet and says so", async () => {
-    render(<Connect />);
+    show("ai");
     fireEvent.click(screen.getByRole("tab", { name: T.py }));
     const copy = screen.getByRole("button", { name: `Copy ${T.py}` });
     await act(async () => {
@@ -91,20 +81,12 @@ describe("developers page", () => {
     expect(copy?.textContent).toContain("Copied");
     expect(screen.getByRole("status")?.textContent).toContain(`${T.py} copied`);
 
-    pick("vendors");
+    show("vendors");
     fireEvent.click(screen.getByRole("tab", { name: T.x402 }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: `Copy ${T.x402}` }));
     });
     expect(writeText).toHaveBeenLastCalledWith(snippets(SNIPPET_API_URL, SNIPPET_MCP_URL).x402);
-  });
-
-  it("lists what you get back and links for each path", () => {
-    render(<Connect />);
-    pick("app");
-    expect(screen.getByRole("heading", { name: DEVELOPERS.getBack })).toBeTruthy();
-    for (const line of DEVELOPERS.paths.app.back) expect(screen.getByText(line)).toBeTruthy();
-    for (const link of DEVELOPERS.paths.app.also) expect(screen.getByRole("link", { name: link.label })?.getAttribute("href")).toBe(link.href);
   });
 });
 

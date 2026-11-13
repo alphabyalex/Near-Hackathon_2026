@@ -46,7 +46,7 @@ test.describe("scrolling", () => {
     await page.goto("/#/proof");
     await expect(page.getByTestId("proofs")).toBeVisible();
     expect(await wheelOver(page, '[data-testid="proofs"]')).toBeGreaterThan(0);
-    await page.goto("/#/developers");
+    await page.goto("/#/docs/quickstart");
     await expect(page.locator(".codetabs pre").first()).toBeVisible();
     expect(await wheelOver(page, ".codetabs pre")).toBeGreaterThan(0);
   });
@@ -137,7 +137,7 @@ test.describe("phones", () => {
   test("no page scrolls sideways at 390px", async ({ page }) => {
     await connectTestWallet(page, APPROVER_ACCOUNT);
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const route of ["#/", "#/groups", "#/proof", "#/about", "#/wallet", "#/developers"]) {
+    for (const route of ["#/", "#/groups", "#/proof", "#/about", "#/wallet", "#/docs", "#/docs/quickstart"]) {
       await page.goto(`/${route}`);
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(500);

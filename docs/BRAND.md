@@ -102,3 +102,12 @@ Motion that answers a person's action is also allowed: a dialog opening, a spinn
 - All-caps labels, em dashes, hype words.
 - Hackathon or testnet disclaimers outside the README's honest-limits section.
 - "Stable", "guaranteed" or "principal-protected" for WARD. WARD is yield-bearing and loss-sharing. The Mutual is protocol-backed coverage, not insurance.
+
+## The docs
+
+The docs at `#/docs` are structured the way a protocol's docs are: a grouped sidebar on the left, one topic per page, an "On this page" list on the right that marks the heading you are reading, previous and next at the foot, a home of start-here cards, and a search that opens with `/` or Ctrl or Cmd K. The page shares the site's container, so the sidebar lines up under the logo and the page under the buttons.
+
+- **Structure.** A page opens with its title and one plain sentence, then headings that answer one question each. Three groups of pages deal with the product (the Mutual, Groups, Governance), one with building on it, and one with security and limits. Keep a page to one topic and link instead of repeating.
+- **Callouts.** `note`, `important` and `limitation` carry a bar on the left in violet, white and grey. Red is never used for a warning: red means below the line.
+- **Code.** Code is always a tabbed panel with the language as its label and a Copy button; the Quickstart, MCP and SDK pages use the live panels, so the addresses in the examples are the ones this build shows.
+- **Tone.** Say what a thing is, what it does and what it can't do. Every limit gets its own sentence on the Limits and risks page.

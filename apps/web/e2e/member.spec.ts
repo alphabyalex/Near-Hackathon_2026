@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { APPROVER_ACCOUNT, OWNER_ACCOUNT, VENDOR_NEAR_ACCOUNT } from "./keys";
-import { expect, expectAccessible, expectNoHorizontalScroll, test } from "./fixtures";
+import { expect, expectAccessible, expectNoHorizontalScroll, test, openJoin } from "./fixtures";
 
 /** Fills the wallet picker's developer section with the test wallet; the picker closes once it connects. */
 async function connectIn(page: Page, account: string) {
@@ -92,7 +92,7 @@ test.describe("#/wallet, the Balance page", () => {
   test("Join the Mutual's Go to my share opens #/wallet", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     const dlg = page.getByTestId("join-dialog");
     await dlg.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
     await dlg.locator('[data-wallet="test-wallet"]').click();
@@ -129,7 +129,7 @@ test.describe("states: what happened and what to do next", () => {
   test("wallet signature rejected, then wallet not installed", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     const dlg = page.getByTestId("join-dialog");
     await dlg.getByLabel("Your NEAR account").fill(OWNER_ACCOUNT);
     await dlg.locator('[data-wallet="test-wallet"]').click();
@@ -150,7 +150,7 @@ test.describe("states: what happened and what to do next", () => {
   test("a deposit below the minimum is stopped before anything is signed", async ({ page, wallets }) => {
     wallets.setNearAccount(OWNER_ACCOUNT);
     await page.goto("/#/");
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     const dlg = page.getByTestId("join-dialog");
     await dlg.getByLabel("Amount in USDC").fill("0.5");
     await expect(dlg.locator('[data-problem="belowMinimum"]')).toContainText("The smallest deposit is 1.00 USDC.");

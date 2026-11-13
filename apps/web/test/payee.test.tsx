@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BRAND, HOME, TIERS } from "../src/brand";
 import { REDTEAM, engineLabel, firstContact, percent } from "../src/redteam";
 import { AccountDiff, countdown } from "../src/views/owner/ReviewDesk";
-import { snippets } from "../src/views/site/Connect";
+import { snippets } from "../src/data/snippets";
 import { PLACEHOLDER_API_URL, PLACEHOLDER_MCP_URL, SNIPPET_API_URL, SNIPPET_MCP_URL, snippetUrl } from "../src/config";
 import { poisonedAddress } from "../src/views/site/HowItWorks";
 import { payeeMessage, proofFile } from "../src/views/site/Verify";

@@ -1,9 +1,9 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, test, openJoin } from "./fixtures";
 
 // Runs in the "iphone" project: WebKit, iPhone SE (375 x 667, touch, mobile viewport).
 // #/me is now #/wallet (the Balance page); #/demo is now the steps on #/about.
-const ROUTES = ["#/", "#/wallet", "#/groups", "#/proof", "#/try", "#/developers", "#/verify", "#/about", "#/vault"];
+const ROUTES = ["#/", "#/wallet", "#/groups", "#/proof", "#/try", "#/docs", "#/docs/quickstart", "#/docs/api-reference", "#/verify", "#/about", "#/vault"];
 
 /** What sticks out past the right edge, for a readable failure message. */
 async function offenders(page: Page): Promise<string[]> {
@@ -49,7 +49,7 @@ test.describe("iPhone: no sideways sliding", () => {
   test("with the Join and Connect wallet dialogs open", async ({ page }) => {
     await page.goto("/#/");
     await expect(page.getByTestId("home-stats")).toBeVisible();
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     await expect(page.getByTestId("join-dialog")).toBeVisible();
     await expectNoSideways(page, "join dialog");
     await page.keyboard.press("Escape");
@@ -65,7 +65,7 @@ test.describe("iPhone: no sideways sliding", () => {
     expect(viewport).toContain("viewport-fit=cover");
     expect(viewport).not.toMatch(/user-scalable\s*=\s*(no|0)|maximum-scale\s*=\s*1(\.0)?\b/);
     await expect(page.getByTestId("home-stats")).toBeVisible();
-    await page.locator(".hero").getByRole("button", { name: "Become a member" }).click();
+    await openJoin(page);
     await expect(page.getByTestId("join-dialog")).toBeVisible();
     const sizes = await page.getByTestId("join-dialog").locator("input, select, textarea").evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).fontSize)));
     expect(sizes.length).toBeGreaterThan(0);

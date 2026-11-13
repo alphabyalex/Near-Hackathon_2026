@@ -109,7 +109,7 @@ describe("routing", () => {
     const main = within(screen.getByRole("navigation", { name: "Main" })).getAllByRole("link");
     // Docs sits apart, top right; in the phone menu it is the last link (hidden on wide screens).
     expect(main.map((a) => a.textContent)).toEqual(["Mutual", "Groups", "Proof engine", "About", "Docs"]);
-    expect(screen.getAllByRole("link", { name: "Docs" }).every((a) => a.getAttribute("href") === "#/developers")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "Docs" }).every((a) => a.getAttribute("href") === "#/docs")).toBe(true);
     const footer = within(screen.getByRole("navigation", { name: "Footer" })).getAllByRole("link");
     expect(footer.at(-1)?.getAttribute("href")).toBe("#/app/overview");
     expect(footer.at(-1)?.textContent).toBe("Owner sign-in");
@@ -271,10 +271,11 @@ describe("source rules", () => {
 });
 
 describe("moved routes", () => {
-  it("send #/connect to #/developers", async () => {
+  it("send #/connect and #/developers to the Quickstart in the docs", async () => {
     const { redirected, parseRoute } = await import("../src/router");
-    expect(redirected("#/connect")).toBe("#/developers");
+    expect(redirected("#/connect")).toBe("#/docs/quickstart");
+    expect(redirected("#/developers")).toBe("#/docs/quickstart");
     expect(redirected("#/groups")).toBe("#/groups");
-    expect(parseRoute(redirected("#/connect"))).toEqual({ kind: "site", page: "developers" });
+    expect(parseRoute(redirected("#/connect"))).toEqual({ kind: "site", page: "docs", doc: "quickstart" });
   });
 });
