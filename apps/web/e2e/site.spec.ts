@@ -106,6 +106,31 @@ test.describe("public site", () => {
     await expect(page.locator(".cta").getByRole("button", { name: "Become a member" })).toBeVisible();
   });
 
+  test("home: the closing Become a member opens the app: the wallet picker first, then Your balance", async ({ page, wallets }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    wallets.setNearAccount(OWNER_ACCOUNT);
+    await page.goto("/#/");
+    const cta = page.locator(".cta").getByRole("button", { name: "Become a member" });
+    await cta.scrollIntoViewIfNeeded();
+    // No wallet yet: the picker opens, and the join dialog does not.
+    await cta.click();
+    const dlg = page.getByTestId("connect-dialog");
+    await expect(dlg).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Join the Mutual" })).toHaveCount(0);
+    await dlg.getByLabel("NEAR account").fill(OWNER_ACCOUNT);
+    await dlg.locator('[data-wallet="test-wallet"]').click();
+    await dlg.getByRole("button", { name: "Use this wallet" }).click();
+    // Connected: on into the app.
+    await expect(page).toHaveURL(/#\/wallet$/);
+    // Already connected: straight in, no picker.
+    await page.goto("/#/");
+    const again = page.locator(".cta").getByRole("button", { name: "Become a member" });
+    await again.scrollIntoViewIfNeeded();
+    await again.click();
+    await expect(page).toHaveURL(/#\/wallet$/);
+    await expect(page.getByTestId("connect-dialog")).toHaveCount(0);
+  });
+
   test("hero: the final frame under reduced motion; otherwise the entrance, then a slow drift that stops off screen", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");

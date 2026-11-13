@@ -192,8 +192,8 @@
 .home .sec{padding:112px 0}
 .home .sec .h2{margin-bottom:24px}
 
-/* The light section is a slab: it sits inside the page with rounded corners, so the break is crisp, not a smudge. */
-.home .sec.light{width:min(1360px,calc(100% - 32px));margin:0 auto;padding:128px 0;border-radius:40px}
+/* The light section is a full-width band with straight edges: a crisp break, never a smudge and never a floating box. */
+.home .sec.light{padding:112px 0;border-radius:0}
 .home .sec.light + .sec{padding-top:128px}
 .home .sec.light .share-grid{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:96px;align-items:center}
 @media (max-width:900px){.home .sec.light .share-grid{grid-template-columns:minmax(0,1fr);gap:40px}.home .sec.light .h2{max-width:none;margin-bottom:28px}}
@@ -219,7 +219,7 @@
 
 /* The member card's mark crowds its title on a phone. */
 @media (max-width:560px){
-  .home .sec.light{width:calc(100% - 20px);padding:72px 0;border-radius:28px}
+  .home .sec.light{padding:72px 0}
   .home .sec.light + .sec{padding-top:80px}
   .home .sec{padding:80px 0}
   .cta-grid{grid-template-columns:minmax(0,1fr);gap:24px;padding-top:72px;padding-bottom:88px}

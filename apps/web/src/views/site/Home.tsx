@@ -9,6 +9,9 @@ import { Hero } from "../../v2/Hero";
 import { prefersReducedMotion, useInView } from "../../v2/motion";
 import { useReveal } from "../../v2/reveal";
 import { sphereDots } from "../../v2/sphere";
+import { navigate } from "../../router";
+import { currentConnected, useConnected } from "../../wallets/connected";
+import { WalletPanel } from "../../wallets/WalletPanel";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { Governance } from "./Governance";
 import { CodeTabs } from "../../components/CodeTabs";
@@ -129,6 +132,15 @@ export function Home() {
   const refresh = () => setTick((t) => t + 1);
   const page = useRef<HTMLElement>(null);
   useReveal(page, m);
+  // The closing call goes into the app: straight to Your balance when a wallet is connected, otherwise the wallet
+  // picker first, and on to Your balance the moment the wallet connects (the picker closes itself then).
+  const connected = useConnected();
+  const [picking, setPicking] = useState(false);
+  const openApp = () => (connected ? navigate("#/wallet") : setPicking(true));
+  const pickerClosed = () => {
+    setPicking(false);
+    if (currentConnected() !== null) navigate("#/wallet");
+  };
   useEffect(() => {
     getMutual().then(
       // A transition lets React render the page in small slices, so the main thread never blocks long.
@@ -217,7 +229,7 @@ export function Home() {
               {HOME.ctaTitle}
             </h2>
             <p className="lede">{HOME.ctaBody}</p>
-            <button type="button" className="btn" onClick={join} disabled={!m}>
+            <button type="button" className="btn" onClick={openApp}>
               {HOME.primary}
             </button>
           </div>
@@ -227,6 +239,7 @@ export function Home() {
         </div>
       </section>
 
+      {picking && <WalletPanel onClose={pickerClosed} />}
       {joining && m && <JoinDialog pool={m.pool} minDeposit={m.min_deposit} onClose={() => setJoining(false)} onJoined={refresh} />}
     </main>
   );
