@@ -107,7 +107,7 @@ function Progress({ p }: { p: MutualProposalView }) {
   const need = pctOf(p.quorum, p.snapshot_supply);
   const fill = need > 0 ? Math.min(cast / need, 1) : 1;
   // The bar fills in the first time it is on screen.
-  const [ref, seen] = useInView<HTMLDivElement>(0.5);
+  const [ref, seen] = useInView<HTMLDivElement>();
   return (
     <div className="prop-progress" ref={ref}>
       <p className="num">{GOV.progress(pct(need))}</p>

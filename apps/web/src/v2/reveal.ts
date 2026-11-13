@@ -11,6 +11,10 @@ import { prefersReducedMotion } from "./motion";
 const TARGETS = ".sec > .wrap > *";
 const STAGGER_MS = 90;
 
+/** Where the focus effect in v2.css applies (scroll-driven animation, and a wide screen) it already fades each block in and out; this is the fallback. */
+const hasViewTimeline = (): boolean =>
+  typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("animation-timeline", "view()") && window.matchMedia?.("(min-width: 901px)").matches === true;
+
 /** Reveal blocks in `root` as they scroll in. `watch` changes when new sections mount (data arriving). */
 export function useReveal(root: RefObject<HTMLElement | null>, watch: unknown): void {
   const observer = useRef<IntersectionObserver | null>(null);
@@ -26,7 +30,7 @@ export function useReveal(root: RefObject<HTMLElement | null>, watch: unknown): 
   // Layout effect: new blocks are hidden before the browser paints them.
   useLayoutEffect(() => {
     const host = root.current;
-    if (!host || prefersReducedMotion() || typeof IntersectionObserver === "undefined") return;
+    if (!host || prefersReducedMotion() || typeof IntersectionObserver === "undefined" || hasViewTimeline()) return;
     if (!observer.current) {
       observer.current = new IntersectionObserver(
         (entries) => {

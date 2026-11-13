@@ -23,7 +23,7 @@ const count = (n: number) => n.toLocaleString("en-US");
 
 /** For builders (N): the one-line plug-in, with its JavaScript, Python and curl versions. The code writes itself in line by line, then the one line lights up. */
 function Builders() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.4);
+  const [ref, seen] = useInView<HTMLDivElement>();
   return (
     <section className="sec builders" aria-labelledby="builders-title">
       <div className="wrap builders-grid">
@@ -81,7 +81,7 @@ export const SAFEST_MIN_CALLS = 10;
 export function Leaderboard({ groups, limit, compact = false }: { groups: GroupSummary[]; limit?: number; compact?: boolean }) {
   const rows = limit ? groups.slice(0, limit) : groups;
   const most = Math.max(1, ...rows.map((g) => g.proven_calls));
-  const [ref, seen] = useInView<HTMLDivElement>(0.35);
+  const [ref, seen] = useInView<HTMLDivElement>();
   return (
     <div className="scrollx" role="region" aria-label={HOME.boardTitle} tabIndex={0} ref={ref} data-inview={seen || undefined}>
       <table className={compact ? "tbl board compact" : "tbl board"} data-testid="leaderboard">
@@ -158,7 +158,7 @@ export function Home() {
   const watch = () => {
     const el = document.getElementById("watch");
     if (!el) return;
-    el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 140, behavior: prefersReducedMotion() ? "auto" : "smooth" });
     el.focus({ preventScroll: true });
   };
 
@@ -176,7 +176,7 @@ export function Home() {
       {m && <Comparison />}
 
       {m && (
-        <section className="sec light" id="member" aria-labelledby="share-title">
+        <section className="sec holding" id="member" aria-labelledby="share-title">
           <div className="wrap share-grid">
             <div className="share-copy">
               <h2 className="h2" id="share-title">

@@ -83,25 +83,35 @@ test.describe("public site", () => {
     await expect(page).toHaveURL(/#\/$/);
   });
 
-  test("home: blocks fade in as they scroll into view, and nothing is hidden under reduced motion", async ({ page }) => {
+  test("home: one block in focus at a time as you scroll, and nothing is hidden under reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");
     await expect(page.getByTestId("leaderboard")).toBeVisible();
     await expect(page.locator("[data-rv]")).toHaveCount(0);
+    // Reduced motion: no focus effect either.
+    expect(await page.locator(".cta .cta-copy").evaluate((el) => getComputedStyle(el).filter)).toBe("none");
 
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
     await expect(page.getByTestId("leaderboard")).toHaveCount(1);
-    // Below the fold at load: waiting, not yet shown.
-    await expect(page.locator('.cta .wrap > *[data-rv="out"]').first()).toBeAttached();
-    await page.locator(".cta").scrollIntoViewIfNeeded();
-    // Scroll down the way a person does; each block settles as it arrives.
-    for (let y = 0; y < 8000; y += 350) {
-      await page.evaluate((to) => window.scrollTo(0, to), y);
-      await page.waitForTimeout(60);
+    const scrollDriven = await page.evaluate(() => CSS.supports("animation-timeline", "view()") && matchMedia("(min-width: 901px)").matches);
+    const opacityOf = (sel: string) => page.locator(sel).evaluate((el) => getComputedStyle(el).filter);
+    if (scrollDriven) {
+      // Far below the screen a block is faded out; brought to the middle it is fully there; the one now above it fades away.
+      expect(await opacityOf(".cta .cta-copy")).toBe("opacity(0)");
+      await page.locator(".cta .cta-copy").evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2 + el.clientHeight / 2));
+      await expect.poll(() => opacityOf(".cta .cta-copy")).toBe("opacity(1)");
+      expect(await opacityOf(".comparison-probe, .cmp2")).toBe("opacity(0)");
+      await expect(page.locator("[data-rv]")).toHaveCount(0);
+    } else {
+      // Without scroll-driven animation each block is held back and shown the first time it is in view.
+      await expect(page.locator('.cta .wrap > *[data-rv="out"]').first()).toBeAttached();
+      for (let y = 0; y < 9000; y += 350) {
+        await page.evaluate((to) => window.scrollTo(0, to), y);
+        await page.waitForTimeout(60);
+      }
+      await expect(page.locator("[data-rv]")).toHaveCount(0, { timeout: 8_000 });
     }
-    // Once in view every block settles back to its own styles: no leftover hidden state.
-    await expect(page.locator("[data-rv]")).toHaveCount(0, { timeout: 8_000 });
     await expect(page.getByRole("heading", { level: 2, name: "Back the AI economy and earn from it" })).toBeVisible();
     await expect(page.locator(".cta").getByRole("button", { name: "Become a member" })).toBeVisible();
   });

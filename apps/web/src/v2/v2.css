@@ -189,24 +189,23 @@
 .home{--ease:cubic-bezier(.16,1,.3,1)}
 /* Sections meet through space, not rules: one even rhythm, no hairlines between them. */
 .home .hero,.home .explainer{border-bottom:0}
-.home .sec{padding:112px 0}
+.home .sec{padding:96px 0}
 .home .sec .h2{margin-bottom:24px}
 
-/* The light section is a full-width band with straight edges: a crisp break, never a smudge and never a floating box. */
-.home .sec.light{padding:112px 0;border-radius:0}
-.home .sec.light + .sec{padding-top:128px}
-.home .sec.light .share-grid{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:96px;align-items:center}
-@media (max-width:900px){.home .sec.light .share-grid{grid-template-columns:minmax(0,1fr);gap:40px}.home .sec.light .h2{max-width:none;margin-bottom:28px}}
-.home .sec.light .share-copy{max-width:520px}
-.home .sec.light .h2{margin-bottom:36px;max-width:11ch}
-.home .sec.light .share-lines{max-width:none}
+/* Holding a share sits on the page like every other section: no band, no change of colour. */
+.home .holding .share-grid{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:96px;align-items:center}
+@media (max-width:900px){.home .holding .share-grid{grid-template-columns:minmax(0,1fr);gap:40px}.home .holding .h2{max-width:none;margin-bottom:28px}}
+.home .holding .share-copy{max-width:520px}
+.home .holding .h2{margin-bottom:36px;max-width:11ch}
+.home .holding .share-lines{max-width:none}
 
 /* A block comes in once: it fades up as it reaches the lower part of the screen (src/v2/reveal.ts). */
 [data-rv="out"]{opacity:0;transform:translate3d(0,28px,0)}
 [data-rv="in"]{opacity:1;transform:none;transition:opacity .9s var(--ease) var(--rv-d,0ms),transform 1s var(--ease) var(--rv-d,0ms)}
 
 /* The closing call: the hero's sphere and line once more, centred with the copy as one composition. */
-.home .cta{position:relative;overflow:hidden;padding:0}
+/* clip, not hidden: hidden would make this a scroll container and cut its blocks off the page's scroll timeline. */
+.home .cta{position:relative;overflow:hidden;overflow:clip;padding:0}
 .cta-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:48px;padding-top:128px;padding-bottom:128px}
 .cta-copy{position:relative;z-index:1}
 .cta-copy .h2{max-width:11ch;margin-bottom:24px}
@@ -219,8 +218,6 @@
 
 /* The member card's mark crowds its title on a phone. */
 @media (max-width:560px){
-  .home .sec.light{padding:72px 0}
-  .home .sec.light + .sec{padding-top:80px}
   .home .sec{padding:80px 0}
   .cta-grid{grid-template-columns:minmax(0,1fr);gap:24px;padding-top:72px;padding-bottom:88px}
   .cta-visual{order:-1;width:min(300px,78%)}
@@ -264,8 +261,8 @@
 
 /* ---------- Slides: alternating bands so each section reads as its own screen ---------- */
 .home .outcomes,.home .community,.home .cta{--feather:220px;background:linear-gradient(180deg,var(--bg) 0,var(--surface) var(--feather),var(--surface) calc(100% - var(--feather)),var(--bg) 100%)}
-.home .outcomes{padding:160px 0}
-.home .community{padding:160px 0}
+.home .outcomes{padding:128px 0}
+.home .community{padding:128px 0}
 .foot-id{display:flex;flex-direction:column;gap:14px}
 .foot-tag{margin:0;max-width:26ch;font-size:15px;line-height:1.5;color:var(--muted)}
 
@@ -337,12 +334,23 @@
 .builders-code .ct-tag{opacity:0;transition:opacity .5s ease 1.6s}
 .builders-code[data-inview] .ct-tag{opacity:1}
 
-/* ---------- Blocks fade and lift away as they leave the top of the screen ----------
-   Scroll-driven, so only where the browser supports it; the effect uses `filter` and `translate`, which the
-   entrance (opacity and transform) never touches. Nothing is hidden for browsers without support or with reduced motion. */
-@media (prefers-reduced-motion:no-preference){
+/* ---------- One thing in focus: blocks fade in as they come up the screen and out as they leave it ----------
+   Scroll-driven (a view() timeline over each block's whole pass), so a block is fully there while it is in the
+   middle of the screen and the ones above and below it are dimmed. It uses `filter`, `translate` and `scale`, which
+   the observer-based entrance (opacity and transform) never touches. Only on wide screens, where blocks are shorter
+   than the window (a phone's stacked cards are taller, and a whole-block fade would dim what is being read), only where
+   the browser supports it, and only when motion is allowed. Elsewhere src/v2/reveal.ts does the entrance and nothing
+   is ever left hidden. */
+@media (prefers-reduced-motion:no-preference) and (min-width:901px){
   @supports (animation-timeline:view()){
-    .home .sec > .wrap > *:not(.watch),.home .watch > *,.home .hero-copy,.home .hero-live{animation:exitfade linear both;animation-timeline:view();animation-range:exit 0% exit 85%}
-    @keyframes exitfade{from{filter:opacity(1);translate:0 0}to{filter:opacity(0);translate:0 -28px}}
+    .home .sec > .wrap > *:not(.watch),.home .watch > *{animation:focusblock linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+    .home .hero-copy,.home .hero-live{animation:exitblock linear both;animation-timeline:view();animation-range:exit 0% exit 80%}
+    @keyframes focusblock{
+      0%{filter:opacity(0);translate:0 56px;scale:.98}
+      22%{filter:opacity(1);translate:0 0;scale:1}
+      76%{filter:opacity(1);translate:0 0;scale:1}
+      100%{filter:opacity(0);translate:0 -44px;scale:.985}
+    }
+    @keyframes exitblock{from{filter:opacity(1);translate:0 0}to{filter:opacity(0);translate:0 -40px}}
   }
 }

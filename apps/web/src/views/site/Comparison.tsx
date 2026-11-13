@@ -45,7 +45,7 @@ function Row({ kind, label, value, seen, after, dots }: { kind: "alone" | "with"
 }
 
 export function Comparison() {
-  const [ref, seen] = useInView<HTMLDivElement>(0.35);
+  const [ref, seen] = useInView<HTMLDivElement>();
   const first = firstContact();
   if (!first) return null;
   const of = first.attacks;

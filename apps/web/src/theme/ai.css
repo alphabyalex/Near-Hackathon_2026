@@ -27,19 +27,13 @@
 .side-list span{color:var(--text-2);font-size:15px}
 .below .side-list b .num{color:var(--red-text)}
 
-/* Light section: holding a share */
-.light{background:var(--paper);color:var(--ink);border-bottom:0}
-.light .h2{color:var(--ink)}
-.light p{color:var(--ink-2)}
-.light .link{color:var(--violet-ink)}
-.light :focus-visible{outline-color:var(--violet-ink)}
+/* Holding a share */
 .share-grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:64px;align-items:center}
 .share-copy p{margin:0 0 16px;font-size:17px;max-width:54ch}
 .share-copy .btn{margin-top:12px}
-.light .mode-note{margin-top:24px;font-size:15px}
 
 /* The member card: dark, with a faint horizon in its corner */
-.member-card{position:relative;overflow:hidden;background:var(--bg);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 28px 60px -30px rgba(26,15,33,.55);transition:box-shadow .24s ease,border-color .24s ease}
+.member-card{position:relative;overflow:hidden;background:var(--surface-2);border:1px solid var(--rule-2);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;transition:box-shadow .24s ease,border-color .24s ease}
 .member-card>*{position:relative;z-index:1}
 .member-card .member-horizon{position:absolute;right:28px;top:28px;z-index:0;pointer-events:none}
 .mc-manage{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--rule);width:100%;font-size:15px}
@@ -424,8 +418,8 @@ td.mismatch{color:var(--red-text);font-weight:600}
 @media (max-width:980px){.prop,.prop[data-status="executed"],.prop[data-status="rejected"]{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "prog" "when" "act" "msg"}.prop-act,.prop-tx{justify-content:flex-start;text-align:left}.prop-act small{text-align:left}}
 @media (prefers-reduced-motion:reduce){.disclose-body,.disclose-chev,.prop-line i{transition:none}}
 /* Home: the tally on the line, Hold a share's three lines, For builders (A21 big pass). */
-.share-lines{list-style:none;margin:0;padding:0;max-width:46ch;border-top:1px solid rgba(26,15,33,.14)}
-.share-lines li{padding:14px 0;border-bottom:1px solid rgba(26,15,33,.14);font-size:19px;line-height:1.45;color:var(--ink)}
+.share-lines{list-style:none;margin:0;padding:0;max-width:46ch;border-top:1px solid var(--rule)}
+.share-lines li{padding:16px 0;border-bottom:1px solid var(--rule);font-size:19px;line-height:1.45;color:var(--text-2)}
 .builders-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:start}
 .builders-grid .lede{margin-bottom:20px}
 @media (max-width:980px){.builders-grid{grid-template-columns:minmax(0,1fr);gap:28px}}

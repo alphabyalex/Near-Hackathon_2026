@@ -142,10 +142,12 @@ export function useCanvasAnimation(target: RefObject<HTMLElement | null>, draw: 
 export const boxOf = (el: HTMLElement): { w: number; h: number } => ({ w: el.clientWidth || el.getBoundingClientRect().width, h: el.clientHeight || el.getBoundingClientRect().height });
 
 /**
- * True once the element has been a third on screen, and stays true. Under prefers-reduced-motion, or without
- * IntersectionObserver, it is true from the start, so a page that animates in on view is simply finished.
+ * True once the element has risen into the lower part of the window (its top is `lead` of the window's height up
+ * from the bottom edge), and stays true. Keyed to where the element is, not how much of it shows, so a block taller
+ * than the window still triggers. Under prefers-reduced-motion, or without IntersectionObserver, it is true from the
+ * start, so a page that animates in on view is simply finished.
  */
-export function useInView<T extends HTMLElement>(threshold = 0.3): [RefObject<T | null>, boolean] {
+export function useInView<T extends HTMLElement>(lead = 0.2): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [seen, setSeen] = useState(() => prefersReducedMotion() || typeof IntersectionObserver === "undefined");
   useEffect(() => {
@@ -159,10 +161,10 @@ export function useInView<T extends HTMLElement>(threshold = 0.3): [RefObject<T 
           io.disconnect();
         }
       },
-      { threshold },
+      { rootMargin: `0px 0px -${Math.round(lead * 100)}% 0px`, threshold: 0 },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [seen, threshold]);
+  }, [seen, lead]);
   return [ref, seen];
 }
