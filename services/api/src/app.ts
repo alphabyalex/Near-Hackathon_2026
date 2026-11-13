@@ -1,5 +1,6 @@
 import { InvalidPayeeInputError } from "@wardline/sdk";
 import { Hono } from "hono";
+import { trimTrailingSlash } from "hono/trailing-slash";
 import { VAULT_A } from "./mock/seed.js";
 import { registerActivityRoutes } from "./activity/index.js";
 import { registerLocalSigner } from "./local-signer.js";
@@ -25,6 +26,7 @@ export function createApp(deps: Deps, options: { mountOwner?: boolean; localSign
   const app = new Hono<{ Variables: PublicVariables }>();
   const vaultExists = (id: string): boolean => deps.world.vaults.has(id);
 
+  app.use("*", trimTrailingSlash());
   app.use("*", securityHeaders(deps.ai.env));
   app.use("*", bodyLimits());
   app.use("*", rateLimits(deps.ai.env, () => Number(deps.now() / 1_000_000n)));
