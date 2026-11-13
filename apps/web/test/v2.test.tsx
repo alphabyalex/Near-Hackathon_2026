@@ -3,7 +3,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { horizonDots, MARK } from "../src/brand/horizon";
-import { NARROW, stageFor, TIMELINE, WIDE } from "../src/v2/Explainer";
+import { NARROW, stageFor, syncSteps, TIMELINE, WIDE } from "../src/v2/Explainer";
 import { heroGeometry, HERO_MOTION } from "../src/v2/Hero";
 import { frozenFrame, useCanvasAnimation } from "../src/v2/motion";
 import { Rolling, rollPlan } from "../src/v2/Rolling";
@@ -173,11 +173,23 @@ describe("reduced motion", () => {
 });
 
 describe("layouts", () => {
-  it("the explainer uses the reference stage from 1000px and the phone stage below", () => {
-    expect(stageFor(1440)).toEqual({ layout: WIDE, scale: 1 });
-    expect(stageFor(1200).scale).toBeCloseTo(1200 / 1440, 10);
+  it("the explainer uses the wide diagram from a 560px canvas and the phone diagram below", () => {
+    expect(stageFor(640)).toEqual({ layout: WIDE, scale: 1 });
+    expect(stageFor(560).scale).toBeCloseTo(560 / 640, 10);
+    expect(stageFor(560).layout).toBe(WIDE);
     expect(stageFor(390)).toEqual({ layout: NARROW, scale: 1 });
-    expect(stageFor(999).layout).toBe(NARROW);
+    expect(stageFor(559).layout).toBe(NARROW);
+  });
+
+  it("the explainer's words switch on with the story's clock", () => {
+    const el = document.createElement("div");
+    syncSteps(el, 0);
+    expect(el.className).toBe("");
+    syncSteps(el, TIMELINE.checks[1]! + 0.01);
+    expect(el.classList.contains("on-s1") && el.classList.contains("on-c1") && el.classList.contains("on-c2")).toBe(true);
+    expect(el.classList.contains("on-c3") || el.classList.contains("on-s2")).toBe(false);
+    syncSteps(el, TIMELINE.final);
+    for (const k of ["s1", "c1", "c2", "c3", "r1", "s2", "f2", "r2", "fin"]) expect(el.classList.contains(`on-${k}`)).toBe(true);
   });
 
   it("the hero's sphere sits right of the copy on wide screens and above it on phones", () => {

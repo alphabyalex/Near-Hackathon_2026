@@ -1,10 +1,13 @@
 /**
  * "Watch a payment cross the line" (docs/design/v2/Explainer.dc.html): ten seconds, played once when
- * scrolled into view, then held on its last frame. A proven payment rises above the line and is paid; a swapped-model
- * payment is refused, drops below and is refunded. Two layouts: the reference's 1440 x 520 stage
- * (scaled down to 1000px), and a phone stage whose text is wrapped and placed clear of the line.
+ * scrolled into view, then held on its last frame. A proven payment rises above the line and is paid; a
+ * swapped-model payment is refused, drops below and is refunded.
+ *
+ * Two parts that share one clock: the words are real page text in the left column (each line comes in as
+ * the story reaches it), and the diagram on the right is a canvas that carries only the line, the proof
+ * ring and the two payments. Two stage layouts: 640 x 500 for a wide column, 390 x 340 for a phone.
  */
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type RefObject } from "react";
 import { EXPLAINER } from "../brand";
 import { boxOf, frozenFrame, useCanvasAnimation } from "./motion";
 import { clamp01, easeInOut, easeOut, fitCanvas } from "./sphere";
@@ -34,14 +37,6 @@ export const TIMELINE = {
   closing: [8.6, 9.3],
 } as const;
 
-interface Text {
-  x: number;
-  y: number;
-  size: number;
-  /** Wrap width; lines go down from y by `lh`. */
-  maxW?: number;
-  align?: CanvasTextAlign;
-}
 interface Layout {
   w: number;
   h: number;
@@ -50,69 +45,24 @@ interface Layout {
   ringR: number;
   dotR: number;
   startX: number;
-  lh: number;
-  caption: Text;
-  checks: { iconX: number; textX: number; y0: number; dy: number; size: number; maxW: number };
-  failedY: number;
-  paid: Text;
-  paidSub: Text;
-  refused: Text;
-  refusedSub: Text;
+  label: number;
   end1: [number, number];
   end2: [number, number];
-  closing: Text;
 }
 
-/** The reference stage, 1440 x 520. */
-export const WIDE: Layout = {
-  w: 1440,
-  h: 520,
-  cx: 720,
-  cy: 260,
-  ringR: 26,
-  dotR: 8,
-  startX: 100,
-  lh: 1.3,
-  caption: { x: 100, y: 410, size: 17 },
-  checks: { iconX: 790, textX: 812, y0: 112, dy: 32, size: 17, maxW: 600 },
-  failedY: 144,
-  paid: { x: 1160, y: 58, size: 26, align: "right" },
-  paidSub: { x: 1160, y: 90, size: 16, align: "right" },
-  refused: { x: 1160, y: 440, size: 26, align: "right" },
-  refusedSub: { x: 1160, y: 472, size: 16, align: "right" },
-  end1: [1200, 74],
-  end2: [1200, 456],
-  closing: { x: 56, y: 488, size: 28 },
-};
+/** The diagram for a wide column. */
+export const WIDE: Layout = { w: 640, h: 500, cx: 320, cy: 250, ringR: 26, dotR: 7, startX: 56, label: 14, end1: [572, 92], end2: [572, 408] };
 
-/** The phone stage, 390 x 650: results on the left, the dots end on the right, every line wrapped. */
-export const NARROW: Layout = {
-  w: 390,
-  h: 650,
-  cx: 195,
-  cy: 300,
-  ringR: 22,
-  dotR: 7,
-  startX: 20,
-  lh: 1.35,
-  caption: { x: 20, y: 390, size: 15, maxW: 340 },
-  checks: { iconX: 34, textX: 52, y0: 140, dy: 34, size: 15, maxW: 318 },
-  failedY: 174,
-  paid: { x: 20, y: 46, size: 22 },
-  paidSub: { x: 20, y: 76, size: 14, maxW: 300 },
-  refused: { x: 20, y: 500, size: 22 },
-  refusedSub: { x: 20, y: 530, size: 14, maxW: 300 },
-  end1: [362, 52],
-  end2: [362, 506],
-  closing: { x: 20, y: 592, size: 22, maxW: 340 },
-};
+/** The diagram for a phone. */
+export const NARROW: Layout = { w: 390, h: 340, cx: 195, cy: 170, ringR: 20, dotR: 6, startX: 40, label: 13, end1: [344, 58], end2: [344, 282] };
 
-/** Below this width the phone stage is used, scaled up to at most 1.4x. */
-export const NARROW_BELOW = 1000;
+/** Below this canvas width the phone diagram is used, scaled up to at most 1.4x. */
+export const NARROW_BELOW = 560;
 const NARROW_MAX_SCALE = 1.4;
+const WIDE_MAX_SCALE = 1.15;
 
 export function stageFor(width: number): { layout: Layout; scale: number } {
-  if (width >= NARROW_BELOW) return { layout: WIDE, scale: Math.min(1, width / WIDE.w) };
+  if (width >= NARROW_BELOW) return { layout: WIDE, scale: Math.min(WIDE_MAX_SCALE, width / WIDE.w) };
   return { layout: NARROW, scale: Math.min(NARROW_MAX_SCALE, width / NARROW.w) };
 }
 
@@ -123,29 +73,15 @@ const VIO = [123, 108, 255],
 const rgba = (c: number[], a: number) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const mix = (a: number[], b: number[], u: number) => a.map((v, i) => Math.round(v + (b[i]! - v) * clamp01(u)));
 
-function wrap(ctx: CanvasRenderingContext2D, s: string, maxW: number | undefined): string[] {
-  if (!maxW) return [s];
-  const out: string[] = [];
-  let line = "";
-  for (const word of s.split(" ")) {
-    const next = line ? `${line} ${word}` : word;
-    if (line && ctx.measureText(next).width > maxW) {
-      out.push(line);
-      line = word;
-    } else line = next;
-  }
-  out.push(line);
-  return out;
-}
-
-/** Draws the story at time t on a canvas whose CSS size is w x h. */
+/** Draws the diagram at time t on a canvas whose CSS size is w x h. */
 export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: Layout, scale: number, offsetX: number): void {
   const L = layout,
-    T = TIMELINE;
+    T = TIMELINE,
+    E = EXPLAINER;
   ctx.save();
   ctx.translate(offsetX, 0);
   ctx.scale(scale, scale);
-  const fade = (a: number, b: number, c?: number, d?: number) => Math.min(clamp01((t - a) / (b - a)), c === undefined || d === undefined ? 1 : 1 - clamp01((t - c) / (d - c)));
+  const fade = (a: number, b: number) => clamp01((t - a) / (b - a));
   const { cx, cy } = L;
   const tan = Math.tan((-10 * Math.PI) / 180);
   const yl = (x: number) => cy + tan * (x - cx);
@@ -160,6 +96,20 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
   ctx.lineTo(L.w * p, yl(L.w * p));
   ctx.stroke();
 
+  const label = (s: string, x: number, y: number, a: number, align: CanvasTextAlign = "center") => {
+    if (a <= 0) return;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "#A79DB0";
+    ctx.textAlign = align;
+    ctx.textBaseline = "middle";
+    ctx.font = `500 ${L.label}px Geist, system-ui, sans-serif`;
+    ctx.fillText(s, x, y);
+    ctx.globalAlpha = 1;
+  };
+  const appear = fade(0.6, 1.2);
+  label(E.start, L.startX, yl(L.startX) + 30, appear);
+  label(E.ring, cx, cy + L.ringR + 24, appear);
+
   // The proof check ring at the centre: pulses while it checks, red while it refuses.
   let pulse = 0;
   let ringC = VIO;
@@ -167,84 +117,28 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
   if (t >= T.pulse2[0] && t < T.pulse2[1] + 0.3) pulse = Math.min(clamp01((t - T.pulse2[0]) / 0.2), 1 - clamp01((t - T.pulse2[1]) / 0.3));
   if (t >= T.ringRed[0] && t < T.ringBack[0] + T.ringBack[1]) ringC = mix(VIO, RED, (t - T.ringRed[0]) / T.ringRed[1]);
   if (t >= T.ringBack[0]) ringC = mix(RED, VIO, (t - T.ringBack[0]) / T.ringBack[1]);
-  const rr = L.ringR * (1 + 0.12 * pulse);
-  ctx.save();
-  ctx.shadowColor = rgba(ringC, pulse);
-  ctx.shadowBlur = 22 * pulse;
-  ctx.strokeStyle = rgba(ringC, 0.35 + 0.65 * pulse);
+  const rr = L.ringR * (1 + 0.1 * pulse);
+  ctx.strokeStyle = rgba(ringC, 0.45 + 0.55 * pulse);
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(cx, cy, rr, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.restore();
   ctx.fillStyle = rgba(ringC, 0.08 + 0.12 * pulse);
   ctx.beginPath();
   ctx.arc(cx, cy, rr, 0, Math.PI * 2);
   ctx.fill();
 
-  const text = (s: string, at: Text, weight: number, col: string, a: number) => {
-    if (a <= 0) return;
-    ctx.globalAlpha = a;
-    ctx.fillStyle = col;
-    ctx.textAlign = at.align ?? "left";
-    ctx.textBaseline = "middle";
-    ctx.font = `${weight} ${at.size}px Geist, system-ui, sans-serif`;
-    wrap(ctx, s, at.maxW).forEach((line, i) => ctx.fillText(line, at.x, at.y + i * at.size * L.lh));
-    ctx.globalAlpha = 1;
-  };
-  const icon = (kind: "check" | "cross", x: number, y: number, u: number, col: string, a: number) => {
-    if (a <= 0 || u <= 0) return;
-    ctx.globalAlpha = a;
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 2.6;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    if (kind === "check") {
-      const k1 = Math.min(1, u * 1.6);
-      ctx.moveTo(x - 9, y + 1);
-      ctx.lineTo(x - 9 + 6 * k1, y + 1 + 6 * k1);
-      if (u > 0.62) ctx.lineTo(x - 3 + 12 * clamp01((u - 0.62) / 0.38), y + 7 - 14 * clamp01((u - 0.62) / 0.38));
-    } else {
-      const a1 = clamp01(u * 2),
-        b1 = clamp01(u * 2 - 1);
-      ctx.moveTo(x - 7, y - 7);
-      ctx.lineTo(x - 7 + 14 * a1, y - 7 + 14 * a1);
-      if (b1 > 0) {
-        ctx.moveTo(x + 7, y - 7);
-        ctx.lineTo(x + 7 - 14 * b1, y - 7 + 14 * b1);
-      }
-    }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  };
-
-  const E = EXPLAINER;
-  text(E.caption1, L.caption, 400, "#C3BACB", fade(T.caption1[0], T.caption1[1], T.caption1[2], T.caption1[3]));
-  text(E.caption2, L.caption, 400, "#C3BACB", fade(T.caption2[0], T.caption2[1], T.caption2[2], T.caption2[3]));
-  const C = L.checks;
-  E.checks.forEach((s, i) => {
-    const y = C.y0 + i * C.dy,
-      start = T.checks[i]!,
-      a = fade(start, start + 0.3, T.checksOut[0], T.checksOut[1]);
-    icon("check", C.iconX, y, easeOut((t - start) / 0.3), "#A59BFF", a);
-    text(s, { x: C.textX, y, size: C.size, maxW: C.maxW }, 500, "#F5F3F7", a);
-  });
-  const fa = fade(T.failed[0], T.failed[1], T.failed[2], T.failed[3]);
-  icon("cross", C.iconX, L.failedY, easeOut((t - T.failed[0]) / 0.3), "#FF7A8C", fa);
-  text(E.failed, { x: C.textX, y: L.failedY, size: C.size, maxW: C.maxW }, 500, "#FF7A8C", fa);
-  text(E.paid, L.paid, 700, "#F5F3F7", fade(T.paid[0], T.paid[1]));
-  text(E.paidSub, L.paidSub, 400, "#A79DB0", fade(T.paidSub[0], T.paidSub[1]));
-  text(E.refused, L.refused, 700, "#FF7A8C", fade(T.refused[0], T.refused[1]));
-  text(E.refusedSub, L.refusedSub, 400, "#A79DB0", fade(T.refusedSub[0], T.refusedSub[1]));
-  text(E.closing, L.closing, 700, "#F5F3F7", fade(T.closing[0], T.closing[1]));
+  // Where the payments end up, named once they get there.
+  label(E.aboveLabel, L.end1[0], L.end1[1] - 26, fade(T.paid[0], T.paid[1]));
+  label(E.belowLabel, L.end2[0], L.end2[1] + 28, fade(T.refused[0], T.refused[1]));
 
   // The two payments.
   const dot = (x: number, y: number, col: number[], a: number) => {
     if (a <= 0) return;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.shadowColor = rgba(col, 0.9);
-    ctx.shadowBlur = 20;
+    ctx.shadowColor = rgba(col, 0.7);
+    ctx.shadowBlur = 10;
     ctx.fillStyle = rgba(col, 1);
     ctx.beginPath();
     ctx.arc(x, y, L.dotR, 0, Math.PI * 2);
@@ -269,6 +163,23 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
     x1 = cx + (L.end1[0] - cx) * u;
     y1 = cy + (L.end1[1] - cy) * u;
   }
+  // Each payment leaves a path behind it once it has left the ring: up for the paid one, down for the refused one.
+  const trail = (col: number[], from: [number, number], to: [number, number], curve: boolean, u: number) => {
+    if (u <= 0) return;
+    ctx.strokeStyle = rgba(col, 0.55);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+      const k = (u * i) / 24;
+      const x = from[0] + (to[0] - from[0]) * k;
+      const y = from[1] + (to[1] - from[1]) * (curve ? k * k : k);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  };
+  trail(VTXT, [cx, cy], L.end1, false, t < P1.hold ? 0 : easeOut((t - P1.hold) / P1.exit));
+  trail(RED, [cx, cy], L.end2, true, t < P2.hold ? 0 : clamp01((t - P2.hold) / P2.exit));
   dot(x1, y1, mix(WHITE, VTXT, (t - P1.colorAt) / P1.colorFor), fade(P1.fadeIn[0], P1.fadeIn[1]));
   let x2 = sx,
     y2 = sy;
@@ -288,62 +199,127 @@ export function drawExplainer(ctx: CanvasRenderingContext2D, t: number, layout: 
   ctx.restore();
 }
 
-/** The closing line starts at the title's left edge, wherever the column sits (J). Stage units, or null. */
-function closingX(cv: HTMLCanvasElement, titleId: string, ox: number, scale: number): number | null {
-  const title = document.getElementById(titleId);
-  if (!title) return null;
-  const left = title.getBoundingClientRect().left - cv.getBoundingClientRect().left;
-  return Number.isFinite(left) && left >= 0 ? (left - ox) / scale : null;
+/** The words keep time with the diagram: each line switches on when the story reaches it. */
+const STEPS: readonly [string, number][] = [
+  ["s1", TIMELINE.caption1[0]],
+  ["c1", TIMELINE.checks[0]],
+  ["c2", TIMELINE.checks[1]],
+  ["c3", TIMELINE.checks[2]],
+  ["r1", TIMELINE.paid[0]],
+  ["s2", TIMELINE.caption2[0]],
+  ["f2", TIMELINE.failed[0]],
+  ["r2", TIMELINE.refused[0]],
+  ["fin", TIMELINE.closing[0]],
+];
+export function syncSteps(el: HTMLElement, t: number): void {
+  for (const [name, at] of STEPS) el.classList.toggle(`on-${name}`, t >= at);
 }
 
-function Stage({ titleId }: { titleId: string }) {
+function Stage({ host }: { host: RefObject<HTMLElement | null> }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const freezeAt = frozenFrame("explainer");
-  const draw = useCallback((t: number) => {
-    const cv = ref.current;
-    if (!cv) return;
-    const { w } = boxOf(cv);
-    if (!w) return;
-    const { layout, scale } = stageFor(w);
-    const h = Math.round(layout.h * scale);
-    if (cv.style.height !== `${h}px`) cv.style.height = `${h}px`;
-    const ctx = fitCanvas(cv, w, h);
-    if (!ctx) return;
-    const ox = Math.max(0, (w - layout.w * scale) / 2);
-    const x = closingX(cv, titleId, ox, scale);
-    drawExplainer(ctx, t, x === null ? layout : { ...layout, closing: { ...layout.closing, x } }, scale, ox);
-  }, [titleId]);
+  const draw = useCallback(
+    (t: number) => {
+      if (host.current) syncSteps(host.current, t);
+      const cv = ref.current;
+      if (!cv) return;
+      const { w } = boxOf(cv);
+      if (!w) return;
+      const { layout, scale } = stageFor(w);
+      const h = Math.round(layout.h * scale);
+      if (cv.style.height !== `${h}px`) cv.style.height = `${h}px`;
+      const ctx = fitCanvas(cv, w, h);
+      if (!ctx) return;
+      const ox = Math.max(0, (w - layout.w * scale) / 2);
+      drawExplainer(ctx, t, layout, scale, ox);
+    },
+    [host],
+  );
   useCanvasAnimation(ref, draw, { duration: TIMELINE.end, finalAt: TIMELINE.final, startOnView: true, freezeAt });
   return <canvas ref={ref} className="explainer-stage" role="img" aria-label={EXPLAINER.label} data-testid="explainer-stage" />;
 }
 
-/** The section. `id` lets the hero's secondary button scroll here. */
+const Tick = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3.5 9.5l3.5 3.5 7.5-8" />
+  </svg>
+);
+const Cross = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" />
+  </svg>
+);
+
+/** The section: the words on the left, the diagram on the right. `id` lets the hero's secondary button scroll here. */
 export function Explainer({ id = "watch", headingLevel = 2 }: { id?: string; headingLevel?: 2 | 3 }) {
   const H = headingLevel === 2 ? "h2" : "h3";
+  const host = useRef<HTMLDivElement>(null);
   return (
-    <section className="explainer" id={id} aria-labelledby={`${id}-title`} tabIndex={-1}>
-      <div className="wrap explainer-head">
-        <div>
+    <section className="sec explainer" id={id} aria-labelledby={`${id}-title`} tabIndex={-1}>
+      <div className="wrap">
+        <div className="explainer-head">
           <H className="h2" id={`${id}-title`}>
             {EXPLAINER.title}
           </H>
-          <p className="explainer-sub">{EXPLAINER.sub}</p>
+          <p className="lede">{EXPLAINER.sub}</p>
         </div>
       </div>
-      <div className="explainer-frame">
-        <Stage titleId={`${id}-title`} />
-      </div>
-      {/* The canvas, as text: the same story in order. */}
-      <ol className="sr-only">
-        <li>{EXPLAINER.caption1}. {EXPLAINER.checks.join(". ")}. {EXPLAINER.paid}: {EXPLAINER.paidSub}.</li>
-        <li>{EXPLAINER.caption2}. {EXPLAINER.failed}. {EXPLAINER.refused}: {EXPLAINER.refusedSub}.</li>
-        <li>{EXPLAINER.closing}</li>
-      </ol>
       <div className="wrap">
-        <div className="explainer-cols">
+        <div className="watch" ref={host}>
+          <ol className="watch-steps">
+            <li className="wstep one">
+              <h3>{EXPLAINER.caption1}</h3>
+              <ul className="wchecks">
+                {EXPLAINER.checks.map((c, i) => (
+                  <li key={c} data-k={`c${i + 1}`}>
+                    <Tick />
+                    {c}
+                  </li>
+                ))}
+              </ul>
+              <p className="wresult" data-k="r1">
+                <b>{EXPLAINER.paid}</b>
+                {EXPLAINER.paidSub}
+              </p>
+            </li>
+            <li className="wstep two">
+              <h3>{EXPLAINER.caption2}</h3>
+              <ul className="wchecks">
+                <li className="fail" data-k="f2">
+                  <Cross />
+                  {EXPLAINER.failed}
+                </li>
+              </ul>
+              <p className="wresult below" data-k="r2">
+                <b>{EXPLAINER.refused}</b>
+                {EXPLAINER.refusedSub}
+              </p>
+            </li>
+          </ol>
+          <div className="watch-visual">
+            <Stage host={host} />
+          </div>
+          <p className="watch-close" data-k="fin">
+            {EXPLAINER.closing}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Where the money goes: its own section, after the diagram. */
+export function Outcomes() {
+  return (
+    <section className="sec outcomes" aria-labelledby="outcomes-title">
+      <div className="wrap">
+        <h2 className="h2" id="outcomes-title">
+          {EXPLAINER.outcomesTitle}
+        </h2>
+        <div className="outcome-cols">
           {EXPLAINER.columns.map(([title, body, side]) => (
-            <div key={title}>
-              <h3 className={side === "below" ? "below-text" : undefined}>{title}</h3>
+            <div key={title} className={`outcome ${side}`}>
+              <h3>{title}</h3>
               <p>{body}</p>
             </div>
           ))}

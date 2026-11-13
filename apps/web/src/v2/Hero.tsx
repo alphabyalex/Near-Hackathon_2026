@@ -31,8 +31,11 @@ export const HERO_MOTION = {
 
 const LABEL = "A sphere of dots cut by one line. Dots above the line are light, dots below are violet.";
 
-/** The sphere and line for a hero of this size. */
-export function heroGeometry(w: number): { cx: number; cy: number; R: number; step: number; gap: number; x0: number; phone: boolean } {
+/** Height of the live strip at the foot of the hero, so the sphere can centre in the space above it. */
+const STRIP_H = 214;
+
+/** The sphere and line for a hero of this size (h, when known, centres the sphere above the strip). */
+export function heroGeometry(w: number, h?: number): { cx: number; cy: number; R: number; step: number; gap: number; x0: number; phone: boolean } {
   const M = HERO_MOTION;
   if (w < M.phone.below) {
     const R = Math.min(M.phone.maxR, Math.round((w - 40) * 0.42));
@@ -41,7 +44,9 @@ export function heroGeometry(w: number): { cx: number; cy: number; R: number; st
   const k = Math.min(1, w / M.design);
   const cx = w / 2 + M.sphere.fromCenter * k;
   const wrapLeft = Math.max(40, (w - 1280) / 2 + 40);
-  return { cx, cy: M.sphere.cy * k + (1 - k) * 60, R: Math.round(M.sphere.R * k), step: M.sphere.step, gap: M.sphere.gap, x0: Math.max(cx - M.line.lead * k, wrapLeft + M.line.copyWidth), phone: false };
+  const R = Math.round(M.sphere.R * k);
+  const cy = h && h > STRIP_H + 2 * (R + 16) ? (h - STRIP_H) / 2 + 8 : M.sphere.cy * k + (1 - k) * 60;
+  return { cx, cy, R, step: M.sphere.step, gap: M.sphere.gap, x0: Math.max(cx - M.line.lead * k, wrapLeft + M.line.copyWidth), phone: false };
 }
 
 function HeroCanvas() {
@@ -55,7 +60,7 @@ function HeroCanvas() {
     const ctx = fitCanvas(cv, w, h);
     if (!ctx) return;
     const M = HERO_MOTION;
-    const g = heroGeometry(w);
+    const g = heroGeometry(w, h);
     const tan = Math.tan((-10 * Math.PI) / 180);
     const y = (x: number) => g.cy + tan * (x - g.cx);
     // The line, fading in from its left end.

@@ -53,12 +53,12 @@ test.describe("public site", () => {
     // The hero strip already counts both sides, so the page does not count them a second time.
     await expect(page.getByRole("heading", { level: 2, name: "Every payment, counted." })).toHaveCount(0);
     // The agent alone against the agent with Wardline, on the same 20 scams.
-    await expect(page.getByRole("heading", { level: 2, name: "Without Wardline, the agent paid 5 of 20 scams. With it, none" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "We tested 20 scam invoices" })).toBeVisible();
     const cmp = page.getByTestId("comparison");
-    await expect(cmp.locator(".ls-good .ls-num")).toHaveText("0");
-    await expect(cmp.locator(".ls-bad .ls-num")).toHaveText("5");
-    await expect(cmp.locator(".ls-good .cmp-dots i.stopped")).toHaveCount(20);
-    await expect(cmp.locator(".ls-bad .cmp-dots i.paid")).toHaveCount(5);
+    await expect(cmp.locator(".alone .cmp2-num")).toHaveText("5");
+    await expect(cmp.locator(".with .cmp2-num")).toHaveText("0");
+    await expect(cmp.locator(".with .cmp2-dots i.stopped")).toHaveCount(20);
+    await expect(cmp.locator(".alone .cmp2-dots i.paid")).toHaveCount(5);
     await expect(page.locator("ul.share-lines li")).toHaveCount(3);
     const board = page.getByTestId("leaderboard");
     await expect(board.locator("tbody tr").first()).toContainText("Mission Street hacker house");
@@ -316,7 +316,7 @@ test.describe("public site", () => {
     const mine = gov.locator(".prop", { hasText: "Lower the Gold fee to 0.75%" });
     await expect(mine).toHaveAttribute("data-status", "open");
     await expect(mine.getByTestId("prop-change")).toHaveText(/^Gold groups would pay 0\.75% instead of \d\.\d\d%$/);
-    await expect(mine.locator(".prop-progress")).toContainText(/Needs \d+(\.\d)?% of WARD to vote\. \d+(\.\d)?% so far/);
+    await expect(mine.locator(".prop-progress")).toContainText(/Needs \d+(\.\d)?% of WARD to vote/);
     await expect(mine.getByRole("progressbar")).toBeVisible();
     await expect(mine.locator(".prop-when")).toHaveText(/^(\d+ days? \d+ hours? left|\d+ hours? \d+ min left|\d+ min left)$/);
     await expect(mine.getByRole("button", { name: "Vote for" })).toBeDisabled();

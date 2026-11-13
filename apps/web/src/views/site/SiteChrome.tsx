@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DOCS, FOOTER, NAV } from "../../brand";
+import { BRAND, DOCS, FOOTER, NAV } from "../../brand";
 import { Logo } from "../../components/Logo";
 import type { SitePage } from "../../router";
 import { AccountControl } from "../../wallets/AccountControl";
@@ -50,7 +50,10 @@ export function SiteFooter(_props: { page: SitePage }) {
   return (
     <footer className="foot">
       <div className="wrap">
-        <Logo textSize={18} />
+        <div className="foot-id">
+          <Logo textSize={18} />
+          <p className="foot-tag">{BRAND.tagline}</p>
+        </div>
         <nav className="foot-cols" aria-label="Footer">
           {FOOTER.columns.map(([title, links]) => (
             <div key={title}>

@@ -489,13 +489,17 @@ export const DEMO = {
     coverage: "Coverage",
   },
   /** The comparison block on Home (M), laid out on the line. */
-  comparisonTitle: (alone: number, withUs: number, scams: number) => `Without ${BRAND.name}, the agent paid ${alone} of ${scams} scams. With it, ${withUs === 0 ? "none" : withUs}`,
-  comparisonSetup: (scams: number) => `The same ${scams} scam invoices, all from vendors it had never seen before.`,
+  comparisonTitle: (scams: number) => `We tested ${scams} scam invoices`,
+  comparisonSetup: (alone: number, withUs: number, scams: number) =>
+    `Every one came from a vendor the agent had never seen before. On its own, the agent paid ${alone} of ${scams}. With ${BRAND.name}, it paid ${withUs === 0 ? "none" : withUs}.`,
   comparisonLabel: (scams: number) => `${scams} scam invoices, paid by the agent alone and with ${BRAND.name}`,
   agentAlone: "AI agent alone",
   withWardline: `AI agent with ${BRAND.name}`,
   scamsThrough: "scams paid",
   scamsStopped: (n: number) => `${n} stopped`,
+  legendPaid: "Paid a scam",
+  legendNot: "Not paid",
+  legendStopped: "Stopped by Wardline",
   dotsAlone: (paid: number, of: number) => `${paid} of ${of} scams paid`,
   dotsWith: (paid: number, of: number) => `${of - paid} of ${of} scams stopped, ${paid} paid`,
 } as const;
@@ -810,7 +814,7 @@ export const GOV = {
   /** Two short lines (Q). WARD holders vote on tier fees, coverage and the sell wait, nothing else (P). */
   lede: ["You vote on tier fees, coverage and the sell wait. One WARD is one vote.", "A change passes with enough votes and more for than against. Then anyone can put it into effect."],
   /** O: plain English, never raw numbers like "0.3059 of 1.52". */
-  progress: (need: string, sofar: string) => `Needs ${need}% of WARD to vote. ${sofar}% so far`,
+  progress: (need: string) => `Needs ${need}% of WARD to vote`,
   split: (yes: string, no: string) => `${yes}% for, ${no}% against`,
   progressLabel: (sofar: string, need: string) => `${sofar}% of WARD has voted; ${need}% is needed`,
   wouldFee: (tier: string, next: string, now: string) => `${tier} groups would pay ${next} instead of ${now}`,
@@ -984,7 +988,12 @@ export const ME = {
 /** "Watch a payment cross the line" (Horizon v2), on the home page and the demo page. */
 export const EXPLAINER = {
   title: "Every payment lands on one side of the line",
-  sub: "Two payments, ten seconds apart.",
+  sub: "Two payments, ten seconds apart",
+  start: "Payment",
+  ring: "Proof check",
+  aboveLabel: "Above the line",
+  belowLabel: "Below the line",
+  outcomesTitle: "Where your money goes",
   label: "Animation: a proven AI payment crosses above the line and is paid, then a payment from a swapped model is refused, drops below the line and is refunded.",
   caption1: "An AI agent pays for a DeepSeek V4.1 Flash answer",
   caption2: "Same claim, but the answer secretly came from GLM-5.3 Flash",

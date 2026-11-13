@@ -107,7 +107,7 @@ function Progress({ p }: { p: MutualProposalView }) {
   const fill = need > 0 ? Math.min(cast / need, 1) : 1;
   return (
     <div className="prop-progress">
-      <p className="num">{GOV.progress(pct(need), pct(cast))}</p>
+      <p className="num">{GOV.progress(pct(need))}</p>
       <div className="prop-line" role="progressbar" aria-label={GOV.progressLabel(pct(cast), pct(need))} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fill * 100)}>
         <i style={{ width: `${fill * 100}%` }} />
       </div>
@@ -201,7 +201,7 @@ export function Proposal({ p, voter, now, onChange, all = [p], tiers }: { p: Mut
             {GOV.voteAgainst}
           </button>
           {/* Why the buttons are off, right beside them. */}
-          <small className="muted num" data-testid="vote-why">
+          <small className={!account || !voter.wallet ? "muted num quiet" : "muted num"} data-testid="vote-why">
             {!account || !voter.wallet ? GOV.connectToVote : weight === null ? GOV.checkingWeight : weight === "0" ? GOV.noWeight : GOV.weight(ward(weight))}
           </small>
         </div>
@@ -402,7 +402,7 @@ export function Governance({ proposals, onChange, embedded = false, tiers, summa
   );
   if (embedded) return <div className="gov embedded" data-testid="governance">{body}</div>;
   return (
-    <section className="sec gov" aria-labelledby="gov-title" data-testid="governance">
+    <section className={summary ? "sec gov summary" : "sec gov"} aria-labelledby="gov-title" data-testid="governance">
       <div className="wrap">
         <h2 className="h2" id="gov-title">
           {GOV.title}

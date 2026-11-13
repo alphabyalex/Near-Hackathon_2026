@@ -1,12 +1,13 @@
 import { BRAND } from "../brand";
 import { HorizonMark } from "./HorizonMark";
 
-/** The lockup: the Horizon mark at about 1.5x the wordmark's cap height, then "Wardline". Always links home. */
+/** The lockup: the Horizon mark a little taller than the wordmark, then "Wardline". Always links home. */
 export function Logo({ textSize = 22 }: { textSize?: number }) {
-  const mark = Math.round(textSize * 0.7 * 1.5);
+  const mark = Math.round(textSize * 1.3);
   return (
     <a className="logo" href="#/" aria-label={BRAND.homeLabel}>
-      <HorizonMark size={mark} />
+      {/* A coarse step at this size: the dots and the line stay readable, as in the favicon. */}
+      <HorizonMark size={mark} {...(mark <= 32 ? { step: 15, light: [-0.2, -0.3] as [number, number] } : {})} />
       <span className="wordmark" style={{ fontSize: textSize }}>
         {BRAND.name}
       </span>

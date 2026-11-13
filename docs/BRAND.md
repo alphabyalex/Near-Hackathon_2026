@@ -79,7 +79,11 @@ With motion on, the dots are drawn on a `<canvas>` from the same generator and t
 
 The headline, sub and buttons fade up once (0.7s) at 0.3s, 0.5s and 0.7s.
 
-Below the hero, each block of the home page fades up once, the first time it reaches the lower part of the screen (`apps/web/src/v2/reveal.ts`): 28px of lift, opacity 0 to 1, 0.9s on `cubic-bezier(.16, 1, .3, 1)`, blocks that arrive together staggered by 90ms. Blocks already on screen at load are left alone, a block never hides again after it has shown, and under `prefers-reduced-motion` nothing is hidden at all. Sections meet through space and a gradient, never a rule: the light section dissolves out of the dark page and back into it (a smoothstep from `--bg` to `--paper`, about 170px each way), so there is no grey band and no hard edge.
+Below the hero, each block of the home page fades up once, the first time it reaches the lower part of the screen (`apps/web/src/v2/reveal.ts`): 28px of lift, opacity 0 to 1, 0.9s on `cubic-bezier(.16, 1, .3, 1)`, blocks that arrive together staggered by 90ms. Blocks already on screen at load are left alone, a block never hides again after it has shown, and under `prefers-reduced-motion` nothing is hidden at all. Sections meet through space and tone, never a rule: the page alternates `--bg` and `--surface` bands, and the one light section is a slab with 40px corners set 20px in from the screen edges (10px and 28px on a phone), so the break is crisp. A gradient between dark and light reads as a smudge; do not use one.
+
+The first screen is the hero alone: it is at least as tall as the window (minus the header), the sphere and the copy share one vertical centre, and the live strip sits at its foot. The header's pages are centred on the page, not between the logo and the buttons, and the current page's underline sits on the header rule.
+
+"Watch a payment cross the line" is words on the left and a diagram on the right, on one clock. The words are page text that switches on as the story reaches them; the canvas carries only the line, the proof ring, the two payments and the trail each leaves.
 
 Motion that answers a person's action is also allowed: a dialog opening, a spinner while a wallet signs, demo results appearing row by row after "Run scene". Nothing follows the mouse.
 

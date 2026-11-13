@@ -41,7 +41,7 @@
 /* The member card: dark, with a faint horizon in its corner */
 .member-card{position:relative;overflow:hidden;background:var(--bg);color:var(--text);border-radius:var(--r-card-lg);padding:32px;min-height:340px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 28px 60px -30px rgba(26,15,33,.55);transition:box-shadow .24s ease,border-color .24s ease}
 .member-card>*{position:relative;z-index:1}
-.member-card .member-horizon{position:absolute;right:24px;top:24px;z-index:0;pointer-events:none}
+.member-card .member-horizon{position:absolute;right:28px;top:28px;z-index:0;pointer-events:none}
 .mc-manage{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--rule);width:100%;font-size:15px}
 .member-card .link{color:var(--violet-text)}
 .h1,.h2{text-wrap:balance}
@@ -222,14 +222,6 @@
 .cmp{border-top:1px solid var(--rule-2);margin-bottom:18px}
 .cmp-row{display:grid;grid-template-columns:220px minmax(0,1fr) 170px;gap:24px;align-items:center;padding:22px 0;border-bottom:1px solid var(--rule-2)}
 .cmp-label{font-weight:600}
-.cmp-dots{display:flex;flex-wrap:wrap;gap:7px}
-.cmp-dots i{width:12px;height:12px;border-radius:50%;background:var(--rule-strong)}
-.cmp-dots i.paid{background:var(--red)}
-.cmp-dots i.stopped{background:transparent;box-shadow:inset 0 0 0 2px var(--violet)}
-.cmp-sec .linestats{margin-top:8px;min-height:420px}
-.cmp-sec .ls-sub{margin-top:14px}
-.cmp-sec .cmp-dots{max-width:400px}
-.cmp-sec .ls-bad .cmp-dots{justify-content:flex-end;margin-left:auto}
 .steps-sec .lede{margin-bottom:40px}
 .cmp-value{text-align:right;font-size:20px;font-weight:700}
 .cmp-value small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
@@ -324,7 +316,6 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .share-grid{gap:40px}
   .steps-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cmp-row{grid-template-columns:minmax(0,1fr) auto;gap:10px 16px}
-  .cmp-dots{grid-column:1/-1;grid-row:2}
 }
 @media (max-width:640px){
   .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "bar" "facts" "act" "msg"}

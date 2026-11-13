@@ -4,7 +4,7 @@ import type { GroupSummary, MutualSummary } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { getMutual } from "../../data/mutual";
 import { HOME, REP } from "../../brand";
-import { Explainer } from "../../v2/Explainer";
+import { Explainer, Outcomes } from "../../v2/Explainer";
 import { Hero } from "../../v2/Hero";
 import { prefersReducedMotion } from "../../v2/motion";
 import { useReveal } from "../../v2/reveal";
@@ -127,6 +127,7 @@ export function Home() {
     <main ref={page} className="home">
       <Hero onJoin={join} onWatch={watch} />
       <Explainer />
+      <Outcomes />
       {error !== null && !m && (
         <div className="wrap state-wrap">
           <Problem error={error} onRetry={refresh} />
@@ -156,7 +157,7 @@ export function Home() {
       {m && <Governance proposals={m.governance.proposals} onChange={refresh} tiers={m.tiers} summary />}
 
       {m && (
-        <section className="sec" aria-labelledby="board-title">
+        <section className="sec board-sec" aria-labelledby="board-title">
           <div className="wrap">
             <h2 className="h2" id="board-title">
               {HOME.boardTitle}

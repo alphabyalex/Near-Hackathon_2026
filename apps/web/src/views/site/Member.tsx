@@ -345,8 +345,8 @@ export function MemberCard({ pool, version, onJoin, onChanged }: { pool: PoolVie
   const held = position ? BigInt(position.ward) + BigInt(position.ward_locked) : 0n;
   return (
     <div className="member-card" data-testid="member-card">
-      {/* The member's own sphere when connected (the same seed as the Balance page), the Horizon mark otherwise. */}
-      <HorizonMark size={120} className="member-horizon" {...(connected ? { light: personalSphere(connected.account).light, step: 18 } : { step: 18 })} />
+      {/* The member's own sphere once connected (the same seed as the Balance page). */}
+      {connected && <HorizonMark size={64} className="member-horizon" light={personalSphere(connected.account).light} step={14} />}
       <span className="mc-label">{MEMBER.title}</span>
       {!connected || !position || held === 0n ? (
         <>
