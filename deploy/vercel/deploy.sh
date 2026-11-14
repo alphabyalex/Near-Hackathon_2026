@@ -1,7 +1,7 @@
 #!/bin/sh
 # Deploys the frontend to Vercel as a static build with the backend's address baked in.
 #
-#   deploy/vercel/deploy.sh <backend https URL> [project name]
+#   deploy/vercel/deploy.sh <backend https URL> [project name] [sim|testnet]
 #
 # Why static: Vercel's project detection reads this monorepo as two services (the Vite app and the Hono API) and rejects
 # a repo-root vercel.json, so the build runs here and only its output is uploaded. Nothing else leaves the machine.
@@ -9,13 +9,16 @@
 set -eu
 API="${1:?usage: deploy/vercel/deploy.sh <backend https URL> [project name]}"
 PROJECT="${2:-wardline}"
+# sim reads the API as it is; testnet reads /v1/activity, /v1/communities and /v1/people, and sends wallet actions as real transactions.
+DATA="${3:-sim}"
+case "$DATA" in sim|testnet) ;; *) echo "The data source must be sim or testnet" >&2; exit 1;; esac
 case "$API" in https://*) ;; *) echo "The backend URL must start with https://" >&2; exit 1;; esac
 API="${API%/}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 [ -z "$(git -C "$ROOT" status --porcelain)" ] || { echo "Commit or stash your changes first: the build must match a commit." >&2; exit 1; }
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
-(cd "$ROOT/apps/web" && VITE_WARDLINE_API_URL="$API" npx vite build --outDir "$OUT/dist")
+(cd "$ROOT/apps/web" && VITE_WARDLINE_API_URL="$API" VITE_WARDLINE_DATA="$DATA" npx vite build --outDir "$OUT/dist")
 cat > "$OUT/vercel.json" <<'JSON'
 {
   "outputDirectory": "dist",

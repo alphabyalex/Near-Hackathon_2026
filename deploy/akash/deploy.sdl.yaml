@@ -1,12 +1,17 @@
-# The Wardline backend on Akash: the API plus its demo AI providers, in the default simulation mode.
-# No secrets live here or in the image. Replace the tag with the one you pushed.
+# The Wardline backend on Akash: the API plus its demo AI providers, reading the live NEAR testnet contracts.
+# Read-only: no gateway key is set, so nothing can be signed here, and wallet actions are sent from the user's own
+# wallet by the frontend. No secrets live in this file or the image. For the seeded simulation instead, delete the four
+# variables below the port. Replace the tag with the one you pushed.
 version: "2.0"
 services:
   backend:
     image: tharunekam/wardline-api:4591f5f-b
     env:
-      # Akash injects <SERVICE>_PORT variables; this one wins over any that collide.
-      - WARDLINE_API_PORT=8787
+            - WARDLINE_API_PORT=8787
+      - WARDLINE_CHAIN_MODE=near
+      - WARDLINE_REGISTRY_MODE=near
+      - NEAR_NETWORK=testnet
+      - WARDLINE_NEAR_RPC_URL=https://rpc.testnet.fastnear.com,https://test.rpc.fastnear.com,https://near-testnet.drpc.org
     expose:
       - port: 8787
         as: 80
