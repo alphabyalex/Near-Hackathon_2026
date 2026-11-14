@@ -2,6 +2,9 @@
 
 **A credit union for the AI economy, built on NEAR.**
 
+
+**Try it live: [wardline-bay.vercel.app](https://wardline-bay.vercel.app)** (NEAR testnet, connect Meteor, Intear or Nightly)
+
 AI agents now pay for model calls and vendor invoices on their own, and nothing checks what they're paying for. A provider can bill for a premium model and serve a cheap one. A look-alike vendor can intercept an invoice. A leaked key can drain a budget in seconds.
 
 Wardline sits between the agent and the money. A payment clears only if
