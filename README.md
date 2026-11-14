@@ -217,7 +217,7 @@ pnpm --filter @wardline/web exec playwright install chromium firefox webkit
 pnpm test:e2e
 ```
 
-See: the brand guard (7 checks) and every package's tests pass, then the Playwright suite passes in Chromium, Firefox and WebKit (49 tests in each): the Mutual home, #/me, Join the Mutual, WARD voting, Groups, all seven demo scenes, the error states, a keyboard-only walk, and axe accessibility checks at desktop and 390px. `pnpm --filter @wardline/web test:e2e:chromium` runs Chromium only. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
+See: the brand guard and the secrets guard (11 checks) and every package's tests pass, then the Playwright suite passes in Chromium (and its iPhone project): the Mutual home, Your balance, Join the Mutual, WARD voting, Groups and each group's page, the docs, all seven demo scenes, the error states, a keyboard-only walk, and axe accessibility checks at desktop and 390px. `pnpm --filter @wardline/web test:e2e:chromium` runs Chromium only. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
 
 ### The web app
 
@@ -227,7 +227,7 @@ Do, with the API from step 2 still running:
 WARDLINE_DEV_API=http://127.0.0.1:$WARDLINE_API_PORT pnpm --filter @wardline/web dev
 ```
 
-See: open the Local URL Vite prints (http://127.0.0.1:5173 unless that port is taken). The site opens on the Mutual, in the Horizon design (a dark page, a halftone sphere cut by one line): the hero, pooled USDC and WARD's price, the two sides of the line (paid above it; refused, blocked or capped below it), Hold a share, WARD-holder votes and the safest groups. Connect wallet sits in the header, and once connected your account opens #/me with your share, your votes and your redemptions. Groups, Proof engine and the seven-scene Demo are in the nav.
+See: open the Local URL Vite prints (http://127.0.0.1:5173 unless that port is taken). The site opens on the Mutual, in the Horizon design (a dark page, a halftone sphere cut by one line): the hero, pooled USDC and WARD's price, the two sides of the line (paid above it; refused, blocked or capped below it), Hold a share, WARD-holder votes and the safest groups. Every Become a member goes into the app first: Your balance (#/wallet), which for a visitor with no wallet is the front door (Become a member, Connect wallet, and a preview of a deposit). Connected, it shows your share in dollars, your votes and your redemptions. Groups (with a page for each group at #/groups/<id>), Proof engine and About are in the nav, and Docs (#/docs) sits beside the wallet button.
 
 ## Live variants
 
@@ -239,7 +239,7 @@ Everything above runs offline. Each live variant needs its own environment varia
 | Read the testnet deployment | nothing | `pnpm testnet:check` makes view calls only: pool, budgets, attested models, WARD balances |
 | NEAR testnet | `WARDLINE_CHAIN_MODE=near`, `WARDLINE_GATEWAY_ACCOUNT`, `WARDLINE_GATEWAY_KEY` (a function-call key for `reserve`, `settle`, `release` on the meter), `WARDLINE_PROVIDER_PAY_TO` | Contract ids come from `repo.config.json`; override with `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`. `WARDLINE_PROVIDER_PAY_TO` receives the provider's share of each settled call, so the fee moves to the pool as USDC. `WARDLINE_DEMO_METER_KEY` is refused in this mode |
 | Payee registry on testnet | `WARDLINE_REGISTRY_MODE=near` | `/v1/check` and `/v1/resolve` read `payee-registry.wardline-labs.testnet`. `WARDLINE_REGISTRY_MODE=near pnpm payee:seed` attests the seeded vendors as the attestor |
-| Testnet data in the web app | `WARDLINE_DATA=testnet` (web), with the API in near mode | Home, Groups, Latest proofs and #/me read `/v1/activity`, `/v1/activity/stats`, `/v1/communities` and `/v1/people`. The footer says NEAR testnet. Off unless set; a failing route shows an error, never sim numbers |
+| Testnet data in the web app | `WARDLINE_DATA=testnet` (web), with the API in near mode | Home, Groups, Latest proofs and Your balance (#/wallet) read `/v1/activity`, `/v1/activity/stats`, `/v1/communities` and `/v1/people`. The footer says NEAR testnet. Off unless set; a failing route shows an error, never sim numbers |
 | Local test signer | `WARDLINE_LOCAL_SIGNER=1` (API) and `VITE_WARDLINE_LOCAL_SIGNER=1` (web dev server) | The browser acts as a testnet cast account from your credential store: Join, vote, execute, redeem. Both refuse to start unless bound to 127.0.0.1 and on testnet, and a production build refuses it |
 | Several RPC endpoints | `WARDLINE_NEAR_RPC_URL=url1,url2,...` | Each request fails over to the next on an error or a rate limit |
 | A DEX for WARD | `WARDLINE_WARD_TRADE_URL` | Shows "Trade WARD" next to the price |
