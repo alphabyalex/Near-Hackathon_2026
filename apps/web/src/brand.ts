@@ -105,11 +105,9 @@ export const HOME = {
     capped: ["Leaked keys", "Calls stopped at a member's allowance or the budget's deposit."],
   },
   shareTitle: "Hold a share of everything above the line",
-  shareBody: [
-    "Deposit USDC, get WARD, your share of the Mutual.",
-    "Earn from every proven payment. WARD's price rises as the pool is used.",
-    "Losses hit our stake first. You vote on fees, coverage and the sell wait.",
-  ],
+  // Two lines that nothing else on the page says: what WARD is, and how you leave. The card beside them
+  // shows the deposit, the Watch section the 2%, the next section the vote.
+  shareBody: ["WARD is your share of the pool. Its price rises with every proven payment.", "Leave any time. Selling takes a 7-day wait."],
   communityTitle: "Run by the people who hold it",
   communityLede: "WARD holders vote on fees and coverage. Groups with a clean record pay less.",
   votesTitle: "Open votes",
@@ -243,9 +241,8 @@ export const SHARE = {
 /** The proof engine page. */
 export const PROOF = {
   title: "Nothing crosses the line without proof.",
-  sub: "Every AI call is reserved, sent unchanged, proven by NEAR AI's TEE signature and only then paid. Anything that fails a check is refunded and stays below the line.",
-  snippetLabel: "The one-line plug-in",
-  snippetNote: "Change your OpenAI client's base URL. Everything else stays the same.",
+  sub: "Anything that fails a check is refunded and stays below the line.",
+  stepsLabel: "The four steps of every call",
   steps: [
     ["Reserve", "Hold the most the call can cost against the member's allowance and the group's deposit."],
     ["Forward", "Send the request bytes to NEAR AI unchanged."],
@@ -274,7 +271,7 @@ export const PROOF = {
     receipt: "This pattern is drawn from the call's signed receipt, so every answer gets its own.",
   },
   primary: "Watch it refuse a swapped model",
-  secondary: "Check a payee",
+  build: "Build with it",
   statsTitle: "Fast enough to check every payment.",
   statsLabel: "Time to check and red-team results",
   stats: {
@@ -584,12 +581,10 @@ export const VERIFY = {
 } as const;
 
 export const ABOUT = {
-  title: `${BRAND.name} is a credit union for the AI economy.`,
+  // The home page already says what Wardline is. About says why it had to exist, once.
+  title: "AI agents pay on their own. Nothing checks them.",
   /** Why it exists, short (V). Each later idea appears once: the seven steps explain the rest. */
-  why: [
-    "AI agents now pay for models, data and vendors on their own. Nothing checks that what they paid for is what they got, or that the payee is who it claims to be.",
-    "Members pool USDC on NEAR. The pool backs agents' payments, pays only on proof, and earns a fee on every payment that proves itself.",
-  ],
+  why: ["Agents now pay for models, data and vendors without a person in the loop. Nothing checks that what they paid for is what they got, or that the payee is who it claims to be."],
   watch: "Watch a payment cross the line",
   exampleTitle: "A real decision: a payout the proof engine stopped",
   exampleLede: "An invoice arrives with a note telling the agent to pay a different account. The payee check compares that account with the one the vendor's domain links to.",
@@ -848,7 +843,11 @@ export const GROUPS = {
     ["Change one line", "Each member points their OpenAI client's base URL at Wardline. Calls are paid only on proof."],
   ],
   startCta: "Open the owner app",
-  connectCta: "See the one-line plug-in",
+  connectCta: "Read the Quickstart",
+  /** For a connected wallet that controls a group's budget. */
+  yoursTitle: (n: number) => (n === 1 ? "Your group" : "Your groups"),
+  yoursOwner: (account: string) => `${account} controls this budget`,
+  yoursManage: "Manage in the owner app",
 } as const;
 
 /** Every failure, as what happened and what to do next. No apologies. */
@@ -950,13 +949,12 @@ export const EXPLAINER = {
   checks: ["Receipt signed by the model you paid for", "Money goes to the real company", "Inside the spending limit"],
   failed: "Receipt is from a cheaper model than you paid for",
   paid: "Proven and paid",
-  paidSub: "The provider gets paid, and 2% goes to the pool",
+  paidSub: "The provider gets paid",
   refused: "Refused and refunded",
-  refusedSub: "The money never left the budget",
-  closing: "Only proven payments cross the line.",
+  refusedSub: "The money stays in the budget",
   columns: [
     ["Proven, then paid", "NEAR's AI service signs every answer. If the signature matches the model you paid for, the money goes through and 2% goes to the pool.", "above"],
-    ["Refused, then refunded", "A cheaper model, a look-alike company or a leaked key never gets paid. The money stays in the budget.", "below"],
+    ["Refused, then refunded", "A cheaper model, a look-alike company or a leaked key never gets paid.", "below"],
     ["Covered if we're wrong", "If Wardline approves something it shouldn't have, the pool pays it back, and our own stake pays first.", "above"],
   ],
 } as const;

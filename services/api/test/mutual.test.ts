@@ -180,7 +180,8 @@ describe("Mutual routes", () => {
       governance: { quorum_bps: number; proposals: { status: string }[] };
     };
     expect(m.mutual_mode).toBe("sim");
-    expect(m.stats.groups_covered).toBe(4);
+    // Aurora Lab and the four groups with a record; the six solo builders are not counted.
+    expect(m.stats.groups_covered).toBe(5);
     expect(m.stats.payouts).toBe(1);
     expect(BigInt(m.stats.ward_price)).toBeGreaterThan(1_000_000n);
     expect(m.groups[0]).toMatchObject({ budget_id: "bgt_mission", tier: "gold", claims: 0 });
@@ -243,8 +244,8 @@ describe("below the line counts and the proofs feed", () => {
     const deps = bootstrap(":memory:", () => BigInt(nowMs) * 1_000_000n, {}, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" } });
     const app = createApp(deps);
     const m = (await (await app.request("/v1/mutual")).json()) as { stats: { below: { swapped: number; lookalike: number; capped: number; total: number } } };
-    // Seeded history (15 refused, 3 blocked, 83 capped) plus the look-alike payout awaiting a vote in the group's DAO.
-    expect(m.stats.below).toEqual({ swapped: 15, lookalike: 4, capped: 83, total: 102 });
+    // Seeded history (23 refused, 4 blocked, 107 capped) plus the look-alike payout awaiting a vote in the group's DAO.
+    expect(m.stats.below).toEqual({ swapped: 23, lookalike: 5, capped: 107, total: 135 });
     // With no real calls yet, sim mode shows the live seed's groups' recent calls, so the feed is never empty.
     const seeded = (await (await app.request("/v1/proofs")).json()) as { proofs: { call_id: string; group: string; side: string; created_at: string }[] };
     expect(seeded.proofs.length).toBeGreaterThan(0);

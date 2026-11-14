@@ -135,8 +135,8 @@ pnpm demo:mutual
 See:
 
 ```
-Mutual: 141.24 USDC pooled, 4 groups covered, 655 proven AI payments, 1.24 USDC earned by WARD holders
-Deposit: maya.testnet puts in 25.00 USDC and receives 24.74 WARD at 1.0103
+Mutual: 171.70 USDC pooled, 5 groups covered, 988 proven AI payments, 1.70 USDC earned by WARD holders
+Deposit: maya.testnet puts in 25.00 USDC and receives 24.72 WARD at 1.0114
 Pool: Wardline's first-loss stake 20.00 USDC, behind WARD 120.00 USDC, WARD price 1.0000
 Payout 1: 8.00 USDC paid. From Wardline's stake 8.00, from WARD holders 0.00. Stake left 12.00. WARD 1.0000 to 1.0000
 Payout 2: 12.50 USDC paid. From Wardline's stake 12.00, from WARD holders 0.50. Stake left 0.00. WARD 1.0000 to 0.9958

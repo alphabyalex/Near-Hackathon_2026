@@ -95,7 +95,18 @@ const DAY = 86_400_000;
 export const SIM_GROUPS = [
   { budget_id: "bgt_mission", name: "Mission Street hacker house", owner: "mission-house.sputnikv2.testnet", members: ["dana.testnet", "eli.testnet", "build-bot.testnet"] },
   { budget_id: "bgt_nightshade", name: "Nightshade DAO", owner: "nightshade.sputnikv2.testnet", members: ["ruth.testnet", "tomas.testnet"] },
+  { budget_id: "bgt_hayes", name: "Hayes Valley house", owner: "hayes-valley.sputnikv2.testnet", members: ["sam.testnet", "owen.testnet"] },
   { budget_id: "bgt_kelp", name: "Kelp Collective", owner: "kelp-robotics.sputnikv2.testnet", members: ["ana.testnet", "kelp-agent.testnet"] },
+] as const;
+
+/** Solo builders: a community of one, with the budget id and "(solo)" name the Groups page recognises. */
+export const SIM_SOLOS = [
+  { budget_id: "bgt_ind_ivan", name: "Ivan (solo)", member: "ivan.testnet" },
+  { budget_id: "bgt_ind_yuki", name: "Yuki (solo)", member: "yuki.testnet" },
+  { budget_id: "bgt_ind_chloe", name: "Chloe (solo)", member: "chloe.testnet" },
+  { budget_id: "bgt_ind_lucas", name: "Lucas (solo)", member: "lucas.testnet" },
+  { budget_id: "bgt_ind_gabriel", name: "Gabriel (solo)", member: "gabriel.testnet" },
+  { budget_id: "bgt_ind_nadia", name: "Nadia (solo)", member: "nadia.testnet" },
 ] as const;
 
 /**
@@ -109,6 +120,10 @@ export const SIM_SEED_PROOFS = [
   { call_id: "call_sim_seed_04", budget_id: "bgt_mission", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "117", refund: "622", minutes_ago: 22 },
   { call_id: "call_sim_seed_05", budget_id: "bgt_kelp", status: "refused", reason: "ALLOWANCE_EXHAUSTED", model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: null, amount: "0", refund: "0", minutes_ago: 31 },
   { call_id: "call_sim_seed_06", budget_id: "bgt_nightshade", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "105", refund: "634", minutes_ago: 47 },
+  { call_id: "call_sim_seed_07", budget_id: "bgt_hayes", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "88", refund: "651", minutes_ago: 58 },
+  { call_id: "call_sim_seed_08", budget_id: "bgt_ind_ivan", status: "verified", reason: null, model_claimed: "z-ai/glm-5.3-flash", model_proven: "z-ai/glm-5.3-flash", amount: "61", refund: "678", minutes_ago: 71 },
+  { call_id: "call_sim_seed_09", budget_id: "bgt_hayes", status: "refused", reason: "MODEL_MISMATCH", model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "z-ai/glm-5.3-flash", amount: "0", refund: "739", minutes_ago: 96 },
+  { call_id: "call_sim_seed_10", budget_id: "bgt_ind_yuki", status: "verified", reason: null, model_claimed: "deepseek-ai/DeepSeek-V4.1-Flash-1017", model_proven: "deepseek-ai/DeepSeek-V4.1-Flash-1017", amount: "94", refund: "645", minutes_ago: 122 },
 ] as const;
 
 /**
@@ -122,10 +137,22 @@ export function liveSimSeed(): SimChainSeed {
   for (const g of SIM_GROUPS) {
     seed.budgets.push({ budget_id: g.budget_id, name: g.name, owner: g.owner, deposit: W(40), period: "week", members: g.members.map((m) => ({ member: m, allowance: W(10) })) });
   }
+  for (const solo of SIM_SOLOS) {
+    seed.budgets.push({ budget_id: solo.budget_id, name: solo.name, owner: solo.member, deposit: W(10), period: "week", members: [{ member: solo.member, allowance: W(8) }] });
+  }
+  // A third liquidity provider, so the pool is not two wallets.
+  seed.pool.positions.push({ account: "lp-solano.testnet", amount: W(30) });
   seed.reputation = {
     bgt_mission: { tier: "gold", proven_calls: 412, refused_calls: 9, capped_calls: 31, blocked_payees: 2, claims: 0, clean_calls: 377, spent: W(61.8), fees_paid: W(0.74) },
     bgt_nightshade: { tier: "silver", proven_calls: 186, refused_calls: 4, capped_calls: 12, blocked_payees: 1, claims: 0, clean_calls: 14, spent: W(23.4), fees_paid: W(0.38) },
+    bgt_hayes: { tier: "silver", proven_calls: 143, refused_calls: 3, capped_calls: 9, blocked_payees: 1, claims: 0, clean_calls: 21, spent: W(17.2), fees_paid: W(0.26) },
     bgt_kelp: { tier: "silver", proven_calls: 57, refused_calls: 2, capped_calls: 40, blocked_payees: 0, claims: 0, clean_calls: 47, spent: W(6.1), fees_paid: W(0.12) },
+    bgt_ind_ivan: { tier: "gold", proven_calls: 71, refused_calls: 1, capped_calls: 4, blocked_payees: 0, claims: 0, clean_calls: 36, spent: W(4.9), fees_paid: W(0.07) },
+    bgt_ind_yuki: { tier: "silver", proven_calls: 48, refused_calls: 2, capped_calls: 3, blocked_payees: 0, claims: 0, clean_calls: 22, spent: W(3.1), fees_paid: W(0.05) },
+    bgt_ind_chloe: { tier: "silver", proven_calls: 33, refused_calls: 0, capped_calls: 6, blocked_payees: 0, claims: 0, clean_calls: 15, spent: W(2.2), fees_paid: W(0.04) },
+    bgt_ind_lucas: { tier: "silver", proven_calls: 27, refused_calls: 1, capped_calls: 2, blocked_payees: 0, claims: 0, clean_calls: 12, spent: W(1.8), fees_paid: W(0.03) },
+    bgt_ind_gabriel: { tier: "bronze", proven_calls: 8, refused_calls: 1, capped_calls: 0, blocked_payees: 0, claims: 0, clean_calls: 8, spent: W(0.6), fees_paid: W(0.01) },
+    bgt_ind_nadia: { tier: "bronze", proven_calls: 3, refused_calls: 0, capped_calls: 0, blocked_payees: 0, claims: 0, clean_calls: 3, spent: W(0.2), fees_paid: W(0.004) },
   };
   seed.claims = [
     { subject: "rcpt_kelp_parts_0331", claimant: "kelp-robotics.sputnikv2.testnet", amount: W(1.5), reason: "Wardline answered PAY for a parts vendor whose website had been taken over a day earlier.", budget_id: "bgt_kelp" },
@@ -135,7 +162,7 @@ export function liveSimSeed(): SimChainSeed {
     // villain in the demo, so no seed proposal covers it.)
     { proposer: "lp-north.testnet", description: "Set the Gold fee to 1.00%", action: { type: "set_fee_bps", tier: "gold", fee_bps: 100 }, opened_days_ago: 12, votes: [["lp-north.testnet", "for"], ["lp-harbor.testnet", "for"]], execute: true },
     { proposer: "lp-harbor.testnet", description: "Raise the Bronze fee to 2.50%", action: { type: "set_fee_bps", tier: "bronze", fee_bps: 250 }, opened_days_ago: 9, votes: [["lp-harbor.testnet", "for"], ["lp-north.testnet", "against"]] },
-    { proposer: "lp-north.testnet", description: "Raise coverage to 1.25x for every tier", action: { type: "set_coverage_multiplier", multiplier_bps: 12_500 }, opened_days_ago: 1, votes: [["lp-north.testnet", "for"]] },
+    { proposer: "lp-north.testnet", description: "Raise coverage to 1.25x for every tier", action: { type: "set_coverage_multiplier", multiplier_bps: 12_500 }, opened_days_ago: 1, votes: [["lp-north.testnet", "for"], ["lp-solano.testnet", "for"]] },
     { proposer: "lp-harbor.testnet", description: "Lower the Silver fee to 1.25%", action: { type: "set_fee_bps", tier: "silver", fee_bps: 125 }, opened_days_ago: 0.5, votes: [["lp-harbor.testnet", "for"]] },
   ];
   return seed;
@@ -330,7 +357,8 @@ export async function mutualStats(chain: Chain, extraBlocked = 0) {
     ward_price: pool.ward_price,
     launch_price: pool.launch_price,
     yield_earned: pool.fees_earned,
-    groups_covered: groups.length,
+    // Groups only: a solo builder (budget id bgt_ind_...) is covered too, but is not a group.
+    groups_covered: groups.filter((g) => !g.budget_id.startsWith("bgt_ind_")).length,
     proven_payments: groups.reduce((n, g) => n + g.proven_calls, 0),
     payouts: claims.filter((c) => c.status === "paid").length,
     // Below the line: never paid, and refunded where anything was held.

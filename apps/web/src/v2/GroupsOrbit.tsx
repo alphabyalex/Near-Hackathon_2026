@@ -5,6 +5,8 @@
  * grows to its true size (by proven calls, density by tier) and assembles. It moves only when a person
  * acts, never on a loop, and nothing follows the mouse. Every sphere comes from sphere.ts.
  */
+import { isSolo, SOLO_NAME } from "../data/solo";
+export { isSolo };
 import "./orbit.css";
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import type { GroupSummary } from "../api/ai";
@@ -84,12 +86,6 @@ export interface OrbitEntry {
   rank: number;
 }
 
-const SOLO_NAME = /\s*\(solo\)\s*$/i;
-/**
- * A solo builder is a community of one: /v1/communities gives it members_count 1 (members here), an
- * id of bgt_ind_<name> and a name like "Ivan (solo)". Any one of these is enough.
- */
-export const isSolo = (g: Pick<GroupSummary, "members" | "budget_id" | "name">): boolean => g.members <= 1 || g.budget_id.startsWith("bgt_ind_") || SOLO_NAME.test(g.name);
 
 const tierOf = (t: string): Tier => (t === "gold" || t === "silver" ? t : "bronze");
 

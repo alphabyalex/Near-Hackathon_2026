@@ -111,3 +111,11 @@ The docs at `#/docs` are structured the way a protocol's docs are: a grouped sid
 - **Callouts.** `note`, `important` and `limitation` carry a bar on the left in violet, white and grey. Red is never used for a warning: red means below the line.
 - **Code.** Code is always a tabbed panel with the language as its label and a Copy button; the Quickstart, MCP and SDK pages use the live panels, so the addresses in the examples are the ones this build shows.
 - **Tone.** Say what a thing is, what it does and what it can't do. Every limit gets its own sentence on the Limits and risks page.
+
+## Say each thing once
+
+A fact gets one home, and every other page links to it. On the home page the 2% fee is stated in the Watch section and its diagram, "our stake pays first" in the money cards, voting in the community section, and the deposit in the share card: none is repeated in a bullet, a caption or a closing line. The one-line plug-in lives on the home page and in the docs Quickstart, and the Proof and Groups pages link to the Quickstart instead of showing it again. About says why Wardline exists and leaves what it is to the home page. A test counts the repeats that crept in before.
+
+## The demo data
+
+The default run is a simulation seeded to match the testnet cast (`scripts/testnet/cast.json`): five groups (Mission Street, Nightshade, Hayes Valley, Aurora Lab and Kelp, with the Kelp claim), six solo builders across all three tiers, three liquidity providers and a WARD price that climbs over two weeks. Solo builders are on the orbit and never in "Safest groups", and the "groups covered" count excludes them. Public routes name DAOs and counts and never list a group's members; the Groups page recognises a wallet only when it is a group's public owner account.

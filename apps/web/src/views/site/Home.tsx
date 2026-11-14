@@ -14,6 +14,7 @@ import { feeText, TierBadge } from "../../components/TierBadge";
 import { Governance } from "./Governance";
 import { CodeTabs } from "../../components/CodeTabs";
 import { pluginTabs } from "../../data/snippets";
+import { isSolo } from "../../data/solo";
 import { MemberCard } from "./Member";
 import { Comparison } from "./Comparison";
 
@@ -197,7 +198,7 @@ export function Home() {
             <div className="groups">
               <h3 className="col-h">{HOME.boardTitle}</h3>
               {/* A record needs at least 10 proven calls before it can rank as safe. */}
-              <Leaderboard groups={m.groups.filter((g) => g.proven_calls >= SAFEST_MIN_CALLS)} limit={5} compact />
+              <Leaderboard groups={m.groups.filter((g) => !isSolo(g) && g.proven_calls >= SAFEST_MIN_CALLS)} limit={5} compact />
               <p className="more">
                 <a className="link" href="#/groups">
                   {HOME.boardAll}

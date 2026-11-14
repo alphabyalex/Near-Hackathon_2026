@@ -59,7 +59,7 @@ test.describe("public site", () => {
     await expect(cmp.locator(".with .cmp2-num")).toHaveText("0");
     await expect(cmp.locator(".with .cmp2-dots i.stopped")).toHaveCount(20);
     await expect(cmp.locator(".alone .cmp2-dots i.paid")).toHaveCount(5);
-    await expect(page.locator("ul.share-lines li")).toHaveCount(3);
+    await expect(page.locator("ul.share-lines li")).toHaveCount(2);
     const board = page.getByTestId("leaderboard");
     await expect(board.locator("tbody tr").first()).toContainText("Mission Street hacker house");
     await expect(board.locator("tbody tr").first().locator(".tier-name")).toHaveText("Gold");
@@ -139,6 +139,62 @@ test.describe("public site", () => {
     await page.keyboard.press("Escape");
     await front.getByRole("button", { name: "Connect wallet" }).click();
     await expect(page.getByTestId("connect-dialog")).toBeVisible();
+  });
+
+  test("a connected wallet: Groups shows its own group, every page loads clean, and nothing is said twice on Home", async ({ page, wallets }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const problems: string[] = [];
+    page.on("pageerror", (e) => problems.push(e.message));
+    page.on("console", (m) => m.type() === "error" && !/Failed to load resource/.test(m.text()) && problems.push(m.text()));
+
+    // The account that controls Mission Street's budget: Groups names the group and the way to manage it.
+    const owner = "mission-house.sputnikv2.testnet";
+    wallets.setNearAccount(owner);
+    await page.goto("/#/groups");
+    await page.getByTestId("connect-wallet").click();
+    const dlg = page.getByTestId("connect-dialog");
+    await dlg.getByLabel("NEAR account").fill(owner);
+    await dlg.locator('[data-wallet="test-wallet"]').click();
+    await dlg.getByRole("button", { name: "Use this wallet" }).click();
+    const yours = page.getByTestId("your-groups");
+    await expect(yours.getByRole("heading", { name: "Your group" })).toBeVisible();
+    await expect(yours.locator("li b")).toHaveText("Mission Street hacker house");
+    await expect(yours).toContainText("Gold");
+    await expect(yours.getByRole("link", { name: "Manage in the owner app" })).toHaveAttribute("href", "#/app/group");
+
+    // Any other wallet sees no such panel, and the public groups list never names a member.
+    wallets.setNearAccount(OWNER_ACCOUNT);
+    await page.getByTestId("connect-wallet").click();
+    await page.getByRole("menuitem", { name: /Disconnect/ }).click();
+    await page.getByTestId("connect-wallet").click();
+    const dlg2 = page.getByTestId("connect-dialog");
+    await dlg2.getByLabel("NEAR account").fill(OWNER_ACCOUNT);
+    await dlg2.locator('[data-wallet="test-wallet"]').click();
+    await dlg2.getByRole("button", { name: "Use this wallet" }).click();
+    await expect(page.getByTestId("connect-wallet")).toContainText(OWNER_ACCOUNT);
+    await expect(page.getByTestId("your-groups")).toHaveCount(0);
+
+    // Every public page loads with the wallet connected, and no console errors.
+    for (const route of ["#/", "#/wallet", "#/groups", "#/proof", "#/about", "#/docs", "#/docs/governance", "#/try", "#/verify"]) {
+      await page.goto(`/${route}`);
+      await page.waitForLoadState("networkidle");
+      // Pages load lazily: wait out the loading shell, then there is exactly one main.
+      await expect(page.locator('main[aria-busy="true"]')).toHaveCount(0);
+      await expect(page.locator("main:visible")).toHaveCount(1);
+      await expect(page.getByTestId("connect-wallet")).toContainText(OWNER_ACCOUNT);
+    }
+    expect(problems).toEqual([]);
+
+    // Home says each thing once: the 2% and "our stake pays first" are each stated in one place only.
+    await page.goto("about:blank");
+    await page.goto("/#/");
+    await expect(page.getByTestId("leaderboard")).toBeVisible();
+    const text = ((await page.locator("main.home").textContent()) ?? "").replace(/\s+/g, " ");
+    expect((text.match(/2% goes to the pool/g) ?? []).length).toBe(1);
+    expect((text.match(/stake pays first/gi) ?? []).length).toBe(1);
+    expect((text.match(/only proven payments cross the line/gi) ?? []).length).toBe(0);
+    // The solo builders are on the orbit, not in Home's list of safest groups.
+    await expect(page.getByTestId("leaderboard").locator("tbody tr").filter({ hasText: "(solo)" })).toHaveCount(0);
   });
 
   test("hero: the final frame under reduced motion; otherwise the entrance, then a slow drift that stops off screen", async ({ page }) => {
@@ -450,8 +506,10 @@ test.describe("public site", () => {
   test("proof engine: the one-line snippet, four steps, the latest proofs on each side of the line, and the red-team numbers", async ({ page }) => {
     await page.goto("/#/proof");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nothing crosses the line without proof.");
-    await expect(page.locator(".snippet")).toContainText("/v1/ai");
-    await expect(page.locator(".steps-row li b")).toHaveText(["Reserve", "Forward", "Prove", "Settle"]);
+    // The code lives in the docs, not here: the page links to it.
+    await expect(page.locator(".snippet")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Build with it" })).toHaveAttribute("href", "#/docs/quickstart");
+    await expect(page.locator(".pf-steps li b")).toHaveText(["Reserve", "Forward", "Prove", "Settle"]);
     const proofs = page.getByTestId("proofs");
     await expect(proofs.locator('li.pf-item[data-side="above"]').first().locator(".pf-verdict")).toHaveText("Paid");
     await expect(proofs.locator('li.pf-item[data-side="below"]').first().locator(".pf-verdict")).toHaveText(/^(Refunded|Capped|Blocked)$/);
@@ -632,7 +690,7 @@ test.describe("public site", () => {
 
   test("about: trust levels say what each does not establish", async ({ page }) => {
     await page.goto("/#/about");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wardline is a credit union for the AI economy.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI agents pay on their own. Nothing checks them.");
     await expect(page.locator("#steps-title")).toHaveText("How it works");
     await expect(page.locator("[data-scene]")).toHaveCount(7);
     await expect(page.locator(".tbl.trust tbody tr")).toHaveCount(5);

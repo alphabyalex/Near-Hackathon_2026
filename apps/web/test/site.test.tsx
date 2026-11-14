@@ -89,7 +89,7 @@ describe("routing", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("A credit union for the AI economy.");
     fireEvent.click(within(screen.getByRole("navigation", { name: "Main" })).getByText("About"));
     // About is lazy-loaded: wait for it.
-    expect((await screen.findByRole("heading", { level: 1, name: /credit union for the AI economy/ })).textContent).toBe("Wardline is a credit union for the AI economy.");
+    expect((await screen.findByRole("heading", { level: 1, name: /Nothing checks them/ })).textContent).toBe("AI agents pay on their own. Nothing checks them.");
     expect(window.location.hash).toBe("#/about");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByText("About").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getAllByLabelText("Wardline home")[0] as HTMLElement);

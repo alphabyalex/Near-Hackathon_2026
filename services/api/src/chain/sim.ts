@@ -494,6 +494,15 @@ export class SimPool implements CoverPoolClient {
     this.senior += value;
     this.mark("fees");
   }
+
+  /** Fees earned in the past: they raise the price now, and the price history shows them on the day they came in. */
+  addPastFees(amount: string, daysAgo: number): void {
+    const value = big(amount);
+    if (value === 0n) return;
+    this.fees += value;
+    this.senior += value;
+    this.history.push({ at: new Date(this.now().getTime() - daysAgo * 86_400_000).toISOString(), price: this.price().toString(), event: "fees" });
+  }
 }
 
 export interface SimChainSeed {
@@ -559,8 +568,17 @@ export function createSimChain(seed: SimChainSeed, now: Clock): Chain {
     onFees: (fee) => pool.addFees(fee),
   });
   // History from before this run: fees its groups already paid, and claims already settled.
+  // Spread over the last two weeks, newest last, so the price chart climbs the way a real pool's does.
   const pastFees = Object.values(seed.reputation ?? {}).reduce((n, r) => n + BigInt(r.fees_paid ?? "0"), 0n);
-  if (pastFees > 0n) void pool.addFees(pastFees.toString());
+  const WEIGHTS = [4, 7, 5, 9, 12, 14, 18, 31];
+  const DAYS = [13, 11, 9, 7, 5, 3, 1.5, 0.4];
+  const total = WEIGHTS.reduce((n, w) => n + w, 0);
+  let placed = 0n;
+  WEIGHTS.forEach((w, i) => {
+    const part = i === WEIGHTS.length - 1 ? pastFees - placed : (pastFees * BigInt(w)) / BigInt(total);
+    placed += part;
+    pool.addPastFees(part.toString(), DAYS[i]!);
+  });
   for (const c of seed.claims ?? []) pool.fileClaimNow(c);
   if (seed.proposals) governance.seed(seed.proposals);
   return { mode: "sim", meter, registry, pool, reputation, governance };

@@ -119,7 +119,7 @@ describe("WARD copy", () => {
     expect(POOL.loseFirstTitle).toBe("We lose first.");
     expect(POOL.ward.kind.toLowerCase()).toContain("yield-bearing, loss-sharing");
     const copy = JSON.stringify([POOL, HOME, BRAND, GOV, REP, GROUPS, DEMO, PROOF, JOIN, MEMBER, SHARE, WALLET]).toLowerCase();
-    expect(HOME.shareBody).toEqual(["Deposit USDC, get WARD, your share of the Mutual.", "Earn from every proven payment. WARD's price rises as the pool is used.", "Losses hit our stake first. You vote on fees, coverage and the sell wait."]);
+    expect(HOME.shareBody).toEqual(["WARD is your share of the pool. Its price rises with every proven payment.", "Leave any time. Selling takes a 7-day wait."]);
     for (const word of ["stable", "principal", "guaranteed", "insurance", "insured", "risk-free"]) expect(copy).not.toContain(word);
   });
 });

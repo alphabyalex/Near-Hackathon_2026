@@ -428,3 +428,20 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .about-team .lede p{margin:0}
 .about-team .lede p + p{margin-top:8px}
 @media (max-width:600px){.member-card .member-horizon{width:72px;height:72px;top:20px;right:20px}.member-card .mc-value{font-size:32px}.mc-label{padding-right:84px}}
+
+/* The four steps of a call, beside the Proof page's headline: numerals and hairlines, no boxes. */
+.pf-steps{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.pf-steps li{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;row-gap:2px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.pf-steps .step-n{grid-row:1 / span 2;color:var(--muted);font-weight:600}
+.pf-steps b{font-size:18px;font-weight:600;letter-spacing:-0.015em}
+.pf-steps span:not(.step-n){font-size:15px;color:var(--muted)}
+
+/* Your group: a hairline list under the orbit, for a connected wallet. */
+.your-groups{padding:0 0 24px}
+.yours-h{margin:0 0 12px;font-size:22px;font-weight:700;letter-spacing:-0.03em}
+.yours-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.yours-list li{display:grid;grid-template-columns:minmax(0,1.4fr) auto minmax(0,2fr) auto;gap:8px 28px;align-items:baseline;padding:18px 0;border-bottom:1px solid var(--rule)}
+.yours-list b{font-size:18px;font-weight:600;letter-spacing:-0.015em}
+.yours-tier{font-size:15px;color:var(--text-2)}
+.yours-why{font-size:15px;color:var(--muted);overflow-wrap:anywhere}
+@media (max-width:760px){.yours-list li{grid-template-columns:minmax(0,1fr);gap:4px}}

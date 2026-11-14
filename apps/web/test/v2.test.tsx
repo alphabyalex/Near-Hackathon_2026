@@ -189,7 +189,7 @@ describe("layouts", () => {
     expect(el.classList.contains("on-s1") && el.classList.contains("on-c1") && el.classList.contains("on-c2")).toBe(true);
     expect(el.classList.contains("on-c3") || el.classList.contains("on-s2")).toBe(false);
     syncSteps(el, TIMELINE.final);
-    for (const k of ["s1", "c1", "c2", "c3", "r1", "s2", "f2", "r2", "fin"]) expect(el.classList.contains(`on-${k}`)).toBe(true);
+    for (const k of ["s1", "c1", "c2", "c3", "r1", "s2", "f2", "r2"]) expect(el.classList.contains(`on-${k}`)).toBe(true);
   });
 
   it("the hero's sphere sits right of the copy on wide screens and above it on phones", () => {

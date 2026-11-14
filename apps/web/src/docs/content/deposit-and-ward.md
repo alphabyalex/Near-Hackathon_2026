@@ -17,7 +17,7 @@ WARD is a fungible token on NEAR (NEP-141), named "Wardline Mutual share", with 
 
 WARD's price is the USDC that belongs to WARD holders divided by the WARD in circulation. It started at 1 USDC. It rises as fees come in and falls only when a payout goes past Wardline's stake.
 
-When you deposit, you receive WARD at today's price. At a price of 1.0103 USDC, 25.00 USDC buys 24.74 WARD.
+When you deposit, you receive WARD at today's price. At a price of 1.0114 USDC, 25.00 USDC buys 24.72 WARD.
 
 ## Become a member
 

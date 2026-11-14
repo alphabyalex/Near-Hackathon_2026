@@ -4,7 +4,8 @@ import type { GroupSummary, TierRules } from "../../api/ai";
 import { Problem } from "../../components/Problem";
 import { getGroups } from "../../data/groups";
 import { GROUPS, ORBIT, REP } from "../../brand";
-import { feeText } from "../../components/TierBadge";
+import { feeText, TierBadge } from "../../components/TierBadge";
+import { useConnected } from "../../wallets/connected";
 import { formatUsdc } from "../../format";
 import { GroupsOrbit } from "../../v2/GroupsOrbit";
 
@@ -48,7 +49,40 @@ function Tiers({ tiers }: { tiers: TierRules }) {
   );
 }
 
+/**
+ * What a connected wallet sees when it controls a group's budget: a DAO's own account, or a solo builder's. Only the
+ * public owner account is matched; a group's members are never listed, so nothing is said about anyone else.
+ */
+function YourGroups({ account, groups }: { account: string; groups: GroupSummary[] }) {
+  const mine = groups.filter((g) => g.owner === account);
+  if (mine.length === 0) return null;
+  return (
+    <section className="sec your-groups" aria-labelledby="yours-title" data-testid="your-groups">
+      <div className="wrap">
+        <h2 className="yours-h" id="yours-title">
+          {GROUPS.yoursTitle(mine.length)}
+        </h2>
+        <ul className="yours-list">
+          {mine.map((g) => (
+            <li key={g.budget_id} data-budget={g.budget_id}>
+              <b>{g.name.replace(/\s*\(solo\)\s*$/i, "")}</b>
+              <span className="yours-tier">
+                <TierBadge tier={g.tier} /> <span className="num">{feeText(g.fee_bps)}</span>
+              </span>
+              <span className="yours-why">{GROUPS.yoursOwner(account)}</span>
+              <a className="link" href="#/app/group">
+                {GROUPS.yoursManage}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 export function Groups() {
+  const connected = useConnected();
   const [data, setData] = useState<{ groups: GroupSummary[]; tiers: TierRules } | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
@@ -69,6 +103,7 @@ export function Groups() {
   return (
     <main>
       <GroupsOrbit groups={data?.groups ?? null} status={status} />
+      {data && connected && <YourGroups account={connected.account} groups={data.groups} />}
       {data && (
         <section className="sec ob-after" aria-labelledby="tiers-title">
           <div className="wrap">

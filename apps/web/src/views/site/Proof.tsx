@@ -6,10 +6,8 @@ import { LineStats } from "../../components/LineStats";
 import { getProofs, type ProofRow } from "../../data/proofs";
 import { getGroups } from "../../data/groups";
 import { callWords, modelName } from "../../ai/words";
-import { CONNECT, PROOF } from "../../brand";
-import { CodeBlock } from "../../components/CodeBlock";
+import { PROOF } from "../../brand";
 import { Fingerprint } from "../../components/HorizonMark";
-import { SNIPPET_API_URL, SNIPPET_IS_PLACEHOLDER } from "../../config";
 import { percent, REDTEAM } from "../../redteam";
 import "./proof.css";
 
@@ -111,12 +109,6 @@ export const formatMs = (ms: number): string => `${ms < 1 ? Number(ms.toPrecisio
 
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-const SNIPPET = (apiUrl: string) => `import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: ${JSON.stringify(`${apiUrl}/v1/ai`)}, // the one line
-  apiKey: process.env.WARDLINE_METER_KEY,
-});`;
 
 function whatHappened(p: ProofRow): string {
   if (p.side === "above") return `${modelName(p.model_proven)} proven and paid`;
@@ -331,26 +323,17 @@ export function Proof() {
               <a className="btn" href="#/how-it-works">
                 {PROOF.primary}
               </a>
-              <a className="btn ghost" href="#/try">
-                {PROOF.secondary}
+              <a className="btn ghost" href="#/docs/quickstart">
+                {PROOF.build}
               </a>
             </div>
           </div>
-          <div className="snippet">
-            <p className="snippet-label">{PROOF.snippetLabel}</p>
-            <CodeBlock code={SNIPPET(SNIPPET_API_URL)} label="OpenAI client" language="js" />
-            <p className="fine">{PROOF.snippetNote}</p>
-            {SNIPPET_IS_PLACEHOLDER && <p className="fine" data-testid="snippet-placeholder">{CONNECT.placeholder}</p>}
-          </div>
-        </div>
-      </section>
-
-      <section className="sec tight" aria-label={PROOF.steps.map(([s]) => s).join(", ")}>
-        <div className="wrap">
-          <ol className="steps-row">
+          <ol className="pf-steps" aria-label={PROOF.stepsLabel}>
             {PROOF.steps.map(([name, line], i) => (
               <li key={name}>
-                <span className="step-n num">{i + 1}</span>
+                <span className="step-n num" aria-hidden="true">
+                  {i + 1}
+                </span>
                 <b>{name}</b>
                 <span>{line}</span>
               </li>

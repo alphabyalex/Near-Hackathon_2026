@@ -39,10 +39,9 @@ export const TIMELINE: {
   exit2: Pair;
   refused: Pair;
   refund: Pair;
-  closing: Pair;
 } = {
-  end: sec(9.4),
-  final: sec(9.2),
+  end: sec(8.8),
+  final: sec(8.6),
   line: sec(1),
   /** The words: a payment is introduced, passes each gate, and is paid. */
   caption1: [sec(0.9), sec(1.3)],
@@ -62,7 +61,6 @@ export const TIMELINE: {
   exit2: [sec(6.3), sec(7.1)],
   refused: [sec(7.1), sec(7.5)],
   refund: [sec(7.5), sec(8.5)],
-  closing: [sec(8.6), sec(9.2)],
 };
 
 interface Layout {
@@ -357,7 +355,6 @@ const STEPS: readonly [string, number][] = [
   ["s2", TIMELINE.caption2[0]],
   ["f2", TIMELINE.failed[0]],
   ["r2", TIMELINE.refused[0]],
-  ["fin", TIMELINE.closing[0]],
 ];
 export function syncSteps(el: HTMLElement, t: number): void {
   for (const [name, at] of STEPS) el.classList.toggle(`on-${name}`, t >= at);
@@ -445,9 +442,6 @@ export function Explainer({ id = "watch", headingLevel = 2 }: { id?: string; hea
           <div className="watch-visual">
             <Stage host={host} />
           </div>
-          <p className="watch-close" data-k="fin">
-            {EXPLAINER.closing}
-          </p>
         </div>
       </div>
     </section>
