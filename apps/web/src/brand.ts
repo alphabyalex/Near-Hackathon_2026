@@ -884,7 +884,6 @@ export const ERRORS = {
   noWeight: { title: "This wallet held no WARD when the proposal opened.", next: "You can vote on proposals that open after you join." },
   notEnoughWard: { title: "That's more WARD than this wallet holds free.", next: "Enter a smaller amount. WARD already locked for redemption can't be locked again." },
   alreadyExecuted: { title: "This proposal was already executed.", next: "The change is in effect." },
-  notWired: { title: "This view isn't connected to testnet data yet.", next: "Switch WARDLINE_DATA back to sim, or wait for the testnet routes." },
   notEnoughUsdc: { title: "Not enough USDC in this wallet for that deposit.", next: "Lower the amount, or get testnet USDC for this account from Circle's faucet (faucet.circle.com, NEAR testnet), then try again." },
   notEnoughNear: { title: "You need about 0.05 NEAR for network fees.", next: "Send a little testnet NEAR to this account (from another account or a testnet faucet), then try again." },
   walletTransaction: { title: "The Mutual takes real transactions, not signed messages.", next: "Connect a NEAR wallet and sign the transaction in it." },

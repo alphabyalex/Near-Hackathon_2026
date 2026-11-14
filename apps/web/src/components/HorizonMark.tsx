@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { fingerprintCells, HORIZON_COLORS, horizonDots, MARK, seededLight, type HorizonOptions } from "../brand/horizon";
+import { fingerprintCells, HORIZON_COLORS, horizonDots, MARK, type HorizonOptions } from "../brand/horizon";
 
 /** The Horizon mark from the shared generator. viewBox 0 0 220 220. */
 export function HorizonMark({ size, variant = "light", light, step, className, label }: { size: number; variant?: "light" | "ink"; light?: [number, number]; step?: number; className?: string; label?: string }) {
@@ -11,11 +11,6 @@ export function HorizonMark({ size, variant = "light", light, step, className, l
       ))}
     </svg>
   );
-}
-
-/** Each group's own horizon: the light angle comes from a hash of its budget id. */
-export function GroupHorizon({ id, size = 56 }: { id: string; size?: number }) {
-  return <HorizonMark size={size} light={seededLight(id)} step={20} className="group-horizon" />;
 }
 
 /**

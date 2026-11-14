@@ -12,11 +12,3 @@
 export type DataSource = "sim" | "testnet";
 
 export const DATA_SOURCE: DataSource = import.meta.env.VITE_WARDLINE_DATA === "testnet" ? "testnet" : "sim";
-
-/** A route the testnet data source will read, whose response shape is not documented yet. */
-export class NotWiredYet extends Error {
-  readonly code = "NOT_WIRED_YET";
-  constructor(readonly route: string) {
-    super(`${route} is not wired yet. Its response shape is still to come from T4.7.`);
-  }
-}

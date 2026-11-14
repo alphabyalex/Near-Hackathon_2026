@@ -92,29 +92,6 @@ export function ConnectDialog({ onClose, anchor }: { onClose: () => void; anchor
   return <WalletPanel onClose={onClose} {...(anchor !== undefined ? { anchor } : {})} />;
 }
 
-/** The header: "Connect wallet", or the connected account, which opens #/me. */
-export function ConnectWallet() {
-  const connected = useConnected();
-  const [open, setOpen] = useState(false);
-  const button = useRef<HTMLButtonElement>(null);
-  if (connected) {
-    return (
-      <a className="btn ghost sm acct-btn" href="#/me" data-testid="connect-wallet" aria-label={WALLET.yourShare(connected.account)}>
-        {connected.wallet === "local-signer" && <span className="local-badge">{WALLET.localBadge}</span>}
-        <span className="acct">{connected.account}</span>
-      </a>
-    );
-  }
-  return (
-    <>
-      <button ref={button} type="button" className="btn ghost sm" onClick={() => setOpen(true)} data-testid="connect-wallet" aria-haspopup="dialog" aria-expanded={open}>
-        {WALLET.connect}
-      </button>
-      {open && <ConnectDialog onClose={() => setOpen(false)} anchor={button.current} />}
-    </>
-  );
-}
-
 type JoinStep = { step: "form" } | { step: "approving"; usdc: string } | { step: "done"; ward: string; tx: string };
 
 const nearText = (yocto: bigint): string => (Number(yocto / 1_000_000_000_000_000_000n) / 1_000_000).toFixed(3);

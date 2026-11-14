@@ -9,4 +9,3 @@ export const percent = (rate: number): string => `${Math.round(rate * 1000) / 10
 export const engineLabel = (name: string): string => (name === "stub" ? "stub rules engine (@wardline/sdk)" : name === "live" ? "payee-check engine (@wardline/payee-check)" : name);
 
 export const firstContact = () => summary.comparisons.find((c) => c.variant === "first_contact") ?? null;
-export const onFile = () => summary.comparisons.find((c) => c.variant === "on_file") ?? null;

@@ -4,9 +4,8 @@
  * USDC (Deposit) and WARD (Request to sell), a quiet NEAR-for-fees line, the votes you can cast, and recent
  * transactions. #/me redirects here.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BALANCE, ME, SHARE } from "../../brand";
-import { HorizonMark } from "../../components/HorizonMark";
 import { PriceChart } from "../../components/PriceChart";
 import { Problem } from "../../components/Problem";
 import { ftBalance, spendableNear } from "../../data/chain";

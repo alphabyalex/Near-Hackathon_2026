@@ -89,8 +89,6 @@ export function defaultSimSeed(): SimChainSeed {
   };
 }
 
-const DAY = 86_400_000;
-
 /** More groups with a track record, for the live sim: the leaderboard, the Groups page and the home stats. */
 export const SIM_GROUPS = [
   { budget_id: "bgt_mission", name: "Mission Street hacker house", owner: "mission-house.sputnikv2.testnet", members: ["dana.testnet", "eli.testnet", "build-bot.testnet"] },

@@ -2,11 +2,9 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   GAS_ADMIN,
-  GAS_PAYMENT,
   ONE_YOCTO,
   PayeeRegistryClient,
   callFinal,
-  viewCall,
   type SignerHandle,
 } from "@wardline/vault-client";
 import {

@@ -236,7 +236,6 @@ export interface PoolPosition {
   joined_at?: string | null;
 }
 
-export const getPool = () => apiGet<{ mode: "sim" | "near"; contract: string; pool: PoolView; claims: ClaimView[] }>("/v1/pool");
 export const getPosition = (account: string) => apiGet<PoolPosition>(`/v1/pool/positions/${encodeURIComponent(account)}`);
 export type PoolRequest =
   | { account: string; action: "deposit" | "withdraw"; amount: string }

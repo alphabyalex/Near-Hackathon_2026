@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { KeyPair, actions, type KeyPairString } from "near-api-js";
+import type { VaultNetwork } from "@wardline/vault-client";
 import {
   CredentialStore,
   Deployer,
@@ -11,7 +12,6 @@ import {
   readWasm,
   sha256Hex,
   viewAccount,
-  type VaultNetwork,
 } from "./lib.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -255,22 +255,22 @@ async function main(): Promise<void> {
     agent: `agent.${rootId}`,
   };
 
-  const providerSigner = await deployer.ensureAccount(
+  await deployer.ensureAccount(
     demoAccounts.provider,
     root,
     500n * (NEAR / 1000n),
   );
-  const investor1Signer = await deployer.ensureAccount(
+  await deployer.ensureAccount(
     demoAccounts.investor1,
     root,
     500n * (NEAR / 1000n),
   );
-  const investor2Signer = await deployer.ensureAccount(
+  await deployer.ensureAccount(
     demoAccounts.investor2,
     root,
     500n * (NEAR / 1000n),
   );
-  const agentSigner = await deployer.ensureAccount(
+  await deployer.ensureAccount(
     demoAccounts.agent,
     root,
     500n * (NEAR / 1000n),

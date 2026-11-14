@@ -17,7 +17,6 @@ import {
   type AgentCaller,
   type BindingInput,
   type Capacities,
-  type EndpointRevisionView,
   type EndpointStatusView,
   type Origin,
   type PayableInput,

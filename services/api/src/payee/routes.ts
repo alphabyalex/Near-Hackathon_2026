@@ -1,7 +1,7 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { PayeeCheckRequest, PayeeResolveRequest } from "@wardline/schemas";
 import { canonicalJson } from "@wardline/agent";
-import { InvalidPayeeInputError, normalizeAccount, normalizeDomain, parseAccount, type RegistryVendor } from "@wardline/sdk";
+import { normalizeAccount, normalizeDomain, parseAccount, type RegistryVendor } from "@wardline/sdk";
 import type { Context, Hono } from "hono";
 import { apiKeyFrom, PAYMENT_RECORD_RECIPIENT, paymentRecordMessage, sha256Hex, SIGNED_REQUEST_WINDOW_MS, type OwnerAuthConfig } from "../auth.js";
 import { cors } from "hono/cors";

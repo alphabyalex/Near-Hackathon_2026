@@ -82,16 +82,6 @@ export function horizonDots(o: HorizonOptions): HorizonDot[] {
   return out;
 }
 
-/** Dot radius for a dot at (x, y) under a light, the same formula horizonDots uses. For the hero's drifting light. */
-export function shadeRadius(o: Pick<HorizonOptions, "cx" | "cy" | "R" | "step">, x: number, y: number, light: [number, number]): number {
-  const m = Math.hypot(light[0], light[1], 0.75);
-  const nx = (x - o.cx) / o.R,
-    ny = (y - o.cy) / o.R;
-  const q = Math.min(1, nx * nx + ny * ny);
-  const i = Math.max(0, (nx * light[0]) / m + (ny * light[1]) / m + (Math.sqrt(1 - q) * 0.75) / m);
-  return 0.4 + o.step * 0.47 * Math.pow(i, 0.85);
-}
-
 export const HORIZON_COLORS = {
   light: { top: "#F5F3F7", bottom: "#7B6CFF" },
   ink: { top: "#1A0F21", bottom: "#5B4BE0" },

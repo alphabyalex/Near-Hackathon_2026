@@ -99,8 +99,7 @@ export function stageFor(width: number): { layout: Layout; scale: number } {
   return { layout: NARROW, scale: Math.min(NARROW_MAX_SCALE, width / NARROW.w) };
 }
 
-const VIO = [123, 108, 255],
-  RED = [255, 92, 115],
+const RED = [255, 92, 115],
   WHITE = [245, 243, 247],
   VTXT = [165, 155, 255],
   GREY = [167, 157, 176];

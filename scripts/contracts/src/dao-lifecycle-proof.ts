@@ -1,6 +1,5 @@
 import { join } from "node:path";
-import { readFileSync } from "node:fs";
-import { actions, KeyPair } from "near-api-js";
+import { actions } from "near-api-js";
 import { makeProvider, makeSigner } from "@wardline/vault-client";
 import { CredentialStore, defaultSecretsDir, readWasm, Deployer } from "./lib.js";
 

@@ -11,7 +11,7 @@ import { useLiveHero, type LiveNumbers } from "../data/live";
 import { formatUsdc } from "../format";
 import { boxOf, frozenFrame, prefersReducedMotion, useCanvasAnimation } from "./motion";
 import { Rolling } from "./Rolling";
-import { BOTTOM, easeOut, fitCanvas, paintDots, sphereDots, TOP } from "./sphere";
+import { easeOut, fitCanvas, paintDots, sphereDots } from "./sphere";
 
 /** Every number in the hero's motion, in CSS pixels and seconds. Reference: a 1440 wide hero. */
 export const HERO_MOTION = {

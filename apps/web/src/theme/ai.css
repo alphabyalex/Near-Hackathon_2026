@@ -154,7 +154,6 @@
 .gcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .gcard{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card);padding:24px;display:flex;flex-direction:column;gap:18px;min-width:0}
 .gcard-head{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center}
-.group-horizon{display:block}
 .gcard h3{margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-0.025em}
 .gcard-head .acct{font-size:13px}
 .gfacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px;margin:0;padding-top:16px;border-top:1px solid var(--rule-2)}
@@ -297,7 +296,6 @@ td.mismatch{color:var(--red-text);font-weight:600}
   .steps-row{grid-template-columns:minmax(0,1fr)}
   .gfacts{grid-template-columns:repeat(2,minmax(0,1fr))}
   .gcard-head{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"mark name" "tier tier"}
-  .gcard-head .group-horizon{width:56px;height:56px}
   .gcard-head .tier-name{grid-column:2}
   .stage{padding:22px 18px}
   .board{min-width:0}
