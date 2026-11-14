@@ -75,8 +75,10 @@ test.describe("smoke", () => {
     for (const route of ["#/", "#/groups", "#/proof", "#/about"]) {
       await page.goto(`/${route}`);
       await page.waitForLoadState("networkidle");
-      const width = await page.locator("main .wrap:visible").first().evaluate((el) => el.getBoundingClientRect().width);
-      expect(width, `${route} column at 1920px`).toBeGreaterThan(1280);
+      // Pages load lazily and fade in, so wait for the column rather than reading it once.
+      await expect
+        .poll(() => page.evaluate(() => Math.max(0, ...[...document.querySelectorAll("main .wrap")].map((el) => el.getBoundingClientRect().width))), { message: `${route} column at 1920px` })
+        .toBeGreaterThan(1280);
     }
   });
 });
