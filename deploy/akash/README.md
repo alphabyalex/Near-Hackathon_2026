@@ -14,15 +14,17 @@ secrets, nothing to configure. The frontend then lives on Vercel and points at i
 
 ## The frontend on Vercel
 
-Import the repo in Vercel (root directory `.`; `vercel.json` sets the install and build commands), then add one
-environment variable and deploy:
+```sh
+deploy/vercel/deploy.sh https://<the backend's ingress host> [project name]
+```
 
-```
-VITE_WARDLINE_API_URL=https://<the backend's ingress host>
-```
+It builds the frontend with the backend's address baked in (`VITE_WARDLINE_API_URL`) and uploads only the static output.
+Do not import the repo into Vercel and point it at the root: Vercel reads this monorepo as two services (the Vite app
+and the Hono API) and rejects a repo-root `vercel.json`. If you want Git-based deploys instead, set the project's Root
+Directory to `apps/web` and set `VITE_WARDLINE_API_URL`; that route is untested.
 
 The backend answers HTTPS with a valid certificate and sends `Access-Control-Allow-Origin: *`, so the browser calls it
-directly. With the variable set, the docs' code samples also show the real API address instead of a placeholder.
+directly, and the docs' code samples show the real API address.
 
 ## Rebuild and redeploy
 
