@@ -1,10 +1,14 @@
 # Wardline
 
-Wardline is a credit union for the AI economy. Communities pool USDC on NEAR, earn yield by backing AI agents' payments, and vote together on the risks they take.
+Wardline is a credit union for the AI economy, built on NEAR. Communities pool USDC, back their AI agents' payments, and earn a fee on every payment that proves itself. A payment that can't prove itself is refused and refunded.
 
-Back the AI economy and earn from it: Wardline lets communities pool money, cover each other's AI agents, and earn yield from every payment those agents make safely. It has three layers:
+**Who it's for:** groups that run AI agents on a shared budget (a team, a hacker house, a DAO), anyone who wants to earn by backing them, and builders who want their agents to pay only for what they actually got.
 
-1. **The Mutual.** Anyone deposits USDC and gets WARD, their share of the pool. WARD holders earn 2% of every proven AI payment. If a Wardline approval was wrong, Wardline's own stake pays first, then WARD holders. WARD holders vote on payouts, fees and which models are covered.
+**Fastest way to see it working:** `pnpm install && pnpm build`, start the offline providers and the API (step 2), then `pnpm demo:plugin`: one AI call, paid only after its NEAR AI TEE signature checks out. No keys, accounts or `.env`. Then `pnpm --filter @wardline/web dev` for the app.
+
+It has three layers:
+
+1. **The Mutual.** Anyone deposits USDC and gets WARD, their share of the pool. WARD holders earn 2% of every proven AI payment. If a Wardline approval was wrong, Wardline's own stake pays first, then WARD holders. WARD holders vote on tier fees, coverage and the sell wait.
 2. **Groups.** A team, hacker house or DAO funds a shared AI budget from its own Sputnik DAO or Trezu treasury. Members get allowances. Groups with a clean record move up reputation tiers (Bronze, Silver, Gold) and pay lower fees (2%, 1.5%, 1%) for more coverage.
 3. **The proof engine** (why the yield is safe). A call is paid only to the right party, for the model you actually got (NEAR AI TEE signatures), up to a hard cap. Agents plug in by changing one line, the OpenAI client's base URL.
 
@@ -16,9 +20,9 @@ Nothing is hosted right now: run Wardline on your own machine (below). The web a
 
 Hosted links live in `repo.config.json` (`hosted`), empty while nothing is hosted; `pnpm test` fails if this file, `llms.txt`, `SKILL.md` or `services/mcp/server.json` disagree with it.
 
-## Try it in 5 minutes
+## Try it in about 10 minutes
 
-Needs git, Node 20.19 or later and pnpm 12 (`corepack enable` gives you pnpm). Commands are for a POSIX shell; on Windows use Git Bash. No keys, accounts or `.env` are needed: AI calls replay real NEAR AI Cloud traffic recorded in `fixtures/nearai`, and contracts run as simulations (sim mode). Nothing here calls NEAR AI or sends a transaction.
+Needs git, Node 20.19 or later and pnpm 12 (`corepack enable` gives you pnpm). Most of the time is `pnpm install` (about 3 minutes with a warm pnpm cache, longer on a first install); steps 2 to 10 take about a minute together. Commands are for a POSIX shell; on Windows use Git Bash. No keys, accounts or `.env` are needed: AI calls replay real NEAR AI Cloud traffic recorded in `fixtures/nearai`, and contracts run as simulations (sim mode). Nothing here calls NEAR AI or sends a transaction.
 
 ### 1. Install and build
 
@@ -213,11 +217,11 @@ Do:
 
 ```sh
 pnpm test
-pnpm --filter @wardline/web exec playwright install chromium firefox webkit
+pnpm --filter @wardline/web exec playwright install chromium webkit
 pnpm test:e2e
 ```
 
-See: the brand guard and the secrets guard (11 checks) and every package's tests pass, then the Playwright suite passes in Chromium (and its iPhone project): the Mutual home, Your balance, Join the Mutual, WARD voting, Groups and each group's page, the docs, all seven demo scenes, the error states, a keyboard-only walk, and axe accessibility checks at desktop and 390px. `pnpm --filter @wardline/web test:e2e:chromium` runs Chromium only. The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
+See: the brand guard and the secrets guard (11 checks) and every package's tests pass (about a minute), then the Playwright suite passes in Chromium and its iPhone (WebKit) project (about 4 minutes): the Mutual home, Your balance, Join the Mutual, WARD voting, Groups and each group's page, the docs, all seven demo scenes, the error states, a keyboard-only walk, and axe accessibility checks at desktop and 390px. `pnpm --filter @wardline/web test:e2e:chromium` runs Chromium only; `test:e2e:all` adds Firefox and desktop WebKit (install `firefox` too). The contracts have their own Rust tests: `cd contracts && cargo test --workspace` (needs Rust; Linux, macOS or WSL).
 
 ### The web app
 
@@ -239,14 +243,40 @@ Everything above runs offline. Each live variant needs its own environment varia
 | Read the testnet deployment | nothing | `pnpm testnet:check` makes view calls only: pool, budgets, attested models, WARD balances |
 | NEAR testnet | `WARDLINE_CHAIN_MODE=near`, `WARDLINE_GATEWAY_ACCOUNT`, `WARDLINE_GATEWAY_KEY` (a function-call key for `reserve`, `settle`, `release` on the meter), `WARDLINE_PROVIDER_PAY_TO` | Contract ids come from `repo.config.json`; override with `WARDLINE_METER_CONTRACT`, `WARDLINE_MODEL_REGISTRY_CONTRACT`, `WARDLINE_COVER_POOL_CONTRACT`. `WARDLINE_PROVIDER_PAY_TO` receives the provider's share of each settled call, so the fee moves to the pool as USDC. `WARDLINE_DEMO_METER_KEY` is refused in this mode |
 | Payee registry on testnet | `WARDLINE_REGISTRY_MODE=near` | `/v1/check` and `/v1/resolve` read `payee-registry.wardline-labs.testnet`. `WARDLINE_REGISTRY_MODE=near pnpm payee:seed` attests the seeded vendors as the attestor |
-| Testnet data in the web app | `WARDLINE_DATA=testnet` (web), with the API in near mode | Home, Groups, Latest proofs and Your balance (#/wallet) read `/v1/activity`, `/v1/activity/stats`, `/v1/communities` and `/v1/people`. The footer says NEAR testnet. Off unless set; a failing route shows an error, never sim numbers |
+| Testnet data in the web app | `WARDLINE_DATA=testnet` (web), with the API in near mode | Home, Groups, Latest proofs and Your balance (#/wallet) read `/v1/activity`, `/v1/activity/stats`, `/v1/communities` and `/v1/people`. The wallet picker shows NEAR testnet. Off unless set; a failing route shows an error, never sim numbers |
 | Local test signer | `WARDLINE_LOCAL_SIGNER=1` (API) and `VITE_WARDLINE_LOCAL_SIGNER=1` (web dev server) | The browser acts as a testnet cast account from your credential store: Join, vote, execute, redeem. Both refuse to start unless bound to 127.0.0.1 and on testnet, and a production build refuses it |
 | Several RPC endpoints | `WARDLINE_NEAR_RPC_URL=url1,url2,...` | Each request fails over to the next on an error or a rate limit |
 | A DEX for WARD | `WARDLINE_WARD_TRADE_URL` | Shows "Trade WARD" next to the price |
 
 ## Run it on testnet
 
-Needs the keys in `%USERPROFILE%.wardline	estnetcredentials.json` (or `~/.wardline/testnet`) and the gateway key and `NEAR_AI_API_KEY` in `.env`. `pnpm testnet:preflight` checks every key against the chain and prints public keys only. In PowerShell:
+### Read the live testnet deployment (anyone, no keys)
+
+These read the real contracts under `wardline-labs.testnet`; nothing is signed or sent.
+
+```sh
+pnpm testnet:check
+```
+
+See: the pool, every group budget, the attested models, the reputation tiers and the WARD proposals, read with view calls.
+
+Then the app on live testnet data, read-only. Terminal A:
+
+```sh
+WARDLINE_CHAIN_MODE=near WARDLINE_REGISTRY_MODE=near WARDLINE_API_PORT=8787 pnpm --filter @wardline/api start
+```
+
+Terminal B:
+
+```sh
+WARDLINE_DATA=testnet WARDLINE_DEV_API=http://127.0.0.1:8787 pnpm --filter @wardline/web dev
+```
+
+See: the Mutual, Groups, Proof engine and each group's page show live testnet numbers, with every row linking to its transaction on testnet.nearblocks.io. To act (deposit, vote), connect your own NEAR testnet wallet with Connect wallet; every action is then a real transaction from that wallet. AI calls through the gateway need a `NEAR_AI_API_KEY`.
+
+### Run the team's stack (needs the team's keys)
+
+This part needs keys only the Wardline team holds: the cast accounts in `%USERPROFILE%\.wardline\testnet\credentials.json` (or `~/.wardline/testnet`), the gateway key and `NEAR_AI_API_KEY` in `.env`. Without them, use the read-only path above. `pnpm testnet:preflight` checks every key against the chain and prints public keys only. In PowerShell:
 
 ```powershell
 # 1. The API in near mode, with the local test signer (127.0.0.1 only)
@@ -284,7 +314,7 @@ The Mission Street hacker house, Nightshade DAO, Hayes Valley house, Aurora Lab 
 - Mission Street funds its budget from its own Sputnik DAO by council proposal and vote. The other four fund theirs from a treasury account.
 - Every number on the site comes from a contract view, and every row links to its transaction on testnet.nearblocks.io. `data/testnet/activity.jsonl` holds the rows; `pnpm testnet:audit` re-checks each one (hash, signer, contract method and result, block) and the API serves only rows that passed.
 
-Numbers at the last audit (Nov 10, 15:30 UTC; `pnpm testnet:audit` re-derives them from the chain):
+Numbers at the Nov 10, 15:30 UTC audit (`pnpm testnet:audit` re-derives them from the chain). The log has since grown to 225 rows, all matched by the Nov 11 audit (`data/testnet/audit.json`):
 
 | | |
 |---|---|
@@ -297,6 +327,15 @@ Numbers at the last audit (Nov 10, 15:30 UTC; `pnpm testnet:audit` re-derives th
 | Claims | One, 0.02 USDC for Aurora Lab, paid from Wardline's first-loss stake (WARD unchanged) |
 
 A scheduled task (`scripts/testnet/scheduled-run.ps1`) adds a small batch every 6 hours until Nov 13, 20:00 UTC. When the audit after it passes, it commits only `data/testnet/` to main as `chore(testnet): scheduled batch <UTC time>`, so these numbers grow in git.
+
+## Built on NEAR
+
+- **WARD**, a NEP-141 token minted by the cover pool contract: your share of the Mutual.
+- **Contracts on testnet** under `wardline-labs.testnet`: `meter` (group budgets, allowances, reserve, settle, release, reputation tiers), `model-registry` (which TEE signer is attested for which model), `pool` (the Mutual: first-loss stake, WARD, claims, WARD-holder votes), `payee-registry` and `vault`.
+- **NEAR AI Cloud signed inference**: every AI call is paid only when its `provider_tee` signature names the model asked for.
+- **Sputnik DAO v2**: groups fund their budgets by council proposal and vote (`mission-dao.wardline-labs.testnet` on testnet).
+- **NEAR Connect** (`@hot-labs/near-connect`): Meteor, Intear, Nightly and other wallets sign every Mutual action.
+- **Circle USDC on NEAR** (testnet `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`): deposits, AI spend and fees.
 
 ## How it works
 
@@ -312,7 +351,7 @@ flowchart LR
     G -->|proven: settle| B
     B -->|fee by tier: 2%, 1.5%, 1%| M
     B -->|clean record| T[Reputation tier]
-    W[WARD holders] -->|vote: fees, coverage, models, payouts| M
+    W[WARD holders] -->|vote: tier fees, coverage, sell wait| M
     M -->|wrong approval: our stake first, then WARD| DAO
 ```
 
@@ -347,6 +386,7 @@ flowchart LR
 | Track | Why |
 | --- | --- |
 | `social` Social Money (lead) | Shared AI budgets funded from a group's own Sputnik or Trezu treasury, programmable rewards (2% of every proven payment to WARD holders), collective ownership of the Mutual through WARD, and reputation-based access: clean groups pay less and get more coverage |
+| `agents` Agent Economy | Agents pay for AI calls and vendors on their own, within budgets and allowances, paid only on proof (NEAR AI TEE signatures), with the payee check before a vendor is paid and the x402 guard checking each offer's `payTo` |
 | `privacy` Privacy & Private AI | Pays only for responses signed inside NEAR AI's TEEs, re-verifying each signature against attested signers before money moves |
 | `business` Autonomous Business | Agents get metered budgets, allowances and a payee check, so they pay for models and vendors without a human on every call |
 | `realworld` Real-World Money | Circle USDC for deposits, model spend and invoice payments; vendors verify their payout accounts on their own domain |
@@ -357,7 +397,7 @@ flowchart LR
 | Path | What |
 | --- | --- |
 | `services/api` | Gateway (`/v1/ai`), the Mutual (`/v1/mutual`, `/v1/pool`, `/v1/mutual/proposals`), groups and tiers (`/v1/groups`, `/v1/reputation/:budget`), payee check (`/v1/check`, `/v1/resolve`), demo scenes |
-| `apps/web` | The Mutual home, Groups, Proof engine, Demo, Connect and the owner app |
+| `apps/web` | The site: Mutual (home), Groups (and each group at `#/groups/<id>`), Proof engine and About in the nav; Docs at `#/docs` (`#/developers` and `#/connect` redirect there); Your balance at `#/wallet`; the owner app at `#/app` |
 | `packages/sdk` | `@wardline/sdk`: `openai()`, `getCall`, `verifyProof`, payee checks |
 | `packages/dao-adapter` | Sputnik DAO v2 proposals for group budgets, allowances, providers, payout changes and claims |
 | `services/mcp` | MCP server for agents |
@@ -373,7 +413,7 @@ Docs: [docs/DAO.md](docs/DAO.md) (governance), [docs/PAYEE_SHIELD.md](docs/PAYEE
 
 - No pre-hackathon code: the first commit is 2026-11-03.
 - Most code was written with Claude Code, directed and reviewed by the team.
-- Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@hot-labs/near-connect`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`; for brand assets `@resvg/resvg-js` (MPL-2.0, dev only) and `png-to-ico`. Font: Geist (SIL OFL 1.1), self-hosted.
+- Main libraries: `near-api-js`, `near-sdk` (Rust), `viem`, `@noble/curves`, `hono`, `better-sqlite3`, `zod`, `react`, `vite`, `@hot-labs/near-connect`, `@modelcontextprotocol/sdk`, `openai`, `vitest`, `@playwright/test`; for brand assets `@resvg/resvg-js` (MPL-2.0, dev only) and `png-to-ico`. Fonts: Geist, and Azeret Mono for code (both SIL OFL 1.1), self-hosted.
 - External services: NEAR AI Cloud, Circle USDC on NEAR, NEAR RPC (FastNear, QuickNode optional), Sputnik DAO.
 - The full list with licenses: [docs/DISCLOSURES.md](docs/DISCLOSURES.md). To report a vulnerability: [SECURITY.md](SECURITY.md).
 
