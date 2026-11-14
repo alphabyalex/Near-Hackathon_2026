@@ -23,6 +23,14 @@ signers.*.json
 .near-credentials/
 .wardline/
 *.secret
+# Key archives and the local test signer's files, wherever they land.
+*key*.zip
+*keys*.zip
+*secret*.zip
+*credential*.zip
+*wallet*.zip
+local-signer*.json
+local-signer*.txt
 fixtures/private/
 evidence/local-ai-proofs/
 services/agent/logs/
