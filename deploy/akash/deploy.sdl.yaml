@@ -1,0 +1,35 @@
+# The Wardline backend on Akash: the API plus its demo AI providers, in the default simulation mode.
+# No secrets live here or in the image. Replace the tag with the one you pushed.
+version: "2.0"
+services:
+  backend:
+    image: tharunekam/wardline-api:4591f5f-b
+    env:
+      # Akash injects <SERVICE>_PORT variables; this one wins over any that collide.
+      - WARDLINE_API_PORT=8787
+    expose:
+      - port: 8787
+        as: 80
+        to:
+          - global: true
+profiles:
+  compute:
+    backend:
+      resources:
+        cpu:
+          units: 1
+        memory:
+          size: 2Gi
+        storage:
+          size: 5Gi
+  placement:
+    dcloud:
+      pricing:
+        backend:
+          denom: uact
+          amount: 300
+deployment:
+  backend:
+    dcloud:
+      profile: backend
+      count: 1

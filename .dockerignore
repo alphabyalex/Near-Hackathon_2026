@@ -1,0 +1,16 @@
+.git
+**/node_modules
+**/dist
+**/test-results
+**/playwright-report
+.env
+.env.*
+!.env.example
+contracts
+docs
+evidence/local
+evidence/local-ai-proofs
+apps/web/screenshots
+services/agent/logs
+fixtures/private
+*.sqlite*
