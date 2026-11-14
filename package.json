@@ -10,7 +10,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter \"@wardline/api^...\" build && concurrently -n api,web \"pnpm --filter @wardline/api dev\" \"pnpm --filter @wardline/web dev\"",
-    "test": "node --test tests/brand.test.mjs && pnpm -r build && pnpm -r test",
+    "test": "node --test tests/brand.test.mjs tests/secrets.test.mjs && pnpm -r build && pnpm -r test",
     "eval:dev": "pnpm --filter @wardline/evaluator eval:dev",
     "eval:assessment": "pnpm --filter @wardline/evaluator eval:assessment",
     "verify:evidence": "pnpm --filter @wardline/evaluator verify:evidence",
@@ -18,6 +18,7 @@
     "payee:seed": "tsx scripts/seed-payees.ts",
     "demo:x402-swap": "tsx scripts/demo-x402-swap.ts",
     "test:brand": "node --test tests/brand.test.mjs",
+    "test:secrets": "node --test tests/secrets.test.mjs",
     "test:e2e": "pnpm --filter @wardline/web test:e2e",
     "rebrand": "node scripts/rebrand-wardline.mjs",
     "demo:leaked-key": "tsx scripts/demo-leaked-key.ts",
