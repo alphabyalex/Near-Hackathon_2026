@@ -104,7 +104,7 @@ const PoolChallenge = z.union([
 type PoolRequest = z.infer<typeof PoolChallenge>;
 const BudgetId = z.string().regex(/^[a-z0-9_]{3,64}$/);
 const ProposalId = z.coerce.number().int().min(0).max(1_000_000);
-const ProofsQuery = z.object({ limit: z.coerce.number().int().min(1).max(50).default(12) });
+const ProofsQuery = z.object({ limit: z.coerce.number().int().min(1).max(50).default(12), budget: z.string().regex(/^bgt_[a-z0-9_]{1,60}$/).optional() });
 const badParam = (what: string) => ({ error: "BAD_REQUEST", message: `Not a valid ${what}.` });
 const PoolSigned = z.object({ nonce: z.string(), publicKey: z.string(), signature: z.string() });
 const MeterKeyBody = z.object({ budget_id: z.string().min(1).default(GROUP_BUDGET), member: z.string().min(2).max(64), label: z.string().max(60).optional(), models: z.array(z.string()).min(1).optional() });
@@ -181,11 +181,13 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
 
   // The latest metered calls, without members, keys or content: what happened, for which group, and which side of the line.
   app.get("/v1/proofs", async (c) => {
-    const query = ProofsQuery.safeParse({ limit: c.req.query("limit") ?? undefined });
-    if (!query.success) return c.json(badParam("limit (1 to 50)"), 400);
+    const query = ProofsQuery.safeParse({ limit: c.req.query("limit") ?? undefined, budget: c.req.query("budget") ?? undefined });
+    if (!query.success) return c.json(badParam("limit (1 to 50) or budget"), 400);
     const limit = query.data.limit;
+    // One group's calls: the same rows, kept to a budget.
+    const only = query.data.budget;
     const names = new Map((await chain.reputation.listReputations()).map((r) => [r.budget_id, r.name]));
-    const calls = deps.ai.meter.listCalls(undefined, limit);
+    const calls = deps.ai.meter.listCalls(only, limit);
     const proofs = calls.map((x) => ({
       call_id: x.callId,
       budget_id: x.budgetId,
@@ -203,7 +205,7 @@ export function registerAiPublicRoutes(app: Hono<never>, deps: Deps): void {
     }));
     // In sim mode the feed is never empty: the live seed's groups' recent calls follow any real ones.
     if (chain.mode === "sim") {
-      for (const s of SIM_SEED_PROOFS.slice(0, Math.max(0, limit - proofs.length))) {
+      for (const s of SIM_SEED_PROOFS.filter((r) => !only || r.budget_id === only).slice(0, Math.max(0, limit - proofs.length))) {
         const { minutes_ago, ...row } = s;
         proofs.push({ ...row, tx: null, group: names.get(row.budget_id) ?? row.budget_id, side: row.status === "verified" ? "above" : "below", created_at: new Date(nowMs() - minutes_ago * 60_000).toISOString() });
       }

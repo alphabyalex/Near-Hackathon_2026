@@ -170,8 +170,8 @@ test("8: groups show real tiers, proven calls and fees, and an explorer link for
   await expect(detail).toHaveAttribute("data-tier", /^(gold|silver|bronze)$/);
   await expect(detail.locator(".ob-stats")).toContainText(/Gold|Silver|Bronze/);
   await expect(detail.locator(".ob-stats dd").first()).toHaveText(/^\d[\d,]*$/);
-  // The orbit's panel links the group's account on the explorer (it no longer links one transaction).
-  await expect(page.locator(".ob-open")).toHaveAttribute("href", /testnet\.nearblocks\.io\/address\//);
+  // The orbit's panel opens the group's own page, which links the account on the explorer.
+  await expect(page.locator(".ob-open")).toHaveAttribute("href", /^#\/groups\/bgt_/);
   await page.getByRole("button", { name: "Next group" }).click();
   await expect(page.locator(".ob-counter")).toHaveText(/^2 of \d+$/);
   await shot(page, "groups");

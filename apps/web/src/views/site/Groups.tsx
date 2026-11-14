@@ -6,6 +6,8 @@ import { getGroups } from "../../data/groups";
 import { GROUPS, ORBIT, REP } from "../../brand";
 import { feeText, TierBadge } from "../../components/TierBadge";
 import { useConnected } from "../../wallets/connected";
+import { useRoute } from "../../router";
+import { GroupDetail, GroupMissing } from "./GroupDetail";
 import { formatUsdc } from "../../format";
 import { GroupsOrbit } from "../../v2/GroupsOrbit";
 
@@ -82,7 +84,10 @@ function YourGroups({ account, groups }: { account: string; groups: GroupSummary
 }
 
 export function Groups() {
+  const route = useRoute();
   const connected = useConnected();
+  // #/groups/<budget id> is that group's own page.
+  const wanted = route.kind === "site" ? route.section : undefined;
   const [data, setData] = useState<{ groups: GroupSummary[]; tiers: TierRules } | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
@@ -99,6 +104,12 @@ export function Groups() {
         {ORBIT.loading}
       </p>
     ) : null;
+
+  if (wanted) {
+    const group = data?.groups.find((g) => g.budget_id === wanted);
+    if (group) return <GroupDetail group={group} />;
+    if (data) return <GroupMissing />;
+  }
 
   return (
     <main>

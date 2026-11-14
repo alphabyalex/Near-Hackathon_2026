@@ -100,7 +100,9 @@ export function Leaderboard({ groups, limit, compact = false }: { groups: GroupS
                 <span className="rank" aria-hidden="true">
                   {i + 1}
                 </span>
-                <b className="board-name">{g.name}</b>
+                <a className="board-name" href={`#/groups/${encodeURIComponent(g.budget_id)}`}>
+                  {g.name}
+                </a>
               </td>
               <td>
                 <TierBadge tier={g.tier} />

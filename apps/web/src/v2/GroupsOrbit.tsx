@@ -12,7 +12,6 @@ import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type MouseE
 import type { GroupSummary } from "../api/ai";
 import { ORBIT, REP } from "../brand";
 import { feeText } from "../components/TierBadge";
-import { NEAR_NETWORK } from "../config";
 import { boxOf, frozenFrame, useCanvasAnimation } from "./motion";
 import { clamp01, easeOut, fitCanvas, groupSphere, LIGHT, paintDots, sphereDots, type Tier } from "./sphere";
 
@@ -330,8 +329,6 @@ function paint(ctx: CanvasRenderingContext2D, frame: OrbitFrame, bodies: Body[],
   }
 }
 
-const explorerAddress = (account: string): string => `https://${NEAR_NETWORK === "mainnet" ? "" : "testnet."}nearblocks.io/address/${encodeURIComponent(account)}`;
-
 function Panel({ e }: { e: OrbitEntry }) {
   const top = e.nextAt === null;
   const nextTier = e.tier === "bronze" ? REP.names.silver : REP.names.gold;
@@ -571,9 +568,9 @@ export function GroupsOrbit({ groups, status }: { groups: GroupSummary[] | null;
                 <Chevron d="M9 6l6 6-6 6" />
               </button>
               {current && (
-                <a className="ob-open" href={explorerAddress(current.owner)} target="_blank" rel="noreferrer">
+                <a className="ob-open" href={`#/groups/${encodeURIComponent(current.id)}`}>
                   {ORBIT.open}
-                  <span className="sr-only">, {ORBIT.openRest(current.name)}</span>
+                  <span className="sr-only">, {current.name}</span>
                 </a>
               )}
             </div>

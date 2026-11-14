@@ -107,10 +107,9 @@ export function scamCatchRate(r: Pick<typeof REDTEAM, "cases" | "headline"> = RE
 /** Milliseconds as read aloud: 0.027 stays "0.027 ms", 12.34 becomes "12.3 ms". */
 export const formatMs = (ms: number): string => `${ms < 1 ? Number(ms.toPrecision(2)) : Math.round(ms * 10) / 10} ms`;
 
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+export const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-
-function whatHappened(p: ProofRow): string {
+export function whatHappened(p: ProofRow): string {
   if (p.side === "above") return `${modelName(p.model_proven)} proven and paid`;
   return callWords(p.reason) || p.status;
 }

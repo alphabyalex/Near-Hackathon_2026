@@ -261,7 +261,7 @@ export interface ProofRow {
   created_at: string;
   tx?: string | null;
 }
-export const getProofs = (limit = 12) => apiGet<{ mode: "sim" | "near"; proofs: ProofRow[] }>(`/v1/proofs?limit=${limit}`);
+export const getProofs = (limit = 12, budget?: string) => apiGet<{ mode: "sim" | "near"; proofs: ProofRow[] }>(`/v1/proofs?limit=${limit}${budget ? `&budget=${encodeURIComponent(budget)}` : ""}`);
 export const getMutual = () => apiGet<MutualSummary>("/v1/mutual");
 export const getGroups = () => apiGet<{ mode: "sim" | "near"; groups: GroupSummary[]; tiers: TierRules }>("/v1/groups");
 export const getVoteWeight = (id: number, account: string) => apiGet<{ weight: string }>(`/v1/mutual/proposals/${id}/weight/${encodeURIComponent(account)}`);

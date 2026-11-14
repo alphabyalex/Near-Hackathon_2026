@@ -232,6 +232,16 @@ describe("near mode wiring", () => {
 });
 
 describe("below the line counts and the proofs feed", () => {
+  it("GET /v1/proofs?budget= keeps one group's calls, and nobody else's", async () => {
+    nowMs = START;
+    const app = createApp(bootstrap(":memory:", () => BigInt(nowMs) * 1_000_000n, {}, LOCAL_AUTH, { env: { WARDLINE_CHAIN_MODE: "sim" } }));
+    const all = (await (await app.request("/v1/proofs?limit=50")).json()) as { proofs: { budget_id: string }[] };
+    expect(new Set(all.proofs.map((p) => p.budget_id)).size).toBeGreaterThan(2);
+    const mine = (await (await app.request("/v1/proofs?limit=50&budget=bgt_hayes")).json()) as { proofs: { budget_id: string; group: string }[] };
+    expect(mine.proofs.length).toBeGreaterThan(0);
+    expect(mine.proofs.every((p) => p.budget_id === "bgt_hayes" && p.group === "Hayes Valley house")).toBe(true);
+  });
+
   it("a reservation stopped at an allowance or the deposit counts as capped for the group", async () => {
     const { c } = chain();
     const r = await c.meter.reserve({ budget_id: GROUP_BUDGET, member: "alice.testnet", call_id: "call_big", model_id: "m", max_amount: W(6) });

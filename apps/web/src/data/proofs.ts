@@ -10,9 +10,9 @@ export type { ProofRow } from "../api/ai";
  * sim: /v1/proofs. testnet: the audited call rows from /v1/activity, each a transaction on NEAR testnet.
  * An empty feed stays empty and a failure is shown as one; neither is filled from the simulation.
  */
-export async function getProofs(limit = 12): Promise<{ mode: "sim" | "near"; proofs: ProofRow[] }> {
-  if (DATA_SOURCE !== "testnet") return fetchProofs(limit);
-  const res = await apiGet<{ activity: Array<ActivityItem & { actor: string; community: string; model: string | null; outcome: string; reason: string | null }> }>(`/v1/activity?kind=call&limit=${limit}`);
+export async function getProofs(limit = 12, budget?: string): Promise<{ mode: "sim" | "near"; proofs: ProofRow[] }> {
+  if (DATA_SOURCE !== "testnet") return fetchProofs(limit, budget);
+  const res = await apiGet<{ activity: Array<ActivityItem & { actor: string; community: string; model: string | null; outcome: string; reason: string | null }> }>(`/v1/activity?kind=call&limit=${limit}${budget ? `&community=${encodeURIComponent(budget)}` : ""}`);
   const proofs: ProofRow[] = res.activity.map((a) => ({
     call_id: a.tx ?? "",
     budget_id: a.community,

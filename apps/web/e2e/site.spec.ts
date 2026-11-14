@@ -197,6 +197,43 @@ test.describe("public site", () => {
     await expect(page.getByTestId("leaderboard").locator("tbody tr").filter({ hasText: "(solo)" })).toHaveCount(0);
   });
 
+  test("a group's own page: its record, its budget and its recent calls, with the explorer one click further", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#/groups");
+    await page.locator(".ob-open").click();
+    await expect(page).toHaveURL(/#\/groups\/bgt_mission$/);
+    const g = page.getByTestId("group-page");
+    await expect(g.getByRole("heading", { level: 1 })).toHaveText("Mission Street hacker house");
+    await expect(g).toContainText("Gold");
+    await expect(g).toContainText("3 members");
+    await expect(g.getByRole("link", { name: "Treasury on the NEAR explorer" })).toHaveAttribute("href", /nearblocks\.io\/address\/mission-house/);
+    // The record and the budget, each number with its label.
+    await expect(g.locator(".gd-stats div").filter({ hasText: "Proven calls" }).locator("dd")).toHaveText("412");
+    await expect(g.locator(".gd-stats div").filter({ hasText: "Fee on each proven call" }).locator("dd")).toHaveText("1.00%");
+    await expect(g.locator(".gd-rows div").filter({ hasText: "Spent" }).locator("dd")).toContainText("USDC");
+    await expect(g.locator(".gd-rows div").filter({ hasText: "Allowances reset" }).locator("dd")).toHaveText("every week");
+    // Its own calls, and only its own.
+    const calls = g.getByTestId("group-calls").locator("li");
+    await expect(calls.first()).toBeVisible();
+    expect(await calls.count()).toBeGreaterThan(0);
+    // Back to the orbit.
+    await g.getByRole("link", { name: "All groups" }).click();
+    await expect(page).toHaveURL(/#\/groups$/);
+    await expect(page.getByTestId("group-detail")).toBeVisible();
+    // A solo builder reads as one, and a group that is not covered says so instead of showing a blank page.
+    await page.goto("/#/groups/bgt_ind_ivan");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ivan");
+    await expect(page.getByTestId("group-page")).toContainText("Solo builder");
+    await page.goto("/#/groups/bgt_nope");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("That group isn't here");
+    await expect(page.getByRole("link", { name: "All groups" })).toHaveAttribute("href", "#/groups");
+    // Home's leaderboard links each group to its page.
+    await page.goto("about:blank");
+    await page.goto("/#/");
+    await page.getByTestId("leaderboard").getByRole("link", { name: "Mission Street hacker house" }).click();
+    await expect(page).toHaveURL(/#\/groups\/bgt_mission$/);
+  });
+
   test("hero: the final frame under reduced motion; otherwise the entrance, then a slow drift that stops off screen", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#/");
@@ -483,7 +520,7 @@ test.describe("public site", () => {
     await expect(detail).toHaveAttribute("data-tier", "gold");
     await expect(detail).toContainText("Mission Street hacker house");
     await expect(detail).toContainText("Top tier reached");
-    await expect(page.locator(".ob-open")).toHaveAttribute("href", /nearblocks\.io\/address\//);
+    await expect(page.locator(".ob-open")).toHaveAttribute("href", "#/groups/bgt_mission");
     const missionCalls = await proven();
     await bringToFront("bgt_kelp");
     await expect(detail).toHaveAttribute("data-tier", "bronze");

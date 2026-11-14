@@ -70,6 +70,9 @@ describe("limits", () => {
     expect((await app.request("/v1/mutual/proposals/-1/execute", { method: "POST" })).status).toBe(400);
     expect((await app.request("/v1/proofs?limit=500")).status).toBe(400);
     expect((await app.request("/v1/proofs?limit=50")).status).toBe(200);
+    // The budget filter takes a budget id and nothing else.
+    expect((await app.request("/v1/proofs?budget=..%2Fetc")).status).toBe(400);
+    expect((await app.request("/v1/proofs?budget=bgt_mission")).status).toBe(200);
     expect((await app.request("/v1/demo/nope", { method: "POST" })).status).toBe(404);
   });
 });
