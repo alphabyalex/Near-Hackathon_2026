@@ -586,6 +586,8 @@ export const ABOUT = {
   /** Why it exists, short (V). Each later idea appears once: the seven steps explain the rest. */
   why: ["Agents now pay for models, data and vendors without a person in the loop. Nothing checks that what they paid for is what they got, or that the payee is who it claims to be."],
   watch: "Watch a payment cross the line",
+  docs: "Read the docs",
+  trustMore: "Every verdict and reason is in the docs.",
   exampleTitle: "A real decision: a payout the proof engine stopped",
   exampleLede: "An invoice arrives with a note telling the agent to pay a different account. The payee check compares that account with the one the vendor's domain links to.",
   trustTitle: "What each trust level verifies, and what it does not.",

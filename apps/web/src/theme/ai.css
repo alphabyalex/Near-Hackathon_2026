@@ -484,3 +484,4 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .gd-top{padding-bottom:0}
 .gd-body{padding-top:64px}
 .gd-recent{padding-top:24px}
+.about-links{display:flex;flex-wrap:wrap;gap:12px 28px}

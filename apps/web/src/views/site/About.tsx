@@ -17,9 +17,12 @@ export function About() {
               <p key={line}>{line}</p>
             ))}
           </div>
-          <p>
+          <p className="about-links">
             <a className="link" href="#/mutual/watch">
               {ABOUT.watch}
+            </a>
+            <a className="link" href="#/docs">
+              {ABOUT.docs}
             </a>
           </p>
         </div>
@@ -52,7 +55,9 @@ export function About() {
               </tbody>
             </table>
           </div>
-          <p className="engine-note">{ABOUT.trustNote}</p>
+          <p className="engine-note">
+            {ABOUT.trustNote} <a className="link" href="#/docs/payee-checks">{ABOUT.trustMore}</a>
+          </p>
         </div>
       </section>
 
