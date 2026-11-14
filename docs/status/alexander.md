@@ -1,5 +1,65 @@
 # Status: alexander
 
+## A23: Tharun merged, judge run from a clean clone, shipped to main (2026-11-14)
+
+**Merge**
+- origin/main had nothing new since A22 (`8acf28b`).
+- origin/tharun had 20 commits, all built on A22, so the merge was a fast-forward with no conflicts:
+  - API caching and concurrency, and a sell-wait (`SetWithdrawDelay`) governance action in the cover pool;
+  - archival RPC for the audit;
+  - a landing-page redesign on top of A21/A22;
+  - a page for each group and a docs site at `#/docs` (`#/developers` and `#/connect` redirect there);
+  - a secrets guard and `.gitignore`;
+  - dead-code removal and a README refresh.
+- It was merged because it is finished work: in a separate checkout outside OneDrive, `pnpm install` and the full `pnpm test` pass (web 189, API 258). The A21/A22 pieces are all still there (Sheen, line layouts, orbit, Joined control, Balance in dollars).
+
+**Secrets audit (all branches, full history): clean**
+- gitleaks 8.18.4: 380 hits, all the generic rule on public values (the Circle USDC contract id `3e2210e1…` and content hashes). None are secrets.
+- Pattern scans with extended regex, sanity-checked against a known match: no NEAR secret keys (the long `ed25519:` values are transaction signatures and validator approvals in a recorded RPC response), no `sk-` keys, no API keys with values, no seed phrases, no private key blocks.
+- No `.env` or key file was ever committed; only `.env.example`, with placeholders.
+- `.gitignore` now also covers key archives and local-signer files. The secrets guard passes 4/4.
+
+**Judge run** (fresh clone in `%USERPROFILE%\.wardline\judge-run`, Git Bash, no keys, `OPENAI_API_KEY` unset)
+
+| Step | Before | After |
+| --- | --- | --- |
+| 1 Install and build | PASS (install 3m19s, build 14s) | PASS |
+| 2 Providers and API | PASS, output matches | PASS |
+| 3 Plug-in call | PASS | PASS |
+| 4 Swapped model | PASS | PASS |
+| 5 Leaked key | PASS | PASS |
+| 6 Look-alike payout | PASS (PAY with receipt, then BLOCK LOOKALIKE_ACCOUNT) | PASS |
+| 7 Mutual | PASS | PASS |
+| 8 Vote | PASS | PASS |
+| 9 Tier | PASS | PASS |
+| 10 Scam-test numbers | PASS | PASS |
+| 11 Tests | `pnpm test` PASS (67s). FAIL on the README's claim: `test:e2e` ran four browsers while the README promised Chromium and iPhone | `test:e2e` now runs Chromium and iPhone (`test:e2e:all` for the rest): 81/81 in 3m34s |
+| Web app | PASS | PASS |
+| Run it on testnet | FAIL for outsiders: it needs our keys, and the credentials path was garbled | A plain read-only path that needs no keys (`testnet:check`, the API in near mode, the app on testnet data), verified; the team-keys part says so |
+| Title | "5 minutes" was not true | "about 10 minutes"; install is most of it |
+
+Total: about 13 minutes of wall clock from clone to the end of e2e. Steps 1 to 10 take about 5 minutes on a warm pnpm cache.
+
+**Pressure test** (testnet data, keyless near-mode API, Playwright)
+- Home, Groups, Proof engine, About, Docs, Your balance, Try and Verify at 1440, 390 and 1920: no console errors or failed requests, no NaN, undefined or [object Object], no blank sections, and every link resolves.
+- All five redirects land right.
+- The picker lists Meteor, Intear, Nightly and Ledger with logos; the account menu and Disconnect work.
+- The wheel scrolls over the orbit, stage, feed and code panels.
+- No 390px overflow, and 1920 uses the wide column.
+- The only item: refused and capped proofs show "0.00 USDC", which is correct because nothing moved.
+- New `e2e/smoke.spec.ts` covers this list with the stub API.
+
+**README and disclosures**
+- Top lines now say what it is, who it is for and the fastest path.
+- Honest time; step 11 fixed.
+- Read-only testnet path; garbled credentials path fixed.
+- WARD votes are described as tier fees, coverage and the sell wait (also in the diagram).
+- `agents` track added (`social` stays lead).
+- New "Built on NEAR" list.
+- Current routes; footer note fixed.
+- Azeret Mono added to the fonts. DISCLOSURES regenerated: NEAR Connect in, the unused wallet selector out.
+- Not hosted: `repo.config.json` hosted is empty, so the local path stays.
+
 ## A22: Balance in dollars, the earned fix, shipped to main (2026-11-12)
 
 **Cause of the wrong "Earned since joining"**
