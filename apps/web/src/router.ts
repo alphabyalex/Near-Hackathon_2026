@@ -100,13 +100,19 @@ function fromLocation(): void {
 }
 
 function subscribe(notify: () => void): () => void {
+  // The window listeners are shared: added for the first subscriber, removed with the last. (Adding and removing
+  // them per subscriber meant one page unmounting silenced the address bar and the back button for every other.)
+  if (subscribers.size === 0) {
+    window.addEventListener("hashchange", fromLocation);
+    window.addEventListener("popstate", fromLocation);
+  }
   subscribers.add(notify);
-  window.addEventListener("hashchange", fromLocation);
-  window.addEventListener("popstate", fromLocation);
   return () => {
     subscribers.delete(notify);
-    window.removeEventListener("hashchange", fromLocation);
-    window.removeEventListener("popstate", fromLocation);
+    if (subscribers.size === 0) {
+      window.removeEventListener("hashchange", fromLocation);
+      window.removeEventListener("popstate", fromLocation);
+    }
   };
 }
 

@@ -270,6 +270,22 @@ describe("source rules", () => {
   });
 });
 
+describe("the router", () => {
+  it("keeps hearing the address bar after one page that reads the route goes away", async () => {
+    const { useRoute } = await import("../src/router");
+    const { renderHook, act } = await import("@testing-library/react");
+    const keeper = renderHook(() => useRoute());
+    const leaver = renderHook(() => useRoute());
+    leaver.unmount();
+    await act(async () => {
+      window.history.replaceState(null, "", "#/docs/governance");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(keeper.result.current).toEqual({ kind: "site", page: "docs", doc: "governance" });
+    keeper.unmount();
+  });
+});
+
 describe("moved routes", () => {
   it("send #/connect and #/developers to the Quickstart in the docs", async () => {
     const { redirected, parseRoute } = await import("../src/router");
