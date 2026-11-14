@@ -265,20 +265,6 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .spend-tip{position:absolute;top:0;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--rule-strong);color:var(--text);padding:8px 10px;border-radius:10px;font-size:13px;line-height:1.35;display:flex;flex-direction:column;pointer-events:none;white-space:nowrap}
 .spend-tip b{font-weight:600}
 
-/* Owner: My share */
-.share{display:flex;flex-direction:column;gap:24px}
-.share-top{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:stretch}
-.share-bottom{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:start}
-.value-card{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-card-lg);padding:28px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.value-card>*{position:relative;z-index:1}
-.value-card .value-horizon{position:absolute;right:-60px;top:-60px;opacity:.14;z-index:0;pointer-events:none}
-.vc-label{font-size:14px;color:var(--muted)}
-.vc-value{font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1.05}
-.vc-facts{display:grid;gap:12px;margin:18px 0 0}
-.vc-facts dt{font-size:13px;color:var(--muted)}
-.vc-facts dd{margin:3px 0 0;font-size:16px;font-weight:600}
-.vc-facts small{color:var(--muted);font-weight:400;margin-left:6px}
-.vc-note{margin:12px 0 0;color:var(--muted);font-size:15px}
 .price-chart{position:relative;margin:0;padding-right:56px}
 .price-chart svg{display:block;width:100%;height:auto;overflow:visible}
 .pc-launch{stroke:var(--rule-strong);stroke-width:1.5;stroke-dasharray:5 5}
@@ -288,18 +274,9 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .pc-dot{fill:var(--violet);stroke:var(--surface);stroke-width:2}
 .pc-labels span{position:absolute;right:0;transform:translateY(-50%);font-size:13px;color:var(--muted)}
 .pc-labels .pc-latest{color:var(--violet-text);font-weight:600}
-.sources{margin:0;padding:8px 22px 16px;list-style:none}
-.sources li{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule-2);font-size:14px;color:var(--text-2)}
-.sources li:last-child{border-bottom:none}
-.sources li small{display:block;color:var(--muted);font-size:15px;margin-top:2px}
-.sources li.below .num{color:var(--red-text)}
-.vote-panel .prop{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "what" "bar" "facts" "act" "msg"}
-.vote-panel .prop-act,.vote-panel .prop-tx{justify-content:flex-start;text-align:left}
-.vote-panel .prop-act small{text-align:left}
 
 @media (max-width:1080px){
   .prop{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"top top" "what what" "bar bar" "facts act" "msg msg"}
-  .share-top,.share-bottom{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:980px){
   .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -368,7 +345,6 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .home-skel{height:420px}
 .groups-skel{height:560px;margin-top:40px}
 .proofs-skel{height:360px}
-.skel-card.value-card{min-height:360px}
 .skel-card.tall{min-height:360px}
 
 /* Explorer links: small, quiet, never a pill */
@@ -381,7 +357,6 @@ td.mismatch{color:var(--red-text);font-weight:600}
 .me-empty p{margin:0;font-size:20px;font-weight:600;letter-spacing:-0.02em}
 .me-body{display:flex;flex-direction:column;gap:24px}
 .me-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:stretch}
-.me-grid .value-card .btn{align-self:flex-start;margin-top:14px}
 .me-redeem h2{margin:0 0 6px;font-size:18px;font-weight:700}
 .me-list{margin:0;padding:0;list-style:none}
 .me-list li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 20px;padding:14px 0;border-bottom:1px solid var(--rule-2);font-size:15px;color:var(--text-2)}

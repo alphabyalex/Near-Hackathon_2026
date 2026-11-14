@@ -119,3 +119,7 @@ A fact gets one home, and every other page links to it. On the home page the 2% 
 ## The demo data
 
 The default run is a simulation seeded to match the testnet cast (`scripts/testnet/cast.json`): five groups (Mission Street, Nightshade, Hayes Valley, Aurora Lab and Kelp, with the Kelp claim), six solo builders across all three tiers, three liquidity providers and a WARD price that climbs over two weeks. Solo builders are on the orbit and never in "Safest groups", and the "groups covered" count excludes them. Public routes name DAOs and counts and never list a group's members; the Groups page recognises a wallet only when it is a group's public owner account.
+
+## One home for a thing
+
+Your share lives on the Balance page only. The owner app used to carry a second copy as a "My share" tab (value, price chart, the same votes); it is gone, and `#/app/share` goes to Balance. The same rule applies to a group: the orbit is the overview and `#/groups/<id>` is the one page for a group, so the explorer link, the record and the recent calls are not repeated on the orbit.

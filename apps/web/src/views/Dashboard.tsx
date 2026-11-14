@@ -17,12 +17,10 @@ import { Invoices } from "./Invoices";
 import { Overview } from "./Overview";
 import { ApiKeys } from "./owner/ApiKeys";
 import { ReviewDesk } from "./owner/ReviewDesk";
-import { Share } from "./owner/Share";
 import { SignIn } from "./owner/SignIn";
 
 const TABS: readonly { tab: DashboardTab; label: string }[] = [
   { tab: "overview", label: OWNER.tabs.overview },
-  { tab: "share", label: OWNER.tabs.share },
   { tab: "group", label: OWNER.tabs.group },
   { tab: "invoices", label: OWNER.tabs.invoices },
   { tab: "review", label: OWNER.tabs.review },
@@ -181,10 +179,9 @@ export function Dashboard({ tab, invoice, session, onSignOut }: { tab: Dashboard
               {pauseError}
             </p>
           )}
-          {tab === "share" && <Share account={session.account} version={version} />}
-          {tab !== "share" && overview.error && <LoadError message={overview.error} />}
-          {tab !== "share" && !overview.error && !data && <Loading />}
-          {tab !== "share" && data && (
+          {overview.error && <LoadError message={overview.error} />}
+          {!overview.error && !data && <Loading />}
+          {data && (
             <>
               <div className="apphead">
                 <div>

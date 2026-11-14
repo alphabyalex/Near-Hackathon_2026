@@ -28,7 +28,7 @@ export function SpendChart({ series, label }: { series: SpendPoint[]; label: str
   return (
     <figure className="spend-chart">
       <div className="spend-plot">
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} preserveAspectRatio="none">
+        <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={label} preserveAspectRatio="none">
           <line x1="0" x2={W} y1={H - PAD_B} y2={H - PAD_B} className="axis" />
           {series.map((p, i) => {
             const h = values[i]! === 0 ? 0 : Math.max(2, (values[i]! / max) * plotH);
@@ -42,6 +42,7 @@ export function SpendChart({ series, label }: { series: SpendPoint[]; label: str
                   width={slot}
                   height={H}
                   className="hit"
+                  role="img"
                   tabIndex={0}
                   aria-label={`${p.day}: ${formatUsdc(p.spent)} USDC, ${p.verified} verified, ${p.refused} refused`}
                   onMouseEnter={() => setActive(i)}

@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
 export type SitePage = "home" | "wallet" | "groups" | "proof" | "try" | "docs" | "verify" | "about" | "vault" | "scoring";
-export type DashboardTab = "overview" | "share" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
+export type DashboardTab = "overview" | "group" | "invoices" | "review" | "keys" | "evaluation" | "controls";
 export type Route = { kind: "site"; page: SitePage; /** A section to scroll to, from #/<page>/<section>. */ section?: string; /** A docs page, from #/docs/<doc>. */ doc?: string; /** A heading on that page, from #/docs/<doc>/<anchor>. */ anchor?: string } | { kind: "app"; tab: DashboardTab; invoice: string | null };
 
 const SITE_PAGES: readonly string[] = ["wallet", "groups", "proof", "try", "docs", "verify", "about", "vault", "scoring"];
 /**
  * Old routes that moved. Links to them land on the new page, and the address bar shows the new route.
  * Your share (#/me) became the Balance page; How it works (and #/demo before it) became the steps on About; the
- * Developers page (#/developers, #/connect) became the Quickstart in the docs.
+ * Developers page (#/developers, #/connect) became the Quickstart in the docs; the owner app's My share tab (#/app/share)
+ * is the Balance page.
  */
 const MOVED: Record<string, string> = { connect: "docs/quickstart", developers: "docs/quickstart", me: "wallet", "how-it-works": "about/steps", demo: "about/steps" };
 
 /** "#/connect" becomes "#/docs/quickstart", "#/me" becomes "#/wallet"; anything else is unchanged. */
 export function redirected(hash: string): string {
+  // The owner app's My share tab was the Balance page again: one home for it.
+  if (/^#\/app\/share(\/|$)/.test(hash)) return "#/wallet";
   const [first, ...rest] = hash.replace(/^#\/?/, "").split("/");
   const to = first ? MOVED[first] : undefined;
   return to ? `#/${[to, ...rest].join("/")}` : hash;
 }
-const TABS: readonly string[] = ["overview", "share", "group", "invoices", "review", "keys", "evaluation", "controls"];
+const TABS: readonly string[] = ["overview", "group", "invoices", "review", "keys", "evaluation", "controls"];
 
 function decode(part: string | undefined): string | null {
   if (!part) return null;

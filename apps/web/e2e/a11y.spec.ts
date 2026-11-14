@@ -115,9 +115,14 @@ test.describe("text alternatives and dialogs", () => {
     await expect(page.getByRole("img", { name: /A sphere of dots cut by one line/ })).toBeVisible();
     await page.goto("/#/proof");
     await expect(page.getByTestId("proofs").getByRole("img", { name: /^Call [0-9a-f]{8}, (above|below) the line$/ }).first()).toBeVisible();
-    await page.goto("/#/app/share");
-    const { signInAs } = await import("./fixtures");
-    await signInAs(page, wallets, OWNER_ACCOUNT);
+    // The WARD price chart, on the balance page of a member.
+    wallets.setNearAccount(OWNER_ACCOUNT);
+    await page.goto("/#/wallet");
+    await page.getByTestId("connect-wallet").click();
+    const dlg = page.getByTestId("connect-dialog");
+    await dlg.getByLabel("NEAR account").fill(OWNER_ACCOUNT);
+    await dlg.locator('[data-wallet="test-wallet"]').click();
+    await dlg.getByRole("button", { name: "Use this wallet" }).click();
     await expect(page.getByTestId("price-chart").getByRole("img", { name: /WARD price since launch: [0-9.]+ to [0-9.]+ USDC/ })).toBeVisible();
   });
 

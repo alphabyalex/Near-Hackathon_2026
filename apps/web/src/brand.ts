@@ -219,23 +219,10 @@ export const WALLET = {
   localBadge: "Local test signer",
 } as const;
 
-/** The owner app's My share tab. */
+/** The WARD price chart's captions, on the Balance page. */
 export const SHARE = {
-  title: "My share",
-  value: "Value today",
-  held: "WARD held",
-  price: "WARD price",
   chart: "WARD price since launch",
   chartNote: "Above the dashed line WARD is worth more than at launch; below it, a payout went past our stake.",
-  latest: "Latest",
-  launch: "Launch, 1.0000",
-  sources: "Where your share came from",
-  sourcesLede: "Every change in WARD's price, oldest first.",
-  events: { launch: "Launch at 1.0000 USDC", deposit: "Deposit, price unchanged", fees: "Fees from proven payments", claim: "Payout", redeem: "Redemption, price unchanged", first_loss: "Wardline added to its first-loss stake, price unchanged" },
-  feesRun: (n: number) => `Fees from ${n} proven payments`,
-  coveredByUs: (usdc: string) => `Our stake paid ${usdc} USDC first`,
-  coveredByWard: (usdc: string) => `WARD holders covered ${usdc} USDC`,
-  none: "This account holds no WARD yet.",
 } as const;
 
 /** The proof engine page. */
@@ -609,7 +596,6 @@ export const OWNER = {
   signOut: "Sign out",
   tabs: {
     overview: "Overview",
-    share: "My share",
     group: "Group",
     invoices: "Invoices",
     review: "Review Desk",

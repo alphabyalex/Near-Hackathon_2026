@@ -214,14 +214,6 @@ const SHOTS: Shot[] = [
     },
   },
   {
-    name: "my-share",
-    path: "#/app/share",
-    prepare: async (page, wallets) => {
-      await signInAs(page, wallets, OWNER_ACCOUNT);
-      await expect(page.getByTestId("price-chart")).toBeVisible();
-    },
-  },
-  {
     name: "owner-group",
     path: "#/app/group",
     prepare: async (page, wallets) => {

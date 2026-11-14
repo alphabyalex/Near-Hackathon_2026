@@ -292,6 +292,8 @@ describe("moved routes", () => {
     expect(redirected("#/connect")).toBe("#/docs/quickstart");
     expect(redirected("#/developers")).toBe("#/docs/quickstart");
     expect(redirected("#/groups")).toBe("#/groups");
+    expect(redirected("#/app/share")).toBe("#/wallet");
+    expect(redirected("#/app/overview")).toBe("#/app/overview");
     expect(parseRoute(redirected("#/connect"))).toEqual({ kind: "site", page: "docs", doc: "quickstart" });
   });
 });

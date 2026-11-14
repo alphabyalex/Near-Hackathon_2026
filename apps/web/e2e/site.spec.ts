@@ -871,21 +871,12 @@ test.describe("owner app", () => {
     await expectNoHorizontalScroll(page);
   });
 
-  test("my share: the value card, the WARD price chart against launch, where the share came from, and voting", async ({ page, wallets }) => {
+  test("the owner app has no My share tab: that is the balance page, and the old address goes there", async ({ page, wallets }) => {
     await page.goto("/#/app/share");
+    await expect(page).toHaveURL(/#\/wallet$/);
+    await page.goto("/#/app/overview");
     await signInAs(page, wallets, OWNER_ACCOUNT);
-    const share = page.getByTestId("my-share");
-    await expect(share.locator(".vc-value")).toContainText("USDC");
-    await expect(share).toContainText(OWNER_ACCOUNT);
-    const chart = page.getByTestId("price-chart");
-    await expect(chart.locator(".pc-launch")).toHaveCount(1);
-    await expect(chart.locator(".pc-above")).toHaveAttribute("clip-path", /#above-/);
-    await expect(chart.locator(".pc-below")).toHaveAttribute("clip-path", /#below-/);
-    await expect(chart.locator(".pc-dot")).toHaveCount(1);
-    await expect(share.locator(".sources li").first()).toContainText("Launch at 1.0000 USDC");
-    await expect(share.locator('.sources li[data-event="claim"]')).toContainText("Our stake paid 1.50 USDC first");
-    await expect(share.getByTestId("governance")).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Dashboard" }).getByRole("link", { name: "My share" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("navigation", { name: "Dashboard" }).getByRole("link", { name: "My share" })).toHaveCount(0);
     await expectAccessible(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoHorizontalScroll(page);

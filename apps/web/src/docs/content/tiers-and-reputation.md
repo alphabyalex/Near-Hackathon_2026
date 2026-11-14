@@ -34,7 +34,7 @@ The meter answers `get_reputation` for a budget with:
 | `fee_bps` | The cover fee in basis points (200, 150 or 100) |
 | `coverage_cap` | The most the pool will cover for the group, in USDC |
 
-`list_reputations` returns every group. The [Safest groups](#/) list on the home page ranks groups with at least 10 proven calls, since a shorter record is too little to rank.
+`list_reputations` returns every group. On the [Groups](#/groups) page, **Open group** shows one group's whole record, its budget and its recent calls. The [Safest groups](#/) list on the home page ranks groups with at least 10 proven calls, since a shorter record is too little to rank.
 
 ## Why it works this way
 
